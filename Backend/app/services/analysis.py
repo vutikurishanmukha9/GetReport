@@ -1,20 +1,3 @@
-"""
-analysis.py
------------
-Comprehensive statistical analysis engine for GetReport.
-Performs descriptive stats, correlation, outlier detection (IQR),
-and categorical distribution on any uploaded dataset.
-
-All original logic is preserved. Enhanced with:
-    - Strict input validation & edge-case handling
-    - Granular, structured logging at every stage
-    - Full type hints & detailed docstrings
-    - Performance optimizations (cached lengths, single-pass loops)
-    - Richer output: metadata, strong correlations, percentage distributions,
-      outlier indices/values, and per-column data-quality flags
-    - Specific, recoverable exceptions instead of a single generic raise
-"""
-
 from __future__ import annotations
 
 import logging

@@ -1,24 +1,3 @@
-"""
-insights.py
------------
-AI-powered insight generation engine for GetReport.
-
-Sends the full analysis output (stats, correlations, outliers, categorical
-distributions, quality flags) to OpenAI and receives professionally written,
-natural-language insights for inclusion in the final PDF report.
-
-All original logic is preserved. Enhanced with:
-    - Input validation on every field before the API is touched
-    - Richer, structured prompt that feeds ALL analysis outputs (not just summary)
-    - Retry logic with exponential backoff for transient API failures
-    - Granular exception handling (RateLimit, Auth, Connection, Timeout)
-    - Token usage tracking and response-time measurement
-    - Structured InsightResult dataclass instead of a raw string
-    - Response content validation before returning
-    - Configurable timeout so the call never hangs indefinitely
-    - Detailed logging at every stage
-"""
-
 from __future__ import annotations
 
 import asyncio
