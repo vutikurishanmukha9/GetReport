@@ -3,6 +3,7 @@ import { Upload, FileSpreadsheet, AlertCircle, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import type { DatasetInfo } from "@/pages/Index";
 
 interface FileUploadProps {
@@ -103,7 +104,12 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <motion.div 
+      className="max-w-2xl mx-auto"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+    >
       <Card className="border-2 border-dashed transition-colors duration-200 hover:border-primary/50">
         <CardContent className="p-0">
           <div
@@ -120,94 +126,139 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
             onDrop={handleDrop}
           >
             {/* Upload Icon */}
-            <div className={`
-              mx-auto mb-4 sm:mb-6 flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 items-center justify-center 
-              rounded-full transition-all duration-200
-              ${isDragging ? "bg-primary/20 scale-110" : "bg-muted"}
-            `}>
-              {isProcessing ? (
-                <div className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              ) : selectedFile ? (
-                <FileSpreadsheet className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />
-              ) : (
-                <Upload className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-muted-foreground" />
-              )}
-            </div>
+            <motion.div 
+              className={`
+                mx-auto mb-4 sm:mb-6 flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 items-center justify-center 
+                rounded-full transition-all duration-200
+                ${isDragging ? "bg-primary/20" : "bg-muted"}
+              `}
+              animate={{ scale: isDragging ? 1.1 : 1 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <AnimatePresence mode="wait">
+                {isProcessing ? (
+                  <motion.div 
+                    key="processing"
+                    initial={{ opacity: 0, rotate: 0 }}
+                    animate={{ opacity: 1, rotate: 360 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ rotate: { repeat: Infinity, duration: 1, ease: "linear" } }}
+                    className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 rounded-full border-2 border-primary border-t-transparent" 
+                  />
+                ) : selectedFile ? (
+                  <motion.div
+                    key="file"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                  >
+                    <FileSpreadsheet className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="upload"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <Upload className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-muted-foreground" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Text Content */}
-            {selectedFile ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-center gap-2 text-sm sm:text-base">
-                  <span className="font-medium truncate max-w-[200px] sm:max-w-[300px]">
-                    {selectedFile.name}
-                  </span>
-                  {!isProcessing && (
-                    <button 
-                      onClick={clearFile}
-                      className="p-1 hover:bg-muted rounded-full transition-colors"
-                    >
-                      <X className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                  )}
-                </div>
-                {isProcessing && (
-                  <p className="text-sm text-muted-foreground">Processing your file...</p>
-                )}
-              </div>
-            ) : (
-              <>
-                <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-2">
-                  {isDragging ? "Drop your file here" : "Upload your dataset"}
-                </h3>
-                <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-4">
-                  Drag and drop your CSV or Excel file, or click to browse
-                </p>
-
-                {/* Browse Button */}
-                <label className="inline-block">
-                  <input
-                    type="file"
-                    accept=".csv,.xlsx,.xls"
-                    onChange={handleFileSelect}
-                    className="sr-only"
-                  />
-                  <Button asChild variant="default" size="lg" className="cursor-pointer">
-                    <span className="text-sm sm:text-base">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Browse Files
+            <AnimatePresence mode="wait">
+              {selectedFile ? (
+                <motion.div 
+                  key="selected"
+                  className="space-y-2"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <div className="flex items-center justify-center gap-2 text-sm sm:text-base">
+                    <span className="font-medium truncate max-w-[200px] sm:max-w-[300px]">
+                      {selectedFile.name}
                     </span>
-                  </Button>
-                </label>
+                    {!isProcessing && (
+                      <button 
+                        onClick={clearFile}
+                        className="p-1 hover:bg-muted rounded-full transition-colors"
+                      >
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
+                  {isProcessing && (
+                    <p className="text-sm text-muted-foreground">Processing your file...</p>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-2">
+                    {isDragging ? "Drop your file here" : "Upload your dataset"}
+                  </h3>
+                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-4">
+                    Drag and drop your CSV or Excel file, or click to browse
+                  </p>
 
-                {/* Supported formats */}
-                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6 text-xs sm:text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
-                    <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    CSV
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
-                    <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    XLSX
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
-                    <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    XLS
-                  </span>
-                </div>
-              </>
-            )}
+                  {/* Browse Button */}
+                  <label className="inline-block">
+                    <input
+                      type="file"
+                      accept=".csv,.xlsx,.xls"
+                      onChange={handleFileSelect}
+                      className="sr-only"
+                    />
+                    <Button asChild variant="default" size="lg" className="cursor-pointer">
+                      <span className="text-sm sm:text-base">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Browse Files
+                      </span>
+                    </Button>
+                  </label>
+
+                  {/* Supported formats */}
+                  <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6 text-xs sm:text-sm text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
+                      <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      CSV
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
+                      <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      XLSX
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
+                      <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      XLS
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </CardContent>
       </Card>
 
       {/* Info Note */}
-      <div className="flex items-start gap-2 sm:gap-3 mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg bg-muted/50 text-xs sm:text-sm text-muted-foreground">
+      <motion.div 
+        className="flex items-start gap-2 sm:gap-3 mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg bg-muted/50 text-xs sm:text-sm text-muted-foreground"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+      >
         <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5" />
         <p>
           Your data is processed securely. Files are not stored permanently and are 
           automatically deleted after report generation.
         </p>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
