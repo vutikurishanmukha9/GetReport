@@ -7,6 +7,8 @@ import {
   SheetTrigger,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { motion } from "framer-motion";
 
 interface HeaderProps {
   onReset: () => void;
@@ -38,16 +40,24 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
             <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               How it Works
             </a>
+            <ThemeToggle />
             {showReset && (
-              <Button variant="outline" size="sm" onClick={onReset} className="gap-2">
-                <RotateCcw className="h-4 w-4" />
-                Start Over
-              </Button>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Button variant="outline" size="sm" onClick={onReset} className="gap-2">
+                  <RotateCcw className="h-4 w-4" />
+                  Start Over
+                </Button>
+              </motion.div>
             )}
           </nav>
 
           {/* Mobile Menu */}
           <div className="flex md:hidden items-center gap-2">
+            <ThemeToggle />
             {showReset && (
               <Button variant="ghost" size="icon" onClick={onReset} className="h-9 w-9">
                 <RotateCcw className="h-4 w-4" />
