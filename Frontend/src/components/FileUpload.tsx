@@ -4,12 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import type { DatasetInfo } from "@/pages/Index";
-import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import type { ApiResponse } from "@/types/api";
+import { api } from "@/services/api";
 
 interface FileUploadProps {
-  onFileUploaded: (info: DatasetInfo) => void;
+  onFileUploaded: (data: ApiResponse) => void;
 }
 
 export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
@@ -51,81 +50,39 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     return true;
   };
 
-  /* Helper to infer data types */
-  const inferType = (values: any[]): string => {
-    const validValues = values.filter(v => v !== null && v !== undefined && v !== "");
-    if (validValues.length === 0) return "string";
-
-    const isNumber = validValues.every(v => !isNaN(Number(v)));
-    if (isNumber) return "number";
-
-    const isDate = validValues.every(v => !isNaN(Date.parse(String(v))));
-    if (isDate) return "date";
-
-    return "string";
-  };
-
   const processFile = async (file: File) => {
     setIsProcessing(true);
     setSelectedFile(file);
 
     try {
-      let data: any[] = [];
-
-      if (file.name.endsWith(".csv")) {
-        // Parse CSV
-        await new Promise<void>((resolve, reject) => {
-          Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-              data = results.data;
-              resolve();
-            },
-            error: (error) => reject(error),
-          });
-        });
-      } else {
-        // Parse Excel
-        const arrayBuffer = await file.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        data = XLSX.utils.sheet_to_json(worksheet);
-      }
-
-      if (data.length === 0) {
-        throw new Error("No data found in file");
-      }
-
-      const columns = Object.keys(data[0]);
-      const dataTypes: Record<string, string> = {};
-
-      columns.forEach(col => {
-        const columnValues = data.slice(0, 100).map(row => row[col]);
-        dataTypes[col] = inferType(columnValues);
+      toast({
+        title: "Processing File...",
+        description: "Uploading, cleaning, and analyzing your data. This may take a moment...",
       });
 
-      const datasetInfo: DatasetInfo = {
-        fileName: file.name,
-        rows: data.length,
-        columns: columns,
-        preview: data.slice(0, 10), // Preview first 10 rows
-        dataTypes: dataTypes,
-      };
+      const response = await api.uploadFile(file);
 
-      onFileUploaded(datasetInfo);
+      onFileUploaded(response);
 
       toast({
-        title: "File processed successfully",
-        description: `Loaded ${data.length} rows and ${columns.length} columns`,
+        title: "Analysis Complete!",
+        description: `Successfully analyzed ${response.info.rows} rows and ${response.info.columns.length} columns.`,
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing file:", error);
+      let errorMessage = "Could not process the file.";
+
+      if (error.response?.data?.detail) {
+        // Backend error (e.g., validation failed)
+        errorMessage = error.response.data.detail;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
-        title: "Error processing file",
-        description: "Could not parse the file. Please ensure it's a valid CSV or Excel file.",
+        title: "Processing Failed",
+        description: errorMessage,
         variant: "destructive",
       });
       setSelectedFile(null);

@@ -1,251 +1,186 @@
 import { useState, useEffect } from "react";
-import { 
-  CheckCircle2, 
-  Download, 
-  RotateCcw, 
-  Sparkles,
-  FileText,
-  BarChart3,
-  TrendingUp,
-  PieChart
-} from "lucide-react";
+import { CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight, AlertTriangle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import type { AppStep, DatasetInfo } from "@/pages/Index";
+import type { AppStep } from "@/pages/Index";
+import type { AnalysisResult, Charts, InsightResult } from "@/types/api";
+import { api } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReportGenerationProps {
   step: AppStep;
-  datasetInfo: DatasetInfo;
+  filename: string;
+  analysis: AnalysisResult;
+  charts: Charts;
+  insights: InsightResult;
+  onComplete: () => void;
   onReset: () => void;
 }
 
-const generationSteps = [
-  { id: 1, label: "Cleaning data", icon: Sparkles },
-  { id: 2, label: "Analyzing patterns", icon: TrendingUp },
-  { id: 3, label: "Generating charts", icon: BarChart3 },
-  { id: 4, label: "Writing insights", icon: FileText },
-];
-
-export const ReportGeneration = ({ step, datasetInfo, onReset }: ReportGenerationProps) => {
-  const [currentStep, setCurrentStep] = useState(0);
+export const ReportGeneration = ({
+  step,
+  filename,
+  analysis,
+  charts,
+  insights,
+  onComplete,
+  onReset
+}: ReportGenerationProps) => {
   const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState("Initializing report engine...");
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (step === "generating") {
-      const stepDuration = 750;
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(progressInterval);
-            return 100;
-          }
-          return prev + 2;
-        });
-      }, 60);
-
-      const stepInterval = setInterval(() => {
-        setCurrentStep((prev) => {
-          if (prev >= generationSteps.length - 1) {
-            clearInterval(stepInterval);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, stepDuration);
-
-      return () => {
-        clearInterval(progressInterval);
-        clearInterval(stepInterval);
-      };
+    // Only trigger if we are in 'generating' step and haven't started yet
+    if (step === "generating" && !isGenerating && !downloadUrl) {
+      generateReport();
     }
   }, [step]);
 
-  const handleDownload = () => {
-    // Simulate PDF download
-    const link = document.createElement("a");
-    link.href = "#";
-    link.download = `${datasetInfo.fileName.replace(/\.[^/.]+$/, "")}_report.pdf`;
-    // In real implementation, this would trigger actual PDF generation
-    alert("In a real implementation, this would download your PDF report!");
+  const generateReport = async () => {
+    setIsGenerating(true);
+    setProgress(10);
+    setStatus("Compiling statistical analysis...");
+
+    try {
+      // Simulate progress steps for UX while waiting for the single API call
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          // Increment faster at first, then slow down
+          return prev + (prev < 50 ? 5 : 2);
+        });
+      }, 200);
+
+      const blob = await api.generateReport(filename, analysis, charts, insights.insights_text);
+
+      clearInterval(progressInterval);
+      setProgress(100);
+      setStatus("Report ready for download!");
+
+      // Create object URL for download
+      const url = window.URL.createObjectURL(blob);
+      setDownloadUrl(url);
+
+      onComplete();
+
+      toast({
+        title: "Report Generated Successfully!",
+        description: "Your PDF report is ready to download.",
+      });
+
+    } catch (error) {
+      console.error("Report generation failed:", error);
+      setStatus("Failed to generate report.");
+      toast({
+        title: "Generation Failed",
+        description: "Could not generate PDF report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  if (step === "generating") {
+  const downloadFile = () => {
+    if (downloadUrl) {
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', `Report_${filename}_${new Date().getTime()}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+  };
+
+  if (step === "complete") {
     return (
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardHeader className="text-center pb-4 sm:pb-6">
-            <div className="mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-primary/10">
-              <div className="h-6 w-6 sm:h-8 sm:w-8 animate-spin rounded-full border-3 border-primary border-t-transparent" />
-            </div>
-            <CardTitle className="text-xl sm:text-2xl">Generating Your Report</CardTitle>
-            <p className="text-sm sm:text-base text-muted-foreground mt-2">
-              Analyzing {datasetInfo.fileName}
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6 sm:space-y-8">
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <Progress value={progress} className="h-2 sm:h-3" />
-              <p className="text-xs sm:text-sm text-center text-muted-foreground">
-                {Math.round(progress)}% complete
-              </p>
-            </div>
+      <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in zoom-in duration-500">
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mb-4">
+            <CheckCircle2 className="h-10 w-10" />
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight">Report Ready!</h2>
+          <p className="text-muted-foreground text-lg max-w-lg mx-auto">
+            Your detailed analysis for <strong>{filename}</strong> has been successfully generated.
+          </p>
+        </div>
 
-            {/* Steps List */}
-            <div className="space-y-3 sm:space-y-4">
-              {generationSteps.map((genStep, index) => {
-                const isCompleted = index < currentStep;
-                const isCurrent = index === currentStep;
-                const StepIcon = genStep.icon;
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5 text-primary" />
+                Download PDF
+              </CardTitle>
+              <CardDescription>Get the full professional PDF report.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button size="lg" className="w-full" onClick={downloadFile}>
+                Download Report
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
 
-                return (
-                  <div
-                    key={genStep.id}
-                    className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg transition-all duration-300 ${
-                      isCompleted
-                        ? "bg-primary/10"
-                        : isCurrent
-                        ? "bg-muted"
-                        : "opacity-50"
-                    }`}
-                  >
-                    <div
-                      className={`flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
-                        isCompleted
-                          ? "bg-primary text-primary-foreground"
-                          : isCurrent
-                          ? "bg-primary/20 text-primary"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                      ) : (
-                        <StepIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                      )}
-                    </div>
-                    <span className={`text-sm sm:text-base font-medium ${
-                      isCompleted || isCurrent ? "" : "text-muted-foreground"
-                    }`}>
-                      {genStep.label}
-                    </span>
-                    {isCurrent && (
-                      <div className="ml-auto">
-                        <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-primary animate-pulse" />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="hover:bg-muted/50 transition-colors">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5 text-muted-foreground" />
+                Analyze Another
+              </CardTitle>
+              <CardDescription>Start fresh with a new dataset.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button size="lg" variant="outline" className="w-full" onClick={onReset}>
+                Start New Analysis
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Debug / Fallback info if download fails */}
+        {!downloadUrl && !isGenerating && (
+          <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/20 text-orange-600 text-sm flex items-center justify-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            <span>If the download didn't prepare correctly, try clicking "Generate Report" again.</span>
+          </div>
+        )}
       </div>
     );
   }
 
-  // Completed state
   return (
-    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
-      {/* Success Header */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardContent className="p-6 sm:p-8 md:p-10">
-          <div className="flex flex-col items-center text-center">
-            <div className="mb-4 sm:mb-6 flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 items-center justify-center rounded-full bg-primary">
-              <CheckCircle2 className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">
-              Report Ready!
-            </h1>
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-md mb-6 sm:mb-8">
-              Your comprehensive analytical report has been generated from{" "}
-              <span className="font-medium text-foreground">{datasetInfo.fileName}</span>
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
-              <Button 
-                size="lg" 
-                onClick={handleDownload}
-                className="gap-2 text-base w-full sm:w-auto"
-              >
-                <Download className="h-5 w-5" />
-                Download PDF Report
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                onClick={onReset}
-                className="gap-2 w-full sm:w-auto"
-              >
-                <RotateCcw className="h-5 w-5" />
-                Analyze Another File
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Report Summary Preview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 sm:p-6 flex flex-col items-center text-center">
-            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary mb-2 sm:mb-3" />
-            <span className="text-xl sm:text-2xl font-bold">12</span>
-            <span className="text-xs sm:text-sm text-muted-foreground">Pages</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 sm:p-6 flex flex-col items-center text-center">
-            <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-primary mb-2 sm:mb-3" />
-            <span className="text-xl sm:text-2xl font-bold">8</span>
-            <span className="text-xs sm:text-sm text-muted-foreground">Charts</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 sm:p-6 flex flex-col items-center text-center">
-            <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary mb-2 sm:mb-3" />
-            <span className="text-xl sm:text-2xl font-bold">15</span>
-            <span className="text-xs sm:text-sm text-muted-foreground">Insights</span>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 sm:p-6 flex flex-col items-center text-center">
-            <PieChart className="h-6 w-6 sm:h-8 sm:w-8 text-primary mb-2 sm:mb-3" />
-            <span className="text-xl sm:text-2xl font-bold">6</span>
-            <span className="text-xs sm:text-sm text-muted-foreground">Categories</span>
-          </CardContent>
-        </Card>
+    <div className="max-w-xl mx-auto mt-12 text-center space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500">
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="h-32 w-32 animate-spin text-primary/10" />
+        </div>
+        <div className="relative z-10 bg-background/80 backdrop-blur-sm rounded-full p-8 inline-block">
+          <FileText className="h-16 w-16 text-primary animate-pulse" />
+        </div>
       </div>
 
-      {/* Sample Insights Preview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Key Insights Preview
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-3 sm:p-4 rounded-lg bg-muted">
-            <p className="text-sm sm:text-base">
-              📈 <strong>Sales Trend:</strong> Revenue increased by approximately 40% from Q2 to Q3, 
-              reaching the highest level in September.
-            </p>
+      <div className="space-y-4">
+        <h3 className="text-2xl font-semibold">{status}</h3>
+        <p className="text-muted-foreground">
+          Our AI is analyzing {analysis.metadata.total_rows} rows and finding insights...
+        </p>
+
+        <div className="w-full max-w-md mx-auto space-y-2">
+          <Progress value={progress} className="h-2" />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Analysis</span>
+            <span>{Math.round(progress)}%</span>
           </div>
-          <div className="p-3 sm:p-4 rounded-lg bg-muted">
-            <p className="text-sm sm:text-base">
-              🏆 <strong>Top Performer:</strong> Widget C generated the highest revenue per unit, 
-              outperforming other products by 25%.
-            </p>
-          </div>
-          <div className="p-3 sm:p-4 rounded-lg bg-muted">
-            <p className="text-sm sm:text-base">
-              🌍 <strong>Regional Analysis:</strong> The North region contributed 35% of total sales, 
-              making it the strongest market.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

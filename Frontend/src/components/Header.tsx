@@ -1,6 +1,7 @@
 import { FileText, RotateCcw, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Sheet,
   SheetContent,
@@ -24,22 +25,24 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
         <div className="flex h-14 sm:h-16 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-primary">
-              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg sm:text-xl lg:text-2xl font-bold tracking-tight">
-              GetReport
-            </span>
+            <Link to="/" className="flex items-center gap-2 sm:gap-3">
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-primary">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
+              </div>
+              <span className="text-lg sm:text-xl lg:text-2xl font-bold tracking-tight">
+                GetReport
+              </span>
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-4 lg:gap-6">
-            <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link to="/features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Features
-            </a>
-            <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            </Link>
+            <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               How it Works
-            </a>
+            </Link>
             <ThemeToggle />
             {showReset && (
               <motion.div
@@ -72,20 +75,20 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
               <SheetContent side="right" className="w-[280px] sm:w-[320px]">
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <nav className="flex flex-col gap-4 mt-8">
-                  <a 
-                    href="#features" 
+                  <Link
+                    to="/features"
                     className="text-lg font-medium hover:text-primary transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Features
-                  </a>
-                  <a 
-                    href="#how-it-works" 
+                  </Link>
+                  <Link
+                    to="/how-it-works"
                     className="text-lg font-medium hover:text-primary transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     How it Works
-                  </a>
+                  </Link>
                 </nav>
               </SheetContent>
             </Sheet>

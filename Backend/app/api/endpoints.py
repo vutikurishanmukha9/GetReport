@@ -48,8 +48,10 @@ async def upload_file(file: UploadFile = File(...)):
         # 4. Perform Analysis
         analysis_result = analyze_dataset(cleaned_df)
         
-        # 5. Generate Charts
-        charts = generate_charts(cleaned_df)
+        # 5. Generate Charts (now returns tuple)
+        charts, charts_report = generate_charts(cleaned_df)
+        
+        # We can add 'charts_report' to the response if desired, for now just use 'charts'
         
         # 6. Generate Insights (Async)
         # Pass the full analysis_result so the LLM sees everything
