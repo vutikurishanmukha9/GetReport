@@ -1,0 +1,213 @@
+import { useState, useCallback } from "react";
+import { Upload, FileSpreadsheet, AlertCircle, X } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import type { DatasetInfo } from "@/pages/Index";
+
+interface FileUploadProps {
+  onFileUploaded: (info: DatasetInfo) => void;
+}
+
+export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const { toast } = useToast();
+
+  const validateFile = (file: File): boolean => {
+    const validTypes = [
+      "text/csv",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ];
+    const validExtensions = [".csv", ".xlsx", ".xls"];
+    
+    const hasValidExtension = validExtensions.some(ext => 
+      file.name.toLowerCase().endsWith(ext)
+    );
+    
+    if (!validTypes.includes(file.type) && !hasValidExtension) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a CSV or Excel file (.csv, .xlsx, .xls)",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 50MB",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const processFile = async (file: File) => {
+    setIsProcessing(true);
+    setSelectedFile(file);
+
+    // Simulate file processing
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Mock data for demo purposes
+    const mockDatasetInfo: DatasetInfo = {
+      fileName: file.name,
+      rows: 1247,
+      columns: ["Date", "Product", "Region", "Sales", "Quantity", "Revenue"],
+      preview: [
+        { Date: "2024-01-01", Product: "Widget A", Region: "North", Sales: 150, Quantity: 30, Revenue: 4500 },
+        { Date: "2024-01-02", Product: "Widget B", Region: "South", Sales: 200, Quantity: 45, Revenue: 9000 },
+        { Date: "2024-01-03", Product: "Widget A", Region: "East", Sales: 175, Quantity: 35, Revenue: 6125 },
+        { Date: "2024-01-04", Product: "Widget C", Region: "West", Sales: 225, Quantity: 50, Revenue: 11250 },
+        { Date: "2024-01-05", Product: "Widget B", Region: "North", Sales: 180, Quantity: 40, Revenue: 7200 },
+      ],
+      dataTypes: {
+        Date: "date",
+        Product: "string",
+        Region: "string",
+        Sales: "number",
+        Quantity: "number",
+        Revenue: "number",
+      },
+    };
+
+    setIsProcessing(false);
+    onFileUploaded(mockDatasetInfo);
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files[0];
+    if (file && validateFile(file)) {
+      processFile(file);
+    }
+  }, []);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && validateFile(file)) {
+      processFile(file);
+    }
+  };
+
+  const clearFile = () => {
+    setSelectedFile(null);
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <Card className="border-2 border-dashed transition-colors duration-200 hover:border-primary/50">
+        <CardContent className="p-0">
+          <div
+            className={`
+              relative p-6 sm:p-8 md:p-12 text-center transition-all duration-200
+              ${isDragging ? "bg-primary/5 border-primary" : ""}
+              ${isProcessing ? "opacity-75 pointer-events-none" : ""}
+            `}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+          >
+            {/* Upload Icon */}
+            <div className={`
+              mx-auto mb-4 sm:mb-6 flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 items-center justify-center 
+              rounded-full transition-all duration-200
+              ${isDragging ? "bg-primary/20 scale-110" : "bg-muted"}
+            `}>
+              {isProcessing ? (
+                <div className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              ) : selectedFile ? (
+                <FileSpreadsheet className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />
+              ) : (
+                <Upload className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-muted-foreground" />
+              )}
+            </div>
+
+            {/* Text Content */}
+            {selectedFile ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-center gap-2 text-sm sm:text-base">
+                  <span className="font-medium truncate max-w-[200px] sm:max-w-[300px]">
+                    {selectedFile.name}
+                  </span>
+                  {!isProcessing && (
+                    <button 
+                      onClick={clearFile}
+                      className="p-1 hover:bg-muted rounded-full transition-colors"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+                {isProcessing && (
+                  <p className="text-sm text-muted-foreground">Processing your file...</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-2">
+                  {isDragging ? "Drop your file here" : "Upload your dataset"}
+                </h3>
+                <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-4">
+                  Drag and drop your CSV or Excel file, or click to browse
+                </p>
+
+                {/* Browse Button */}
+                <label className="inline-block">
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleFileSelect}
+                    className="sr-only"
+                  />
+                  <Button asChild variant="default" size="lg" className="cursor-pointer">
+                    <span className="text-sm sm:text-base">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Browse Files
+                    </span>
+                  </Button>
+                </label>
+
+                {/* Supported formats */}
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6 text-xs sm:text-sm text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
+                    <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    CSV
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
+                    <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    XLSX
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
+                    <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    XLS
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Info Note */}
+      <div className="flex items-start gap-2 sm:gap-3 mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg bg-muted/50 text-xs sm:text-sm text-muted-foreground">
+        <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5" />
+        <p>
+          Your data is processed securely. Files are not stored permanently and are 
+          automatically deleted after report generation.
+        </p>
+      </div>
+    </div>
+  );
+};
