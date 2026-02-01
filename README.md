@@ -36,9 +36,13 @@ Data analysis is often time-consuming and requires technical expertise. GetRepor
 5. Data Engine: Implemented production-grade data cleaning, type inference, and statistical analysis services.
 6. Visualization Engine: Created a system to generate static charts (Heatmaps, Distributions) for reports.
 7. AI Integration: Integrated OpenAI to interpret statistical summaries into natural language insights.
-8. PDF Engine: Implemented a ReportLab service to compile all analysis into a downloadable PDF.
+9. API Integration: Exposed analysis and reporting services via RESTful endpoints (/upload, /generate-report).
+10. End-to-End Testing: Verified complete data flow from upload to PDF generation via automated test scripts.
 
 ### Yet to Complete
-1. API Integration: Connect the Frontend React components to the Backend API endpoints.
-2. End-to-End Testing: Verify the complete flow from file upload to PDF download.
-3. Deployment: Configure production build steps and deploy to hosting platforms.
+1. Frontend Integration: Connect the Frontend React components to the Backend API.
+2. Deployment: Configure production build steps and deploy to hosting platforms.
+
+## API Reference
+- **POST /api/upload**: Accepts a file, cleans it, analyzes it, and returns a JSON dashboard payload.
+- **POST /api/generate-report**: Accepts analysis data and charts, returns a downloadable PDF report.
