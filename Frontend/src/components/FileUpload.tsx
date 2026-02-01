@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import type { DatasetInfo } from "@/pages/Index";
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
 
 interface FileUploadProps {
   onFileUploaded: (info: DatasetInfo) => void;
@@ -23,11 +25,11 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ];
     const validExtensions = [".csv", ".xlsx", ".xls"];
-    
-    const hasValidExtension = validExtensions.some(ext => 
+
+    const hasValidExtension = validExtensions.some(ext =>
       file.name.toLowerCase().endsWith(ext)
     );
-    
+
     if (!validTypes.includes(file.type) && !hasValidExtension) {
       toast({
         title: "Invalid file type",
@@ -49,37 +51,87 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     return true;
   };
 
+  /* Helper to infer data types */
+  const inferType = (values: any[]): string => {
+    const validValues = values.filter(v => v !== null && v !== undefined && v !== "");
+    if (validValues.length === 0) return "string";
+
+    const isNumber = validValues.every(v => !isNaN(Number(v)));
+    if (isNumber) return "number";
+
+    const isDate = validValues.every(v => !isNaN(Date.parse(String(v))));
+    if (isDate) return "date";
+
+    return "string";
+  };
+
   const processFile = async (file: File) => {
     setIsProcessing(true);
     setSelectedFile(file);
 
-    // Simulate file processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      let data: any[] = [];
 
-    // Mock data for demo purposes
-    const mockDatasetInfo: DatasetInfo = {
-      fileName: file.name,
-      rows: 1247,
-      columns: ["Date", "Product", "Region", "Sales", "Quantity", "Revenue"],
-      preview: [
-        { Date: "2024-01-01", Product: "Widget A", Region: "North", Sales: 150, Quantity: 30, Revenue: 4500 },
-        { Date: "2024-01-02", Product: "Widget B", Region: "South", Sales: 200, Quantity: 45, Revenue: 9000 },
-        { Date: "2024-01-03", Product: "Widget A", Region: "East", Sales: 175, Quantity: 35, Revenue: 6125 },
-        { Date: "2024-01-04", Product: "Widget C", Region: "West", Sales: 225, Quantity: 50, Revenue: 11250 },
-        { Date: "2024-01-05", Product: "Widget B", Region: "North", Sales: 180, Quantity: 40, Revenue: 7200 },
-      ],
-      dataTypes: {
-        Date: "date",
-        Product: "string",
-        Region: "string",
-        Sales: "number",
-        Quantity: "number",
-        Revenue: "number",
-      },
-    };
+      if (file.name.endsWith(".csv")) {
+        // Parse CSV
+        await new Promise<void>((resolve, reject) => {
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+              data = results.data;
+              resolve();
+            },
+            error: (error) => reject(error),
+          });
+        });
+      } else {
+        // Parse Excel
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        data = XLSX.utils.sheet_to_json(worksheet);
+      }
 
-    setIsProcessing(false);
-    onFileUploaded(mockDatasetInfo);
+      if (data.length === 0) {
+        throw new Error("No data found in file");
+      }
+
+      const columns = Object.keys(data[0]);
+      const dataTypes: Record<string, string> = {};
+
+      columns.forEach(col => {
+        const columnValues = data.slice(0, 100).map(row => row[col]);
+        dataTypes[col] = inferType(columnValues);
+      });
+
+      const datasetInfo: DatasetInfo = {
+        fileName: file.name,
+        rows: data.length,
+        columns: columns,
+        preview: data.slice(0, 10), // Preview first 10 rows
+        dataTypes: dataTypes,
+      };
+
+      onFileUploaded(datasetInfo);
+
+      toast({
+        title: "File processed successfully",
+        description: `Loaded ${data.length} rows and ${columns.length} columns`,
+      });
+
+    } catch (error) {
+      console.error("Error processing file:", error);
+      toast({
+        title: "Error processing file",
+        description: "Could not parse the file. Please ensure it's a valid CSV or Excel file.",
+        variant: "destructive",
+      });
+      setSelectedFile(null);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -104,7 +156,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="max-w-2xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -126,7 +178,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
             onDrop={handleDrop}
           >
             {/* Upload Icon */}
-            <motion.div 
+            <motion.div
               className={`
                 mx-auto mb-4 sm:mb-6 flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 items-center justify-center 
                 rounded-full transition-all duration-200
@@ -137,13 +189,13 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
             >
               <AnimatePresence mode="wait">
                 {isProcessing ? (
-                  <motion.div 
+                  <motion.div
                     key="processing"
                     initial={{ opacity: 0, rotate: 0 }}
                     animate={{ opacity: 1, rotate: 360 }}
                     exit={{ opacity: 0 }}
                     transition={{ rotate: { repeat: Infinity, duration: 1, ease: "linear" } }}
-                    className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 rounded-full border-2 border-primary border-t-transparent" 
+                    className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 rounded-full border-2 border-primary border-t-transparent"
                   />
                 ) : selectedFile ? (
                   <motion.div
@@ -170,7 +222,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
             {/* Text Content */}
             <AnimatePresence mode="wait">
               {selectedFile ? (
-                <motion.div 
+                <motion.div
                   key="selected"
                   className="space-y-2"
                   initial={{ opacity: 0, y: 10 }}
@@ -182,7 +234,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                       {selectedFile.name}
                     </span>
                     {!isProcessing && (
-                      <button 
+                      <button
                         onClick={clearFile}
                         className="p-1 hover:bg-muted rounded-full transition-colors"
                       >
@@ -247,7 +299,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       </Card>
 
       {/* Info Note */}
-      <motion.div 
+      <motion.div
         className="flex items-start gap-2 sm:gap-3 mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg bg-muted/50 text-xs sm:text-sm text-muted-foreground"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -255,7 +307,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       >
         <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5" />
         <p>
-          Your data is processed securely. Files are not stored permanently and are 
+          Your data is processed securely. Files are not stored permanently and are
           automatically deleted after report generation.
         </p>
       </motion.div>

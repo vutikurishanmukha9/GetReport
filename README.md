@@ -1,73 +1,44 @@
-# Welcome to your Lovable project
+# GetReport
 
-## Project info
+## Motto
+Turn Your Data Into Professional Reports in Seconds.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Problem Solving
+Data analysis is often time-consuming and requires technical expertise. GetReport solves this by providing an automated platform that ingests raw data files (CSV, Excel), performs robust statistical analysis, generates visualizations, and uses AI to derive actionable business insights. It packages all of this into a professional PDF report, available for instant download, eliminating hours of manual work.
 
-## How can I edit this code?
+## Tech Stack
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
+### Frontend
+- React
 - Vite
 - TypeScript
-- React
-- shadcn-ui
 - Tailwind CSS
+- shadcn/ui
+- PapaParse (CSV Parsing)
+- SheetJS (Excel Parsing)
 
-## How can I deploy this project?
+### Backend
+- Python 3.12+
+- FastAPI (Web Framework)
+- Pandas & NumPy (Data Processing)
+- SciPy & Scikit-learn (Statistical Analysis)
+- Matplotlib & Seaborn (Visualization)
+- OpenAI API (AI Insights)
+- ReportLab (PDF Generation)
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Plan of Action
 
-## Can I connect a custom domain to my Lovable project?
+### Completed
+1. Project Restructuring: Separated codebase into distinct Frontend and Backend directories.
+2. Frontend Polish: Implemented real client-side file parsing for immediate feedback and removed mock data.
+3. Branding: Established "GetReport" identity with custom favicon and metadata.
+4. Backend Architecture: Initialized a modular FastAPI application structure.
+5. Data Engine: Implemented production-grade data cleaning, type inference, and statistical analysis services.
+6. Visualization Engine: Created a system to generate static charts (Heatmaps, Distributions) for reports.
+7. AI Integration: Integrated OpenAI to interpret statistical summaries into natural language insights.
+8. PDF Engine: Implemented a ReportLab service to compile all analysis into a downloadable PDF.
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Yet to Complete
+1. API Integration: Connect the Frontend React components to the Backend API endpoints.
+2. End-to-End Testing: Verify the complete flow from file upload to PDF download.
+3. Deployment: Configure production build steps and deploy to hosting platforms.
