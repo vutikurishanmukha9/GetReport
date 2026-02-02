@@ -14,16 +14,21 @@ export const api = {
     /**
      * Upload a file for processing (cleaning, analysis, charts, insights).
      */
-    uploadFile: async (file: File): Promise<ApiResponse> => {
+    uploadFile: async (file: File): Promise<{ task_id: string; message: string }> => {
         const formData = new FormData();
         formData.append("file", file);
 
-        const response = await apiClient.post<ApiResponse>("/upload", formData, {
+        const response = await apiClient.post("/upload", formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
             timeout: 60000, // 60s timeout for large files/AI
         });
+        return response.data;
+    },
+
+    getTaskStatus: async (taskId: string): Promise<any> => {
+        const response = await apiClient.get(`/status/${taskId}`);
         return response.data;
     },
 

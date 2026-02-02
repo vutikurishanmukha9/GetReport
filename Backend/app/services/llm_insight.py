@@ -165,68 +165,73 @@ def _validate_analysis_payload(analysis_data: dict[str, Any]) -> None:
 def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
     """
     Construct the system and user prompts from the full analysis output.
-
-    Original logic preserved:
-        - System role: data analyst
-        - User role: the analysis data + instruction to produce 3-5 insights
-        - Professional and concise tone
-
-    Enhanced:
-        - Structured prompt with clearly labeled sections so GPT understands
-          exactly what each block of data represents
-        - Feeds ALL available analysis outputs, not just summary_stats
-        - Explicit output-format instruction so GPT returns clean, numbered insights
-        - Each section is only included if it actually has data (no empty blocks)
-
-    Returns:
-        Tuple of (system_prompt, user_prompt).
+    
+    Enhanced with:
+        - Sample rows (from 'metadata.preview') to give Ground Truth context.
+        - Semantic Column Types (from 'metadata.dtypes').
+        - Structured layout to force the AI to look at the actual data values.
     """
-    # ── System prompt (original role preserved, enhanced with output format) ─
+    # ── System prompt ──
     system_prompt = (
-        "You are a professional data analyst. Your job is to read statistical "
-        "analysis output and translate it into clear, actionable insights that "
-        "a non-technical audience can understand.\n\n"
-        "Output format:\n"
-        "- Write 3 to 5 key insights.\n"
-        "- Number each insight (1., 2., 3., etc.).\n"
-        "- Each insight should be 1-2 sentences.\n"
-        "- Be professional, concise, and factual.\n"
-        "- Focus on what the data is telling us, not how it was computed."
+        "You are a professional data analyst. Your job is to analyze the provided dataset statistics "
+        "AND sample rows to generate clear, actionable insights.\n\n"
+        "Crucial Rules:\n"
+        "1. REALITY CHECK: Use the 'Sample Rows' to understand what the data actually represents (e.g. is 'Amt' money? is 'Status' a workflow?).\n"
+        "2. NO HALLUCINATIONS: Do not invent columns or values that are not in the provided data.\n"
+        "3. Output Format:\n"
+        "   - Write 3 to 5 key insights.\n"
+        "   - Number each insight (1., 2., 3., etc.).\n"
+        "   - Each insight must be specific to this dataset's context.\n"
+        "   - Keep it professional and concise."
     )
 
     # ── User prompt — build sections dynamically ─────────────────────────────
     sections: list[str] = []
 
-    # Section 1: Descriptive Statistics (maps to original summary_stats)
+    # Section NEW: Sample Data (Ground Truth)
+    metadata = analysis_data.get("metadata", {})
+    if metadata.get("preview"):
+        # Convert list of dicts to a rough string table for the LLM
+        preview_data = metadata["preview"]
+        # Limit to 5 rows and reasonable length columns to save tokens
+        sample_text = str(preview_data[:5]) 
+        sections.append(
+            "--- SAMPLE DATA (First 5 Rows) ---\n"
+            "Use this to understand the CONTEXT of the columns:\n"
+            f"{sample_text}"
+        )
+    
+    if metadata.get("dtypes"):
+        sections.append(
+            "--- COLUMN DATA TYPES ---\n"
+            f"{metadata['dtypes']}"
+        )
+
+    # Section 1: Descriptive Statistics
     if analysis_data.get("summary"):
         sections.append(
-            "--- DESCRIPTIVE STATISTICS ---\n"
-            "The following shows mean, std, min, max, quartiles, skewness, "
-            "and kurtosis for each numeric column:\n"
+            "--- DESCRIPTIVE STATISTICS (Numeric) ---\n"
             f"{analysis_data['summary']}"
         )
 
-    # Section 2: Correlation (original logic only had summary — now expanded)
+    # Section 2: Correlation
     if analysis_data.get("strong_correlations"):
         sections.append(
-            "--- STRONG CORRELATIONS ---\n"
-            "These column pairs have a notably strong relationship (|r| >= 0.7):\n"
+            "--- STRONG CORRELATIONS (|r| >= 0.7) ---\n"
             f"{analysis_data['strong_correlations']}"
         )
 
     # Section 3: Outliers
     if analysis_data.get("outliers"):
         sections.append(
-            "--- OUTLIERS DETECTED (IQR Method) ---\n"
-            "These columns contain values significantly outside the normal range:\n"
+            "--- OUTLIERS (IQR Method) ---\n"
             f"{analysis_data['outliers']}"
         )
 
     # Section 4: Categorical Distribution
     if analysis_data.get("categorical_distribution"):
         sections.append(
-            "--- CATEGORICAL DISTRIBUTION ---\n"
-            "Value frequencies for non-numeric columns:\n"
+            "--- CATEGORICAL DISTRIBUTION (Top Values) ---\n"
             f"{analysis_data['categorical_distribution']}"
         )
 
@@ -234,21 +239,13 @@ def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
     if analysis_data.get("column_quality_flags"):
         sections.append(
             "--- DATA QUALITY FLAGS ---\n"
-            "Columns with detected issues (missing values, skew, constant values, etc.):\n"
             f"{analysis_data['column_quality_flags']}"
         )
 
-    # Section 6: Metadata
-    if analysis_data.get("metadata"):
-        sections.append(
-            "--- DATASET METADATA ---\n"
-            f"{analysis_data['metadata']}"
-        )
-
-    # ── Assemble full user prompt (original instruction preserved) ───────────
+    # ── Assemble full user prompt ───────────────────────────────────────────
     user_prompt = (
-        "Analyze the following statistical summary of a dataset and provide "
-        "3-5 key insights or trends. Keep it professional and concise.\n\n"
+        "Analyze the following dataset statistics and sample values. "
+        "Provide 3-5 key insights. Focus on the BUSINESS/REAL-WORLD meaning of the patterns you see.\n\n"
         + "\n\n".join(sections)
     )
 
@@ -434,6 +431,7 @@ async def generate_insights(analysis_data: dict[str, Any]) -> InsightResult:
         return _build_fallback("empty_data")                # graceful, no crash
 
     # ── 3. Build structured prompt ───────────────────────────────────────────
+    # Modified to include sample data context
     system_prompt, user_prompt = _build_prompt(analysis_data)
     logger.info("Prompt ready — system: %d chars, user: %d chars.", len(system_prompt), len(user_prompt))
 

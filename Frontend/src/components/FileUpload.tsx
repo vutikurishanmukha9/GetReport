@@ -55,39 +55,68 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     setSelectedFile(file);
 
     try {
+      // Step 1: Start Upload
       toast({
-        title: "Processing File...",
-        description: "Uploading, cleaning, and analyzing your data. This may take a moment...",
+        title: "Uploading...",
+        description: "Sending file to server...",
       });
 
-      const response = await api.uploadFile(file);
+      const { task_id } = await api.uploadFile(file);
 
-      onFileUploaded(response);
+      // Step 2: Poll for status
+      const pollInterval = setInterval(async () => {
+        try {
+          const status = await api.getTaskStatus(task_id);
 
-      toast({
-        title: "Analysis Complete!",
-        description: `Successfully analyzed ${response.info.rows} rows and ${response.info.columns.length} columns.`,
-      });
+          if (status.status === 'completed' && status.result) {
+            clearInterval(pollInterval);
+            setIsProcessing(false);
+            
+            onFileUploaded(status.result);
+
+            toast({
+              title: "Analysis Complete!",
+              description: `Successfully analyzed ${status.result.info.rows} rows.`,
+            });
+          } else if (status.status === 'failed') {
+            clearInterval(pollInterval);
+            setIsProcessing(false);
+            throw new Error(status.error || "Analysis failed");
+          } else {
+             // Still processing - update UI if we had a dedicated progress bar
+             // For now, re-toasting might be annoying, but we can log or update a local state message
+             // Ideally we'd have a 'processingMessage' state.
+             toast({
+                title: "Processing...",
+                description: `${status.message} (${status.progress}%)`,
+                duration: 1000, 
+             });
+          }
+        } catch (err) {
+          clearInterval(pollInterval);
+          setIsProcessing(false);
+          console.error("Polling error:", err);
+           toast({
+            title: "Error",
+            description: "Connection lost during polling.",
+            variant: "destructive",
+          });
+        }
+      }, 1500); // Poll every 1.5s
 
     } catch (error: any) {
-      console.error("Error processing file:", error);
-      let errorMessage = "Could not process the file.";
-
-      if (error.response?.data?.detail) {
-        // Backend error (e.g., validation failed)
-        errorMessage = error.response.data.detail;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
+      console.error("Error initiating upload:", error);
+      let errorMessage = "Could not start upload.";
+        if (error.response?.data?.detail) {
+            errorMessage = error.response.data.detail;
+        }
       toast({
-        title: "Processing Failed",
+        title: "Upload Failed",
         description: errorMessage,
         variant: "destructive",
       });
-      setSelectedFile(null);
-    } finally {
       setIsProcessing(false);
+      setSelectedFile(null);
     }
   };
 

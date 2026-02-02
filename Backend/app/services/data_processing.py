@@ -340,61 +340,90 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, CleaningReport]:
     # ═════════════════════════════════════════════════════════════════════════
     # STEP 3 — Type inference (original logic preserved exactly)
     # ═════════════════════════════════════════════════════════════════════════
-    logger.debug("Step 3 — Starting type inference loop.")
+    # ═════════════════════════════════════════════════════════════════════════
+    # STEP 3 — Type inference with ID detection
+    # ═════════════════════════════════════════════════════════════════════════
+    logger.debug("Step 3 — Starting smart type inference.")
 
+    # Identify potential ID columns by name patterns to avoid mis-classifying them as numeric stats
+    id_patterns = {"id", "code", "sku", "zip", "phone", "year", "date", "day"}
+    
     for col in df.columns:
         original_dtype = str(df[col].dtype)
+        col_lower = col.lower()
+        
+        # Check if column likely represents an ID/Label rather than a measurement
+        is_id_like = any(p in col_lower for p in id_patterns) or col_lower.endswith("_id")
+        
+        # If it looks like an ID, prefer string (object) unless it's clearly a date
+        if is_id_like:
+             # ONLY try datetime if the name actually sounds like a date/time
+            date_terms = {"date", "time", "year", "day", "dob", "created", "updated", "at"}
+            if any(t in col_lower for t in date_terms):
+                try:
+                    df[col] = pd.to_datetime(df[col], format="mixed")
+                    new_dtype = str(df[col].dtype)
+                    if new_dtype != original_dtype:
+                        report.type_conversions.append({
+                            "column": col, "original_type": original_dtype, "new_type": new_dtype
+                        })
+                    continue
+                except (ValueError, TypeError):
+                    pass # Fall through to string conversion
 
-        # Try numeric conversion (original logic)
+            # If not date (or date conversion failed), keep/force as string to prevent "Average User ID" stats
+            if pd.api.types.is_numeric_dtype(df[col]):
+                df[col] = df[col].astype(str)
+                report.type_conversions.append({
+                    "column": col, "original_type": original_dtype, "new_type": "object (ID)"
+                })
+            continue
+
+        # Standard Numeric Inference for non-ID columns
         try:
+            # downcast='float' or 'integer' helps save memory but to_numeric is standard
             df[col] = pd.to_numeric(df[col])
             new_dtype = str(df[col].dtype)
             if new_dtype != original_dtype:
                 report.type_conversions.append({
-                    "column":        col,
-                    "original_type": original_dtype,
-                    "new_type":      new_dtype,
+                    "column": col, "original_type": original_dtype, "new_type": new_dtype
                 })
-                logger.info("Step 3 — '%s' converted: %s → %s", col, original_dtype, new_dtype)
-            continue                                            # original logic
+            continue
         except (ValueError, TypeError):
-            pass                                                # original logic
+            pass
 
-        # Try datetime conversion (original logic)
+        # Standard Datetime Inference
         try:
             df[col] = pd.to_datetime(df[col], format="mixed")
             new_dtype = str(df[col].dtype)
             if new_dtype != original_dtype:
                 report.type_conversions.append({
-                    "column":        col,
-                    "original_type": original_dtype,
-                    "new_type":      new_dtype,
+                    "column": col, "original_type": original_dtype, "new_type": new_dtype
                 })
-                logger.info("Step 3 — '%s' converted: %s → %s", col, original_dtype, new_dtype)
-            continue                                            # original logic
+            continue
         except (ValueError, TypeError):
-            pass                                                # original logic
+            pass
 
     if not report.type_conversions:
         logger.debug("Step 3 — No type conversions needed.")
 
     # ═════════════════════════════════════════════════════════════════════════
-    # STEP 4 — Fill NaNs (original logic preserved exactly)
+    # STEP 4 — Handling Missing Values (CORRECTED)
     # ═════════════════════════════════════════════════════════════════════════
+    # CRITICAL FIX: Do NOT indiscriminately fill numeric NaNs with 0.
+    # Leaving NaNs allows pandas/scipy to correctly ignore them in mean/std calculations.
+    # We only fill Categorical NaNs with "Unknown" to allow for grouping.
+    
     for col in df.columns:
-        if pd.api.types.is_numeric_dtype(df[col]):
-            # Original logic: fill numeric with 0
-            nan_count = int(df[col].isnull().sum())
-            df[col]   = df[col].fillna(0)                      # original logic
-            report.numeric_nans_filled += nan_count
-            if nan_count > 0:
-                logger.info("Step 4 — '%s': filled %d numeric NaN(s) with 0.", col, nan_count)
-        else:
-            # Original logic: fill non-numeric with "Unknown"
-            nan_count = int(df[col].isnull().sum())
-            df[col]   = df[col].fillna("Unknown")              # original logic
-            report.categorical_nans_filled += nan_count
-            if nan_count > 0:
+        nan_count = int(df[col].isnull().sum())
+        if nan_count > 0:
+            if pd.api.types.is_numeric_dtype(df[col]):
+                # Log it but DO NOT FILL with 0
+                logger.info("Step 4 — '%s': has %d missing values (left as NaN for accurate stats).", col, nan_count)
+            else:
+                # Fill categorical missing values to prevent errors in grouping/charts
+                df[col] = df[col].fillna("Unknown")
+                report.categorical_nans_filled += nan_count
                 logger.info("Step 4 — '%s': filled %d NaN(s) with 'Unknown'.", col, nan_count)
 
     # ── Finalize report ─────────────────────────────────────────────────────
