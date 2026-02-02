@@ -47,3 +47,6 @@ tzdata==2025.3
 uvicorn==0.40.0
 polars
 pyarrow
+langchain-openai
+langchain-community
+faiss-cpu

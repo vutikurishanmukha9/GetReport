@@ -11,13 +11,11 @@ from app.services.data_processing import (
     load_dataframe, clean_data, get_dataset_info, 
     UnsupportedFileTypeError, FileTooLargeError, EmptyFileError, ParseError
 )
-from app.services.analysis import (
-    analyze_dataset, EmptyDatasetError, InsufficientDataError, AnalysisError
-)
 from app.services.visualization import generate_charts
-from app.services.report_renderer import generate_pdf_report  # NEW: HTML-to-PDF engine
+from app.services.report_renderer import generate_pdf_report
 from app.services.llm_insight import generate_insights
 from app.services.task_manager import title_task_manager, TaskStatus
+from app.services.rag_service import rag_service  # NEW
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -27,6 +25,9 @@ class ReportRequest(BaseModel):
     filename: str
     analysis: Dict[str, Any]
     charts: Dict[str, Any]
+
+class ChatRequest(BaseModel):
+    question: str
 
 class TaskResponse(BaseModel):
     task_id: str
@@ -121,6 +122,26 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
         # Insights
         title_task_manager.update_progress(task_id, 90, "Consulting LLM...")
         insights_result = await generate_insights(analysis_result)
+        
+        # ─── RAG Ingestion ───
+        # Build a text representation of the findings for the chatbot
+        rag_text = f"""
+        Analysis Report for {filename}
+        
+        --- Metadata ---
+        Rows: {dataset_info.get('rows')}
+        Columns: {dataset_info.get('columns')}
+        
+        --- Summary Statistics ---
+        {str(analysis_result.get('summary', {}))}
+        
+        --- Insights ---
+        {insights_result.to_dict().get('response', '')}
+        
+        --- Cleaning Actions ---
+        {cleaning_report.to_dict()}
+        """
+        await rag_service.ingest_report(task_id, rag_text)
         
         title_task_manager.update_progress(task_id, 95, "Rendering PDF...")
         
@@ -262,10 +283,23 @@ async def generate_persistent_report(task_id: str):
         pdf_name = f"{task_id}_{filename}.pdf"
         pdf_path = os.path.join(output_dir, pdf_name)
         
+        # Prepare Data for PDF
+        analysis_data = result.get("analysis", {}).copy()
+        
+        # Inject Insights (if available)
+        insights_data = result.get("insights", {})
+        if insights_data:
+            analysis_data["insights"] = insights_data
+            
+        # Inject Cleaning Report (if available)
+        cleaning_data = result.get("cleaning_report", {})
+        if cleaning_data:
+            analysis_data["cleaning_report"] = cleaning_data
+        
         # Generate PDF
         pdf_buffer, metadata = await run_in_threadpool(
             generate_pdf_report,
-            result.get("analysis", {}),
+            analysis_data,
             result.get("charts", {}),
             filename
         )
@@ -300,6 +334,18 @@ async def download_report(task_id: str):
         media_type="application/pdf", 
         filename=os.path.basename(job.report_path)
     )
+
+@router.post("/jobs/{task_id}/chat")
+async def chat_with_job(task_id: str, request: ChatRequest):
+    """
+    Chat with the analyzed data (RAG).
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or job.status != TaskStatus.COMPLETED:
+         raise HTTPException(400, "Job is not completed yet.")
+         
+    response = await rag_service.chat_with_report(task_id, request.question)
+    return {"answer": response}
 
 @router.post("/generate-report")
 async def generate_report_endpoint(request: ReportRequest):

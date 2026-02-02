@@ -167,6 +167,25 @@ def generate_pdf_report(
     story.append(t)
     story.append(Spacer(1, 20))
 
+    # ─── 2b. Cleaning Report ────────────────────────────────────────────────
+    cleaning = analysis_data.get("cleaning_report", {})
+    if cleaning and cleaning.get("total_changes", 0) > 0:
+        story.append(Paragraph("Data Cleaning Actions", styles['ModernHeading']))
+        
+        clean_text = []
+        if cleaning.get("empty_rows_dropped", 0) > 0:
+            clean_text.append(f"• Dropped {cleaning['empty_rows_dropped']} empty rows.")
+        if cleaning.get("duplicate_rows_removed", 0) > 0:
+            clean_text.append(f"• Removed {cleaning['duplicate_rows_removed']} duplicate rows.")
+        if cleaning.get("numeric_nans_filled", 0) > 0:
+            clean_text.append(f"• Filled {cleaning['numeric_nans_filled']} missing numeric values.")
+        if cleaning.get("categorical_nans_filled", 0) > 0:
+            clean_text.append(f"• Filled {cleaning['categorical_nans_filled']} missing categorical values.")
+            
+        if clean_text:
+            story.append(Paragraph("<br/>".join(clean_text), styles['ModernBody']))
+            story.append(Spacer(1, 20))
+
     # ─── 3. AI Insights ─────────────────────────────────────────────────────
     insights = analysis_data.get("insights", {})
     if insights and "response" in insights:
