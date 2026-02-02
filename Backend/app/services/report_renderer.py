@@ -120,10 +120,24 @@ def generate_pdf_report(
     
     # Safely extract stats
     meta = analysis_data.get("metadata", {})
-    rows = meta.get("rows", analysis_data.get("info", {}).get("rows", "N/A"))
+    # 'info' usually has lists, 'analysis.metadata' usually has counts. We handle both.
+    
+    rows = meta.get("rows", meta.get("total_rows", analysis_data.get("info", {}).get("rows", "N/A")))
     cols_count = meta.get("total_columns", 0)
-    num_count = len(meta.get("numeric_columns", []))
-    cat_count = len(meta.get("categorical_columns", []))
+    
+    # numeric_columns might be a list (names) or an int (count)
+    numeric_val = meta.get("numeric_columns", [])
+    if isinstance(numeric_val, int):
+        num_count = numeric_val
+    else:
+        num_count = len(numeric_val)
+
+    # categorical_columns might be a list or an int
+    cat_val = meta.get("categorical_columns", [])
+    if isinstance(cat_val, int):
+        cat_count = cat_val
+    else:
+        cat_count = len(cat_val)
     
     # Create a 4-column table for stats
     stat_data = [
