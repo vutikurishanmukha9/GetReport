@@ -40,3 +40,13 @@
 .read-the-docs {
   color: #888;
 }
+
+@keyframes indeterminate {
+  0% { transform: translateX(-100%) scaleX(0.2); }
+  50% { transform: translateX(0%) scaleX(0.5); }
+  100% { transform: translateX(100%) scaleX(0.2); }
+}
+
+.animate-indeterminate-progress {
+  animation: indeterminate 2s infinite linear;
+}

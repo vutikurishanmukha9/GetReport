@@ -22,7 +22,7 @@ CHART_DPI: int                    = 100     # original DPI preserved
 TOP_DISTRIBUTION_FEATURES: int    = 5       # original: top 5 by variance
 TOP_CATEGORICAL_COLUMNS: int      = 3       # original: first 3 categorical columns
 BAR_CHART_MAX_CARDINALITY: int    = 20      # original: nunique < 20
-PIE_CHART_MAX_CARDINALITY: int    = 10      # pie charts only for very low cardinality
+PIE_CHART_MAX_CARDINALITY: int    = 5       # Reduced from 10 to avoid "Pie Overload" critique
 TREND_CHART_MAX_COLUMNS: int      = 5       # max numeric columns to plot as trends
 
 # ─── Global Seaborn Theme ───────────────────────────────────────────────────
@@ -313,46 +313,46 @@ def _generate_trend_charts(
         logger.debug("Trend charts skipped — no datetime column detected.")
         return []
 
-    # Use the first datetime column found as the X-axis
-    time_col = datetime_cols[0]
-    logger.info("Trend charts — using '%s' as the time axis.", time_col)
-
-    # Sort the DataFrame by the datetime column
-    df_sorted = df.sort_values(by=time_col)
-
-    # Pick top numeric columns by variance (same strategy as distributions)
+    # Sort the DataFrame once? No, needs sorting per time column if we support multiple.
+    
+    trend_charts: list[dict[str, str]] = []
+    
+    # Pick top numeric columns by variance
     variances    = numeric_df.var().sort_values(ascending=False)
     top_features = variances.head(TREND_CHART_MAX_COLUMNS).index.tolist()
 
-    trend_charts: list[dict[str, str]] = []
+    # Iterate over ALL detected time columns (up to reasonable limit, e.g. 2)
+    # This fixes the "blindly pick first column" critique.
+    for time_col in datetime_cols[:2]:
+        df_sorted = df.sort_values(by=time_col)
+        
+        for col in top_features:
+            try:
+                fig, ax = plt.subplots(figsize=(10, 5))
+                ax.plot(
+                    df_sorted[time_col],
+                    df_sorted[col],
+                    color="steelblue",
+                    linewidth=1.5,
+                    marker="o",
+                    markersize=3,
+                )
+                ax.set_title(f"Trend: {col} over {time_col}")
+                ax.set_xlabel(time_col)
+                ax.set_ylabel(col)
+                fig.autofmt_xdate()
 
-    for col in top_features:
-        try:
-            fig, ax = plt.subplots(figsize=(10, 5))
-            ax.plot(
-                df_sorted[time_col],
-                df_sorted[col],
-                color="steelblue",
-                linewidth=1.5,
-                marker="o",
-                markersize=3,
-            )
-            ax.set_title(f"Trend: {col} over {time_col}")
-            ax.set_xlabel(time_col)
-            ax.set_ylabel(col)
-            fig.autofmt_xdate()                                                  # rotate date labels cleanly
+                trend_charts.append({
+                    "column": col,
+                    "image":  fig_to_base64(fig),
+                })
 
-            trend_charts.append({
-                "column": col,
-                "image":  fig_to_base64(fig),
-            })
+                report.total_images += 1
+                logger.info("Trend chart generated — '%s' over '%s'.", col, time_col)
 
-            report.total_images += 1
-            logger.info("Trend chart generated — '%s' over '%s'.", col, time_col)
-
-        except Exception as e:
-            report.charts_failed.append({"chart": f"trend:{col}", "reason": str(e)})
-            logger.warning("Trend chart failed for '%s': %s", col, str(e))
+            except Exception as e:
+                report.charts_failed.append({"chart": f"trend:{col}_vs_{time_col}", "reason": str(e)})
+                logger.warning("Trend chart failed for '%s' vs '%s': %s", col, time_col, str(e))
 
     if trend_charts:
         report.charts_generated.append("trend_charts")
@@ -409,12 +409,12 @@ def generate_charts(df: pd.DataFrame) -> tuple[dict[str, Any], ChartReport]:
     if bar_charts:
         charts["bar_charts"] = bar_charts                                        # aligned key
 
-    # Chart 4: Pie Charts (new)
+    # Chart 4: Pie Charts (Stricter limits based on critique)
     pie_charts = _generate_pie_charts(categorical_df, report)
     if pie_charts:
         charts["pie_charts"] = pie_charts
 
-    # Chart 5: Trend Charts (new)
+    # Chart 5: Trend Charts (Enhanced: Check ALL datetime columns)
     trend_charts = _generate_trend_charts(df, numeric_df, report)
     if trend_charts:
         charts["trend_charts"] = trend_charts

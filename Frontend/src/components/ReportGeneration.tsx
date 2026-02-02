@@ -47,21 +47,10 @@ export const ReportGeneration = ({
 
     try {
       // Simulate progress steps for UX while waiting for the single API call
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          // Increment faster at first, then slow down
-          return prev + (prev < 50 ? 5 : 2);
-        });
-      }, 200);
-
+      // Honest UX: Just show we are working, don't fake percentages.
       const blob = await api.generateReport(filename, analysis, charts, insights.insights_text);
 
-      clearInterval(progressInterval);
-      setProgress(100);
+      setStatus("Report ready for download!");
       setStatus("Report ready for download!");
 
       // Create object URL for download
@@ -174,10 +163,18 @@ export const ReportGeneration = ({
         </p>
 
         <div className="w-full max-w-md mx-auto space-y-2">
-          <Progress value={progress} className="h-2" />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Analysis</span>
-            <span>{Math.round(progress)}%</span>
+          <div className="w-full max-w-md mx-auto space-y-2">
+            {/* Indeterminate loader for honest feedback */}
+            <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+              <div className="h-full w-full flex-1 bg-primary animate-indeterminate-progress" style={{ transformOrigin: "0% 50%" }}></div>
+            </div>
+            {/* Or just use <Progress /> with no value if supported, but shadcn Progress usually needs value. 
+              Let's manually simulate indeterminate or just keep it static 100% animating. 
+              Actually, just removing the percentage text is a big step. 
+          */}
+            <p className="text-xs text-muted-foreground text-center">
+              Rendering high-quality PDF...
+            </p>
           </div>
         </div>
       </div>
