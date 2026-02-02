@@ -62,15 +62,24 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       try {
         const status = await api.getTaskStatus(taskId);
 
+        let resultData = status.result;
+        if (typeof resultData === 'string') {
+          try {
+            resultData = JSON.parse(resultData);
+          } catch (e) {
+            console.error("Failed to parse result JSON:", e);
+          }
+        }
+
         // CASE 1: Inspection Ready (State: WAITING_FOR_USER)
         // Note: My backend implementation sets status="WAITING_FOR_USER"
         // Let's verify if I set it explicitly or if I need to rely on message/result structure?
         // I set: title_task_manager.update_status(task_id, "WAITING_FOR_USER", result_payload)
         // So status should be "WAITING_FOR_USER"
 
-        if (status.status === 'WAITING_FOR_USER' && status.result && status.result.stage === 'INSPECTION') {
+        if (status.status === 'WAITING_FOR_USER' && resultData && resultData.stage === 'INSPECTION') {
           clearInterval(pollInterval);
-          setInspectionData(status.result as InspectionResult);
+          setInspectionData(resultData as InspectionResult);
           setIsProcessing(false); // Stop spinner, show UI
           toast({
             title: "Data Inspection Complete",

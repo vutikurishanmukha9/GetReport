@@ -67,7 +67,8 @@ async def run_inspection_task(task_id: str, file_path: str, filename: str):
         partial_result = {
             "filename": filename,
             "quality_report": quality_report,
-            "_temp_path": file_path 
+            "_temp_path": file_path,
+            "stage": "INSPECTION"  # Required for frontend to recognize this phase
         }
         
         # Update status to WAITING_FOR_USER
