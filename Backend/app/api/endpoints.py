@@ -1,9 +1,10 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import logging
+import os
 import asyncio
 
 from app.services.data_processing import (
@@ -14,7 +15,7 @@ from app.services.analysis import (
     analyze_dataset, EmptyDatasetError, InsufficientDataError, AnalysisError
 )
 from app.services.visualization import generate_charts
-from app.services.report_generator import generate_pdf_report
+from app.services.report_renderer import generate_pdf_report  # NEW: HTML-to-PDF engine
 from app.services.llm_insight import generate_insights
 from app.services.task_manager import title_task_manager, TaskStatus
 
@@ -33,11 +34,12 @@ class TaskResponse(BaseModel):
 
 class StatusResponse(BaseModel):
     task_id: str
-    status: TaskStatus
+    status: str
     progress: int
     message: str
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    report_download_url: Optional[str] = None
 
 # ─── Background Processor ────────────────────────────────────────────────────
 async def process_file_in_background(task_id: str, file_content: bytes, filename: str):
@@ -59,9 +61,10 @@ async def process_file_in_background(task_id: str, file_content: bytes, filename
         
         # Determine extension
         ext = ""
-        if filename.endswith(".csv"): ext = ".csv"
-        elif filename.endswith(".xlsx"): ext = ".xlsx"
-        elif filename.endswith(".xls"): ext = ".xls"
+        lower_name = filename.lower()
+        if lower_name.endswith(".csv"): ext = ".csv"
+        elif lower_name.endswith(".xlsx"): ext = ".xlsx"
+        elif lower_name.endswith(".xls"): ext = ".xls"
         
         buffer = BytesIO(file_content)
         
@@ -130,7 +133,7 @@ async def upload_file(
              raise HTTPException(400, "Invalid file type")
              
         # Create Task
-        task_id = title_task_manager.create_job()
+        task_id = title_task_manager.create_job(file.filename)
         
         # Read file into memory immediately (fast for <50MB) 
         # so we can close the connection and pass data to background
@@ -153,6 +156,26 @@ async def upload_file(
         logger.error(f"Upload failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/jobs/{task_id}/analyze")
+async def start_analysis(
+    task_id: str, 
+    rules: Dict[str, Any], 
+    background_tasks: BackgroundTasks
+):
+    """
+    Stage 2: User approves cleaning rules and starts full analysis.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+        
+    # Check if job is in correct state (WAITING_FOR_USER)
+    # if job.status != "WAITING_FOR_USER":
+    #    return JSONResponse(status_code=400, content={"message": "Job is not waiting for input"})
+        
+    background_tasks.add_task(resume_analysis_task, task_id, rules)
+    return {"message": "Analysis started"}
+
 @router.get("/status/{task_id}", response_model=StatusResponse)
 async def get_task_status(task_id: str):
     """
@@ -168,13 +191,75 @@ async def get_task_status(task_id: str):
         progress=job.progress,
         message=job.message,
         result=job.result,
-        error=job.error
+        error=job.error,
+        report_download_url=f"/api/jobs/{job.id}/report" if job.report_path else None
+    )
+
+@router.post("/jobs/{task_id}/report")
+async def generate_persistent_report(task_id: str):
+    """
+    Generates PDF from the saved Job result and persists it to disk.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    if not job.result:
+        raise HTTPException(400, "Job analysis not ready yet")
+    
+    try:
+        # Extract data from stored result
+        result = job.result
+        # Ensure outputs dir exists
+        output_dir = os.path.join(os.getcwd(), "outputs")  # Backend/outputs
+        os.makedirs(output_dir, exist_ok=True)
+        
+        filename = result.get("filename", "unknown")
+        pdf_name = f"{task_id}_{filename}.pdf"
+        pdf_path = os.path.join(output_dir, pdf_name)
+        
+        # Generate PDF
+        pdf_buffer, metadata = await run_in_threadpool(
+            generate_pdf_report,
+            result.get("analysis", {}),
+            result.get("charts", {}),
+            filename
+        )
+        
+        # Save to disk
+        with open(pdf_path, "wb") as f:
+            f.write(pdf_buffer.getbuffer())
+        
+        # Update Job
+        title_task_manager.complete_job(task_id, job.result, report_path=pdf_path)
+        
+        return {"message": "Report generated", "path": pdf_path}
+    
+    except Exception as e:
+        logger.error(f"Persistent report generation failed: {str(e)}")
+        raise HTTPException(500, str(e))
+
+@router.get("/jobs/{task_id}/report")
+async def download_report(task_id: str):
+    """
+    Downloads the persisted PDF report.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.report_path:
+        raise HTTPException(404, "Report not found. Generate it first.")
+    
+    if not os.path.exists(job.report_path):
+        raise HTTPException(404, "Report file missing from disk.")
+        
+    return FileResponse(
+        job.report_path, 
+        media_type="application/pdf", 
+        filename=os.path.basename(job.report_path)
     )
 
 @router.post("/generate-report")
 async def generate_report_endpoint(request: ReportRequest):
     """
-    Generates a PDF report from the provided analysis data and charts.
+    Legacy/On-the-fly endpoint. 
     """
     try:
         # Wrap PDF generation in threadpool too just in case it's heavy

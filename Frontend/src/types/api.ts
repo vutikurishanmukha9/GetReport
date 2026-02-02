@@ -55,7 +55,7 @@ export interface CategoricalStats {
 }
 
 export interface CategoricalDistribution {
-    categories: Record<string, CategoricalStats>;
+  categories: Record<string, CategoricalStats>;
 }
 
 export interface AnalysisResult {
@@ -108,13 +108,48 @@ export interface ApiResponse {
 
 export interface GenerateReportRequest {
   filename: string;
-  analysis: AnalysisResult; // We might need to ensure this has the 'insights' field if backend expects it inside.
-  # Actually report_generator expects 'analysis_results' dict.
-  # And endpoints.py passes 'request.analysis'.
-  # So we pass the AnalysisResult object.
-  # Wait, report_generator also looks for 'insights' inside analysis_results["insights"] or similar?
-  # Let's check report_generator.py logic again if needed.
-  # But for now, strict type matching.
-  
+  analysis: AnalysisResult;
   charts: Charts;
+}
+}
+
+// ─── Phase 3: Interactive Cleaning Types ───
+
+export interface QualityIssue {
+  type: "missing_values" | "type_mismatch" | "outlier";
+  column: string;
+  count: number;
+  severity: "low" | "medium" | "high" | "none";
+  suggestion: "fill_mean" | "fill_unknown" | "drop_rows" | "convert_numeric";
+}
+
+export interface ColumnProfile {
+  name: string;
+  dtype: string;
+  inferred_type: "numeric" | "datetime" | "string";
+  missing_count: number;
+  missing_percentage: number;
+}
+
+export interface InspectionReport {
+  total_rows: number;
+  columns: ColumnProfile[];
+  issues: QualityIssue[];
+}
+
+export interface CleaningRule {
+  action: "drop_rows" | "fill_mean" | "fill_value" | "none";
+  value?: string | number;
+}
+
+export interface CleaningRulesMap {
+  [columnName: string]: CleaningRule;
+}
+
+export interface InspectionResult {
+  filename: string;
+  quality_report: InspectionReport;
+  preview: Record<string, unknown>[];
+  raw_file_path: string;
+  stage: "INSPECTION";
 }

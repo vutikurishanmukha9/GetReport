@@ -4,8 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import type { ApiResponse } from "@/types/api";
+import type { ApiResponse, InspectionResult, CleaningRulesMap } from "@/types/api";
 import { api } from "@/services/api";
+import { DataHealthCheck } from "./DataHealthCheck";
 
 interface FileUploadProps {
   onFileUploaded: (data: ApiResponse) => void;
@@ -15,9 +16,16 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // New States for Interactive Cleaning
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [inspectionData, setInspectionData] = useState<InspectionResult | null>(null);
+  const [activePoll, setActivePoll] = useState<NodeJS.Timeout | null>(null);
+
   const { toast } = useToast();
 
   const validateFile = (file: File): boolean => {
+    // ... (validation logic same as before)
     const validTypes = [
       "text/csv",
       "application/vnd.ms-excel",
@@ -46,70 +54,93 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       });
       return false;
     }
-
     return true;
+  };
+
+  const startPolling = (taskId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const status = await api.getTaskStatus(taskId);
+
+        // CASE 1: Inspection Ready (State: WAITING_FOR_USER)
+        // Note: My backend implementation sets status="WAITING_FOR_USER"
+        // Let's verify if I set it explicitly or if I need to rely on message/result structure?
+        // I set: title_task_manager.update_status(task_id, "WAITING_FOR_USER", result_payload)
+        // So status should be "WAITING_FOR_USER"
+
+        if (status.status === 'WAITING_FOR_USER' && status.result && status.result.stage === 'INSPECTION') {
+          clearInterval(pollInterval);
+          setInspectionData(status.result as InspectionResult);
+          setIsProcessing(false); // Stop spinner, show UI
+          toast({
+            title: "Data Inspection Complete",
+            description: "Please review the issues found.",
+          });
+          return;
+        }
+
+        // CASE 2: Analysis Complete
+        if (status.status === 'COMPLETED' && status.result && !status.result.stage) { // If stage is missing, it's final result? Or specific flag?
+          // Actually final result has 'info' / 'analysis' keys, while inspection has 'quality_report'.
+          // Let's check keys to be safe.
+          if ('analysis' in status.result) {
+            clearInterval(pollInterval);
+            setIsProcessing(false);
+            setInspectionData(null); // Clear inspection UI
+            onFileUploaded(status.result as ApiResponse);
+            toast({
+              title: "Analysis Complete!",
+              description: `Successfully analyzed ${status.result.info.rows} rows.`,
+            });
+          }
+        }
+
+        // CASE 3: Failure
+        else if (status.status === 'FAILED') {
+          clearInterval(pollInterval);
+          setIsProcessing(false);
+          throw new Error(status.error || "Analysis failed");
+        }
+
+        // CASE 4: Still Processing
+        else {
+          // Keep waiting...
+        }
+      } catch (err: any) {
+        clearInterval(pollInterval);
+        setIsProcessing(false);
+        console.error("Polling error:", err);
+        toast({
+          title: "Error",
+          description: "Connection lost during polling.",
+          variant: "destructive",
+        });
+      }
+    }, 1500);
+    setActivePoll(pollInterval);
   };
 
   const processFile = async (file: File) => {
     setIsProcessing(true);
     setSelectedFile(file);
+    setInspectionData(null);
 
     try {
-      // Step 1: Start Upload
       toast({
         title: "Uploading...",
         description: "Sending file to server...",
       });
 
       const { task_id } = await api.uploadFile(file);
-
-      // Step 2: Poll for status
-      const pollInterval = setInterval(async () => {
-        try {
-          const status = await api.getTaskStatus(task_id);
-
-          if (status.status === 'completed' && status.result) {
-            clearInterval(pollInterval);
-            setIsProcessing(false);
-            
-            onFileUploaded(status.result);
-
-            toast({
-              title: "Analysis Complete!",
-              description: `Successfully analyzed ${status.result.info.rows} rows.`,
-            });
-          } else if (status.status === 'failed') {
-            clearInterval(pollInterval);
-            setIsProcessing(false);
-            throw new Error(status.error || "Analysis failed");
-          } else {
-             // Still processing - update UI if we had a dedicated progress bar
-             // For now, re-toasting might be annoying, but we can log or update a local state message
-             // Ideally we'd have a 'processingMessage' state.
-             toast({
-                title: "Processing...",
-                description: `${status.message} (${status.progress}%)`,
-                duration: 1000, 
-             });
-          }
-        } catch (err) {
-          clearInterval(pollInterval);
-          setIsProcessing(false);
-          console.error("Polling error:", err);
-           toast({
-            title: "Error",
-            description: "Connection lost during polling.",
-            variant: "destructive",
-          });
-        }
-      }, 1500); // Poll every 1.5s
+      setTaskId(task_id);
+      startPolling(task_id);
 
     } catch (error: any) {
       console.error("Error initiating upload:", error);
       let errorMessage = "Could not start upload.";
-        if (error.response?.data?.detail) {
-            errorMessage = error.response.data.detail;
-        }
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
       toast({
         title: "Upload Failed",
         description: errorMessage,
@@ -117,6 +148,25 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       });
       setIsProcessing(false);
       setSelectedFile(null);
+    }
+  };
+
+  const handleCleaningRules = async (rules: CleaningRulesMap) => {
+    if (!taskId) return;
+    setIsProcessing(true); // Restart spinner
+
+    try {
+      await api.startAnalysis(taskId, rules);
+      // Resume polling for final result
+      startPolling(taskId);
+    } catch (error) {
+      console.error("Failed to start analysis:", error);
+      toast({
+        title: "Error",
+        description: "Failed to apply rules.",
+        variant: "destructive"
+      });
+      setIsProcessing(false);
     }
   };
 
@@ -139,8 +189,22 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
   const clearFile = () => {
     setSelectedFile(null);
+    setInspectionData(null);
+    if (activePoll) clearInterval(activePoll);
   };
 
+  // ─── RENDER: HEALTH CHECK UI ──────────────────────────────────────────────
+  if (inspectionData && !isProcessing) {
+    return (
+      <DataHealthCheck
+        report={inspectionData.quality_report}
+        onContinue={handleCleaningRules}
+        isProcessing={isProcessing}
+      />
+    );
+  }
+
+  // ─── RENDER: UPLOAD UI ────────────────────────────────────────────────────
   return (
     <motion.div
       className="max-w-2xl mx-auto"

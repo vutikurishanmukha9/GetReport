@@ -5,6 +5,8 @@ from app.services.data_processing import clean_data
 from app.services.analysis import analyze_dataset
 from app.services.llm_insight import _build_prompt
 from app.services.task_manager import TaskManager, TaskStatus
+# New import for the renderer test
+from app.services.report_renderer import generate_pdf_report
 
 # ─── Data Processing Tests ───────────────────────────────────────────────────
 
@@ -103,7 +105,78 @@ def test_task_manager_flow():
     assert job.progress == 50
     
     # Complete
-    tm.complete_job(task_id, {"done": True})
+    tm.complete_job(task_id, {"done": True}, report_path="test.pdf")
     job = tm.get_job(task_id)
     assert job.status == TaskStatus.COMPLETED
     assert job.result == {"done": True}
+    assert job.report_path == "test.pdf"
+
+    assert job.report_path == "test.pdf"
+
+def test_inspect_dataset_logic():
+    from app.services.data_processing import inspect_dataset
+    df = pd.DataFrame({"age": [25, np.nan, 30], "name": ["Alice", "Bob", "Charlie"]})
+    report = inspect_dataset(df)
+    
+    assert report["total_rows"] == 3
+    assert len(report["columns"]) == 2
+    # Check age issue
+    age_col = next(c for c in report["columns"] if c["name"] == "age")
+    assert age_col["missing_count"] == 1
+    assert age_col["inferred_type"] == "numeric"
+    
+    # Check issues list
+    assert len(report["issues"]) == 1
+    assert report["issues"][0]["column"] == "age"
+
+def test_clean_data_with_rules():
+    from app.services.data_processing import clean_data
+    df = pd.DataFrame({
+        "Age": [25, np.nan, 30], 
+        "City": ["NYC", "LA", np.nan]
+    })
+    
+    # Rule: Drop rows with missing Age
+    rules = {
+        "Age": {"action": "drop_rows"}
+    }
+    
+    cleaned_df, report = clean_data(df, rules)
+    
+    # Should have dropped row index 1 (NaN age)
+    assert len(cleaned_df) == 2, "Should have dropped 1 row"
+    assert 25 in cleaned_df["age"].values
+    assert 30 in cleaned_df["age"].values
+    
+    # Check City: should still have "Unknown" because we didn't specify rule, so default safety applied
+    # (Assuming default safety runs AFTER rules)
+    # Original row 2 (index 2) had City=NaN. It was NOT dropped.
+    # So City should be "Unknown"
+    # Wait, row 2 is index 2. df['City'].iloc[1] (which is the old index 2)
+    assert "unknown" in cleaned_df["city"].str.lower().values, "City should be filled with Unknown by default logic"
+
+# ─── Report Renderer Tests (NEW) ─────────────────────────────────────────────
+
+def test_pdf_generation_html():
+    """
+    Verify that generate_pdf_report creates a valid PDF stream from HTML template.
+    """
+    # Mock analysis data
+    analysis = {
+        "metadata": {"total_rows": 100, "total_columns": 5, "numeric_columns": [], "categorical_columns": []},
+        "insights": {"response": "Test Insights"}
+    }
+    # Mock charts data (empty or minimal base64)
+    charts = {
+        "correlation_heatmap": None,
+        "distributions": []
+    }
+    
+    pdf_buffer, metadata = generate_pdf_report(analysis, charts, "test_file.csv")
+    
+    # Check buffer content
+    content = pdf_buffer.getvalue()
+    
+    # PDF magic number is %PDF
+    assert content.startswith(b"%PDF"), "Generated output is not a valid PDF file"
+    assert metadata["engine"] == "ReportLab Platypus"

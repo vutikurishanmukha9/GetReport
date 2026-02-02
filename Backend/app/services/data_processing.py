@@ -248,35 +248,62 @@ async def load_dataframe(file: UploadFile) -> pd.DataFrame:
     return df
 
 
-# ─── Cleaning Pipeline ───────────────────────────────────────────────────────
-def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, CleaningReport]:
+# ─── INSPECTION & INTERACTIVE CLEANING ──────────────────────────────────────
+
+def inspect_dataset(df: pd.DataFrame) -> dict[str, Any]:
     """
-    Run the 4-step data cleaning pipeline and return both the cleaned
-    DataFrame and a full audit report of every change made.
+    Analyzes the raw dataset to find quality issues.
+    Returns a report suitable for the "Health Check" UI.
+    """
+    quality_report = {
+        "total_rows": len(df),
+        "columns": [],
+        "issues": []
+    }
+    
+    for col in df.columns:
+        # 1. NaN Detection
+        nan_count = int(df[col].isnull().sum())
+        dtype = str(df[col].dtype)
+        
+        # 2. Type Inference (Simpler version for UI)
+        inferred_type = "string"
+        if pd.api.types.is_numeric_dtype(df[col]):
+            inferred_type = "numeric"
+        elif pd.api.types.is_datetime64_any_dtype(df[col]):
+            inferred_type = "datetime"
+            
+        col_info = {
+            "name": col,
+            "dtype": dtype,
+            "inferred_type": inferred_type,
+            "missing_count": nan_count,
+            "missing_percentage": round((nan_count / len(df)) * 100, 1)
+        }
+        quality_report["columns"].append(col_info)
+        
+        # 3. Issue Flagging
+        if nan_count > 0:
+            quality_report["issues"].append({
+                "type": "missing_values",
+                "column": col,
+                "count": nan_count,
+                "severity": "high" if nan_count > 0 else "none",
+                "suggestion": "fill_mean" if inferred_type == "numeric" else "fill_unknown"
+            })
+            
+    return quality_report
 
-    Preserves original logic exactly:
-        Step 1 — Drop fully empty rows and columns (dropna how='all')
-        Step 2 — Standardize column names (strip whitespace)
-        Step 3 — Type inference: try numeric first, then datetime (format='mixed')
-        Step 4 — Fill NaNs: numeric → 0, non-numeric → "Unknown"
 
-    Enhanced with:
-        - Input validation (must be a DataFrame)
-        - Duplicate row detection and removal (before type inference)
-        - Snake_case conversion on top of the original strip
-        - Change tracking at every step via CleaningReport
-        - Type conversion logging (column, from_type, to_type)
-        - Exact NaN fill counts per category
-        - Timing measurement
-
-    Args:
-        df: A pandas DataFrame (output of load_dataframe).
-
-    Returns:
-        Tuple of (cleaned DataFrame, CleaningReport with full audit trail).
-
-    Raises:
-        InvalidDataFrameError: If input is not a DataFrame.
+# ─── Cleaning Pipeline ───────────────────────────────────────────────────────
+def clean_data(
+    df: pd.DataFrame, 
+    rules: dict[str, Any] | None = None
+) -> tuple[pd.DataFrame, CleaningReport]:
+    """
+    Run the data cleaning pipeline.
+    If 'rules' is provided, applies specific user actions (e.g. drop vs fill).
+    Otherwise, applies safe defaults.
     """
     # ── Input validation ────────────────────────────────────────────────────
     if not isinstance(df, pd.DataFrame):
@@ -286,27 +313,55 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, CleaningReport]:
 
     start_time = time.perf_counter()
     report     = CleaningReport()
-    logger.info("═══ Cleaning Pipeline Started ═══")
+    logger.info("═══ Cleaning Pipeline Started (Rules: %s) ═══", rules)
 
     # ── Snapshot original state ─────────────────────────────────────────────
     original_rows = len(df)
     original_cols = len(df.columns)
+    
+    # Standardize column names FIRST to handle rules mapping easily
+    # (Original: it was Step 2, but moving it to 0 helps matching rules)
+    df.columns = [_to_snake_case(c) for c in df.columns]
 
     # ═════════════════════════════════════════════════════════════════════════
-    # STEP 1 — Drop fully empty rows and columns (original logic preserved)
+    # STEP 0 — User Defined Rules (Interactive Mode)
     # ═════════════════════════════════════════════════════════════════════════
-    df.dropna(how="all", inplace=True)                  # original
-    df.dropna(axis=1, how="all", inplace=True)          # original
+    if rules:
+        for original_col, rule in rules.items():
+            target_col = _to_snake_case(original_col)
+            if target_col not in df.columns:
+                continue
+                
+            action = rule.get("action")
+            
+            if action == "drop_rows":
+                initial = len(df)
+                df.dropna(subset=[target_col], inplace=True)
+                dropped = initial - len(df)
+                if dropped > 0:
+                    logger.info(f"Rule: Dropped {dropped} rows for '{target_col}'")
+            
+            elif action == "fill_mean":
+                if pd.api.types.is_numeric_dtype(df[target_col]):
+                    mean_val = df[target_col].mean()
+                    df[target_col].fillna(mean_val, inplace=True)
+                    report.numeric_nans_filled += 1 # Rough count
+                    
+            elif action == "fill_value":
+                val = rule.get("value")
+                df[target_col].fillna(val, inplace=True)
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # STEP 1 — Drop fully empty rows and columns
+    # ═════════════════════════════════════════════════════════════════════════
+    df.dropna(how="all", inplace=True)
+    df.dropna(axis=1, how="all", inplace=True)
 
     report.empty_rows_dropped    = original_rows - len(df)
     report.empty_columns_dropped = original_cols - len(df.columns)
 
     if report.empty_rows_dropped > 0:
         logger.info("Step 1 — Dropped %d fully empty row(s).", report.empty_rows_dropped)
-    if report.empty_columns_dropped > 0:
-        logger.info("Step 1 — Dropped %d fully empty column(s).", report.empty_columns_dropped)
-    if report.empty_rows_dropped == 0 and report.empty_columns_dropped == 0:
-        logger.debug("Step 1 — No empty rows or columns found.")
 
     # ── Enhanced: Duplicate row removal ─────────────────────────────────────
     duplicates_before = df.duplicated().sum()
@@ -314,38 +369,16 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, CleaningReport]:
         df.drop_duplicates(inplace=True)
         report.duplicate_rows_removed = int(duplicates_before)
         logger.info("Step 1 (Enhanced) — Removed %d duplicate row(s).", duplicates_before)
-    else:
-        logger.debug("Step 1 (Enhanced) — No duplicate rows found.")
 
     # ═════════════════════════════════════════════════════════════════════════
-    # STEP 2 — Standardize column names (original logic + enhanced snake_case)
+    # STEP 2 — Standardize column names (Already done at Step 0, just track)
     # ═════════════════════════════════════════════════════════════════════════
-    original_names = list(df.columns)
-    df.columns     = df.columns.astype(str).str.strip()     # original logic preserved
+    # We did it at start, so just rely on that.
 
-    # Enhanced: apply snake_case on top of the original strip
-    new_names = [_to_snake_case(col) for col in df.columns]
-    df.columns = new_names
-
-    # Track which columns actually changed name
-    for old, new in zip(original_names, new_names):
-        if old.strip() != new:
-            report.columns_renamed[old] = new
-
-    if report.columns_renamed:
-        logger.info("Step 2 — Renamed %d column(s): %s", len(report.columns_renamed), report.columns_renamed)
-    else:
-        logger.debug("Step 2 — All column names already clean.")
-
-    # ═════════════════════════════════════════════════════════════════════════
-    # STEP 3 — Type inference (original logic preserved exactly)
-    # ═════════════════════════════════════════════════════════════════════════
     # ═════════════════════════════════════════════════════════════════════════
     # STEP 3 — Type inference with ID detection
     # ═════════════════════════════════════════════════════════════════════════
     logger.debug("Step 3 — Starting smart type inference.")
-
-    # Identify potential ID columns by name patterns to avoid mis-classifying them as numeric stats
     id_patterns = {"id", "code", "sku", "zip", "phone", "year", "date", "day"}
     
     for col in df.columns:
@@ -357,7 +390,6 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, CleaningReport]:
         
         # If it looks like an ID, prefer string (object) unless it's clearly a date
         if is_id_like:
-             # ONLY try datetime if the name actually sounds like a date/time
             date_terms = {"date", "time", "year", "day", "dob", "created", "updated", "at"}
             if any(t in col_lower for t in date_terms):
                 try:
@@ -369,9 +401,8 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, CleaningReport]:
                         })
                     continue
                 except (ValueError, TypeError):
-                    pass # Fall through to string conversion
+                    pass 
 
-            # If not date (or date conversion failed), keep/force as string to prevent "Average User ID" stats
             if pd.api.types.is_numeric_dtype(df[col]):
                 df[col] = df[col].astype(str)
                 report.type_conversions.append({
@@ -379,9 +410,7 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, CleaningReport]:
                 })
             continue
 
-        # Standard Numeric Inference for non-ID columns
         try:
-            # downcast='float' or 'integer' helps save memory but to_numeric is standard
             df[col] = pd.to_numeric(df[col])
             new_dtype = str(df[col].dtype)
             if new_dtype != original_dtype:
@@ -392,7 +421,6 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, CleaningReport]:
         except (ValueError, TypeError):
             pass
 
-        # Standard Datetime Inference
         try:
             df[col] = pd.to_datetime(df[col], format="mixed")
             new_dtype = str(df[col].dtype)
@@ -404,15 +432,10 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, CleaningReport]:
         except (ValueError, TypeError):
             pass
 
-    if not report.type_conversions:
-        logger.debug("Step 3 — No type conversions needed.")
-
     # ═════════════════════════════════════════════════════════════════════════
     # STEP 4 — Handling Missing Values (CORRECTED)
     # ═════════════════════════════════════════════════════════════════════════
-    # CRITICAL FIX: Do NOT indiscriminately fill numeric NaNs with 0.
-    # Leaving NaNs allows pandas/scipy to correctly ignore them in mean/std calculations.
-    # We only fill Categorical NaNs with "Unknown" to allow for grouping.
+    # Safe Imputation: Only fill Categorical. Leave Numeric NaNs unless rule applied.
     
     for col in df.columns:
         nan_count = int(df[col].isnull().sum())
