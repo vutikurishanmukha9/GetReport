@@ -65,8 +65,10 @@ export interface AnalysisResult {
   strong_correlations: StrongCorrelation[];
   outliers: Record<string, OutlierInfo>;
   categorical_distribution: Record<string, CategoricalDistribution>;
+  categorical_distribution: Record<string, CategoricalDistribution>;
   column_quality_flags: Record<string, string[]>;
   timing_ms: number;
+  insights?: string | InsightResult; // Optional: Can be string or object depending on merge
 }
 
 export interface ChartReport {
@@ -135,6 +137,7 @@ export interface InspectionReport {
   total_rows: number;
   columns: ColumnProfile[];
   issues: QualityIssue[];
+  preview: Record<string, any>[]; // Added for data preview table
 }
 
 export interface CleaningRule {

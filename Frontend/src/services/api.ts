@@ -1,7 +1,7 @@
 import axios from "axios";
 import type { ApiResponse, AnalysisResult, Charts } from "@/types/api";
 
-const API_BASE_URL = "http://localhost:8000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -32,6 +32,16 @@ export const api = {
         return response.data;
     },
 
+
+
+    /**
+     * Chat with the processed report (RAG).
+     */
+    chatWithJob: async (taskId: string, question: string): Promise<{ answer: string; sources: string[] }> => {
+        const response = await apiClient.post(`/jobs/${taskId}/chat`, { question });
+        return response.data;
+    },
+
     /**
      * Generate and download the PDF report.
      */
@@ -45,11 +55,11 @@ export const api = {
     ): Promise<Blob> => {
 
         // Ensure insights are included in the analysis object for the PDF generator
-        // @ts-ignore
-        const analysisWithInsights = { ...analysis };
-        // @ts-ignore
+        // Create a copy to avoid mutating props
+        const analysisWithInsights: AnalysisResult = { ...analysis };
+
         if (insightsText && !analysisWithInsights.insights) {
-            // @ts-ignore
+            // Type definition now allows this
             analysisWithInsights.insights = insightsText;
         }
 

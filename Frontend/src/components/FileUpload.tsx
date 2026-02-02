@@ -9,7 +9,7 @@ import { api } from "@/services/api";
 import { DataHealthCheck } from "./DataHealthCheck";
 
 interface FileUploadProps {
-  onFileUploaded: (data: ApiResponse) => void;
+  onFileUploaded: (data: ApiResponse, taskId: string) => void;
 }
 
 export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
@@ -62,6 +62,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       try {
         const status = await api.getTaskStatus(taskId);
 
+
         let resultData = status.result;
         if (typeof resultData === 'string') {
           try {
@@ -95,12 +96,16 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
           if ('analysis' in status.result) {
             clearInterval(pollInterval);
             setIsProcessing(false);
-            setInspectionData(null); // Clear inspection UI
-            onFileUploaded(status.result as ApiResponse);
+            // Clear inspection UI
+            setInspectionData(null);
+            // Pass both result and task_id to parent
+            onFileUploaded(status.result as ApiResponse, taskId);
+
             toast({
               title: "Analysis Complete!",
               description: `Successfully analyzed ${status.result.info.rows} rows.`,
             });
+            return;
           }
         }
 
@@ -118,7 +123,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       } catch (err: any) {
         clearInterval(pollInterval);
         setIsProcessing(false);
-        console.error("Polling error:", err);
+
         toast({
           title: "Error",
           description: "Connection lost during polling.",

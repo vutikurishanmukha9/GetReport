@@ -5,33 +5,33 @@ import { Button } from "@/components/ui/button";
 const features = [
     {
         icon: Wand2,
-        title: "Automated Cleaning",
-        description: "Instantly detect and fix missing values, duplicates, and inconsistent data types without writing a single line of code.",
+        title: "Intelligent Hygiene",
+        description: "Our Polars-based engine automatically identifies and rectifies common data quality issues—missing values, duplicates, and type mismatches—at lightning speed.",
     },
     {
         icon: Brain,
-        title: "AI Insights",
-        description: "Leverage advanced LLMs to generate narrative insights that explain the 'why' behind your data trends.",
+        title: "Context-Aware AI",
+        description: "Leveraging RAG architecture, we analyze statistical summaries to provide narrative context and strategic recommendations without exposing raw confidential rows.",
     },
     {
         icon: BarChart3,
-        title: "Smart Visualizations",
-        description: "Automatically generate relevance-ranked charts including distributions, correlations, and trend analysis.",
+        title: "Auto-Visualization",
+        description: "We automatically select the most effective chart types for your data distributions and correlations, eliminating the guesswork of manual plotting.",
     },
     {
         icon: FileText,
-        title: "PDF Reporting",
-        description: "Download board-ready PDF reports complete with executive summaries, methodology, and detailed findings.",
+        title: "Board-Ready Reports",
+        description: "Generate comprehensive PDF reports complete with Methodology sections, Executive Summaries, and high-DPI assets ready for immediate presentation.",
     },
     {
         icon: Layout,
-        title: "Interactive Preview",
-        description: "Explore your dataset in real-time with our interactive data grid and quality dashboard before generating reports.",
+        title: "Interactive Inspection",
+        description: "Audit your data health in real-time. Our interactive grid allows you to preview, sort, and verify cleaning rules before committing to analysis.",
     },
     {
         icon: ShieldCheck,
-        title: "Secure Processing",
-        description: "Your data is processed securely and is never used to train our models. We prioritize your data privacy.",
+        title: "Privacy by Design",
+        description: "Your data is processed ephemerally in volatile memory. We mask PII (Personally Identifiable Information) before any AI processing occurs.",
     },
 ];
 

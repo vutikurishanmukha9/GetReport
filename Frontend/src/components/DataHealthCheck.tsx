@@ -30,7 +30,10 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
     const handleActionChange = (column: string, action: string) => {
         setRules(prev => ({
             ...prev,
-            [column]: { action: action as any }
+            [column]: {
+                action: action as any,
+                value: action === "fill_value" ? "Unknown" : undefined
+            }
         }));
     };
 
@@ -126,6 +129,40 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     <Check className="h-12 w-12 text-green-500 mx-auto mb-4" />
                     <h3 className="text-lg font-medium">Your data looks clean!</h3>
                     <p className="text-muted-foreground">No critical issues found.</p>
+                </div>
+            )}
+
+
+            {/* ─── DATA PREVIEW (Added heavily requested feature) ─── */}
+            {report.preview && report.preview.length > 0 && (
+                <div className="border rounded-md shadow-sm overflow-hidden">
+                    <div className="bg-muted/50 px-4 py-3 border-b">
+                        <h3 className="text-sm font-medium">Data Preview (First 5 Rows)</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-muted/20 text-muted-foreground font-medium">
+                                <tr>
+                                    {Object.keys(report.preview[0]).map((header) => (
+                                        <th key={header} className="px-4 py-2 border-b whitespace-nowrap">
+                                            {header}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {report.preview.map((row, idx) => (
+                                    <tr key={idx} className="border-b last:border-0 hover:bg-muted/10">
+                                        {Object.values(row).map((cell: any, cIdx) => (
+                                            <td key={cIdx} className="px-4 py-2 whitespace-nowrap max-w-[200px] truncate" title={String(cell)}>
+                                                {cell === null ? <span className="text-muted-foreground italic">null</span> : String(cell)}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 

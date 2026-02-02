@@ -6,20 +6,20 @@ const steps = [
     {
         id: "01",
         icon: UploadCloud,
-        title: "Upload Your Data",
-        description: "Drag and drop your CSV or Excel file. We support datasets of all sizes and automatically detect format and structure.",
+        title: "Secure Ingestion",
+        description: "Stream your CSV or Excel files securely. Our system performs an initial health check to validate schema availability and identify data types.",
     },
     {
         id: "02",
         icon: Search,
-        title: "Instant Analysis",
-        description: "Our engine cleans your data, runs statistical tests, detects patterns, and generates visualizations in seconds.",
+        title: "Parallel Processing",
+        description: "We split the workload: Statistical analysis runs on optimized CPU threads to crunch numbers, while AI agents generate qualitative insights in parallel.",
     },
     {
         id: "03",
         icon: FileDown,
-        title: "Get Your Report",
-        description: "Download a professional PDF report containing all findings, charts, and AI-driven recommendations ready for presentation.",
+        title: "Synthesis & Export",
+        description: "All findings—charts, stats, and narratives—are synthesized into a coherent PDF document. You can also chat with your report for deeper digging.",
     },
 ];
 

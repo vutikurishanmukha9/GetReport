@@ -72,7 +72,10 @@ async def run_inspection_task(task_id: str, file_path: str, filename: str):
         }
         
         # Update status to WAITING_FOR_USER
-        title_task_manager.update_status(task_id, TaskStatus.WAITING_FOR_USER, partial_result)
+        logger.info(f"Task {task_id}: Inspection Complete. Setting WAITING_FOR_USER. Result keys: {list(partial_result.keys())}")
+        task_manager_response = title_task_manager.update_status(task_id, TaskStatus.WAITING_FOR_USER, partial_result)
+        logger.info(f"Task {task_id}: Status Update Triggered.")
+        
         title_task_manager.update_progress(task_id, 40, "Waiting for user review")
         
     except Exception as e:
@@ -102,7 +105,8 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
 
     try:
         title_task_manager.update_progress(task_id, 45, "Applying cleaning rules...")
-        from app.services.data_processing import load_dataframe, clean_data, get_dataset_info
+        title_task_manager.update_progress(task_id, 45, "Applying cleaning rules...")
+        from app.services.data_processing import load_dataframe, clean_data, get_dataset_info, analyze_dataset
         
         # Reload (Polars is fast)
         df = load_dataframe(file_path)

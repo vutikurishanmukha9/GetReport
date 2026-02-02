@@ -1,89 +1,16 @@
 import io
-import base64
 import datetime
 import logging
 from typing import Dict, Any, Tuple
 
-from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch, mm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.units import mm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+
+from app.services.report_styles import get_custom_styles
+from app.services.report_components import build_stat_table, create_chart_section
 
 logger = logging.getLogger(__name__)
-
-# ─── Style Definitions (Tailwind-ish Look) ───────────────────────────────────
-def get_custom_styles():
-    styles = getSampleStyleSheet()
-    
-    # Title - H1 equivalent
-    styles.add(ParagraphStyle(
-        name='ModernTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#1a1a1a'),
-        leading=30,
-        spaceAfter=20,
-        borderPadding=10,
-        borderColor=colors.HexColor('#3b82f6'),
-        borderWidth=0,
-        borderBottomWidth=2,
-    ))
-    
-    # Subtitle - H2 equivalent
-    styles.add(ParagraphStyle(
-        name='ModernHeading',
-        parent=styles['Heading2'],
-        fontSize=18,
-        textColor=colors.HexColor('#2563eb'),
-        spaceBefore=20,
-        spaceAfter=10,
-        leading=22
-    ))
-    
-    # Text
-    styles.add(ParagraphStyle(
-        name='ModernBody',
-        parent=styles['Normal'],
-        fontSize=11,
-        textColor=colors.HexColor('#333333'),
-        leading=16,
-        spaceAfter=10
-    ))
-
-    # Metadata Label
-    styles.add(ParagraphStyle(
-        name='MetaLabel',
-        fontSize=9,
-        textColor=colors.HexColor('#6b7280'),
-        alignment=TA_CENTER
-    ))
-    
-    # Metadata Value
-    styles.add(ParagraphStyle(
-        name='MetaValue',
-        fontSize=14,
-        textColor=colors.HexColor('#1e3a8a'),
-        fontName='Helvetica-Bold',
-        alignment=TA_CENTER
-    ))
-    
-    # Insight Box
-    styles.add(ParagraphStyle(
-        name='InsightBox',
-        parent=styles['Normal'],
-        fontSize=11,
-        textColor=colors.HexColor('#1e40af'),
-        backColor=colors.HexColor('#eff6ff'),
-        borderColor=colors.HexColor('#3b82f6'),
-        borderPadding=15,
-        borderWidth=0,
-        borderLeftWidth=4,
-        leading=16,
-    ))
-    
-    return styles
 
 def generate_pdf_report(
     analysis_data: Dict[str, Any],
@@ -92,6 +19,7 @@ def generate_pdf_report(
 ) -> Tuple[io.BytesIO, Dict[str, Any]]:
     """
     Generates a PDF file using ReportLab Platypus.
+    Orchestrates the 'Story' using components and styles.
     Returns (pdf_buffer, metadata).
     """
     start_time = datetime.datetime.now()
@@ -118,28 +46,20 @@ def generate_pdf_report(
     # ─── 2. Executive Summary (Grid) ────────────────────────────────────────
     story.append(Paragraph("Executive Summary", styles['ModernHeading']))
     
-    # Safely extract stats
+    # Extract stats considering multiple potential formats
     meta = analysis_data.get("metadata", {})
-    # 'info' usually has lists, 'analysis.metadata' usually has counts. We handle both.
-    
     rows = meta.get("rows", meta.get("total_rows", analysis_data.get("info", {}).get("rows", "N/A")))
     cols_count = meta.get("total_columns", 0)
     
-    # numeric_columns might be a list (names) or an int (count)
-    numeric_val = meta.get("numeric_columns", [])
-    if isinstance(numeric_val, int):
-        num_count = numeric_val
-    else:
-        num_count = len(numeric_val)
+    # Handle list vs int for counts
+    def get_count(val):
+        if isinstance(val, int): return val
+        if isinstance(val, list): return len(val)
+        return 0
 
-    # categorical_columns might be a list or an int
-    cat_val = meta.get("categorical_columns", [])
-    if isinstance(cat_val, int):
-        cat_count = cat_val
-    else:
-        cat_count = len(cat_val)
+    num_count = get_count(meta.get("numeric_columns", []))
+    cat_count = get_count(meta.get("categorical_columns", []))
     
-    # Create a 4-column table for stats
     stat_data = [
         [
             Paragraph(str(rows), styles['MetaValue']),
@@ -155,16 +75,7 @@ def generate_pdf_report(
         ]
     ]
     
-    t = Table(stat_data, colWidths=[1.5*inch]*4)
-    t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f3f4f6')),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 10),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
-        ('ROUNDEDCORNERS', [8, 8, 8, 8]), # ReportLab 4.x feature
-    ]))
-    story.append(t)
+    story.append(build_stat_table(stat_data))
     story.append(Spacer(1, 20))
 
     # ─── 2b. Cleaning Report ────────────────────────────────────────────────
@@ -188,41 +99,29 @@ def generate_pdf_report(
 
     # ─── 3. AI Insights ─────────────────────────────────────────────────────
     insights = analysis_data.get("insights", {})
-    if insights and "response" in insights:
+    # Support both old string format and new InsightResult dict format
+    insights_text = ""
+    if isinstance(insights, dict):
+         insights_text = insights.get('insights_text', insights.get('response', ''))
+    elif isinstance(insights, str):
+         insights_text = insights
+
+    if insights_text:
         story.append(Paragraph("AI-Powered Insights", styles['ModernHeading']))
-        # Clean specific characters if needed
-        text = insights['response'].replace('\n', '<br/>')
-        story.append(Paragraph(text, styles['InsightBox']))
+        formatted_text = insights_text.replace('\n', '<br/>')
+        story.append(Paragraph(formatted_text, styles['InsightBox']))
         story.append(Spacer(1, 20))
 
     # ─── 4. Visualizations ──────────────────────────────────────────────────
     story.append(PageBreak())
     story.append(Paragraph("Key Visualizations", styles['ModernTitle']))
 
-    # Helper to add base64 image
-    def add_chart(b64_str, title):
-        if not b64_str:
-            return
-        
-        story.append(Paragraph(title, styles['ModernHeading']))
-        
-        img_buffer = io.BytesIO(base64.b64decode(b64_str))
-        img = Image(img_buffer)
-        
-        # Resize to fit A4 width (approx 6 inches usable)
-        max_width = 6 * inch
-        aspect = img.imageHeight / float(img.imageWidth)
-        img.drawWidth = max_width
-        img.drawHeight = max_width * aspect
-        
-        story.append(img)
-        story.append(Spacer(1, 20))
-
     charts = charts_data or {}
-    add_chart(charts.get('correlation_heatmap'), "Correlation Heatmap")
+    
+    create_chart_section(charts.get('correlation_heatmap'), "Correlation Heatmap", styles, story)
     
     for dist in charts.get('distributions', []):
-        add_chart(dist.get('image'), f"Distribution: {dist.get('column')}")
+        create_chart_section(dist.get('image'), f"Distribution: {dist.get('column')}", styles, story)
 
     # ─── Build ──────────────────────────────────────────────────────────────
     try:

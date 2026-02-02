@@ -37,7 +37,7 @@ const Pricing = () => {
                             <div className="bg-primary/5 p-4 rounded-lg text-center mb-6">
                                 <p className="font-medium text-primary flex items-center justify-center gap-2">
                                     <Zap className="h-4 w-4 fill-primary" />
-                                    At this Point of time We are Offering Our Services For Free Only
+                                    Currently, we are offering all features for FREE.
                                 </p>
                             </div>
 

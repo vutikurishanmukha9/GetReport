@@ -7,25 +7,23 @@ import { HeroSection } from "@/components/HeroSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { Footer } from "@/components/Footer";
 import type { ApiResponse } from "@/types/api";
+import { ChatInterface } from "@/components/ChatInterface"; // Import Chat
 
 export type AppStep = "upload" | "preview" | "generating" | "complete";
 
 const Index = () => {
   const [step, setStep] = useState<AppStep>("upload");
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(null); // Store Task ID
 
-  const handleFileUploaded = (data: ApiResponse) => {
+  const handleFileUploaded = (data: ApiResponse, taskId: string) => {
     setApiData(data);
+    setTaskId(taskId); // Save it
     setStep("preview");
   };
 
   const handleGenerateReport = () => {
     setStep("generating");
-    // Actual generation logic moved to ReportGeneration component
-    // But we need to transition to 'complete' when done?
-    // Or ReportGeneration handles the transition?
-    // Let's keep it simple: ReportGeneration takes the data and calls the API
-    // We just handle the step transition here or pass a callback.
   };
 
   const handleReportComplete = () => {
@@ -35,6 +33,7 @@ const Index = () => {
   const handleReset = () => {
     setStep("upload");
     setApiData(null);
+    setTaskId(null);
   };
 
   return (
@@ -65,7 +64,7 @@ const Index = () => {
         )}
 
         {(step === "generating" || step === "complete") && apiData && (
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12 space-y-12">
             <ReportGeneration
               step={step}
               filename={apiData.filename}
@@ -75,6 +74,13 @@ const Index = () => {
               onComplete={handleReportComplete}
               onReset={handleReset}
             />
+
+            {/* Show Chat Interface ONLY when analysis is complete */}
+            {step === "complete" && taskId && (
+              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+                <ChatInterface taskId={taskId} />
+              </div>
+            )}
           </div>
         )}
       </main>

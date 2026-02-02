@@ -141,8 +141,21 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
     quality_report = {
         "total_rows": df.height,
         "columns": [],
-        "issues": []
+        "issues": [],
+        "preview": [] 
     }
+    
+    # Generate Preview (Sanitized for JSON)
+    rows = df.head(5)
+    for row in rows.iter_rows(named=True):
+        clean_row = {}
+        for k, v in row.items():
+            # Handle NaN/Inf -> None
+            if isinstance(v, float) and (v != v or v == float('inf') or v == float('-inf')):
+                clean_row[k] = None
+            else:
+                clean_row[k] = v
+        quality_report["preview"].append(clean_row)
 
     # Iterate over columns efficiently
     for col_name in df.columns:
@@ -269,7 +282,19 @@ def get_dataset_info(df: pl.DataFrame) -> dict[str, Any]:
     # Convert 'statistic' column to keys for better structure?
     # Or just keep it.
     
-    preview = df.head(PREVIEW_ROW_COUNT).to_dicts()
+    # Convert DataFrame to dictionaries for preview
+    # serialize_rows handles NaN -> None conversion which is safer for JSON
+    rows = df.head(PREVIEW_ROW_COUNT)
+    preview = []
+    for row in rows.iter_rows(named=True):
+        clean_row = {}
+        for k, v in row.items():
+            # Handle NaN/Inf for JSON safety
+            if isinstance(v, float) and (v != v or v == float('inf') or v == float('-inf')):
+                clean_row[k] = None
+            else:
+                clean_row[k] = v
+        preview.append(clean_row)
     
     missing_per_col = {}
     for col in df.columns:
@@ -293,4 +318,46 @@ def get_dataset_info(df: pl.DataFrame) -> dict[str, Any]:
         "numeric_columns": numeric_cols,
         "categorical_columns": cat_cols,
         "memory_usage_mb": round(df.estimated_size() / (1024*1024), 2)
+    }
+
+# ─── Advanced Analysis ───────────────────────────────────────────────────────
+def analyze_dataset(df: pl.DataFrame) -> dict[str, Any]:
+    """
+    Performs statistical analysis (correlations, distributions).
+    """
+    numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
+    
+    # 1. Summary Stats
+    summary = df.describe().to_dict(as_series=False)
+    
+    # 2. Correlations (only if numeric cols > 1)
+    correlations = {}
+    if len(numeric_cols) > 1:
+        # Polars correlation is simpler to just do pairwise for now or use Pearson
+        # Computing full correlation matrix can be expensive.
+        # Let's do a limited sample corr if rows > 10000?
+        target_df = df.select(numeric_cols)
+        if target_df.height > 10000:
+            target_df = target_df.sample(10000)
+            
+        # Pearson correlation matrix
+        # Polars doesn't have a direct 'corr()' returning a matrix easily like pandas.
+        # We iteration:
+        for c1 in numeric_cols:
+            correlations[c1] = {}
+            for c2 in numeric_cols:
+                 if c1 == c2:
+                     correlations[c1][c2] = 1.0
+                 else:
+                     # corr handles nulls?
+                     val = target_df.select(pl.corr(c1, c2)).item()
+                     # Handle NaN
+                     if val is not None and not np.isnan(val):
+                         correlations[c1][c2] = round(val, 2)
+                     else:
+                         correlations[c1][c2] = 0.0
+
+    return {
+        "summary": summary,
+        "correlations": correlations
     }

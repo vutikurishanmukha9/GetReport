@@ -54,7 +54,10 @@ class TaskManager:
         try:
             job = db.query(Job).filter(Job.id == job_id).first()
             if job:
-                job.status = TaskStatus.PROCESSING
+                # Only auto-switch to PROCESSING if we are not in a final or paused state
+                if job.status in [TaskStatus.PENDING, TaskStatus.PROCESSING]:
+                    job.status = TaskStatus.PROCESSING
+                
                 job.progress = max(0, min(100, progress))
                 job.message = message
                 db.commit()
