@@ -115,13 +115,19 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
         cleaning_report_dict = cleaning_report.to_dict()
         analysis_result = await run_in_threadpool(analyze_dataset, cleaned_df)
         
-        # Charts
-        title_task_manager.update_progress(task_id, 80, "Generating visual charts...")
-        charts, _ = await run_in_threadpool(generate_charts, cleaned_df)
+        # Parallel Execution: Charts (CPU) & Insights (IO)
+        title_task_manager.update_progress(task_id, 75, "Generating charts & insights...")
         
-        # Insights
-        title_task_manager.update_progress(task_id, 90, "Consulting LLM...")
-        insights_result = await generate_insights(analysis_result)
+        # Wrap chart generation to be awaitable
+        charts_task = run_in_threadpool(generate_charts, cleaned_df)
+        insights_task = generate_insights(analysis_result)
+        
+        # Run both concurrently
+        results = await asyncio.gather(charts_task, insights_task)
+        charts_data, _ = results[0]
+        insights_result = results[1]
+        
+        charts = charts_data
         
         # ─── RAG Ingestion ───
         # Build a text representation of the findings for the chatbot
@@ -141,7 +147,9 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
         --- Cleaning Actions ---
         {cleaning_report.to_dict()}
         """
-        await rag_service.ingest_report(task_id, rag_text)
+        # Fire-and-forget ingestion so we don't block the report generation
+        # The Chat feature will become available a few seconds after the report is ready
+        asyncio.create_task(rag_service.ingest_report(task_id, rag_text))
         
         title_task_manager.update_progress(task_id, 95, "Rendering PDF...")
         
@@ -345,7 +353,8 @@ async def chat_with_job(task_id: str, request: ChatRequest):
          raise HTTPException(400, "Job is not completed yet.")
          
     response = await rag_service.chat_with_report(task_id, request.question)
-    return {"answer": response}
+    # response is now a dict with 'answer', 'sources', 'metrics'
+    return response
 
 @router.post("/generate-report")
 async def generate_report_endpoint(request: ReportRequest):
