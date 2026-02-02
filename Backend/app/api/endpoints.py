@@ -44,27 +44,20 @@ class StatusResponse(BaseModel):
 # ─── Background Processor ────────────────────────────────────────────────────
 async def process_file_in_background(task_id: str, file_path: str, filename: str):
     """
-    Orchestrates the full analysis pipeline using a file on disk to save RAM.
+    Orchestrates the full analysis pipeline using Polars (High Performance).
     """
     try:
         # Step 1: Loading
-        title_task_manager.update_progress(task_id, 10, "Loading file...")
-        import pandas as pd
+        title_task_manager.update_progress(task_id, 10, "Loading file (Polars)...")
+        from app.services.data_processing import load_dataframe
         
-        # Load directly from disk (Pandas handles the streaming/chunking better than memory buffer)
         try:
-            lower_name = filename.lower()
-            if lower_name.endswith(".csv"):
-                df = pd.read_csv(file_path)
-            elif lower_name.endswith((".xls", ".xlsx")):
-                df = pd.read_excel(file_path)
-            else:
-                raise UnsupportedFileTypeError(f"Unsupported extension for: {filename}")
-                
-            if df.empty: raise EmptyFileError("File is empty")
-            
+            # load_dataframe now returns a Polars LazyFrame or DataFrame
+            df = load_dataframe(file_path)
+            # if using LazyFrame, we might collect here or pass lazy.
+            # Current implementation returns DataFrame (eager) for simplicity with existing logic.
         except Exception as load_err:
-            raise ParseError(f"Failed to load file: {str(load_err)}")
+            raise ParseError(f"Failed to load: {str(load_err)}")
 
         # Step 2: Cleaning
         title_task_manager.update_progress(task_id, 30, "Cleaning data...")
@@ -97,20 +90,18 @@ async def process_file_in_background(task_id: str, file_path: str, filename: str
         }
         
         title_task_manager.complete_job(task_id, final_result)
-        logger.info(f"Task {task_id} completed successfully.")
+        logger.info(f"Task {task_id} completed successfully (Polars Engine).")
 
     except Exception as e:
         logger.error(f"Task {task_id} failed: {str(e)}")
         title_task_manager.fail_job(task_id, str(e))
-        
+    
     finally:
-        # cleanup input file (temp file)
+        # cleanup input file
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
-                logger.debug(f"cleaned up temp file: {file_path}")
-            except Exception as e:
-                logger.warning(f"Failed to remove temp file {file_path}: {e}")
+            except: pass
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
