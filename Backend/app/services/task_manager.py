@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 class TaskStatus:
     PENDING = "PENDING"
     PROCESSING = "PROCESSING"
+    WAITING_FOR_USER = "WAITING_FOR_USER"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 

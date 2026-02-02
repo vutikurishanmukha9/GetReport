@@ -42,43 +42,87 @@ class StatusResponse(BaseModel):
     report_download_url: Optional[str] = None
 
 # ─── Background Processor ────────────────────────────────────────────────────
-async def process_file_in_background(task_id: str, file_path: str, filename: str):
+async def run_inspection_task(task_id: str, file_path: str, filename: str):
     """
-    Orchestrates the full analysis pipeline using Polars (High Performance).
+    Phase 1: Load Request -> Inspect Data -> Pause for User Input.
     """
     try:
-        # Step 1: Loading
-        title_task_manager.update_progress(task_id, 10, "Loading file (Polars)...")
-        from app.services.data_processing import load_dataframe
+        title_task_manager.update_progress(task_id, 10, "Loading file...")
+        from app.services.data_processing import load_dataframe, inspect_dataset
         
+        # 1. Load
         try:
-            # load_dataframe now returns a Polars LazyFrame or DataFrame
             df = load_dataframe(file_path)
-            # if using LazyFrame, we might collect here or pass lazy.
-            # Current implementation returns DataFrame (eager) for simplicity with existing logic.
-        except Exception as load_err:
-            raise ParseError(f"Failed to load: {str(load_err)}")
+        except Exception as e:
+            raise ParseError(f"Load failed: {e}")
 
-        # Step 2: Cleaning
-        title_task_manager.update_progress(task_id, 30, "Cleaning data...")
-        cleaned_df, cleaning_report = await run_in_threadpool(clean_data, df)
+        # 2. Inspect
+        title_task_manager.update_progress(task_id, 30, "Inspecting data quality...")
+        quality_report = await run_in_threadpool(inspect_dataset, df)
         
-        # Step 3: Analysis
-        title_task_manager.update_progress(task_id, 50, "Analyzing statistics...")
+        # 3. Pause and Persist State
+        # We store temp_path in result so Phase 2 can find it. 
+        # In a real production app, this would be an S3 key.
+        partial_result = {
+            "filename": filename,
+            "quality_report": quality_report,
+            "_temp_path": file_path 
+        }
+        
+        # Update status to WAITING_FOR_USER
+        title_task_manager.update_status(task_id, TaskStatus.WAITING_FOR_USER, partial_result)
+        title_task_manager.update_progress(task_id, 40, "Waiting for user review")
+        
+    except Exception as e:
+        logger.error(f"Inspection failed: {e}")
+        title_task_manager.fail_job(task_id, str(e))
+        # Cleanup if failed
+        if os.path.exists(file_path):
+            try: os.remove(file_path)
+            except: pass
+
+
+async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
+    """
+    Phase 2: User Rules -> Clean -> Analyze -> Report.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        logger.error(f"Task {task_id} invalid for resumption.")
+        return
+        
+    file_path = job.result.get("_temp_path")
+    filename = job.result.get("filename", "unknown")
+    
+    if not file_path or not os.path.exists(file_path):
+        title_task_manager.fail_job(task_id, "Source file expired or missing. Please upload again.")
+        return
+
+    try:
+        title_task_manager.update_progress(task_id, 45, "Applying cleaning rules...")
+        from app.services.data_processing import load_dataframe, clean_data, get_dataset_info
+        
+        # Reload (Polars is fast)
+        df = load_dataframe(file_path)
+        
+        # Clean with Rules
+        cleaned_df, cleaning_report = await run_in_threadpool(clean_data, df, rules)
+        
+        # Analyze
+        title_task_manager.update_progress(task_id, 60, "Running statistical analysis...")
         dataset_info = await run_in_threadpool(get_dataset_info, cleaned_df)
         cleaning_report_dict = cleaning_report.to_dict()
         analysis_result = await run_in_threadpool(analyze_dataset, cleaned_df)
         
-        # Step 4: Charts
-        title_task_manager.update_progress(task_id, 70, "Generating visualizations...")
+        # Charts
+        title_task_manager.update_progress(task_id, 80, "Generating visual charts...")
         charts, _ = await run_in_threadpool(generate_charts, cleaned_df)
         
-        # Step 5: AI Insights
-        title_task_manager.update_progress(task_id, 85, "Generating AI insights...")
+        # Insights
+        title_task_manager.update_progress(task_id, 90, "Consulting LLM...")
         insights_result = await generate_insights(analysis_result)
         
-        # Step 6: Finalize
-        title_task_manager.update_progress(task_id, 95, "Finalizing report...")
+        title_task_manager.update_progress(task_id, 95, "Rendering PDF...")
         
         final_result = {
             "filename": filename,
@@ -90,17 +134,15 @@ async def process_file_in_background(task_id: str, file_path: str, filename: str
         }
         
         title_task_manager.complete_job(task_id, final_result)
-        logger.info(f"Task {task_id} completed successfully (Polars Engine).")
-
+        
     except Exception as e:
-        logger.error(f"Task {task_id} failed: {str(e)}")
+        logger.error(f"Analysis failed: {e}")
         title_task_manager.fail_job(task_id, str(e))
-    
+        
     finally:
-        # cleanup input file
+        # Now we can delete the temp file
         if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
+            try: os.remove(file_path)
             except: pass
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
@@ -137,9 +179,9 @@ async def upload_file(
             os.remove(temp_path)
             raise write_err
         
-        # Start Background Task (processing + cleanup)
+        # Start Inspection Task (Phase 1)
         background_tasks.add_task(
-            process_file_in_background, 
+            run_inspection_task, 
             task_id, 
             temp_path, 
             file.filename
@@ -173,8 +215,8 @@ async def start_analysis(
         raise HTTPException(404, "Job not found")
         
     # Check if job is in correct state (WAITING_FOR_USER)
-    # if job.status != "WAITING_FOR_USER":
-    #    return JSONResponse(status_code=400, content={"message": "Job is not waiting for input"})
+    if job.status != TaskStatus.WAITING_FOR_USER:
+       return JSONResponse(status_code=400, content={"message": "Job is not waiting for input"})
         
     background_tasks.add_task(resume_analysis_task, task_id, rules)
     return {"message": "Analysis started"}
