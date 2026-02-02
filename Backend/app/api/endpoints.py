@@ -42,45 +42,32 @@ class StatusResponse(BaseModel):
     report_download_url: Optional[str] = None
 
 # ─── Background Processor ────────────────────────────────────────────────────
-async def process_file_in_background(task_id: str, file_content: bytes, filename: str):
+async def process_file_in_background(task_id: str, file_path: str, filename: str):
     """
-    Orchestrates the full analysis pipeline while updating the task status.
-    Running in background allows the API to return immediately.
+    Orchestrates the full analysis pipeline using a file on disk to save RAM.
     """
     try:
         # Step 1: Loading
         title_task_manager.update_progress(task_id, 10, "Loading file...")
-        from io import BytesIO
         import pandas as pd
         
-        # We need to manually recreate the 'UploadFile' behavior or just modify load_dataframe 
-        # to accept bytes, but for minimal refactor, we can wrap bytes in BytesIO 
-        # and mock the UploadFile structure if load_dataframe is strict, 
-        # OR better: refactor load_dataframe to take bytes.
-        # Actually, let's just make a simple ad-hoc adapter since we already read the bytes.
-        
-        # Determine extension
-        ext = ""
-        lower_name = filename.lower()
-        if lower_name.endswith(".csv"): ext = ".csv"
-        elif lower_name.endswith(".xlsx"): ext = ".xlsx"
-        elif lower_name.endswith(".xls"): ext = ".xls"
-        
-        buffer = BytesIO(file_content)
-        
-        if ext == ".csv":
-            df = pd.read_csv(buffer)
-        elif ext in [".xlsx", ".xls"]:
-            df = pd.read_excel(buffer)
-        else:
-            raise UnsupportedFileTypeError(f"Unsupported extension: {ext}")
-
-        # Basic post-load validation (reusing logic from data_processing roughly)
-        if df.empty: raise EmptyFileError("File is empty")
+        # Load directly from disk (Pandas handles the streaming/chunking better than memory buffer)
+        try:
+            lower_name = filename.lower()
+            if lower_name.endswith(".csv"):
+                df = pd.read_csv(file_path)
+            elif lower_name.endswith((".xls", ".xlsx")):
+                df = pd.read_excel(file_path)
+            else:
+                raise UnsupportedFileTypeError(f"Unsupported extension for: {filename}")
+                
+            if df.empty: raise EmptyFileError("File is empty")
+            
+        except Exception as load_err:
+            raise ParseError(f"Failed to load file: {str(load_err)}")
 
         # Step 2: Cleaning
         title_task_manager.update_progress(task_id, 30, "Cleaning data...")
-        # Clean data (CPU bound)
         cleaned_df, cleaning_report = await run_in_threadpool(clean_data, df)
         
         # Step 3: Analysis
@@ -93,7 +80,7 @@ async def process_file_in_background(task_id: str, file_content: bytes, filename
         title_task_manager.update_progress(task_id, 70, "Generating visualizations...")
         charts, _ = await run_in_threadpool(generate_charts, cleaned_df)
         
-        # Step 5: AI Insights (Network bound)
+        # Step 5: AI Insights
         title_task_manager.update_progress(task_id, 85, "Generating AI insights...")
         insights_result = await generate_insights(analysis_result)
         
@@ -115,6 +102,15 @@ async def process_file_in_background(task_id: str, file_content: bytes, filename
     except Exception as e:
         logger.error(f"Task {task_id} failed: {str(e)}")
         title_task_manager.fail_job(task_id, str(e))
+        
+    finally:
+        # cleanup input file (temp file)
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                logger.debug(f"cleaned up temp file: {file_path}")
+            except Exception as e:
+                logger.warning(f"Failed to remove temp file {file_path}: {e}")
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
@@ -124,28 +120,44 @@ async def upload_file(
     file: UploadFile = File(...)
 ):
     """
-    Initiates file processing. 
-    Returns a Task ID immediately. Client should poll /status/{task_id}.
+    Initiates processing using Streaming Upload (RAM Safe).
+    Returns Task ID immediately.
     """
+    import shutil
+    import tempfile
+    
     try:
-        # Pre-validate extension before accepting
+        # Pre-validate extension
         if not file.filename.lower().endswith(('.csv', '.xls', '.xlsx')):
-             raise HTTPException(400, "Invalid file type")
+             raise HTTPException(400, "Invalid file type. Only CSV and Excel supported.")
              
         # Create Task
         task_id = title_task_manager.create_job(file.filename)
         
-        # Read file into memory immediately (fast for <50MB) 
-        # so we can close the connection and pass data to background
-        content = await file.read()
+        # Stream file to disk using tempfile
+        # We use a temp directory that allows persistence during the background task
+        # mkstemp creates a file that we must manage (delete manually)
+        fd, temp_path = tempfile.mkstemp(suffix=f"_{file.filename}")
         
-        # Start Background Task
+        try:
+            with os.fdopen(fd, 'wb') as tmp:
+                shutil.copyfileobj(file.file, tmp)
+        except Exception as write_err:
+            os.remove(temp_path)
+            raise write_err
+        
+        # Start Background Task (processing + cleanup)
         background_tasks.add_task(
             process_file_in_background, 
             task_id, 
-            content, 
+            temp_path, 
             file.filename
         )
+        
+        # Also schedule strict hygiene cleanup for old reports
+        from app.services.cleanup import cleanup_old_files
+        output_dir = os.path.join(os.getcwd(), "outputs")
+        background_tasks.add_task(cleanup_old_files, output_dir, 86400) # 24h retention
         
         return TaskResponse(
             task_id=task_id, 

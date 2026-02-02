@@ -1,4 +1,5 @@
 import io
+import base64
 import datetime
 import logging
 from typing import Dict, Any, Tuple
