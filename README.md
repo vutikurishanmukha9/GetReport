@@ -12,33 +12,37 @@ Data analysis is often time-consuming and requires technical expertise. GetRepor
 -   **Framework**: React (Vite)
 -   **Language**: TypeScript
 -   **Styling**: Tailwind CSS, shadcn/ui
--   **Routing**: React Router DOM (Single Page Application)
--   **Animation**: Framer Motion
+-   **Components**: `lucide-react`, `recharts` (future), `radix-ui`
+-   **State/Query**: TanStack Query (React Query)
 
 ### Backend
 -   **Framework**: FastAPI (Python 3.12+)
--   **Data Processing**: Pandas, NumPy
+-   **Data Processing**: Pandas, NumPy (Streaming Uploads for large files)
 -   **Analysis**: SciPy, Scikit-learn
+-   **Persistence**: SQLite + SQLAlchemy (Job History)
 -   **AI**: OpenAI API (GPT-4o)
--   **Reporting**: ReportLab (PDF Generation)
+-   **Reporting**: ReportLab Platypus (Professional PDF Generation)
 
 ## Key Features
--   **Instant Analysis**: Upload any CSV/Excel file and get immediate insights.
--   **Smart Visualizations**: Auto-generated charts based on data types.
+-   **Interactive Data Cleaning**: Two-stage "Human-in-the-Loop" pipeline. Review data quality issues (NaNs, Type Errors) and decide how to fix them (Drop, Fill Mean, etc.) before analysis.
+-   **Resilient Architecture**: Streaming uploads handled via tempfiles to prevent RAM exhaustion. Automatic cleanup of old files.
+-   **Smart Visualizations**: Trends, Distributions, and Correlations automatically generated.
 -   **AI-Powered Insights**: Natural language explanation of trends and anomalies.
--   **PDF Reports**: Board-ready documents generated on the fly.
--   **Privacy**: Data is processed in-memory and not permanently stored.
+-   **Persistent History**: Jobs are saved in a local database. Resume analysis or download past reports anytime.
 
 ## Project Structure
 -   `/Frontend`: React application source code.
--   `/Backend`: FastAPI application source code and virtual environment.
+-   `/Backend`: FastAPI application source code.
+    -   `/app/services`: Core logic (Data Processing, Reporting, LLM).
+    -   `/app/db`: SQLite database models.
+    -   `/outputs`: Generated PDF reports (auto-cleaned > 24h).
 
 ## Setup & Running
 
 ### Backend
 ```bash
 cd Backend
-# active virtual environment (if not active)
+# Activate virtual environment
 .\venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
@@ -56,6 +60,8 @@ npm run dev
 ```
 
 ## API Reference
--   `POST /api/upload`: Upload file for analysis.
--   `POST /api/generate-report`: Generate PDF from analysis data.
--   `GET /api/health`: Check server status.
+-   `POST /api/upload`: Upload file (Streaming) -> Returns Task ID.
+-   `GET /api/status/{task_id}`: Check progress / Get Inspection Report.
+-   `POST /api/jobs/{task_id}/analyze`: Submit cleaning rules & Start full analysis.
+-   `GET /api/jobs/{task_id}/report`: Download generated PDF.
+-   `POST /api/jobs/{task_id}/report`: Regenerate PDF from saved results.
