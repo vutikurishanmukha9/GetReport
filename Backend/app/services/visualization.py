@@ -3,20 +3,18 @@ import logging
 import io
 import base64
 import polars as pl
-import pandas as pd
+import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 logger = logging.getLogger(__name__)
 
 # Constants
 CHART_DPI = 100
-MAX_SAMPLES = 5000  # for scatter plots
-PIE_MAX = 5
 
 def _fig_to_base64(fig) -> str:
+    """Convert Matplotlib figure to Base64 string."""
     buf = io.BytesIO()
     fig.savefig(buf, format="png", bbox_inches="tight", dpi=CHART_DPI)
     plt.close(fig)
@@ -25,94 +23,150 @@ def _fig_to_base64(fig) -> str:
 
 def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     """
-    Generate charts using Polars for data prep and Matplotlib/Seaborn for rendering.
+    Generate charts using Polars and pure Matplotlib (No Pandas/Seaborn).
     """
     charts = {}
     warnings = []
     
+    # Identify columns
     numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
     cat_cols = [c for c in df.columns if c not in numeric_cols]
     
-    # 1. Correlation Heatmap
+    # ── 1. Correlation Heatmap ────────────────────────────────────────────────
     if len(numeric_cols) > 1:
         try:
-            # We can use the already computed correlation or recompute
-            # For visualization, we need a Pandas Correlation Matrix
-            # Convert numeric columns to pandas (careful with size)
-            # If rows > 10000 -> Sample??
-            # Correlation is sensitive to sampling. But 50MB file fits in RAM for pandas if we only take numeric cols.
-            # Polars to_pandas() is zero-copy in some cases via Arrow.
+            # Prepare data
+            target_cols = numeric_cols[:20] # Limit to 20 for readability
             
-            pdf = df.select(numeric_cols).head(50000).to_pandas()
-            corr = pdf.corr()
+            # Use Polars to get numpy array (drop nulls is safer)
+            # We must drop rows where ANY of the target cols are null to be safe for corrcoef
+            data_matrix = df.select(target_cols).drop_nulls().to_numpy().T
             
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
-            ax.set_title("Correlation Matrix")
-            charts["correlation_heatmap"] = _fig_to_base64(fig)
+            if data_matrix.shape[1] > 1: # at least 2 rows
+                corr_matrix = np.corrcoef(data_matrix)
+                
+                fig, ax = plt.subplots(figsize=(8, 6))
+                im = ax.imshow(corr_matrix, cmap="coolwarm", vmin=-1, vmax=1)
+                
+                # Annotations
+                # Only if dimension is small
+                if len(target_cols) <= 10:
+                    for i in range(len(target_cols)):
+                        for j in range(len(target_cols)):
+                            text = ax.text(j, i, f"{corr_matrix[i, j]:.2f}",
+                                           ha="center", va="center", color="black", fontsize=8)
+
+                # Axis Labels
+                ax.set_xticks(np.arange(len(target_cols)))
+                ax.set_yticks(np.arange(len(target_cols)))
+                ax.set_xticklabels(target_cols, rotation=45, ha="right")
+                ax.set_yticklabels(target_cols)
+                ax.set_title("Correlation Matrix (Numeric)")
+                fig.colorbar(im, ax=ax)
+                
+                charts["correlation_heatmap"] = _fig_to_base64(fig)
         except Exception as e:
             logger.warning(f"Heatmap failed: {e}")
-            
-    # 2. Distributions (Histograms)
+
+    # ── 2. Distributions (Histograms) ────────────────────────────────────────
     dist_list = []
-    for col in numeric_cols[:5]: # distinct top 5
+    for col in numeric_cols[:5]:
         try:
-            # Polars -> Pandas for plotting is fine for histogram bins
-            # Sample if huge
-            series = df[col].sample(n=min(len(df), 10000)).to_pandas()
+            # Get data
+            data = df[col].drop_nulls().to_numpy()
+            if len(data) == 0: continue
+            
             fig, ax = plt.subplots(figsize=(6, 4))
-            sns.histplot(series, kde=True, ax=ax, color="#3b82f6")
+            ax.hist(data, bins=20, color="#3b82f6", edgecolor="white", alpha=0.8)
+            
+            # Add KDE-like line (Standard Normal approximation or simple smoothing?)
+            # Matplotlib doesn't have KDE built-in easily without scipy/seaborn.
+            # We stick to Histogram for pure matplotlib speed/simplicity.
+            
             ax.set_title(f"Distribution: {col}")
+            ax.set_ylabel("Frequency")
+            ax.grid(axis='y', alpha=0.3)
+            
             dist_list.append({"column": col, "image": _fig_to_base64(fig)})
         except Exception as e:
-            pass
+            logger.warning(f"Histogram failed for {col}: {e}")
+            
     if dist_list:
         charts["distributions"] = dist_list
-        
-    # 3. Bar Charts (Frequency Tables - Rule #9)
-    # Top 3 categorical columns by cardinality (low enough to plot)
+
+    # ── 3. Bar Charts (Frequency) ────────────────────────────────────────────
     bar_list = []
-    plot_cats = [c for c in cat_cols if df[c].n_unique() <= 20] # Only plot if <= 20 categories
+    plot_cats = [c for c in cat_cols if df[c].n_unique() <= 20]
     for col in plot_cats[:3]:
         try:
-            # Polars value_counts -> Pandas
-            vc = df[col].value_counts(sort=True).head(15).to_pandas() # Top 15 categories
+            # Polars Value Counts
+            vc = df[col].value_counts(sort=True).head(15)
+            # vc has columns: col, count
+            
+            labels = vc[col].to_list()
+            counts = vc["count"].to_list()
+            
+            # Handle None/Null labels
+            labels = [str(l) if l is not None else "Unknown" for l in labels]
             
             fig, ax = plt.subplots(figsize=(7, 4))
-            sns.barplot(data=vc, x=col, y="count", ax=ax, palette="viridis")
+            # Create colors using a colormap
+            colors = plt.cm.viridis(np.linspace(0, 0.8, len(labels)))
+            
+            ax.bar(labels, counts, color=colors)
             ax.set_title(f"Frequency: {col}")
-            ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+            ax.set_xticklabels(labels, rotation=45, ha="right")
+            ax.set_ylabel("Count")
             
             bar_list.append({"column": col, "image": _fig_to_base64(fig)})
         except Exception as e:
-             logger.warning(f"Bar chart failed for {col}: {e}")
+            logger.warning(f"Bar chart failed for {col}: {e}")
 
     if bar_list:
         charts["bar_charts"] = bar_list
 
-    # 4. Boxplots (Bivariate - Rule #11)
-    # Compare Top 3 Numeric vs Top 1 Categorical (cardinality 2-10)
+    # ── 4. Boxplots (Bivariate) ──────────────────────────────────────────────
     box_list = []
     target_cats = [c for c in cat_cols if 2 <= df[c].n_unique() <= 10]
     
     if target_cats and numeric_cols:
-        cat_col = target_cats[0] # Take the first suitable categorical column (e.g. "Status", "Gender")
+        cat_col = target_cats[0]
         
-        for num_col in numeric_cols[:3]: # Compare against top 3 numeric
+        for num_col in numeric_cols[:3]:
             try:
-                # Sample 5k for speed
-                pdf = df.select([cat_col, num_col]).sample(n=min(len(df), 5000)).to_pandas()
+                # Group data by category
+                # Polars group_by
+                groups = []
+                labels = []
                 
-                fig, ax = plt.subplots(figsize=(7, 5))
-                sns.boxplot(data=pdf, x=cat_col, y=num_col, ax=ax, palette="Set2")
-                ax.set_title(f"{num_col} by {cat_col}")
+                # We need a list of arrays for plt.boxplot
+                # Filter nulls
+                valid_df = df.select([cat_col, num_col]).drop_nulls()
                 
-                box_list.append({"column": f"{num_col} vs {cat_col}", "image": _fig_to_base64(fig)})
+                # Get unique categories
+                cats = valid_df[cat_col].unique().to_list()
+                cats = sorted([str(c) for c in cats]) # Sort for consistency
+                
+                for c in cats:
+                    # Filter for this category
+                    vals = valid_df.filter(pl.col(cat_col) == c)[num_col].to_numpy()
+                    if len(vals) > 0:
+                        groups.append(vals)
+                        labels.append(c)
+                
+                if groups:
+                    fig, ax = plt.subplots(figsize=(7, 5))
+                    ax.boxplot(groups, tick_labels=labels, patch_artist=True,
+                               boxprops=dict(facecolor="#99d6ff"))
+                    ax.set_title(f"{num_col} by {cat_col}")
+                    ax.set_xticklabels(labels, rotation=45, ha="right")
+                    ax.grid(axis='y', alpha=0.3)
+                    
+                    box_list.append({"column": f"{num_col} vs {cat_col}", "image": _fig_to_base64(fig)})
             except Exception as e:
                 logger.warning(f"Boxplot failed for {num_col} vs {cat_col}: {e}")
 
     if box_list:
         charts["boxplots"] = box_list
 
-        
     return charts, warnings

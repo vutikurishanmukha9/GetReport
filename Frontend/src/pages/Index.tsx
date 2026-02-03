@@ -67,6 +67,7 @@ const Index = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12 space-y-12">
             <ReportGeneration
               step={step}
+              taskId={taskId}
               filename={apiData.filename}
               info={apiData.info}
               analysis={apiData.analysis}

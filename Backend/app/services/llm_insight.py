@@ -188,49 +188,8 @@ def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
     # ── User prompt — build sections dynamically ─────────────────────────────
     sections: list[str] = []
 
-    # Section NEW: Sample Data (Ground Truth)
+    # Section: Semantic Context (Column Types)
     metadata = analysis_data.get("metadata", {})
-    if metadata.get("preview"):
-        # Convert list of dicts to a rough string table for the LLM
-        preview_data = metadata["preview"]
-        
-        # ─── PII MASKING (Security Fix) ───
-        def _mask_pii(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-            """
-            Simple heuristic PII masking. 
-            Replaces suspicious values with [MASKED].
-            """
-            masked_rows = []
-            # Common PII column names (lowercase)
-            pii_cols = {'email', 'phone', 'mobile', 'ssn', 'password', 'address', 'credit_card', 'card_number', 'birth', 'dob'}
-            
-            for row in rows:
-                new_row = row.copy()
-                for col, val in row.items():
-                    col_lower = col.lower()
-                    val_str = str(val if val is not None else "")
-                    
-                    # 1. Check Column Name
-                    is_pii_col = any(p in col_lower for p in pii_cols)
-                    
-                    # 2. Check Value Patterns (Simple)
-                    # Email regex-like check
-                    is_email = "@" in val_str and "." in val_str and " " not in val_str
-                    
-                    if is_pii_col or is_email:
-                         new_row[col] = "[MASKED_PII]"
-                masked_rows.append(new_row)
-            return masked_rows
-
-        safe_preview = _mask_pii(preview_data[:5])
-        sample_text = str(safe_preview) 
-        
-        sections.append(
-            "--- SAMPLE DATA (First 5 Rows - PII MASKED) ---\n"
-            "Use this to understand the CONTEXT of the columns:\n"
-            f"{sample_text}"
-        )
-    
     if metadata.get("dtypes"):
         sections.append(
             "--- COLUMN DATA TYPES ---\n"

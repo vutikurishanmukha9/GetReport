@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ReportGenerationProps {
   step: AppStep;
+  taskId: string | null;
   filename: string;
   info: DatasetInfo;
   analysis: AnalysisResult;
@@ -21,6 +22,7 @@ interface ReportGenerationProps {
 
 export const ReportGeneration = ({
   step,
+  taskId,
   filename,
   info,
   analysis,
@@ -37,17 +39,27 @@ export const ReportGeneration = ({
 
   useEffect(() => {
     if (step === "generating" && !isGenerating && !downloadUrl) {
-      generateReport();
+      if (!taskId) {
+        console.error("No Task ID found for generation.");
+        return;
+      }
+      generateReport(taskId);
     }
-  }, [step]);
+  }, [step, taskId]);
 
-  const generateReport = async () => {
+  const generateReport = async (tid: string) => {
     setIsGenerating(true);
     setProgress(10);
-    setStatus("Compiling statistical analysis...");
+    setStatus("Compiling statistical analysis on server...");
 
     try {
-      const blob = await api.generateReport(filename, analysis, charts, insights.insights_text);
+      // 1. Trigger Server-Side Generation (Secure)
+      await api.generatePersistentReport(tid);
+      setStatus("Downloading PDF...");
+      setProgress(80);
+
+      // 2. Fetch the generated Blob
+      const blob = await api.downloadReportBlob(tid);
 
       setStatus("Report ready for download!");
       const url = window.URL.createObjectURL(blob);
@@ -57,7 +69,7 @@ export const ReportGeneration = ({
 
       toast({
         title: "Report Generated Successfully!",
-        description: "Your PDF report is ready to download.",
+        description: "Your secure PDF report is ready.",
       });
 
     } catch (error) {

@@ -21,10 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # ─── Data Models ─────────────────────────────────────────────────────────────
-class ReportRequest(BaseModel):
-    filename: str
-    analysis: Dict[str, Any]
-    charts: Dict[str, Any]
+
 
 class ChatRequest(BaseModel):
     question: str
@@ -371,31 +368,4 @@ async def chat_with_job(task_id: str, request: ChatRequest):
     # response is now a dict with 'answer', 'sources', 'metrics'
     return response
 
-@router.post("/generate-report")
-async def generate_report_endpoint(request: ReportRequest):
-    """
-    Legacy/On-the-fly endpoint. 
-    """
-    try:
-        # Wrap PDF generation in threadpool too just in case it's heavy
-        pdf_buffer, metadata = await run_in_threadpool(
-            generate_pdf_report,
-            request.analysis,
-            request.charts,
-            request.filename
-        )
-        
-        logger.info(f"Report generated successfully: {metadata}")
-        
-        return StreamingResponse(
-            pdf_buffer,
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"attachment; filename=Report_{request.filename}.pdf",
-                "X-Report-Metadata": str(metadata)
-            }
-        )
 
-    except Exception as e:
-        logger.error(f"Report generation endpoint failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")

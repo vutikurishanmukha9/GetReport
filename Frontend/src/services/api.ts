@@ -43,35 +43,20 @@ export const api = {
     },
 
     /**
-     * Generate and download the PDF report.
+     * Generate PDF on the server using stored analysis results.
+     * (Secure: No round-trip of data).
      */
-    generateReport: async (
-        filename: string,
-        analysis: AnalysisResult,
-        charts: Charts,
-        insightsText: string // We pass insights separately to merge into analysis if needed?
-        // Actually endpoints.py takes { filename, analysis, charts }.
-        // And report_generator looks for insights in analysis_results['insights']?
-    ): Promise<Blob> => {
+    generatePersistentReport: async (taskId: string): Promise<{ message: string; path: string }> => {
+        const response = await apiClient.post(`/jobs/${taskId}/report`);
+        return response.data;
+    },
 
-        // Ensure insights are included in the analysis object for the PDF generator
-        // Create a copy to avoid mutating props
-        const analysisWithInsights: AnalysisResult = { ...analysis };
-
-        if (insightsText && !analysisWithInsights.insights) {
-            // Type definition now allows this
-            analysisWithInsights.insights = insightsText;
-        }
-
-        const payload = {
-            filename,
-            analysis: analysisWithInsights,
-            charts,
-        };
-
-        const response = await apiClient.post("/generate-report", payload, {
-            responseType: "blob", // Important for file download
-            timeout: 30000,
+    /**
+     * Download the already generated PDF.
+     */
+    downloadReportBlob: async (taskId: string): Promise<Blob> => {
+        const response = await apiClient.get(`/jobs/${taskId}/report`, {
+            responseType: "blob",
         });
         return response.data;
     },
