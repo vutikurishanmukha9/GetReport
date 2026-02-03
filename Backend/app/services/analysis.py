@@ -85,43 +85,57 @@ def _compute_summary(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dic
 def _compute_correlation(df: pl.DataFrame, numeric_cols: list[str]):
     if len(numeric_cols) < 2: return {}, []
     
-    # Efficient correlation matrix
-    # Polars doesn't have a full matrix function built-in yet like pandas.corr()
-    # We iterate pairs or use numpy.
-    
-    # Convert to numpy for correlation matrix (fastest for dense matrix)
-    # Be careful with Nulls - Polars 'drop_nulls' might drop too much.
-    # We'll use pairwise approach for robustness or skip if too slow?
-    # For now, let's use Polars corr per pair (O(N^2)). Limit columns if > 50?
-    
-    corr_dict = {c: {} for c in numeric_cols}
-    strong_pairs = []
-    
-    # Optimization: If < 100 cols, O(N^2) is fine.
-    # To save time, we only compute upper triangle.
-    
-    for i, col_a in enumerate(numeric_cols):
-        for j in range(i, len(numeric_cols)):
-            col_b = numeric_cols[j]
-            if i == j:
-                val = 1.0
-            else:
-                 val = df.select(pl.corr(col_a, col_b)).item()
+    # Optimized: Vectorized Correlation Matrix
+    if len(numeric_cols) < 2: return {}, []
+
+    try:
+        # Convert to numpy (Zero Copy if possible, but drops nulls for safety)
+        # We drop rows with nulls in ANY of the target columns to ensure valid correlation
+        # This is standard behavior for correlation matrices (listwise deletion)
+        
+        # Selecting columns and dropping nulls
+        clean_df = df.select(numeric_cols).drop_nulls()
+        
+        if clean_df.height < 2:
+            return {}, [] # Not enough data
             
-            val = val if val is not None else 0.0
-            corr_dict[col_a][col_b] = val
-            corr_dict[col_b][col_a] = val
+        data_matrix = clean_df.to_numpy().T # Transpose for np.corrcoef (expects variables as rows)
+        
+        # Compute Matrix
+        corr_matrix = np.corrcoef(data_matrix)
+        
+        # Map back to dictionary
+        corr_dict = {c: {} for c in numeric_cols}
+        strong_pairs = []
+        
+        for i, col_a in enumerate(numeric_cols):
+            # Self correlation
+            corr_dict[col_a][col_a] = 1.0
             
-            if i != j and abs(val) >= CORRELATION_STRONG_THRESHOLD:
-                strong_pairs.append({
-                    "column_a": col_a,
-                    "column_b": col_b,
-                    "r_value": round(val, 4),
-                    "direction": "positive" if val > 0 else "negative",
-                    "strength": "very strong" if abs(val) >= 0.9 else "strong"
-                })
+            for j in range(i + 1, len(numeric_cols)):
+                col_b = numeric_cols[j]
+                val = float(corr_matrix[i, j])
                 
-    return corr_dict, strong_pairs
+                # Handle NaN (constant columns)
+                if np.isnan(val): val = 0.0
+                
+                corr_dict[col_a][col_b] = val
+                corr_dict[col_b][col_a] = val
+                
+                if abs(val) >= CORRELATION_STRONG_THRESHOLD:
+                    strong_pairs.append({
+                        "column_a": col_a,
+                        "column_b": col_b,
+                        "r_value": round(val, 4),
+                        "direction": "positive" if val > 0 else "negative",
+                        "strength": "very strong" if abs(val) >= 0.9 else "strong"
+                    })
+                    
+        return corr_dict, strong_pairs
+        
+    except Exception as e:
+        logger.error(f"Vectorized correlation failed: {e}")
+        return {}, []
 
 def _detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict:
     outliers = {}

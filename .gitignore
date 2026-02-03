@@ -36,4 +36,5 @@ site/
 # Application Artifacts
 *.pdf
 stats.json
-
+*.db
+tasks.db

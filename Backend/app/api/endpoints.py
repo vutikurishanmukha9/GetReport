@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional
 import logging
 import os
 import asyncio
+from concurrent.futures import ProcessPoolExecutor # NEW
 
 from app.services.data_processing import (
     load_dataframe, clean_data, get_dataset_info, 
@@ -15,10 +16,13 @@ from app.services.visualization import generate_charts
 from app.services.report_renderer import generate_pdf_report
 from app.services.llm_insight import generate_insights
 from app.services.task_manager import title_task_manager, TaskStatus
-from app.services.rag_service import rag_service  # NEW
+from app.services.rag_service import rag_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Global Process Pool for CPU-bound tasks (PDF Generation)
+process_pool = ProcessPoolExecutor(max_workers=3)
 
 # ─── Data Models ─────────────────────────────────────────────────────────────
 
@@ -192,19 +196,29 @@ async def upload_file(
     """
     import shutil
     import tempfile
+    import re
     
     try:
         # Pre-validate extension
         if not file.filename.lower().endswith(('.csv', '.xls', '.xlsx')):
              raise HTTPException(400, "Invalid file type. Only CSV and Excel supported.")
              
+        # Sanitize Filename (Security Fix)
+        # Remove path separators and non-alphanumeric chars (except .-_)
+        base_name = os.path.basename(file.filename) # Defend against ../../ attacks
+        safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', base_name)
+        
+        # Ensure it's not empty
+        if not safe_filename:
+            safe_filename = "unnamed_file.csv"
+             
         # Create Task
-        task_id = title_task_manager.create_job(file.filename)
+        task_id = title_task_manager.create_job(safe_filename)
         
         # Stream file to disk using tempfile
         # We use a temp directory that allows persistence during the background task
         # mkstemp creates a file that we must manage (delete manually)
-        fd, temp_path = tempfile.mkstemp(suffix=f"_{file.filename}")
+        fd, temp_path = tempfile.mkstemp(suffix=f"_{safe_filename}")
         
         try:
             with os.fdopen(fd, 'wb') as tmp:
@@ -218,7 +232,7 @@ async def upload_file(
             run_inspection_task, 
             task_id, 
             temp_path, 
-            file.filename
+            safe_filename
         )
         
         # Also schedule strict hygiene cleanup for old reports
@@ -316,8 +330,12 @@ async def generate_persistent_report(task_id: str):
         if cleaning_data:
             analysis_data["cleaning_report"] = cleaning_data
         
-        # Generate PDF
-        pdf_buffer, metadata = await run_in_threadpool(
+        # Generate PDF (CPU Bound - Offload to Process)
+        # We use a ProcessPool to avoid GIL blocking the API during PDF generation
+        
+        loop = asyncio.get_running_loop()
+        pdf_buffer, metadata = await loop.run_in_executor(
+            process_pool,
             generate_pdf_report,
             analysis_data,
             result.get("charts", {}),
