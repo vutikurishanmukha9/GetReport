@@ -56,13 +56,34 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                 </p>
             </div>
 
+            {/* ─── Global Warnings ─── */}
+            {report.issues.filter(i => i.column === "Multiple").map((issue, idx) => (
+                <div key={idx} className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-md flex items-start">
+                    <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 mr-3" />
+                    <div>
+                        <h4 className="text-sm font-bold text-orange-800 uppercase tracking-wide">
+                            {issue.type === 'partial_duplicates' ? "Ambiguous Data Detected" : "Warning"}
+                        </h4>
+                        <p className="text-sm text-orange-700 mt-1">
+                            {issue.type === 'partial_duplicates'
+                                ? `Found ${issue.count} rows that look identical but have different IDs (Partial Duplicates).`
+                                : issue.suggestion}
+                        </p>
+                    </div>
+                </div>
+            ))}
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {report.columns.map((col) => {
-                    const hasIssue = col.missing_count > 0;
                     const issue = report.issues.find(i => i.column === col.name);
+                    // Special case: partial_duplicates has column="Multiple", but we want to show it somewhere.
+                    // Actually, partial_duplicates is a dataset-level issue, not column-specific.
+                    // We should render it separately or attach to "Multiple"?
+                    // Current logic iterates columns. Let's create a global warnings section.
 
-                    if (!hasIssue) return null; // Only show columns with issues for now? Or show all?
-                    // Showing all might be noisy. Let's filter to issues.
+                    const hasIssue = col.missing_count > 0 || (issue && ['outliers', 'high_cardinality', 'class_imbalance'].includes(issue.type));
+
+                    if (!hasIssue) return null;
 
                     return (
                         <Card key={col.name} className="border-l-4 border-l-yellow-500 shadow-sm">
@@ -86,7 +107,14 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                 </div>
                                 <CardDescription className="flex items-center gap-1 text-yellow-600">
                                     <AlertTriangle className="h-3 w-3" />
-                                    {col.missing_count} missing ({col.missing_percentage}%)
+                                    {issue?.type === 'outliers'
+                                        ? `${issue.count} outliers detected`
+                                        : issue?.type === 'high_cardinality'
+                                            ? `${issue.count} unique values`
+                                            : issue?.type === 'class_imbalance'
+                                                ? `Top category dominates`
+                                                : `${col.missing_count} missing (${col.missing_percentage}%)`
+                                    }
                                 </CardDescription>
                             </CardHeader>
 
@@ -94,6 +122,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                 <div className="space-y-1 text-sm text-muted-foreground">
                                     <p>Auto-suggestion: <b>{issue?.suggestion || "Ignore"}</b></p>
                                 </div>
+                                {col.distribution && <SparklineHistogram data={col.distribution} />}
                             </CardContent>
 
                             <CardFooter className="pt-0">
@@ -106,15 +135,22 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="default">
-                                            <span className="text-muted-foreground">Auto-Fix (Recommended)</span>
+                                            <span className="text-muted-foreground">Ignore (Leave as is)</span>
                                         </SelectItem>
                                         <SelectItem value="drop_rows">Drop Rows</SelectItem>
 
                                         {col.inferred_type === 'numeric' && (
-                                            <SelectItem value="fill_mean">Fill with Average</SelectItem>
+                                            <>
+                                                <SelectItem value="fill_median">Fill with Median (Robust)</SelectItem>
+                                                <SelectItem value="fill_mean">Fill with Average</SelectItem>
+                                                <SelectItem value="replace_outliers_median">Replace Outliers (Median)</SelectItem>
+                                            </>
                                         )}
                                         {col.inferred_type !== 'numeric' && (
-                                            <SelectItem value="fill_value">Fill with "Unknown"</SelectItem>
+                                            <>
+                                                <SelectItem value="fill_mode">Fill with Most Frequent</SelectItem>
+                                                <SelectItem value="fill_value">Fill with "Unknown"</SelectItem>
+                                            </>
                                         )}
                                     </SelectContent>
                                 </Select>
@@ -185,6 +221,35 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                 </Button>
             </div>
 
+        </div>
+    );
+};
+
+// ─── Sparkline Histogram Component ───
+const SparklineHistogram = ({ data }: { data: { count: number; label: string }[] }) => {
+    if (!data || data.length === 0) return null;
+    const max = Math.max(...data.map(d => d.count)) || 1;
+
+    return (
+        <div className="mt-3">
+            <p className="text-xs text-muted-foreground mb-1">Distribution (Mugshot):</p>
+            <div className="flex items-end h-12 gap-[2px] w-full">
+                {data.map((d, i) => (
+                    <TooltipProvider key={i}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div
+                                    className="flex-1 bg-primary/20 hover:bg-primary/50 transition-colors rounded-t-sm"
+                                    style={{ height: `${(d.count / max) * 100}%` }}
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p className="text-xs font-mono">{d.label}: <strong>{d.count}</strong></p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                ))}
+            </div>
         </div>
     );
 };

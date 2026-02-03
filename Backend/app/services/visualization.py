@@ -69,4 +69,50 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     if dist_list:
         charts["distributions"] = dist_list
         
+    # 3. Bar Charts (Frequency Tables - Rule #9)
+    # Top 3 categorical columns by cardinality (low enough to plot)
+    bar_list = []
+    plot_cats = [c for c in cat_cols if df[c].n_unique() <= 20] # Only plot if <= 20 categories
+    for col in plot_cats[:3]:
+        try:
+            # Polars value_counts -> Pandas
+            vc = df[col].value_counts(sort=True).head(15).to_pandas() # Top 15 categories
+            
+            fig, ax = plt.subplots(figsize=(7, 4))
+            sns.barplot(data=vc, x=col, y="count", ax=ax, palette="viridis")
+            ax.set_title(f"Frequency: {col}")
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+            
+            bar_list.append({"column": col, "image": _fig_to_base64(fig)})
+        except Exception as e:
+             logger.warning(f"Bar chart failed for {col}: {e}")
+
+    if bar_list:
+        charts["bar_charts"] = bar_list
+
+    # 4. Boxplots (Bivariate - Rule #11)
+    # Compare Top 3 Numeric vs Top 1 Categorical (cardinality 2-10)
+    box_list = []
+    target_cats = [c for c in cat_cols if 2 <= df[c].n_unique() <= 10]
+    
+    if target_cats and numeric_cols:
+        cat_col = target_cats[0] # Take the first suitable categorical column (e.g. "Status", "Gender")
+        
+        for num_col in numeric_cols[:3]: # Compare against top 3 numeric
+            try:
+                # Sample 5k for speed
+                pdf = df.select([cat_col, num_col]).sample(n=min(len(df), 5000)).to_pandas()
+                
+                fig, ax = plt.subplots(figsize=(7, 5))
+                sns.boxplot(data=pdf, x=cat_col, y=num_col, ax=ax, palette="Set2")
+                ax.set_title(f"{num_col} by {cat_col}")
+                
+                box_list.append({"column": f"{num_col} vs {cat_col}", "image": _fig_to_base64(fig)})
+            except Exception as e:
+                logger.warning(f"Boxplot failed for {num_col} vs {cat_col}: {e}")
+
+    if box_list:
+        charts["boxplots"] = box_list
+
+        
     return charts, warnings

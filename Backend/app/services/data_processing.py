@@ -184,9 +184,107 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
                 "column": col_name,
                 "count": null_count,
                 "severity": "high",
-                "suggestion": "fill_mean" if inferred == "numeric" else "fill_unknown"
+                "suggestion": "fill_median" if inferred == "numeric" else "fill_unknown"
             })
+
+        # Detect Outliers (Numeric only)
+        if inferred == "numeric" and df.height > 10:
+            q1 = df[col_name].quantile(0.25)
+            q3 = df[col_name].quantile(0.75)
+            if q1 is not None and q3 is not None:
+                iqr = q3 - q1
+                lower = q1 - 1.5 * iqr
+                upper = q3 + 1.5 * iqr
+                
+                outlier_count = df.select(
+                    pl.col(col_name).is_between(lower, upper, closed="both").not_().sum()
+                ).item()
+                
+                if outlier_count > 0:
+                     quality_report["issues"].append({
+                        "type": "outliers",
+                        "column": col_name,
+                        "count": outlier_count,
+                        "severity": "medium",
+                        "suggestion": "replace_outliers_median"
+                    })
             
+    # Check for Partial Duplicates (Rule #4)
+    # Detect ID columns
+    id_patterns = ["id", "code", "sku", "uuid", "pk"]
+    potential_ids = [c for c in df.columns if any(p in c.lower() for p in id_patterns)]
+    
+    if len(potential_ids) > 0 and len(potential_ids) < len(df.columns):
+        # Check duplicates on NON-ID columns
+        subset_cols = [c for c in df.columns if c not in potential_ids]
+        if len(subset_cols) > 0:
+            n_dupes = df.select(subset_cols).is_duplicated().sum()
+            if n_dupes > 0:
+                quality_report["issues"].append({
+                    "type": "partial_duplicates",
+                    "column": "Multiple",
+                    "count": n_dupes,
+                    "severity": "medium",
+                    "suggestion": "investigate"
+                })
+
+    # Calculate Histograms (Mugshots) - Numeric Only
+    # Use Polars hist() or dynamic binning
+    for col_name in df.columns:
+        if df[col_name].dtype in [pl.Int64, pl.Int32, pl.Float64, pl.Float32]:
+            # Skip if mostly null
+            if df[col_name].null_count() == df.height:
+                continue
+
+            try:
+                # Polars hist returns a PL Series of Type Struct.
+                # structure: break_point (f64), category (cat/str), count (u32, etc) depending on version.
+                # Safest way in recent Polars:
+                # df.select(pl.col(c).hist(bin_count=15)).unnest(c)
+                # If unnest fails, it means it's not a struct?
+                
+                # Let's try separate binning to be safe and version-agnostic.
+                # We need min/max.
+                
+                min_v = df[col_name].min()
+                max_v = df[col_name].max()
+                
+                if min_v is None or max_v is None or min_v == max_v:
+                     continue
+
+                # Use numpy for histogram if available as fallback, OR simple polars cut/group
+                # Let's stick to Polars but use `hist` carefully.
+                # If unnest failed, maybe it returned a Series named different?
+                # Actually, `unnest(col_name)` expects the column `col_name` to be Struct.
+                # df.select(pl.col(col).hist()) returns a DF with column `col` which IS the struct.
+                # BUT if user has old polars, it might be different.
+                
+                # Let's try native numpy to avoid Polars version hell for this visual feature.
+                # We convert to numpy array (zero copy often).
+                arr = df[col_name].drop_nulls().to_numpy()
+                
+                if len(arr) == 0: continue
+                
+                counts, bin_edges = np.histogram(arr, bins=15)
+                
+                dist_data = []
+                for i in range(len(counts)):
+                    label = f"{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f}"
+                    dist_data.append({
+                        "label": label, 
+                        "count": int(counts[i]), 
+                        "min": float(bin_edges[i]), 
+                        "max": float(bin_edges[i+1])
+                    })
+                    
+                for col in quality_report["columns"]:
+                    if col["name"] == col_name:
+                        col["distribution"] = dist_data
+                        break
+
+            except Exception as e:
+                logger.warning(f"Failed to compute histogram for {col_name}: {e}")
+
     return quality_report
 
 # ─── Cleaning Pipeline (Polars) ──────────────────────────────────────────────
@@ -225,10 +323,46 @@ def clean_data(
                     mean_val = df[target_col].mean()
                     df = df.with_columns(pl.col(target_col).fill_null(mean_val))
                     report.numeric_nans_filled += 1
-                    
+
+            elif action == "fill_median":
+                if df[target_col].dtype in [pl.Int64, pl.Float64, pl.Float32, pl.Int32]:
+                    median_val = df[target_col].median()
+                    if median_val is not None:
+                        df = df.with_columns(pl.col(target_col).fill_null(median_val))
+                        report.numeric_nans_filled += 1
+            
+            elif action == "fill_mode":
+                # Mode in Polars returns a Series
+                mode_s = df[target_col].mode()
+                if mode_s.len() > 0:
+                    mode_val = mode_s[0]
+                    if mode_val is not None:
+                        df = df.with_columns(pl.col(target_col).fill_null(mode_val))
+                        report.categorical_nans_filled += 1
+
             elif action == "fill_value":
                  val = rule.get("value")
-                 df = df.with_columns(pl.col(target_col).fill_null(val))
+                 if val is not None:
+                    df = df.with_columns(pl.col(target_col).fill_null(val))
+
+            elif action == "replace_outliers_median":
+                # IQR Method
+                if df[target_col].dtype in [pl.Int64, pl.Float64]:
+                    q1 = df[target_col].quantile(0.25)
+                    q3 = df[target_col].quantile(0.75)
+                    if q1 is not None and q3 is not None:
+                        iqr = q3 - q1
+                        lower_bound = q1 - 1.5 * iqr
+                        upper_bound = q3 + 1.5 * iqr
+                        median_val = df[target_col].median()
+                        
+                        # Replace outliers with median
+                        df = df.with_columns(
+                            pl.when((pl.col(target_col) < lower_bound) | (pl.col(target_col) > upper_bound))
+                            .then(median_val)
+                            .otherwise(pl.col(target_col))
+                            .alias(target_col)
+                        )
 
     # 3. Drop fully null rows/cols (Not straightforward in Polars, but efficient via expressions)
     # Actually, dropping fully null columns is just `dropna(how='all')` equiv.
@@ -357,7 +491,91 @@ def analyze_dataset(df: pl.DataFrame) -> dict[str, Any]:
                      else:
                          correlations[c1][c2] = 0.0
 
+    # 3. Advanced Statistics (Skewness, Kurtosis)
+    advanced_stats = {}
+    for c in numeric_cols:
+        skew = df[c].skew()
+        kurt = df[c].kurtosis()
+        advanced_stats[c] = {
+            "skewness": round(skew, 2) if skew is not None else None,
+            "kurtosis": round(kurt, 2) if kurt is not None else None
+        }
+
+    # 4. Multicollinearity Flags (VIF Proxy)
+    # True VIF needs OLS. Here we flag columns with pairwise correlation > 0.9 or < -0.9
+    multicollinearity = []
+    seen_pairs = set()
+    for c1, matrix in correlations.items():
+        for c2, val in matrix.items():
+            if c1 == c2: continue
+            if abs(val) > 0.9:
+                pair = tuple(sorted((c1, c2)))
+                if pair not in seen_pairs:
+                    multicollinearity.append({
+                        "features": pair,
+                        "correlation": val,
+                        "severity": "high" if abs(val) > 0.95 else "medium"
+                    })
+                    seen_pairs.add(pair)
+
     return {
         "summary": summary,
-        "correlations": correlations
+        "correlations": correlations,
+        "advanced_stats": advanced_stats,
+        "multicollinearity": multicollinearity,
+        "time_series_analysis": _analyze_time_series(df)
+    }
+
+def _analyze_time_series(df: pl.DataFrame) -> dict[str, Any] | None:
+    """
+    Rule #13: Check sort order, drift, and gaps.
+    """
+    # 1. Find Datetime Column
+    time_cols = [c for c, t in df.schema.items() if t in (pl.Date, pl.Datetime)]
+    if not time_cols:
+        return None
+    
+    # Take the first one as primary for now
+    time_col = time_cols[0]
+    
+    # 2. Check Sort Order
+    is_sorted = df[time_col].is_sorted()
+    
+    # 3. Check for Drift (Concept Drift)
+    # Split data chronologically (if sorted) or just index-based (assuming implicit time)?
+    # Rule #13 says "Always sort". So we sort internally for the check.
+    
+    drift_flags = []
+    
+    if df.height > 50:
+        # Sort for analysis
+        df_sorted = df.sort(time_col)
+        midpoint = df.height // 2
+        
+        part1 = df_sorted.slice(0, midpoint)
+        part2 = df_sorted.slice(midpoint, df.height - midpoint)
+        
+        numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
+        
+        for col in numeric_cols:
+            m1 = part1[col].mean()
+            m2 = part2[col].mean()
+            
+            if m1 is not None and m2 is not None and m1 != 0:
+                # Calculate % change
+                pct_change = abs((m2 - m1) / m1)
+                
+                # Blunt Threshold: 30% shift in mean suggests drift/seasonality shift
+                if pct_change > 0.30:
+                    drift_flags.append({
+                        "column": col,
+                        "shift_pct": round(pct_change * 100, 1),
+                        "mean_p1": round(m1, 2),
+                        "mean_p2": round(m2, 2)
+                    })
+
+    return {
+        "primary_time_col": time_col,
+        "is_sorted": is_sorted,
+        "drift_detected": drift_flags
     }

@@ -65,8 +65,14 @@ export interface AnalysisResult {
   strong_correlations: StrongCorrelation[];
   outliers: Record<string, OutlierInfo>;
   categorical_distribution: Record<string, CategoricalDistribution>;
-  categorical_distribution: Record<string, CategoricalDistribution>;
   column_quality_flags: Record<string, string[]>;
+  advanced_stats?: Record<string, { skewness: number; kurtosis: number }>;
+  multicollinearity?: Array<{ features: [string, string]; correlation: number; severity: "high" | "medium" }>;
+  time_series_analysis?: {
+    primary_time_col: string;
+    is_sorted: boolean;
+    drift_detected: Array<{ column: string; shift_pct: number; mean_p1: number; mean_p2: number }>;
+  };
   timing_ms: number;
   insights?: string | InsightResult; // Optional: Can be string or object depending on merge
 }
@@ -113,16 +119,15 @@ export interface GenerateReportRequest {
   analysis: AnalysisResult;
   charts: Charts;
 }
-}
 
 // ─── Phase 3: Interactive Cleaning Types ───
 
 export interface QualityIssue {
-  type: "missing_values" | "type_mismatch" | "outlier";
+  type: "missing_values" | "type_mismatch" | "outliers" | "high_cardinality" | "class_imbalance" | "partial_duplicates";
   column: string;
   count: number;
   severity: "low" | "medium" | "high" | "none";
-  suggestion: "fill_mean" | "fill_unknown" | "drop_rows" | "convert_numeric";
+  suggestion: string; // Simplification since suggestions are growing
 }
 
 export interface ColumnProfile {
@@ -131,6 +136,7 @@ export interface ColumnProfile {
   inferred_type: "numeric" | "datetime" | "string";
   missing_count: number;
   missing_percentage: number;
+  distribution?: { label: string; count: number; min: number; max: number }[];
 }
 
 export interface InspectionReport {

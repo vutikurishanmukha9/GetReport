@@ -796,6 +796,22 @@ def _build_visualizations(
             else:
                 story.append(Paragraph(f"Bar chart for '{col_label}' could not be rendered.", styles["Body"]))
 
+    # ─── Bivariate Boxplots (new) ───────────────────────────────────────────
+    if "boxplots" in charts and charts["boxplots"]:
+        story.append(Paragraph("Category vs Numeric Analysis", styles["SectionHeading"]))
+        
+        for box in charts["boxplots"]:
+            col_label = box.get("column", "Unknown")
+            story.append(Paragraph(f"Spread: {col_label}", styles["SubHeading"])) # e.g. "Spread: Salary vs Gender"
+            
+            img = _decode_image(box.get("image", ""), 5.5 * inch, 4 * inch, f"Boxplot: {col_label}", meta)
+            if img:
+                story.append(img)
+                story.append(Spacer(1, 0.15 * inch))
+                has_any_chart = True
+            else:
+                story.append(Paragraph(f"Boxplot for '{col_label}' could not be rendered.", styles["Body"]))
+
     # ── Trend Charts (enhanced — new chart type support) ────────────────────
     if "trend_charts" in charts and charts["trend_charts"]:
         story.append(Paragraph("Trend Analysis", styles["SectionHeading"]))

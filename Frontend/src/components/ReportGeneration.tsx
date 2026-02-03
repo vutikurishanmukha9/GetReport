@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight, AlertTriangle, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { AppStep } from "@/pages/Index";
-import type { AnalysisResult, Charts, InsightResult, DatasetInfo } from "@/types/api"; // Added DatasetInfo
+import type { AnalysisResult, Charts, InsightResult, DatasetInfo } from "@/types/api";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface ReportGenerationProps {
   step: AppStep;
   filename: string;
-  info: DatasetInfo; // New prop
+  info: DatasetInfo;
   analysis: AnalysisResult;
   charts: Charts;
   insights: InsightResult;
@@ -21,7 +22,7 @@ interface ReportGenerationProps {
 export const ReportGeneration = ({
   step,
   filename,
-  info, // New prop
+  info,
   analysis,
   charts,
   insights,
@@ -35,7 +36,6 @@ export const ReportGeneration = ({
   const { toast } = useToast();
 
   useEffect(() => {
-    // Only trigger if we are in 'generating' step and haven't started yet
     if (step === "generating" && !isGenerating && !downloadUrl) {
       generateReport();
     }
@@ -47,13 +47,9 @@ export const ReportGeneration = ({
     setStatus("Compiling statistical analysis...");
 
     try {
-      // Simulate progress steps for UX while waiting for the single API call
-      // Honest UX: Just show we are working, don't fake percentages.
       const blob = await api.generateReport(filename, analysis, charts, insights.insights_text);
 
       setStatus("Report ready for download!");
-
-      // Create object URL for download
       const url = window.URL.createObjectURL(blob);
       setDownloadUrl(url);
 
@@ -91,6 +87,123 @@ export const ReportGeneration = ({
   if (step === "complete") {
     return (
       <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in zoom-in duration-500">
+
+        {/* ─── Statistical Deep Dive (New) ─── */}
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">
+          <h3 className="text-xl font-semibold border-b pb-2">Statistical Deep Dive (Blunt Verdict)</h3>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Skewness & Kurtosis */}
+            {analysis.advanced_stats && Object.keys(analysis.advanced_stats).length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Distribution Shape</CardTitle>
+                  <CardDescription>Skewness & Kurtosis (Rule #5)</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-[300px] overflow-y-auto text-sm">
+                  {Object.entries(analysis.advanced_stats).map(([col, stats]) => {
+                    const isSkewed = Math.abs(stats.skewness) > 1;
+                    const isHeavy = Math.abs(stats.kurtosis) > 3;
+                    if (!isSkewed && !isHeavy) return null;
+
+                    return (
+                      <div key={col} className="flex justify-between items-center py-1 border-b last:border-0">
+                        <span className="font-medium">{col}</span>
+                        <div className="flex gap-2">
+                          {isSkewed && (
+                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                              Skew: {stats.skewness.toFixed(2)}
+                            </Badge>
+                          )}
+                          {isHeavy && (
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                              Kurt: {stats.kurtosis.toFixed(2)}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {Object.values(analysis.advanced_stats).every(s => Math.abs(s.skewness) <= 1 && Math.abs(s.kurtosis) <= 3) && (
+                    <p className="text-muted-foreground italic">All numeric columns appear normally distributed.</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Multicollinearity */}
+            {analysis.multicollinearity && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Multicollinearity (VIF Proxy)</CardTitle>
+                  <CardDescription>Highly Correlated Features (Rule #12)</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-[300px] overflow-y-auto text-sm">
+                  {analysis.multicollinearity.length > 0 ? (
+                    analysis.multicollinearity.map((item, i) => (
+                      <div key={i} className="flex flex-col py-2 border-b last:border-0">
+                        <div className="flex justify-between font-medium">
+                          <span>{item.features[0]}</span>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground mx-2" />
+                          <span>{item.features[1]}</span>
+                        </div>
+                        <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+                          <span>Correlation: <strong>{item.correlation.toFixed(2)}</strong></span>
+                          <Badge variant="destructive" className="h-5">High Redundancy</Badge>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground italic">No redundant features detected.</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Time-Series Analysis (Rule #13) - Full width if present */}
+            {analysis.time_series_analysis && (
+              <Card className="md:col-span-2 border-l-4 border-blue-500">
+                <CardHeader>
+                  <CardTitle className="text-base flex justify-between items-center">
+                    <span>Time-Series Integrity (Rule #13)</span>
+                    <Badge variant={analysis.time_series_analysis.is_sorted ? "outline" : "destructive"}>
+                      {analysis.time_series_analysis.is_sorted ? "Ordered Chronologically" : "Not Sorted By Time"}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Primary Time Column: <span className="font-mono text-primary">{analysis.time_series_analysis.primary_time_col}</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    {analysis.time_series_analysis.drift_detected.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="font-medium text-amber-700">⚠ Conceptual Drift Detected (&gt;30% Shift):</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {analysis.time_series_analysis.drift_detected.map((d, i) => (
+                            <div key={i} className="bg-amber-50 p-2 rounded border border-amber-200 flex justify-between items-center">
+                              <span className="font-semibold">{d.column}</span>
+                              <div className="text-xs text-right">
+                                <span className="block text-amber-800 font-bold">Swap: {d.shift_pct}%</span>
+                                <span className="text-muted-foreground">{d.mean_p1} → {d.mean_p2}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-green-600">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>No significant mean drift detected between first and second half of time window.</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+
         <div className="text-center space-y-4">
           <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mb-4">
             <CheckCircle2 className="h-10 w-10" />
