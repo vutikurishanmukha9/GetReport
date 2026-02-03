@@ -4,7 +4,7 @@
 **Turn Your Data Into Professional Reports in Seconds.**
 
 ## Problem Solving
-Data analysis is often time-consuming and requires technical expertise. GetReport solves this by providing an automated platform that ingests raw data files (CSV, Excel), performs robust statistical analysis, generates visualizations, and uses AI to derive actionable business insights. It packages all of this into a professional PDF report, available for instant download.
+Data analysis is often time-consuming and requires technical expertise. GetReport solves this by providing an automated platform that ingests raw data files (CSV, Excel), performs robust "Skeptical" analysis, generates assessments, and uses AI to derive actionable business insights. It packages all of this into a professional PDF report, available for instant download.
 
 ## Tech Stack
 
@@ -17,25 +17,27 @@ Data analysis is often time-consuming and requires technical expertise. GetRepor
 
 ### Backend
 -   **Framework**: FastAPI (Python 3.12+)
--   **Data Processing**: Pandas, NumPy (Streaming Uploads for large files)
+-   **Data Processing**: Polars (High-Performance DataFrame Library), NumPy
 -   **Analysis**: SciPy, Scikit-learn
 -   **Persistence**: SQLite + SQLAlchemy (Job History)
 -   **AI**: OpenAI API (GPT-4o)
 -   **Reporting**: ReportLab Platypus (Professional PDF Generation)
 
 ## Key Features
--   **Interactive Data Cleaning**: Two-stage "Human-in-the-Loop" pipeline. Review data quality issues (NaNs, Type Errors) and decide how to fix them (Drop, Fill Mean, etc.) before analysis.
+-   **17-Point Blunt Verdict EDA**: Enforces a rigorous checklist to detect data issues others miss (e.g. partial duplicates, time-series drift, skewness).
+-   **Visual Mugshots**: Automatically generates sparkline histograms, frequency bars, and boxplots for immediate data health assessment.
+-   **Interactive Data Cleaning**: Two-stage "Human-in-the-Loop" pipeline. Review data quality issues (NaNs, Type Errors) and decide how to fix them (Drop, Fill Median, Fill Mode) before analysis.
 -   **Resilient Architecture**: Streaming uploads handled via tempfiles to prevent RAM exhaustion. Automatic cleanup of old files.
--   **Smart Visualizations**: Trends, Distributions, and Correlations automatically generated.
+-   **Deep Statistical Analysis**: Detects distribution anomalies (Skewness/Kurtosis) and redundant features (Multicollinearity/VIF).
 -   **AI-Powered Insights**: Natural language explanation of trends and anomalies.
 -   **Persistent History**: Jobs are saved in a local database. Resume analysis or download past reports anytime.
 
 ## Project Structure
 -   `/Frontend`: React application source code.
 -   `/Backend`: FastAPI application source code.
-    -   `/app/services`: Core logic (Data Processing, Reporting, LLM).
-    -   `/app/db`: SQLite database models.
-    -   `/outputs`: Generated PDF reports (auto-cleaned > 24h).
+-   `/app/services`: Core logic (Data Processing using Polars, PDF Reporting, LLM).
+-   `/app/db`: SQLite database models.
+-   `/outputs`: Generated PDF reports (auto-cleaned > 24h).
 
 ## Setup & Running
 
