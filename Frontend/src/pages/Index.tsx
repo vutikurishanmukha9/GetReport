@@ -68,6 +68,7 @@ const Index = () => {
             <ReportGeneration
               step={step}
               filename={apiData.filename}
+              info={apiData.info}
               analysis={apiData.analysis}
               charts={apiData.charts}
               insights={apiData.insights}

@@ -121,15 +121,18 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {info.preview.map((row, rowIndex) => (
-                        <TableRow key={rowIndex}>
-                          {info.columns.map((column) => (
-                            <TableCell key={column} className="font-mono text-sm whitespace-nowrap">
-                              {String(row[column] ?? "-")}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
+                      {info.preview.map((row, rowIndex) => {
+                        if (!row) return null;
+                        return (
+                          <TableRow key={rowIndex}>
+                            {info.columns.map((column) => (
+                              <TableCell key={column} className="font-mono text-sm whitespace-nowrap">
+                                {String(row[column] ?? "-")}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -147,8 +150,8 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
             <CardContent>
               <div className="grid gap-4">
                 {info.columns.map((col) => {
-                  const missing = info.missing_values[col];
-                  const issues = analysis.column_quality_flags[col] || [];
+                  const missing = info.missing_values?.[col] || { count: 0, percentage: 0 };
+                  const issues = analysis.column_quality_flags?.[col] || [];
                   const hasIssues = issues.length > 0 || missing.count > 0;
 
                   return (

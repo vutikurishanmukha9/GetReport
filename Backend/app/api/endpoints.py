@@ -42,6 +42,9 @@ class StatusResponse(BaseModel):
     error: Optional[str] = None
     report_download_url: Optional[str] = None
 
+class AnalysisRulesRequest(BaseModel):
+    rules: Dict[str, Any]
+
 # ─── Background Processor ────────────────────────────────────────────────────
 async def run_inspection_task(task_id: str, file_path: str, filename: str):
     """
@@ -238,21 +241,28 @@ async def upload_file(
 @router.post("/jobs/{task_id}/analyze")
 async def start_analysis(
     task_id: str, 
-    rules: Dict[str, Any], 
+    request: AnalysisRulesRequest, 
     background_tasks: BackgroundTasks
 ):
     """
     Stage 2: User approves cleaning rules and starts full analysis.
     """
+    logger.info(f"Received start_analysis for {task_id}. Rules keys: {list(request.rules.keys())}")
+    
     job = title_task_manager.get_job(task_id)
     if not job:
+        logger.error(f"Job {task_id} NOT FOUND.")
         raise HTTPException(404, "Job not found")
         
+    logger.info(f"Job {task_id} status: {job.status}")
+    
     # Check if job is in correct state (WAITING_FOR_USER)
     if job.status != TaskStatus.WAITING_FOR_USER:
-       return JSONResponse(status_code=400, content={"message": "Job is not waiting for input"})
+       msg = f"Job is not waiting for input. Current status: {job.status}"
+       logger.warning(msg)
+       return JSONResponse(status_code=400, content={"message": msg})
         
-    background_tasks.add_task(resume_analysis_task, task_id, rules)
+    background_tasks.add_task(resume_analysis_task, task_id, request.rules)
     return {"message": "Analysis started"}
 
 @router.get("/status/{task_id}", response_model=StatusResponse)

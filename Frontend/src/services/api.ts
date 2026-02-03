@@ -80,7 +80,7 @@ export const api = {
      * Stage 2: Resume analysis with cleaning rules.
      */
     startAnalysis: async (taskId: string, rules: any): Promise<{ message: string }> => {
-        const response = await apiClient.post(`/jobs/${taskId}/analyze`, rules);
+        const response = await apiClient.post(`/jobs/${taskId}/analyze`, { rules });
         return response.data;
     },
 };

@@ -57,11 +57,10 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     return true;
   };
 
-  const startPolling = (taskId: string) => {
+  const startPolling = (taskId: string, expectedPhase: 'INSPECTION' | 'ANALYSIS') => {
     const pollInterval = setInterval(async () => {
       try {
         const status = await api.getTaskStatus(taskId);
-
 
         let resultData = status.result;
         if (typeof resultData === 'string') {
@@ -72,16 +71,12 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
           }
         }
 
-        // CASE 1: Inspection Ready (State: WAITING_FOR_USER)
-        // Note: My backend implementation sets status="WAITING_FOR_USER"
-        // Let's verify if I set it explicitly or if I need to rely on message/result structure?
-        // I set: title_task_manager.update_status(task_id, "WAITING_FOR_USER", result_payload)
-        // So status should be "WAITING_FOR_USER"
-
-        if (status.status === 'WAITING_FOR_USER' && resultData && resultData.stage === 'INSPECTION') {
+        // CASE 1: Inspection Ready
+        // Only trigger this if we are LOOKING for inspection results.
+        if (expectedPhase === 'INSPECTION' && status.status === 'WAITING_FOR_USER' && resultData && resultData.stage === 'INSPECTION') {
           clearInterval(pollInterval);
           setInspectionData(resultData as InspectionResult);
-          setIsProcessing(false); // Stop spinner, show UI
+          setIsProcessing(false);
           toast({
             title: "Data Inspection Complete",
             description: "Please review the issues found.",
@@ -90,17 +85,13 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
         }
 
         // CASE 2: Analysis Complete
-        if (status.status === 'COMPLETED' && status.result && !status.result.stage) { // If stage is missing, it's final result? Or specific flag?
-          // Actually final result has 'info' / 'analysis' keys, while inspection has 'quality_report'.
-          // Let's check keys to be safe.
-          if ('analysis' in status.result) {
+        // Only trigger if we are waiting for analysis (or if it just happens to be done).
+        if (status.status === 'COMPLETED') {
+          if ('analysis' in (status.result || {})) {
             clearInterval(pollInterval);
             setIsProcessing(false);
-            // Clear inspection UI
             setInspectionData(null);
-            // Pass both result and task_id to parent
             onFileUploaded(status.result as ApiResponse, taskId);
-
             toast({
               title: "Analysis Complete!",
               description: `Successfully analyzed ${status.result.info.rows} rows.`,
@@ -113,20 +104,26 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
         else if (status.status === 'FAILED') {
           clearInterval(pollInterval);
           setIsProcessing(false);
-          throw new Error(status.error || "Analysis failed");
+          // If we were in ANALYSIS phase, failing implies we messed up.
+          const errorText = status.error || "Analysis failed";
+          // If we see "Job is not waiting" here (unlikely via polling, but via POST response), handle it.
+          // But polling just sees FAILED.
+          throw new Error(errorText);
         }
 
         // CASE 4: Still Processing
         else {
-          // Keep waiting...
+          // If expectedPhase is ANALYSIS, and status is WAITING_FOR_USER, 
+          // it means the background worker hasn't picked it up yet. 
+          // WE MUST NOT set isProcessing(false).
+          // Just wait.
         }
       } catch (err: any) {
         clearInterval(pollInterval);
         setIsProcessing(false);
-
         toast({
           title: "Error",
-          description: "Connection lost during polling.",
+          description: err.message || "Connection lost during polling.",
           variant: "destructive",
         });
       }
@@ -147,19 +144,14 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
       const { task_id } = await api.uploadFile(file);
       setTaskId(task_id);
-      startPolling(task_id);
+      startPolling(task_id, 'INSPECTION');
 
     } catch (error: any) {
+      // ... error handling
       console.error("Error initiating upload:", error);
       let errorMessage = "Could not start upload.";
-      if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      }
-      toast({
-        title: "Upload Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      if (error.response?.data?.detail) errorMessage = error.response.data.detail;
+      toast({ title: "Upload Failed", description: errorMessage, variant: "destructive" });
       setIsProcessing(false);
       setSelectedFile(null);
     }
@@ -167,19 +159,16 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
   const handleCleaningRules = async (rules: CleaningRulesMap) => {
     if (!taskId) return;
-    setIsProcessing(true); // Restart spinner
+    setIsProcessing(true);
 
     try {
       await api.startAnalysis(taskId, rules);
-      // Resume polling for final result
-      startPolling(taskId);
-    } catch (error) {
+      startPolling(taskId, 'ANALYSIS');
+    } catch (error: any) {
+      // ... error handling
       console.error("Failed to start analysis:", error);
-      toast({
-        title: "Error",
-        description: "Failed to apply rules.",
-        variant: "destructive"
-      });
+      const errorMsg = error.response?.data?.message || "Failed to apply rules.";
+      toast({ title: "Error", description: errorMsg, variant: "destructive" });
       setIsProcessing(false);
     }
   };
@@ -230,7 +219,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
         <CardContent className="p-0">
           <div
             className={`
-              relative p-6 sm:p-8 md:p-12 text-center transition-all duration-200
+              relative p-6 sm:p-8 md:p-12 text-center transition-all duration-200 min-h-[400px] flex flex-col items-center justify-center
               ${isDragging ? "bg-primary/5 border-primary" : ""}
               ${isProcessing ? "opacity-75 pointer-events-none" : ""}
             `}

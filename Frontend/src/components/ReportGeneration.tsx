@@ -2,15 +2,15 @@ import { useState, useEffect } from "react";
 import { CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import type { AppStep } from "@/pages/Index";
-import type { AnalysisResult, Charts, InsightResult } from "@/types/api";
+import type { AnalysisResult, Charts, InsightResult, DatasetInfo } from "@/types/api"; // Added DatasetInfo
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface ReportGenerationProps {
   step: AppStep;
   filename: string;
+  info: DatasetInfo; // New prop
   analysis: AnalysisResult;
   charts: Charts;
   insights: InsightResult;
@@ -21,6 +21,7 @@ interface ReportGenerationProps {
 export const ReportGeneration = ({
   step,
   filename,
+  info, // New prop
   analysis,
   charts,
   insights,
@@ -50,7 +51,6 @@ export const ReportGeneration = ({
       // Honest UX: Just show we are working, don't fake percentages.
       const blob = await api.generateReport(filename, analysis, charts, insights.insights_text);
 
-      setStatus("Report ready for download!");
       setStatus("Report ready for download!");
 
       // Create object URL for download
@@ -159,7 +159,7 @@ export const ReportGeneration = ({
       <div className="space-y-4">
         <h3 className="text-2xl font-semibold">{status}</h3>
         <p className="text-muted-foreground">
-          Our AI is analyzing {analysis.metadata.total_rows} rows and finding insights...
+          Our AI is analyzing {info.rows.toLocaleString()} rows and finding insights...
         </p>
 
         <div className="w-full max-w-md mx-auto space-y-2">
@@ -168,10 +168,6 @@ export const ReportGeneration = ({
             <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
               <div className="h-full w-full flex-1 bg-primary animate-indeterminate-progress" style={{ transformOrigin: "0% 50%" }}></div>
             </div>
-            {/* Or just use <Progress /> with no value if supported, but shadcn Progress usually needs value. 
-              Let's manually simulate indeterminate or just keep it static 100% animating. 
-              Actually, just removing the percentage text is a big step. 
-          */}
             <p className="text-xs text-muted-foreground text-center">
               Rendering high-quality PDF...
             </p>
