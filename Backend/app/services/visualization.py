@@ -171,3 +171,207 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
         charts["boxplots"] = box_list
 
     return charts, warnings
+
+
+# ─── Tier 1 Enhancement: Interactive Charts (Plotly.js JSON) ─────────────────
+def generate_interactive_charts(df: pl.DataFrame) -> dict[str, Any]:
+    """
+    Generate interactive chart specifications as Plotly.js-compatible JSON.
+    Frontend can render these directly with Plotly.newPlot().
+    
+    Returns:
+        dict with chart specs: {chart_name: {data: [...], layout: {...}}}
+    """
+    from typing import Any
+    
+    charts = {}
+    
+    # Identify columns
+    numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
+    cat_cols = [c for c in df.columns if c not in numeric_cols]
+    
+    # ── 1. Interactive Histograms ─────────────────────────────────────────────
+    histograms = []
+    for col in numeric_cols[:5]:
+        try:
+            data = df[col].drop_nulls().to_list()
+            if not data:
+                continue
+            
+            histograms.append({
+                "column": col,
+                "plotly_spec": {
+                    "data": [{
+                        "type": "histogram",
+                        "x": data[:5000],  # Limit for performance
+                        "marker": {"color": "#3b82f6"},
+                        "opacity": 0.8,
+                        "nbinsx": 30
+                    }],
+                    "layout": {
+                        "title": f"Distribution: {col}",
+                        "xaxis": {"title": col},
+                        "yaxis": {"title": "Frequency"},
+                        "bargap": 0.05,
+                        "template": "plotly_white"
+                    }
+                }
+            })
+        except Exception as e:
+            logger.warning(f"Interactive histogram failed for {col}: {e}")
+    
+    if histograms:
+        charts["histograms"] = histograms
+    
+    # ── 2. Interactive Scatter Matrix (Top 4 numeric) ─────────────────────────
+    if len(numeric_cols) >= 2:
+        try:
+            scatter_cols = numeric_cols[:4]
+            sample_df = df.select(scatter_cols).drop_nulls()
+            if sample_df.height > 1000:
+                sample_df = sample_df.sample(1000)
+            
+            # Create scatter matrix spec
+            dimensions = []
+            for col in scatter_cols:
+                dimensions.append({
+                    "label": col,
+                    "values": sample_df[col].to_list()
+                })
+            
+            charts["scatter_matrix"] = {
+                "plotly_spec": {
+                    "data": [{
+                        "type": "splom",
+                        "dimensions": dimensions,
+                        "marker": {
+                            "color": "#6366f1",
+                            "size": 5,
+                            "opacity": 0.6
+                        },
+                        "diagonal": {"visible": True},
+                        "showupperhalf": True,
+                        "showlowerhalf": True
+                    }],
+                    "layout": {
+                        "title": "Scatter Matrix (Top Numeric Columns)",
+                        "template": "plotly_white",
+                        "height": 600,
+                        "width": 700
+                    }
+                }
+            }
+        except Exception as e:
+            logger.warning(f"Scatter matrix failed: {e}")
+    
+    # ── 3. Interactive Bar Charts ─────────────────────────────────────────────
+    bar_charts = []
+    plot_cats = [c for c in cat_cols if df[c].n_unique() <= 20]
+    for col in plot_cats[:3]:
+        try:
+            vc = df[col].value_counts(sort=True).head(15)
+            labels = [str(v) if v is not None else "Unknown" for v in vc[col].to_list()]
+            counts = vc["count"].to_list()
+            
+            bar_charts.append({
+                "column": col,
+                "plotly_spec": {
+                    "data": [{
+                        "type": "bar",
+                        "x": labels,
+                        "y": counts,
+                        "marker": {
+                            "color": counts,
+                            "colorscale": "Viridis"
+                        }
+                    }],
+                    "layout": {
+                        "title": f"Frequency: {col}",
+                        "xaxis": {"title": col, "tickangle": -45},
+                        "yaxis": {"title": "Count"},
+                        "template": "plotly_white"
+                    }
+                }
+            })
+        except Exception as e:
+            logger.warning(f"Interactive bar chart failed for {col}: {e}")
+    
+    if bar_charts:
+        charts["bar_charts"] = bar_charts
+    
+    # ── 4. Interactive Heatmap (Correlation) ──────────────────────────────────
+    if len(numeric_cols) > 1:
+        try:
+            target_cols = numeric_cols[:15]
+            data_matrix = df.select(target_cols).drop_nulls().to_numpy().T
+            
+            if data_matrix.shape[1] > 1:
+                corr_matrix = np.corrcoef(data_matrix)
+                # Replace NaN with 0
+                corr_matrix = np.nan_to_num(corr_matrix, nan=0.0)
+                
+                charts["correlation_heatmap"] = {
+                    "plotly_spec": {
+                        "data": [{
+                            "type": "heatmap",
+                            "z": corr_matrix.tolist(),
+                            "x": target_cols,
+                            "y": target_cols,
+                            "colorscale": "RdBu",
+                            "zmin": -1,
+                            "zmax": 1,
+                            "hoverongaps": False
+                        }],
+                        "layout": {
+                            "title": "Correlation Matrix",
+                            "xaxis": {"tickangle": -45},
+                            "template": "plotly_white",
+                            "height": 500,
+                            "width": 600
+                        }
+                    }
+                }
+        except Exception as e:
+            logger.warning(f"Interactive heatmap failed: {e}")
+    
+    # ── 5. Interactive Box Plots ──────────────────────────────────────────────
+    box_plots = []
+    target_cats = [c for c in cat_cols if 2 <= df[c].n_unique() <= 10]
+    
+    if target_cats and numeric_cols:
+        cat_col = target_cats[0]
+        
+        for num_col in numeric_cols[:2]:
+            try:
+                valid_df = df.select([cat_col, num_col]).drop_nulls()
+                categories = valid_df[cat_col].unique().to_list()
+                
+                traces = []
+                for cat in sorted([str(c) for c in categories])[:8]:
+                    vals = valid_df.filter(pl.col(cat_col) == cat)[num_col].to_list()
+                    if vals:
+                        traces.append({
+                            "type": "box",
+                            "name": str(cat),
+                            "y": vals[:1000]  # Limit
+                        })
+                
+                if traces:
+                    box_plots.append({
+                        "column": f"{num_col} by {cat_col}",
+                        "plotly_spec": {
+                            "data": traces,
+                            "layout": {
+                                "title": f"{num_col} by {cat_col}",
+                                "yaxis": {"title": num_col},
+                                "template": "plotly_white"
+                            }
+                        }
+                    })
+            except Exception as e:
+                logger.warning(f"Interactive boxplot failed: {e}")
+    
+    if box_plots:
+        charts["box_plots"] = box_plots
+    
+    return charts

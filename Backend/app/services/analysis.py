@@ -168,6 +168,238 @@ def _detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict:
             }
     return outliers
 
+# ─── Tier 1 Enhancement: Time Series Detection ───────────────────────────────
+def _detect_time_columns(df: pl.DataFrame) -> list[str]:
+    """Identify datetime columns in the DataFrame."""
+    return [c for c, t in df.schema.items() if t in (pl.Date, pl.Datetime)]
+
+def _detect_trend(df: pl.DataFrame, time_col: str, value_col: str) -> dict[str, Any]:
+    """
+    Detect trend using linear regression slope.
+    Returns trend direction, strength, and p-value approximation.
+    """
+    try:
+        # Sort by time
+        sorted_df = df.select([time_col, value_col]).drop_nulls().sort(time_col)
+        if sorted_df.height < 10:
+            return {"detected": False, "reason": "Insufficient data points"}
+        
+        # Create numeric time index
+        y = sorted_df[value_col].to_numpy()
+        x = np.arange(len(y))
+        
+        # Linear regression
+        n = len(x)
+        sum_x, sum_y = x.sum(), y.sum()
+        sum_xy = (x * y).sum()
+        sum_x2 = (x ** 2).sum()
+        
+        denom = n * sum_x2 - sum_x ** 2
+        if denom == 0:
+            return {"detected": False, "reason": "Constant values"}
+        
+        slope = (n * sum_xy - sum_x * sum_y) / denom
+        intercept = (sum_y - slope * sum_x) / n
+        
+        # R-squared
+        y_pred = slope * x + intercept
+        ss_res = ((y - y_pred) ** 2).sum()
+        ss_tot = ((y - y.mean()) ** 2).sum()
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+        
+        # Trend direction
+        if abs(slope) < 1e-10:
+            direction = "flat"
+        elif slope > 0:
+            direction = "upward"
+        else:
+            direction = "downward"
+        
+        # Strength classification
+        if r_squared >= 0.7:
+            strength = "strong"
+        elif r_squared >= 0.3:
+            strength = "moderate"
+        else:
+            strength = "weak"
+        
+        return {
+            "detected": True,
+            "direction": direction,
+            "slope": round(float(slope), 6),
+            "r_squared": round(float(r_squared), 4),
+            "strength": strength,
+            "data_points": n
+        }
+    except Exception as e:
+        logger.warning(f"Trend detection failed: {e}")
+        return {"detected": False, "reason": str(e)}
+
+def _detect_seasonality(df: pl.DataFrame, time_col: str, value_col: str) -> dict[str, Any]:
+    """
+    Detect seasonality using autocorrelation at common lags (7=weekly, 30=monthly, 365=yearly).
+    """
+    try:
+        sorted_df = df.select([time_col, value_col]).drop_nulls().sort(time_col)
+        y = sorted_df[value_col].to_numpy()
+        n = len(y)
+        
+        if n < 60:  # Need enough data for seasonality
+            return {"detected": False, "reason": "Insufficient data for seasonality analysis"}
+        
+        # Detrend (subtract mean)
+        y_detrend = y - y.mean()
+        
+        # Check common seasonal lags
+        seasonal_lags = {7: "weekly", 30: "monthly", 90: "quarterly", 365: "yearly"}
+        detected_patterns = []
+        
+        for lag, period_name in seasonal_lags.items():
+            if n < lag * 2:
+                continue
+            
+            # Calculate autocorrelation at this lag
+            autocorr = np.corrcoef(y_detrend[:-lag], y_detrend[lag:])[0, 1]
+            
+            if np.isnan(autocorr):
+                continue
+            
+            # Strong autocorrelation suggests seasonality
+            if abs(autocorr) >= 0.3:
+                detected_patterns.append({
+                    "period": period_name,
+                    "lag": lag,
+                    "autocorrelation": round(float(autocorr), 4),
+                    "strength": "strong" if abs(autocorr) >= 0.6 else "moderate"
+                })
+        
+        if detected_patterns:
+            return {
+                "detected": True,
+                "patterns": detected_patterns,
+                "primary_pattern": detected_patterns[0]["period"]
+            }
+        else:
+            return {"detected": False, "reason": "No significant seasonal patterns found"}
+            
+    except Exception as e:
+        logger.warning(f"Seasonality detection failed: {e}")
+        return {"detected": False, "reason": str(e)}
+
+def _analyze_time_series(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, Any]:
+    """
+    Full time series analysis: trend + seasonality for each numeric column.
+    """
+    time_cols = _detect_time_columns(df)
+    if not time_cols:
+        return {"has_time_series": False, "reason": "No datetime columns found"}
+    
+    time_col = time_cols[0]  # Use first datetime column
+    results = {
+        "has_time_series": True,
+        "time_column": time_col,
+        "analyses": {}
+    }
+    
+    # Analyze top 5 numeric columns
+    for col in numeric_cols[:5]:
+        trend = _detect_trend(df, time_col, col)
+        seasonality = _detect_seasonality(df, time_col, col)
+        
+        results["analyses"][col] = {
+            "trend": trend,
+            "seasonality": seasonality
+        }
+    
+    return results
+
+# ─── Tier 1 Enhancement: Missing Value Pattern Analysis ─────────────────────
+def _analyze_missing_patterns(df: pl.DataFrame) -> dict[str, Any]:
+    """
+    Analyze missing value patterns to detect MCAR, MAR, or MNAR.
+    
+    MCAR (Missing Completely At Random): No pattern - safe to impute/drop
+    MAR (Missing At Random): Related to other variables - use conditional imputation
+    MNAR (Missing Not At Random): Related to the value itself - complex handling needed
+    """
+    missing_info = {}
+    cols_with_missing = []
+    
+    # Step 1: Calculate missing rates
+    for col in df.columns:
+        null_count = df[col].null_count()
+        if null_count > 0:
+            missing_rate = null_count / df.height
+            cols_with_missing.append(col)
+            missing_info[col] = {
+                "count": null_count,
+                "percentage": round(missing_rate * 100, 2),
+                "severity": "critical" if missing_rate > 0.5 else ("high" if missing_rate > 0.2 else ("medium" if missing_rate > 0.05 else "low"))
+            }
+    
+    if not cols_with_missing:
+        return {"has_missing": False, "message": "No missing values detected"}
+    
+    # Step 2: Detect missing value correlations (MAR indicator)
+    missing_correlations = []
+    for col in cols_with_missing[:5]:  # Limit for performance
+        # Create binary missing indicator
+        missing_mask = df[col].is_null().cast(pl.Int32)
+        
+        # Check correlation with other numeric columns
+        numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32) and c != col]
+        
+        for other_col in numeric_cols[:5]:
+            try:
+                # Correlation between missing indicator and other variable
+                corr = df.select(pl.corr(missing_mask.alias("_missing"), pl.col(other_col))).item()
+                if corr is not None and not np.isnan(corr) and abs(corr) >= 0.2:
+                    missing_correlations.append({
+                        "missing_column": col,
+                        "correlated_with": other_col,
+                        "correlation": round(float(corr), 4),
+                        "interpretation": f"Missing values in '{col}' may be related to '{other_col}'"
+                    })
+            except:
+                pass
+    
+    # Step 3: Detect row patterns (multiple missing in same rows)
+    # Count how many columns are missing per row
+    missing_per_row = df.select([pl.col(c).is_null().cast(pl.Int32).alias(c) for c in cols_with_missing])
+    row_missing_sum = missing_per_row.select(pl.sum_horizontal(pl.all()))
+    
+    # Distribution of missing counts
+    fully_complete = (row_missing_sum == 0).sum()
+    partial_missing = ((row_missing_sum > 0) & (row_missing_sum < len(cols_with_missing))).sum()
+    fully_missing = (row_missing_sum == len(cols_with_missing)).sum()
+    
+    row_patterns = {
+        "complete_rows": int(fully_complete.item()) if hasattr(fully_complete, 'item') else int(fully_complete[0, 0]),
+        "partial_missing_rows": int(partial_missing.item()) if hasattr(partial_missing, 'item') else int(partial_missing[0, 0]),
+        "fully_missing_rows": int(fully_missing.item()) if hasattr(fully_missing, 'item') else int(fully_missing[0, 0])
+    }
+    
+    # Step 4: Infer pattern type
+    if missing_correlations:
+        pattern_type = "MAR"
+        pattern_advice = "Missing values appear related to other variables. Consider multiple imputation or conditional mean imputation."
+    elif row_patterns["fully_missing_rows"] > df.height * 0.1:
+        pattern_type = "Systematic"
+        pattern_advice = "Many rows have all values missing. Consider removing these rows entirely."
+    else:
+        pattern_type = "MCAR"
+        pattern_advice = "Missing values appear random. Safe to use mean/median imputation or listwise deletion."
+    
+    return {
+        "has_missing": True,
+        "columns_affected": len(cols_with_missing),
+        "column_details": missing_info,
+        "missing_correlations": missing_correlations[:5],  # Top 5
+        "row_patterns": row_patterns,
+        "inferred_pattern": pattern_type,
+        "recommendation": pattern_advice
+    }
+
 def analyze_dataset(df: pl.DataFrame, top_categories: int = 10) -> dict[str, Any]:
     start = time.perf_counter()
     _validate_input(df)
@@ -186,15 +418,16 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10) -> dict[str, Any
     correlation, strong_pairs = _compute_correlation(df, numeric_cols)
     outliers = _detect_outliers(df, numeric_cols)
     
+    # Tier 1: Time Series Analysis
+    time_series_analysis = _analyze_time_series(df, numeric_cols)
+    
+    # Tier 1: Missing Value Patterns
+    missing_patterns = _analyze_missing_patterns(df)
+    
     # Categorical Distrib (Top 10)
     cat_dist = {}
     for c in cat_cols:
         counts = df[c].value_counts(sort=True).head(top_categories)
-        # counts is a struct or df with col, count
-        # In Polars, value_counts returns struct with columns [col_name, "count"] or similar
-        # Need to handle carefully. usually it returns DataFrame(column, count)
-        
-        # We need to reshape to dict
         cats = {}
         for row in counts.iter_rows():
             val, cnt = row
@@ -206,11 +439,10 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10) -> dict[str, Any
             "missing_pct": round(df[c].null_count()/df.height*100, 2)
         }
 
-    flags = {} # TODO: port flags logic if needed
-    
     elapsed = (time.perf_counter() - start) * 1000
     
-    return AnalysisResult(
+    # Build result with new fields
+    result = AnalysisResult(
         metadata=metadata,
         summary=summary_stats,
         correlation=correlation,
@@ -219,3 +451,9 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10) -> dict[str, Any
         categorical_distribution=cat_dist,
         timing_ms=elapsed
     ).to_dict()
+    
+    # Add Tier 1 enhancements
+    result["time_series_analysis"] = time_series_analysis
+    result["missing_patterns"] = missing_patterns
+    
+    return result
