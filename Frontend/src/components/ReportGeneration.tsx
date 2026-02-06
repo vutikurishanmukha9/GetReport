@@ -172,8 +172,67 @@ export const ReportGeneration = ({
               </Card>
             )}
 
-            {/* Time-Series Analysis (Rule #13) - Full width if present */}
-            {analysis.time_series_analysis && (
+            {/* Time-Series Analysis (Enhanced Tier 1) */}
+            {analysis.time_series_analysis?.has_time_series && (
+              <Card className="md:col-span-2 border-l-4 border-blue-500">
+                <CardHeader>
+                  <CardTitle className="text-base flex justify-between items-center">
+                    <span>Time-Series Analysis (Trend & Seasonality)</span>
+                    <Badge variant="outline">
+                      Time Column: {analysis.time_series_analysis.time_column}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Detected trends and seasonal patterns in your time-series data
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {analysis.time_series_analysis.analyses && Object.entries(analysis.time_series_analysis.analyses).map(([col, data]: [string, any]) => (
+                      <div key={col} className="p-3 bg-muted/50 rounded-lg">
+                        <p className="font-medium text-sm mb-2">{col}</p>
+                        <div className="space-y-2 text-xs">
+                          {/* Trend */}
+                          {data.trend?.detected ? (
+                            <div className="flex justify-between items-center">
+                              <span>Trend:</span>
+                              <Badge
+                                variant={data.trend.direction === "upward" ? "default" : data.trend.direction === "downward" ? "destructive" : "secondary"}
+                                className="text-xs"
+                              >
+                                {data.trend.direction} ({data.trend.strength})
+                              </Badge>
+                            </div>
+                          ) : (
+                            <div className="flex justify-between items-center text-muted-foreground">
+                              <span>Trend:</span>
+                              <span>Not detected</span>
+                            </div>
+                          )}
+                          {/* Seasonality */}
+                          {data.seasonality?.detected ? (
+                            <div className="flex justify-between items-center">
+                              <span>Seasonality:</span>
+                              <Badge variant="outline" className="text-xs">
+                                {data.seasonality.primary_pattern}
+                              </Badge>
+                            </div>
+                          ) : (
+                            <div className="flex justify-between items-center text-muted-foreground">
+                              <span>Seasonality:</span>
+                              <span>Not detected</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Legacy Time-Series (backward compatibility) */}
+            {analysis.time_series_analysis?.is_sorted !== undefined && (
               <Card className="md:col-span-2 border-l-4 border-blue-500">
                 <CardHeader>
                   <CardTitle className="text-base flex justify-between items-center">
@@ -188,11 +247,11 @@ export const ReportGeneration = ({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm">
-                    {analysis.time_series_analysis.drift_detected.length > 0 ? (
+                    {analysis.time_series_analysis.drift_detected?.length > 0 ? (
                       <div className="space-y-2">
                         <p className="font-medium text-amber-700">⚠ Conceptual Drift Detected (&gt;30% Shift):</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {analysis.time_series_analysis.drift_detected.map((d, i) => (
+                          {analysis.time_series_analysis.drift_detected.map((d: any, i: number) => (
                             <div key={i} className="bg-amber-50 p-2 rounded border border-amber-200 flex justify-between items-center">
                               <span className="font-semibold">{d.column}</span>
                               <div className="text-xs text-right">
