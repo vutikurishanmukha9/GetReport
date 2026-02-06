@@ -475,7 +475,7 @@ def _analyze_missing_patterns(df: pl.DataFrame) -> dict[str, Any]:
     # Step 3: Detect row patterns (multiple missing in same rows)
     # Count how many columns are missing per row
     missing_per_row = df.select([pl.col(c).is_null().cast(pl.Int32).alias(c) for c in cols_with_missing])
-    row_missing_sum = missing_per_row.select(pl.sum_horizontal(pl.all()))
+    row_missing_sum = missing_per_row.select(pl.sum_horizontal(pl.all())).to_series()  # Convert to Series
     
     # Distribution of missing counts
     fully_complete = (row_missing_sum == 0).sum()
@@ -483,9 +483,9 @@ def _analyze_missing_patterns(df: pl.DataFrame) -> dict[str, Any]:
     fully_missing = (row_missing_sum == len(cols_with_missing)).sum()
     
     row_patterns = {
-        "complete_rows": int(fully_complete.item()) if hasattr(fully_complete, 'item') else int(fully_complete[0, 0]),
-        "partial_missing_rows": int(partial_missing.item()) if hasattr(partial_missing, 'item') else int(partial_missing[0, 0]),
-        "fully_missing_rows": int(fully_missing.item()) if hasattr(fully_missing, 'item') else int(fully_missing[0, 0])
+        "complete_rows": int(fully_complete),
+        "partial_missing_rows": int(partial_missing),
+        "fully_missing_rows": int(fully_missing)
     }
     
     # Step 4: Infer pattern type
