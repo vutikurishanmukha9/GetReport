@@ -1019,6 +1019,8 @@ def generate_pdf_report(
     story.extend(_build_title_page(filename, styles))
     story.extend(_build_metadata_section(analysis_results, styles, meta))
     story.extend(_build_semantic_analysis_section(analysis_results, styles, meta))  # NEW
+    story.extend(_build_confidence_scores_section(analysis_results, styles, meta))  # Tier 1: Trust
+    story.extend(_build_analysis_decisions_section(analysis_results, styles, meta))  # Tier 1: Why I Did X
     story.extend(_build_cleaning_section(analysis_results, styles, meta))
     story.extend(_build_executive_summary(analysis_results, styles, meta))
     
@@ -1350,3 +1352,123 @@ def _build_recommendations_section(
     story.extend(_divider())
     meta.sections_included.append("Recommendations")
     return story
+
+
+# ─── Tier 1: Trust Foundation Section Builders ───────────────────────────────
+
+def _build_confidence_scores_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list:
+    """Build section showing column confidence scores (completeness, consistency, validity, stability)."""
+    story = []
+    
+    confidence_data = analysis_results.get("confidence_scores")
+    if not confidence_data:
+        meta.sections_skipped.append("Confidence Scores")
+        return story
+    
+    story.append(Paragraph("Column Confidence Scores", styles["Heading1"]))
+    story.append(Paragraph(
+        "Each column is graded on four dimensions: Completeness (non-null %), Consistency (format uniformity), "
+        "Validity (values within expected ranges), and Stability (variance). Grades range from A (excellent) to F (critical issues).",
+        styles["Body"]
+    ))
+    story.append(Spacer(1, 0.15 * inch))
+    
+    # Dataset summary
+    dataset_grade = confidence_data.get("dataset_grade", "N/A")
+    dataset_conf = confidence_data.get("dataset_confidence", 0)
+    high_count = confidence_data.get("high_confidence_count", 0)
+    low_count = confidence_data.get("low_confidence_count", 0)
+    
+    story.append(Paragraph(
+        f"<b>Dataset Grade: {dataset_grade}</b> ({dataset_conf:.0f}% confidence) — "
+        f"{high_count} high-confidence columns, {low_count} low-confidence columns",
+        styles["Normal"]
+    ))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    # Critical issues callout
+    critical = confidence_data.get("critical_issues", [])
+    if critical:
+        story.append(Paragraph("<b>Critical Issues:</b>", styles["Normal"]))
+        for issue in critical[:5]:
+            story.append(Paragraph(f"⚠ {issue}", styles["Body"]))
+        story.append(Spacer(1, 0.1 * inch))
+    
+    # Column scores table (top 10)
+    columns = confidence_data.get("columns", [])
+    if columns:
+        table_data = [["Column", "Grade", "Complete", "Consist", "Valid", "Stable"]]
+        for col in columns[:15]:  # Limit to 15 columns
+            table_data.append([
+                col.get("column", "")[:20],  # Truncate long names
+                col.get("grade", "?"),
+                f"{col.get('completeness', 0):.0f}%",
+                f"{col.get('consistency', 0):.0f}%",
+                f"{col.get('validity', 0):.0f}%",
+                f"{col.get('stability', 0):.0f}%",
+            ])
+        
+        col_widths = [2.0 * inch, 0.6 * inch, 0.8 * inch, 0.8 * inch, 0.8 * inch, 0.8 * inch]
+        story.append(_build_styled_table(table_data, col_widths))
+    
+    story.extend(_divider())
+    meta.sections_included.append("Confidence Scores")
+    return story
+
+
+def _build_analysis_decisions_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list:
+    """Build section showing why each analysis was run or skipped."""
+    story = []
+    
+    decisions_data = analysis_results.get("analysis_decisions")
+    if not decisions_data:
+        meta.sections_skipped.append("Analysis Decisions")
+        return story
+    
+    story.append(Paragraph("Analysis Decisions", styles["Heading1"]))
+    story.append(Paragraph(
+        "Transparency into why each analysis step was run or skipped. "
+        "This ensures automation decisions are explainable and auditable.",
+        styles["Body"]
+    ))
+    story.append(Spacer(1, 0.15 * inch))
+    
+    # Summary counts
+    summary = decisions_data.get("summary", {})
+    ran = summary.get("ran", 0)
+    skipped = summary.get("skipped", 0)
+    total = summary.get("total", 0)
+    
+    story.append(Paragraph(
+        f"<b>Summary:</b> {ran} analyses ran, {skipped} skipped (out of {total} possible)",
+        styles["Normal"]
+    ))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    # Decision table
+    decisions = decisions_data.get("decisions", [])
+    if decisions:
+        table_data = [["Analysis", "Decision", "Reason"]]
+        for d in decisions:
+            decision_icon = "✓" if d.get("decision") == "ran" else "○" if d.get("decision") == "skipped" else "◐"
+            table_data.append([
+                d.get("analysis", "")[:25],
+                decision_icon + " " + d.get("decision", "").upper(),
+                d.get("reason", "")[:50],
+            ])
+        
+        col_widths = [2.2 * inch, 1.0 * inch, 3.0 * inch]
+        story.append(_build_styled_table(table_data, col_widths))
+    
+    story.extend(_divider())
+    meta.sections_included.append("Analysis Decisions")
+    return story
+

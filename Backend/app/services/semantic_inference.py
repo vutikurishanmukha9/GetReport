@@ -256,10 +256,20 @@ class SemanticAnalysis:
             "domain": {
                 "primary": self.domain.primary_domain,
                 "confidence": round(self.domain.confidence, 2),
+                "confidence_pct": f"{self.domain.confidence * 100:.0f}%",
                 "matched_keywords": self.domain.matched_keywords[:10],
+                "signals_used": len(self.domain.matched_keywords),
+                "alternative_domains": [
+                    {"domain": d, "relative_confidence": round(c, 2)}
+                    for d, c in self.domain.alternative_domains
+                ],
             },
             "column_roles": {
-                col: {"role": role.role, "confidence": round(role.confidence, 2)}
+                col: {
+                    "role": role.role,
+                    "confidence": round(role.confidence, 2),
+                    "matched_patterns": role.matched_patterns[:3]
+                }
                 for col, role in self.column_roles.items()
             },
             "suggested_analysis": [
