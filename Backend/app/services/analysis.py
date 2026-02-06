@@ -27,10 +27,11 @@ CORRELATION_STRONG_THRESHOLD: float = 0.7
 SKEWNESS_THRESHOLD: float = 1.0
 
 # ─── Semantic Column Detection Thresholds ─────────────────────────────────────
-ID_UNIQUENESS_THRESHOLD: float = 0.95  # >95% unique values = likely ID
+ID_UNIQUENESS_THRESHOLD: float = 0.98  # >98% unique values AND name suggests ID = likely ID
 EXCEL_DATE_RANGE = (25569, 73050)  # Excel serial dates: 1970-2100
-ID_COLUMN_PATTERNS = ['id', 'uuid', 'key', 'code', 'index', 'idx', 'number', 'num', 'no']
-DATE_COLUMN_PATTERNS = ['date', 'time', 'timestamp', 'dt', 'created', 'updated', 'modified']
+# Only very strong ID patterns - avoid false positives like "student_number" which is valid data
+ID_COLUMN_PATTERNS = ['_id', 'uuid', 'guid', 'pk', 'primary_key', 'row_id', 'record_id']
+DATE_COLUMN_PATTERNS = ['date', 'time', 'timestamp', 'created_at', 'updated_at', 'modified_at']
 
 # ─── Custom Exceptions ───────────────────────────────────────────────────────
 class EmptyDatasetError(ValueError): pass
@@ -103,8 +104,23 @@ def _classify_numeric_columns(df: pl.DataFrame, numeric_cols: list[str]) -> dict
         except:
             pass
         
-        # Decision: exclude if any strong signal
-        if reasons:
+        # Decision: Be conservative - only exclude if:
+        # 1. Low variance (always exclude near-constants), OR
+        # 2. BOTH name pattern AND data evidence (high uniqueness or date range)
+        should_exclude = False
+        
+        if "low_variance" in reasons:
+            should_exclude = True  # Low variance is always excluded
+        elif (is_id_name or is_date_name):
+            # Name suggests ID/date - need additional data evidence
+            has_data_evidence = any(
+                r for r in reasons 
+                if "high_uniqueness" in r or "excel_serial_date" in r
+            )
+            if has_data_evidence:
+                should_exclude = True
+        
+        if should_exclude:
             excluded.append(col)
             exclusion_reasons[col] = reasons
         else:

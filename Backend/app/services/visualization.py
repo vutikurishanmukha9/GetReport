@@ -36,9 +36,13 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     all_numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
     cat_cols = [c for c in df.columns if c not in all_numeric_cols]
     
+    logger.info(f"Visualization: Total columns={df.width}, numeric={len(all_numeric_cols)}, categorical={len(cat_cols)}")
+    
     # Filter to only analytical numeric columns (exclude IDs, dates, low-variance)
     column_classification = _classify_numeric_columns(df, all_numeric_cols)
     numeric_cols = column_classification["analytical"]
+    
+    logger.info(f"Visualization: After classification - analytical={len(numeric_cols)}, excluded={len(column_classification.get('excluded', []))}")
     
     if column_classification["excluded"]:
         warnings.append(f"Excluded from charts: {', '.join(column_classification['excluded'])} (ID/date/low-variance columns)")
@@ -182,6 +186,12 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     if box_list:
         charts["boxplots"] = box_list
 
+    # Log summary of generated charts
+    chart_summary = {k: len(v) if isinstance(v, list) else 1 for k, v in charts.items()}
+    logger.info(f"Visualization: Generated charts summary: {chart_summary}")
+    if not charts:
+        logger.warning("Visualization: No charts were generated!")
+    
     return charts, warnings
 
 
