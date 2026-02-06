@@ -141,9 +141,17 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
                                         {col.inferred_type === 'numeric' && (
                                             <>
-                                                <SelectItem value="fill_median">Fill with Median (Robust)</SelectItem>
-                                                <SelectItem value="fill_mean">Fill with Average</SelectItem>
-                                                <SelectItem value="replace_outliers_median">Replace Outliers (Median)</SelectItem>
+                                                {/* Show fill options only if issue is MISSING values, not outliers */}
+                                                {issue?.type !== 'outliers' && (
+                                                    <>
+                                                        <SelectItem value="fill_median">Fill with Median</SelectItem>
+                                                        <SelectItem value="fill_mean">Fill with Average</SelectItem>
+                                                    </>
+                                                )}
+                                                {/* Show outlier-specific option only for outlier issues */}
+                                                {issue?.type === 'outliers' && (
+                                                    <SelectItem value="replace_outliers_median">Cap Outliers (Median)</SelectItem>
+                                                )}
                                             </>
                                         )}
                                         {col.inferred_type !== 'numeric' && (

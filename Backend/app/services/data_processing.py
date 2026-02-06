@@ -229,61 +229,41 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
                 })
 
     # Calculate Histograms (Mugshots) - Numeric Only
-    # Use Polars hist() or dynamic binning
-    for col_name in df.columns:
-        if df[col_name].dtype in [pl.Int64, pl.Int32, pl.Float64, pl.Float32]:
-            # Skip if mostly null
-            if df[col_name].null_count() == df.height:
-                continue
+    # LIMIT to first 15 numeric columns to prevent performance bottleneck on wide datasets.
+    numeric_cols_for_hist = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Int32, pl.Float64, pl.Float32)]
+    
+    # Analyze only the first 15 for the preview report
+    for col_name in numeric_cols_for_hist[:15]:
+        # Skip if mostly null
+        if df[col_name].null_count() == df.height:
+            continue
 
-            try:
-                # Polars hist returns a PL Series of Type Struct.
-                # structure: break_point (f64), category (cat/str), count (u32, etc) depending on version.
-                # Safest way in recent Polars:
-                # df.select(pl.col(c).hist(bin_count=15)).unnest(c)
-                # If unnest fails, it means it's not a struct?
+        try:
+            # Use numpy for histogram if available as fallback
+            # We convert to numpy array (zero copy often).
+            arr = df[col_name].drop_nulls().to_numpy()
+            
+            if len(arr) == 0: continue
+            
+            counts, bin_edges = np.histogram(arr, bins=15)
+            
+            dist_data = []
+            for i in range(len(counts)):
+                label = f"{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f}"
+                dist_data.append({
+                    "label": label, 
+                    "count": int(counts[i]), 
+                    "min": float(bin_edges[i]), 
+                    "max": float(bin_edges[i+1])
+                })
                 
-                # Let's try separate binning to be safe and version-agnostic.
-                # We need min/max.
-                
-                min_v = df[col_name].min()
-                max_v = df[col_name].max()
-                
-                if min_v is None or max_v is None or min_v == max_v:
-                     continue
+            for col in quality_report["columns"]:
+                if col["name"] == col_name:
+                    col["distribution"] = dist_data
+                    break
 
-                # Use numpy for histogram if available as fallback, OR simple polars cut/group
-                # Let's stick to Polars but use `hist` carefully.
-                # If unnest failed, maybe it returned a Series named different?
-                # Actually, `unnest(col_name)` expects the column `col_name` to be Struct.
-                # df.select(pl.col(col).hist()) returns a DF with column `col` which IS the struct.
-                # BUT if user has old polars, it might be different.
-                
-                # Let's try native numpy to avoid Polars version hell for this visual feature.
-                # We convert to numpy array (zero copy often).
-                arr = df[col_name].drop_nulls().to_numpy()
-                
-                if len(arr) == 0: continue
-                
-                counts, bin_edges = np.histogram(arr, bins=15)
-                
-                dist_data = []
-                for i in range(len(counts)):
-                    label = f"{bin_edges[i]:.1f}-{bin_edges[i+1]:.1f}"
-                    dist_data.append({
-                        "label": label, 
-                        "count": int(counts[i]), 
-                        "min": float(bin_edges[i]), 
-                        "max": float(bin_edges[i+1])
-                    })
-                    
-                for col in quality_report["columns"]:
-                    if col["name"] == col_name:
-                        col["distribution"] = dist_data
-                        break
-
-            except Exception as e:
-                logger.warning(f"Failed to compute histogram for {col_name}: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to compute histogram for {col_name}: {e}")
 
     return quality_report
 
@@ -452,130 +432,4 @@ def get_dataset_info(df: pl.DataFrame) -> dict[str, Any]:
         "numeric_columns": numeric_cols,
         "categorical_columns": cat_cols,
         "memory_usage_mb": round(df.estimated_size() / (1024*1024), 2)
-    }
-
-# ─── Advanced Analysis ───────────────────────────────────────────────────────
-def analyze_dataset(df: pl.DataFrame) -> dict[str, Any]:
-    """
-    Performs statistical analysis (correlations, distributions).
-    """
-    numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
-    
-    # 1. Summary Stats
-    summary = df.describe().to_dict(as_series=False)
-    
-    # 2. Correlations (only if numeric cols > 1)
-    correlations = {}
-    if len(numeric_cols) > 1:
-        # Polars correlation is simpler to just do pairwise for now or use Pearson
-        # Computing full correlation matrix can be expensive.
-        # Let's do a limited sample corr if rows > 10000?
-        target_df = df.select(numeric_cols)
-        if target_df.height > 10000:
-            target_df = target_df.sample(10000)
-            
-        # Pearson correlation matrix
-        # Polars doesn't have a direct 'corr()' returning a matrix easily like pandas.
-        # We iteration:
-        for c1 in numeric_cols:
-            correlations[c1] = {}
-            for c2 in numeric_cols:
-                 if c1 == c2:
-                     correlations[c1][c2] = 1.0
-                 else:
-                     # corr handles nulls?
-                     val = target_df.select(pl.corr(c1, c2)).item()
-                     # Handle NaN
-                     if val is not None and not np.isnan(val):
-                         correlations[c1][c2] = round(val, 2)
-                     else:
-                         correlations[c1][c2] = 0.0
-
-    # 3. Advanced Statistics (Skewness, Kurtosis)
-    advanced_stats = {}
-    for c in numeric_cols:
-        skew = df[c].skew()
-        kurt = df[c].kurtosis()
-        advanced_stats[c] = {
-            "skewness": round(skew, 2) if skew is not None else None,
-            "kurtosis": round(kurt, 2) if kurt is not None else None
-        }
-
-    # 4. Multicollinearity Flags (VIF Proxy)
-    # True VIF needs OLS. Here we flag columns with pairwise correlation > 0.9 or < -0.9
-    multicollinearity = []
-    seen_pairs = set()
-    for c1, matrix in correlations.items():
-        for c2, val in matrix.items():
-            if c1 == c2: continue
-            if abs(val) > 0.9:
-                pair = tuple(sorted((c1, c2)))
-                if pair not in seen_pairs:
-                    multicollinearity.append({
-                        "features": pair,
-                        "correlation": val,
-                        "severity": "high" if abs(val) > 0.95 else "medium"
-                    })
-                    seen_pairs.add(pair)
-
-    return {
-        "summary": summary,
-        "correlations": correlations,
-        "advanced_stats": advanced_stats,
-        "multicollinearity": multicollinearity,
-        "time_series_analysis": _analyze_time_series(df)
-    }
-
-def _analyze_time_series(df: pl.DataFrame) -> dict[str, Any] | None:
-    """
-    Rule #13: Check sort order, drift, and gaps.
-    """
-    # 1. Find Datetime Column
-    time_cols = [c for c, t in df.schema.items() if t in (pl.Date, pl.Datetime)]
-    if not time_cols:
-        return None
-    
-    # Take the first one as primary for now
-    time_col = time_cols[0]
-    
-    # 2. Check Sort Order
-    is_sorted = df[time_col].is_sorted()
-    
-    # 3. Check for Drift (Concept Drift)
-    # Split data chronologically (if sorted) or just index-based (assuming implicit time)?
-    # Rule #13 says "Always sort". So we sort internally for the check.
-    
-    drift_flags = []
-    
-    if df.height > 50:
-        # Sort for analysis
-        df_sorted = df.sort(time_col)
-        midpoint = df.height // 2
-        
-        part1 = df_sorted.slice(0, midpoint)
-        part2 = df_sorted.slice(midpoint, df.height - midpoint)
-        
-        numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
-        
-        for col in numeric_cols:
-            m1 = part1[col].mean()
-            m2 = part2[col].mean()
-            
-            if m1 is not None and m2 is not None and m1 != 0:
-                # Calculate % change
-                pct_change = abs((m2 - m1) / m1)
-                
-                # Blunt Threshold: 30% shift in mean suggests drift/seasonality shift
-                if pct_change > 0.30:
-                    drift_flags.append({
-                        "column": col,
-                        "shift_pct": round(pct_change * 100, 1),
-                        "mean_p1": round(m1, 2),
-                        "mean_p2": round(m2, 2)
-                    })
-
-    return {
-        "primary_time_col": time_col,
-        "is_sorted": is_sorted,
-        "drift_detected": drift_flags
     }

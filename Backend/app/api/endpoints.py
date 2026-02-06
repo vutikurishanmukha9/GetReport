@@ -110,7 +110,8 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
     try:
         title_task_manager.update_progress(task_id, 45, "Applying cleaning rules...")
         title_task_manager.update_progress(task_id, 45, "Applying cleaning rules...")
-        from app.services.data_processing import load_dataframe, clean_data, get_dataset_info, analyze_dataset
+        from app.services.data_processing import load_dataframe, clean_data, get_dataset_info
+        from app.services.analysis import analyze_dataset  # Import from analysis.py (has top_categories param)
         
         # Reload (Polars is fast)
         df = load_dataframe(file_path)
@@ -122,7 +123,10 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
         title_task_manager.update_progress(task_id, 60, "Running statistical analysis...")
         dataset_info = await run_in_threadpool(get_dataset_info, cleaned_df)
         cleaning_report_dict = cleaning_report.to_dict()
-        analysis_result = await run_in_threadpool(analyze_dataset, cleaned_df)
+        
+        # Extract optional config
+        top_cats = rules.get("top_categories", 10)
+        analysis_result = await run_in_threadpool(analyze_dataset, cleaned_df, top_cats)
         
         # Parallel Execution: Charts (CPU) & Insights (IO)
         title_task_manager.update_progress(task_id, 75, "Generating charts & insights...")

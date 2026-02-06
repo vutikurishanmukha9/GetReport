@@ -73,7 +73,8 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
         // CASE 1: Inspection Ready
         // Only trigger this if we are LOOKING for inspection results.
-        if (expectedPhase === 'INSPECTION' && status.status === 'WAITING_FOR_USER' && resultData && resultData.stage === 'INSPECTION') {
+        const normalizedStatus = status.status?.toUpperCase();
+        if (expectedPhase === 'INSPECTION' && normalizedStatus === 'WAITING_FOR_USER' && resultData && resultData.stage === 'INSPECTION') {
           clearInterval(pollInterval);
           setInspectionData(resultData as InspectionResult);
           setIsProcessing(false);
@@ -86,7 +87,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
         // CASE 2: Analysis Complete
         // Only trigger if we are waiting for analysis (or if it just happens to be done).
-        if (status.status === 'COMPLETED') {
+        if (normalizedStatus === 'COMPLETED') {
           if ('analysis' in (status.result || {})) {
             clearInterval(pollInterval);
             setIsProcessing(false);
@@ -101,7 +102,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
         }
 
         // CASE 3: Failure
-        else if (status.status === 'FAILED') {
+        else if (normalizedStatus === 'FAILED') {
           clearInterval(pollInterval);
           setIsProcessing(false);
           // If we were in ANALYSIS phase, failing implies we messed up.
@@ -127,7 +128,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
           variant: "destructive",
         });
       }
-    }, 1500);
+    }, 3000); // 3s polling (Optimized for reduced load)
     setActivePoll(pollInterval);
   };
 

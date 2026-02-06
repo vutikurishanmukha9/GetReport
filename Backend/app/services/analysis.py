@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 IQR_LOWER_MULTIPLIER: float = 1.5
 IQR_UPPER_MULTIPLIER: float = 1.5
 CORRELATION_STRONG_THRESHOLD: float = 0.7
-TOP_CATEGORIES: int = 10
+
 SKEWNESS_THRESHOLD: float = 1.0
 
 # ─── Custom Exceptions ───────────────────────────────────────────────────────
@@ -168,7 +168,7 @@ def _detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict:
             }
     return outliers
 
-def analyze_dataset(df: pl.DataFrame) -> dict[str, Any]:
+def analyze_dataset(df: pl.DataFrame, top_categories: int = 10) -> dict[str, Any]:
     start = time.perf_counter()
     _validate_input(df)
     
@@ -189,7 +189,7 @@ def analyze_dataset(df: pl.DataFrame) -> dict[str, Any]:
     # Categorical Distrib (Top 10)
     cat_dist = {}
     for c in cat_cols:
-        counts = df[c].value_counts(sort=True).head(TOP_CATEGORIES)
+        counts = df[c].value_counts(sort=True).head(top_categories)
         # counts is a struct or df with col, count
         # In Polars, value_counts returns struct with columns [col_name, "count"] or similar
         # Need to handle carefully. usually it returns DataFrame(column, count)

@@ -115,6 +115,7 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
             
             ax.bar(labels, counts, color=colors)
             ax.set_title(f"Frequency: {col}")
+            ax.set_xticks(range(len(labels)))
             ax.set_xticklabels(labels, rotation=45, ha="right")
             ax.set_ylabel("Count")
             
