@@ -18,10 +18,95 @@ CORRELATION_STRONG_THRESHOLD: float = 0.7
 
 SKEWNESS_THRESHOLD: float = 1.0
 
+# ─── Semantic Column Detection Thresholds ─────────────────────────────────────
+ID_UNIQUENESS_THRESHOLD: float = 0.95  # >95% unique values = likely ID
+EXCEL_DATE_RANGE = (25569, 73050)  # Excel serial dates: 1970-2100
+ID_COLUMN_PATTERNS = ['id', 'uuid', 'key', 'code', 'index', 'idx', 'number', 'num', 'no']
+DATE_COLUMN_PATTERNS = ['date', 'time', 'timestamp', 'dt', 'created', 'updated', 'modified']
+
 # ─── Custom Exceptions ───────────────────────────────────────────────────────
 class EmptyDatasetError(ValueError): pass
 class InsufficientDataError(ValueError): pass
 class AnalysisError(RuntimeError): pass
+
+# ─── Semantic Column Classifier ──────────────────────────────────────────────
+def _classify_numeric_columns(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, list[str]]:
+    """
+    Classify numeric columns into semantic categories:
+    - analytical: Real numeric data suitable for correlation/distribution (e.g., sales, price)
+    - id_like: Likely identifiers (high uniqueness, sequential) - exclude from analysis
+    - date_like: Likely Excel serial dates (values in 25569-73050 range) - exclude from analysis
+    - low_variance: Near-constant values - exclude from correlation
+    
+    Returns dict with 'analytical', 'excluded', 'exclusion_reasons'
+    """
+    analytical = []
+    excluded = []
+    exclusion_reasons = {}
+    
+    for col in numeric_cols:
+        col_lower = col.lower()
+        reasons = []
+        
+        # Check 1: Column name patterns
+        is_id_name = any(pattern in col_lower for pattern in ID_COLUMN_PATTERNS)
+        is_date_name = any(pattern in col_lower for pattern in DATE_COLUMN_PATTERNS)
+        
+        if is_id_name:
+            reasons.append("name_suggests_id")
+        if is_date_name:
+            reasons.append("name_suggests_date")
+        
+        # Check 2: High uniqueness = likely ID
+        try:
+            n_unique = df[col].n_unique()
+            uniqueness_ratio = n_unique / df.height if df.height > 0 else 0
+            
+            if uniqueness_ratio >= ID_UNIQUENESS_THRESHOLD:
+                reasons.append(f"high_uniqueness_{round(uniqueness_ratio*100)}%")
+        except:
+            pass
+        
+        # Check 3: Excel serial date range detection
+        try:
+            non_null = df[col].drop_nulls()
+            if non_null.len() > 0:
+                min_val = non_null.min()
+                max_val = non_null.max()
+                
+                # Excel serial date range check (1970-2100)
+                if EXCEL_DATE_RANGE[0] <= min_val <= EXCEL_DATE_RANGE[1] and \
+                   EXCEL_DATE_RANGE[0] <= max_val <= EXCEL_DATE_RANGE[1]:
+                    # Additional check: values are mostly integers and within date range spread
+                    int_ratio = (non_null == non_null.round(0)).sum() / non_null.len()
+                    if int_ratio > 0.9:  # 90% integer values
+                        reasons.append("excel_serial_date_range")
+        except:
+            pass
+        
+        # Check 4: Low variance (near-constant)
+        try:
+            std = df[col].std()
+            mean = df[col].mean()
+            if std is not None and mean is not None and mean != 0:
+                cv = abs(std / mean)  # Coefficient of variation
+                if cv < 0.01:  # <1% variation
+                    reasons.append("low_variance")
+        except:
+            pass
+        
+        # Decision: exclude if any strong signal
+        if reasons:
+            excluded.append(col)
+            exclusion_reasons[col] = reasons
+        else:
+            analytical.append(col)
+    
+    return {
+        "analytical": analytical,
+        "excluded": excluded,
+        "exclusion_reasons": exclusion_reasons
+    }
 
 @dataclass
 class AnalysisResult:
@@ -404,22 +489,36 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10) -> dict[str, Any
     start = time.perf_counter()
     _validate_input(df)
     
-    numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
-    cat_cols = [c for c in df.columns if c not in numeric_cols]
+    # Get all numeric columns
+    all_numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
+    cat_cols = [c for c in df.columns if c not in all_numeric_cols]
+    
+    # Semantic column classification - filter out IDs, dates, low-variance
+    column_classification = _classify_numeric_columns(df, all_numeric_cols)
+    analytical_cols = column_classification["analytical"]
+    excluded_cols = column_classification["excluded"]
+    
+    logger.info(f"Column classification: {len(analytical_cols)} analytical, {len(excluded_cols)} excluded")
+    if excluded_cols:
+        logger.info(f"Excluded from analysis: {excluded_cols} - Reasons: {column_classification['exclusion_reasons']}")
     
     metadata = {
         "total_rows": df.height,
         "total_columns": df.width,
-        "numeric_columns": len(numeric_cols),
-        "categorical_columns": len(cat_cols)
+        "numeric_columns": len(all_numeric_cols),
+        "categorical_columns": len(cat_cols),
+        "analytical_numeric_columns": len(analytical_cols),
+        "excluded_columns": excluded_cols,
+        "exclusion_reasons": column_classification["exclusion_reasons"]
     }
     
-    summary_stats = _compute_summary(df, numeric_cols)
-    correlation, strong_pairs = _compute_correlation(df, numeric_cols)
-    outliers = _detect_outliers(df, numeric_cols)
+    # Use ONLY analytical columns for meaningful analysis
+    summary_stats = _compute_summary(df, analytical_cols)
+    correlation, strong_pairs = _compute_correlation(df, analytical_cols)
+    outliers = _detect_outliers(df, analytical_cols)
     
-    # Tier 1: Time Series Analysis
-    time_series_analysis = _analyze_time_series(df, numeric_cols)
+    # Tier 1: Time Series Analysis (still use all numeric for now, since it looks for datetime cols)
+    time_series_analysis = _analyze_time_series(df, analytical_cols)
     
     # Tier 1: Missing Value Patterns
     missing_patterns = _analyze_missing_patterns(df)

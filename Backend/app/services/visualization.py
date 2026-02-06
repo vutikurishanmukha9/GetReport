@@ -8,6 +8,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+# Import semantic column classifier
+from app.services.analysis import _classify_numeric_columns
+
 logger = logging.getLogger(__name__)
 
 # Constants
@@ -24,13 +27,22 @@ def _fig_to_base64(fig) -> str:
 def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     """
     Generate charts using Polars and pure Matplotlib (No Pandas/Seaborn).
+    Now filters out ID/date columns for meaningful visualizations.
     """
     charts = {}
     warnings = []
     
     # Identify columns
-    numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
-    cat_cols = [c for c in df.columns if c not in numeric_cols]
+    all_numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
+    cat_cols = [c for c in df.columns if c not in all_numeric_cols]
+    
+    # Filter to only analytical numeric columns (exclude IDs, dates, low-variance)
+    column_classification = _classify_numeric_columns(df, all_numeric_cols)
+    numeric_cols = column_classification["analytical"]
+    
+    if column_classification["excluded"]:
+        warnings.append(f"Excluded from charts: {', '.join(column_classification['excluded'])} (ID/date/low-variance columns)")
+        logger.info(f"Visualization: Excluded columns {column_classification['excluded']}")
     
     # ── 1. Correlation Heatmap ────────────────────────────────────────────────
     if len(numeric_cols) > 1:
