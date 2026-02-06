@@ -1,4 +1,4 @@
-import { BookOpen, FileSpreadsheet, AlertTriangle, FileText, CheckCircle2 } from "lucide-react";
+import { BookOpen, FileSpreadsheet, AlertTriangle, Gauge, Brain, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -25,20 +25,81 @@ const Documentation = () => {
                         </h2>
                         <div className="prose prose-slate dark:prose-invert max-w-none">
                             <p>
-                                GetReport is designed to be the fastest way to go from a raw spreadsheet to a professional board-ready report.
-                                Our engine automatically handles data cleaning, statistical analysis, and visualization generation.
+                                GetReport transforms raw spreadsheets into professional, auditable reports.
+                                Every analysis decision is explained. Every column is graded. Every action is transparent.
                             </p>
                             <h3 className="text-lg font-semibold mt-6 mb-3">Supported File Formats</h3>
                             <ul className="space-y-2 list-none pl-0">
                                 <li className="flex items-center gap-2">
                                     <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                                    <span><strong>CSV (.csv):</strong> Comma-separated values. Ideal for large datasets.</span>
+                                    <span><strong>CSV (.csv):</strong> Comma-separated values. Auto-detects encoding and delimiters.</span>
                                 </li>
                                 <li className="flex items-center gap-2">
                                     <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                                    <span><strong>Excel (.xls, .xlsx):</strong> Microsoft Excel workbooks. We support multiple sheets (defaults to first).</span>
+                                    <span><strong>Excel (.xls, .xlsx):</strong> Microsoft Excel workbooks. Uses first sheet by default.</span>
                                 </li>
                             </ul>
+                        </div>
+                    </section>
+
+                    {/* Tier 1: Trust Foundation */}
+                    <section>
+                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                            <Gauge className="h-6 w-6 text-primary" /> Tier 1: Trust Foundation
+                        </h2>
+                        <div className="grid gap-4">
+                            <div className="p-4 border rounded-lg">
+                                <h4 className="font-semibold mb-2">Column Confidence Scores</h4>
+                                <p className="text-muted-foreground text-sm">
+                                    Each column is graded A-F across four dimensions: <strong>Completeness</strong> (% non-null),
+                                    <strong> Consistency</strong> (format uniformity), <strong>Validity</strong> (expected ranges),
+                                    and <strong>Stability</strong> (variance detection).
+                                </p>
+                            </div>
+                            <div className="p-4 border rounded-lg">
+                                <h4 className="font-semibold mb-2">Why I Did X Explanations</h4>
+                                <p className="text-muted-foreground text-sm">
+                                    Full transparency into analysis decisions. See why each analysis (correlation, outliers, time-series, etc.)
+                                    was run or skipped, with evidence and reasoning.
+                                </p>
+                            </div>
+                            <div className="p-4 border rounded-lg">
+                                <h4 className="font-semibold mb-2">Semantic Domain Detection</h4>
+                                <p className="text-muted-foreground text-sm">
+                                    Automatic domain classification (Education, Sales, Healthcare, HR, Finance) with confidence percentage,
+                                    matched keywords, and alternative domain candidates.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Tier 2: Intelligence */}
+                    <section>
+                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                            <Brain className="h-6 w-6 text-primary" /> Tier 2: Advanced Intelligence
+                        </h2>
+                        <div className="grid gap-4">
+                            <div className="p-4 border rounded-lg">
+                                <h4 className="font-semibold mb-2">Feature Engineering Recommendations</h4>
+                                <p className="text-muted-foreground text-sm">
+                                    ML-ready suggestions: encoding (One-Hot, Label, Target), scaling (StandardScaler, MinMax, RobustScaler),
+                                    and feature creation ideas.
+                                </p>
+                            </div>
+                            <div className="p-4 border rounded-lg">
+                                <h4 className="font-semibold mb-2">Smart Schema Inference</h4>
+                                <p className="text-muted-foreground text-sm">
+                                    Detects type mismatches, suggests corrections, identifies hidden dates in strings,
+                                    and discovers implicit relationships between columns.
+                                </p>
+                            </div>
+                            <div className="p-4 border rounded-lg">
+                                <h4 className="font-semibold mb-2">Actionable Recommendations</h4>
+                                <p className="text-muted-foreground text-sm">
+                                    Domain-specific next steps with priority levels (Critical, High, Medium, Low).
+                                    Categories: data_quality, analysis, reporting, ml_prep.
+                                </p>
+                            </div>
                         </div>
                     </section>
 
@@ -56,17 +117,25 @@ const Documentation = () => {
                                 </AccordionContent>
                             </AccordionItem>
                             <AccordionItem value="item-2">
-                                <AccordionTrigger>How does the AI Insights work?</AccordionTrigger>
+                                <AccordionTrigger>What do the confidence grades mean?</AccordionTrigger>
                                 <AccordionContent>
-                                    We sample your data's statistical summary (not the raw confidential rows) and use a Large Language Model to identify trends and anomalies.
-                                    Your raw PII data is never used for training.
+                                    Grades range from A (excellent, 90%+) to F (critical issues, below 50%).
+                                    Each grade combines four scores: Completeness, Consistency, Validity, and Stability.
+                                    High-confidence columns (A-B) are reliable for analysis. Low-confidence columns (D-F) need attention.
                                 </AccordionContent>
                             </AccordionItem>
                             <AccordionItem value="item-3">
-                                <AccordionTrigger>Can I export the cleaned data?</AccordionTrigger>
+                                <AccordionTrigger>How does the AI Insights work?</AccordionTrigger>
                                 <AccordionContent>
-                                    Yes! After the analysis is complete, you can download the generated PDF report which contains the methodology.
-                                    Raw cleaned data export is coming in the next release.
+                                    We use statistical summaries (not raw confidential rows) with a Large Language Model to identify trends.
+                                    Your raw PII data is never used for training or sent to external services.
+                                </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="item-4">
+                                <AccordionTrigger>Why was a specific analysis skipped?</AccordionTrigger>
+                                <AccordionContent>
+                                    Check the "Analysis Decisions" section in your PDF report. Each skipped analysis includes
+                                    a reason (e.g., "Time-series skipped: no datetime columns detected" or "Correlation skipped: fewer than 2 numeric columns").
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>

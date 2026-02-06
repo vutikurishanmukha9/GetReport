@@ -44,12 +44,15 @@ const Pricing = () => {
                             <ul className="space-y-3 text-sm">
                                 {[
                                     "Unlimited Data Uploads",
+                                    "Column Confidence Scores (A-F Grades)",
+                                    "\"Why I Did X\" Decision Transparency",
+                                    "Semantic Domain Detection",
                                     "Advanced Statistical Analysis",
                                     "AI-Powered Insights",
-                                    "PDF Report Generation",
+                                    "PDF Report Generation (15+ Sections)",
                                     "Data Cleaning & Processing",
+                                    "ML-Ready Feature Recommendations",
                                     "Visual Charts & Graphs",
-                                    "Priority Support",
                                 ].map((feature) => (
                                     <li key={feature} className="flex items-center gap-3 text-muted-foreground">
                                         <div className="h-5 w-5 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center shrink-0">
