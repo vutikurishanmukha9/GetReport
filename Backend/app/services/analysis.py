@@ -11,6 +11,11 @@ import numpy as np
 # ─── Semantic Inference ───────────────────────────────────────────────────────
 from app.services.semantic_inference import analyze_semantic_structure
 
+# ─── Tier 2: Advanced Intelligence ────────────────────────────────────────────
+from app.services.feature_engineering import analyze_feature_engineering
+from app.services.smart_schema import analyze_smart_schema
+from app.services.recommendations import generate_recommendations
+
 # ─── Logger ──────────────────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)
 
@@ -568,5 +573,46 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10) -> dict[str, Any
     except Exception as e:
         logger.warning(f"Semantic analysis failed: {e}")
         result["semantic_analysis"] = None
+    
+    # ─── Tier 2: Advanced Intelligence ────────────────────────────────────────
+    
+    # Feature Engineering Recommendations
+    try:
+        column_roles = {}
+        if result.get("semantic_analysis") and result["semantic_analysis"].get("column_roles"):
+            column_roles = {k: v.get("role", "") for k, v in result["semantic_analysis"]["column_roles"].items()}
+        
+        fe_result = analyze_feature_engineering(df, column_roles)
+        result["feature_engineering"] = fe_result.to_dict()
+        logger.info(f"Feature engineering: {len(fe_result.encoding_recommendations)} encoding, "
+                    f"{len(fe_result.scaling_recommendations)} scaling suggestions")
+    except Exception as e:
+        logger.warning(f"Feature engineering analysis failed: {e}")
+        result["feature_engineering"] = None
+    
+    # Smart Schema Inference
+    try:
+        schema_result = analyze_smart_schema(df)
+        result["smart_schema"] = schema_result.to_dict()
+        logger.info(f"Smart schema: {len(schema_result.type_corrections)} corrections, "
+                    f"{len(schema_result.relationships)} relationships")
+    except Exception as e:
+        logger.warning(f"Smart schema analysis failed: {e}")
+        result["smart_schema"] = None
+    
+    # Actionable Recommendations
+    try:
+        domain = "unknown"
+        if result.get("semantic_analysis") and result["semantic_analysis"].get("domain"):
+            domain = result["semantic_analysis"]["domain"].get("primary", "unknown")
+        
+        rec_result = generate_recommendations(df, domain, result)
+        result["recommendations"] = rec_result.to_dict()
+        high_priority = rec_result.get_high_priority()
+        logger.info(f"Recommendations: {rec_result.to_dict()['total_count']} total, "
+                    f"{len(high_priority)} high priority")
+    except Exception as e:
+        logger.warning(f"Recommendations generation failed: {e}")
+        result["recommendations"] = None
     
     return result

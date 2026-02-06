@@ -1032,6 +1032,12 @@ def generate_pdf_report(
     story.extend(_build_outliers_section(analysis_results, styles, meta))
     story.extend(_build_categorical_section(analysis_results, styles, meta))
     story.extend(_build_quality_flags_section(analysis_results, styles, meta))
+    
+    # Tier 2: Advanced Intelligence sections
+    story.extend(_build_feature_engineering_section(analysis_results, styles, meta))
+    story.extend(_build_smart_schema_section(analysis_results, styles, meta))
+    story.extend(_build_recommendations_section(analysis_results, styles, meta))
+    
     story.extend(_build_visualizations(charts, styles, meta))
 
     # ── 4. Build PDF (original logic preserved) ─────────────────────────────
@@ -1176,4 +1182,171 @@ def _build_time_series_section(
     
     story.extend(_divider())
     meta.sections_included.append("Time-Series Analysis")
+    return story
+
+
+# ─── Tier 2: PDF Section Builders ─────────────────────────────────────────────
+
+def _build_feature_engineering_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list[Flowable]:
+    """Build section showing ML-ready feature engineering recommendations."""
+    fe = analysis_results.get("feature_engineering")
+    if not fe:
+        meta.sections_skipped.append({"section": "Feature Engineering", "reason": "No feature engineering data."})
+        return []
+    
+    story: list[Flowable] = []
+    story.append(Paragraph("ML Feature Engineering", styles["SectionHeading"]))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    # Encoding Recommendations
+    encodings = fe.get("encoding_recommendations", [])
+    if encodings:
+        story.append(Paragraph("<b>Categorical Encoding</b>", styles["TableCaption"]))
+        story.append(Spacer(1, 0.05 * inch))
+        
+        table_data = [["Column", "Recommended", "Reason"]]
+        for enc in encodings[:8]:
+            table_data.append([
+                enc.get("column", ""),
+                enc.get("encoding", "").replace("_", " ").title(),
+                enc.get("reason", "")[:60] + "..." if len(enc.get("reason", "")) > 60 else enc.get("reason", "")
+            ])
+        story.append(_build_styled_table(table_data))
+        story.append(Spacer(1, 0.15 * inch))
+    
+    # Scaling Recommendations
+    scalings = fe.get("scaling_recommendations", [])
+    if scalings:
+        story.append(Paragraph("<b>Numeric Scaling</b>", styles["TableCaption"]))
+        story.append(Spacer(1, 0.05 * inch))
+        
+        table_data = [["Column", "Recommended Scaler", "Reason"]]
+        for sc in scalings[:8]:
+            scaler = sc.get("scaler", "").replace("_", " ").title()
+            reason = sc.get("reason", "")[:50]
+            table_data.append([sc.get("column", ""), scaler, reason])
+        story.append(_build_styled_table(table_data))
+        story.append(Spacer(1, 0.15 * inch))
+    
+    # Feature Extraction
+    extractions = fe.get("feature_extraction", [])
+    if extractions:
+        story.append(Paragraph("<b>Feature Extraction Ideas</b>", styles["TableCaption"]))
+        story.append(Spacer(1, 0.05 * inch))
+        
+        for ext in extractions[:3]:
+            source = ext.get("source", "")
+            suggestions = ext.get("suggestions", [])
+            if suggestions:
+                sugg_text = ", ".join([s.get("name", "") for s in suggestions[:3]])
+                story.append(Paragraph(f"From <b>{source}</b>: {sugg_text}", styles["Normal"]))
+    
+    story.extend(_divider())
+    meta.sections_included.append("Feature Engineering")
+    return story
+
+
+def _build_smart_schema_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list[Flowable]:
+    """Build section showing smart schema corrections and issues."""
+    schema = analysis_results.get("smart_schema")
+    if not schema:
+        meta.sections_skipped.append({"section": "Smart Schema", "reason": "No schema analysis data."})
+        return []
+    
+    story: list[Flowable] = []
+    story.append(Paragraph("Smart Schema Analysis", styles["SectionHeading"]))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    # Type Corrections
+    corrections = schema.get("type_corrections", [])
+    if corrections:
+        story.append(Paragraph("<b>Suggested Type Corrections</b>", styles["TableCaption"]))
+        story.append(Spacer(1, 0.05 * inch))
+        
+        table_data = [["Column", "Current", "Suggested", "Reason"]]
+        for corr in corrections[:6]:
+            table_data.append([
+                corr.get("column", ""),
+                corr.get("current_type", ""),
+                corr.get("suggested_type", ""),
+                corr.get("reason", "")[:40]
+            ])
+        story.append(_build_styled_table(table_data))
+        story.append(Spacer(1, 0.15 * inch))
+    
+    # Schema Issues
+    issues = schema.get("schema_issues", [])
+    if issues:
+        story.append(Paragraph("<b>Schema Quality Issues</b>", styles["TableCaption"]))
+        story.append(Spacer(1, 0.05 * inch))
+        
+        for issue in issues[:5]:
+            severity = issue.get("severity", "medium")
+            sev_icon = "[HIGH]" if severity == "high" else "[MED]" if severity == "medium" else "[LOW]"
+            issue_text = f"{sev_icon} <b>{issue.get('column', '')}</b>: {issue.get('description', '')}"
+            story.append(Paragraph(issue_text, styles["Normal"]))
+            if issue.get("suggestion"):
+                story.append(Paragraph(f"  Suggestion: {issue.get('suggestion')}", styles["Body"]))
+        story.append(Spacer(1, 0.1 * inch))
+    
+    # Relationships
+    relationships = schema.get("relationships", [])
+    if relationships:
+        story.append(Paragraph("<b>Detected Relationships</b>", styles["TableCaption"]))
+        for rel in relationships[:3]:
+            rel_text = f"{rel.get('source', '')} -> {rel.get('target', '')} ({rel.get('type', '')})"
+            story.append(Paragraph(rel_text, styles["Normal"]))
+    
+    story.extend(_divider())
+    meta.sections_included.append("Smart Schema")
+    return story
+
+
+def _build_recommendations_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list[Flowable]:
+    """Build section showing actionable recommendations."""
+    recs = analysis_results.get("recommendations")
+    if not recs:
+        meta.sections_skipped.append({"section": "Recommendations", "reason": "No recommendations data."})
+        return []
+    
+    story: list[Flowable] = []
+    story.append(Paragraph("Actionable Recommendations", styles["SectionHeading"]))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    # High priority first
+    all_recs = (
+        recs.get("domain_specific", []) +
+        recs.get("data_quality", []) +
+        recs.get("analysis", []) +
+        recs.get("visualization", [])
+    )
+    
+    # Sort by priority
+    priority_order = {"high": 0, "medium": 1, "low": 2}
+    all_recs.sort(key=lambda r: priority_order.get(r.get("priority", "low"), 2))
+    
+    for rec in all_recs[:10]:
+        priority = rec.get("priority", "medium")
+        prio_label = "[HIGH]" if priority == "high" else "[MED]" if priority == "medium" else "[LOW]"
+        category = rec.get("category", "").replace("_", " ").title()
+        
+        story.append(Paragraph(f"<b>{prio_label} {rec.get('title', '')}</b>", styles["Normal"]))
+        story.append(Paragraph(f"<i>{category}</i>: {rec.get('description', '')}", styles["Body"]))
+        story.append(Paragraph(f"Action: {rec.get('action', '')}", styles["Body"]))
+        story.append(Spacer(1, 0.1 * inch))
+    
+    story.extend(_divider())
+    meta.sections_included.append("Recommendations")
     return story
