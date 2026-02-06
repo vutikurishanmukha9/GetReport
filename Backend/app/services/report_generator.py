@@ -404,6 +404,112 @@ def _build_metadata_section(
     return story
 
 
+def _build_semantic_analysis_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list[Flowable]:
+    """
+    Build the Semantic Intelligence section showing:
+    - Detected data domain (Education, Sales, Healthcare, etc.)
+    - Column role classifications (identifiers, metrics, dimensions)
+    - Suggested analysis pairs and why they matter
+    """
+    semantic = analysis_results.get("semantic_analysis")
+    if not semantic:
+        meta.sections_skipped.append({"section": "Data Intelligence", "reason": "Semantic analysis not available."})
+        logger.debug("Semantic analysis section skipped — no data.")
+        return []
+
+    story: list[Flowable] = []
+    
+    story.append(Paragraph("Data Intelligence", styles["SectionHeading"]))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    # ── Domain Detection ──
+    domain_info = semantic.get("domain", {})
+    domain_name = domain_info.get("primary", "Unknown").replace("_", " ").title()
+    confidence = domain_info.get("confidence", 0)
+    matched_keywords = domain_info.get("matched_keywords", [])
+    
+    domain_text = f"<b>Detected Domain:</b> {domain_name} ({int(confidence * 100)}% confidence)"
+    if matched_keywords:
+        domain_text += f"<br/><i>Matched patterns: {', '.join(matched_keywords[:8])}</i>"
+    
+    story.append(Paragraph(domain_text, styles["Insight"]))
+    story.append(Spacer(1, 0.15 * inch))
+    
+    # ── Column Roles Table ──
+    column_roles = semantic.get("column_roles", {})
+    if column_roles:
+        story.append(Paragraph("<b>Column Classification</b>", styles["TableCaption"]))
+        story.append(Spacer(1, 0.05 * inch))
+        
+        # Group by role for cleaner display
+        role_groups: dict[str, list[str]] = {}
+        for col, info in column_roles.items():
+            role = info.get("role", "unknown")
+            role_groups.setdefault(role, []).append(col)
+        
+        role_data = [["Column Type", "Columns"]]
+        role_display = {
+            "identifier": "Identifier (excluded)",
+            "name_label": "Name/Label (excluded)",
+            "datetime": "Date/Time",
+            "target_metric": "Target Metric",
+            "predictor_metric": "Predictor",
+            "percentage_metric": "Percentage",
+            "financial_metric": "Financial",
+            "dimension": "Dimension/Category",
+            "boolean": "Boolean",
+            "unknown": "Unclassified",
+        }
+        
+        for role, cols in role_groups.items():
+            role_label = role_display.get(role, role.title())
+            col_list = ", ".join(cols[:5])
+            if len(cols) > 5:
+                col_list += f" (+{len(cols)-5} more)"
+            role_data.append([role_label, col_list])
+        
+        story.append(_build_styled_table(role_data, col_widths=[2.2 * inch, 4.0 * inch]))
+        story.append(Spacer(1, 0.15 * inch))
+    
+    # ── Analysis Suggestions ──
+    suggestions = semantic.get("suggested_analysis", [])
+    if suggestions:
+        story.append(Paragraph("<b>Recommended Analysis</b>", styles["TableCaption"]))
+        story.append(Spacer(1, 0.05 * inch))
+        
+        for i, sugg in enumerate(suggestions[:5], 1):
+            cols = sugg.get("columns", [])
+            reason = sugg.get("reason", "")
+            if len(cols) >= 2:
+                sugg_text = f"{i}. <b>{cols[0]}</b> ↔ <b>{cols[1]}</b>: {reason}"
+                story.append(Paragraph(sugg_text, styles["Normal"]))
+        
+        story.append(Spacer(1, 0.1 * inch))
+    
+    # ── Summary Counts ──
+    analytical = semantic.get("analytical_columns", [])
+    identifiers = semantic.get("identifier_columns", [])
+    dimensions = semantic.get("dimension_columns", [])
+    
+    summary_text = (
+        f"<b>Analysis Scope:</b> {len(analytical)} analytical columns, "
+        f"{len(identifiers)} excluded identifiers, "
+        f"{len(dimensions)} categorical dimensions"
+    )
+    story.append(Paragraph(summary_text, styles["Normal"]))
+    
+    story.extend(_divider())
+    
+    meta.sections_included.append("Data Intelligence")
+    logger.info("Semantic analysis section built: domain=%s, %d column roles, %d suggestions",
+                domain_name, len(column_roles), len(suggestions))
+    return story
+
+
 def _build_cleaning_section(
     analysis_results: dict[str, Any],
     styles: dict[str, ParagraphStyle],
@@ -912,6 +1018,7 @@ def generate_pdf_report(
 
     story.extend(_build_title_page(filename, styles))
     story.extend(_build_metadata_section(analysis_results, styles, meta))
+    story.extend(_build_semantic_analysis_section(analysis_results, styles, meta))  # NEW
     story.extend(_build_cleaning_section(analysis_results, styles, meta))
     story.extend(_build_executive_summary(analysis_results, styles, meta))
     
@@ -955,271 +1062,118 @@ def generate_pdf_report(
         meta.charts_skipped,
     )
     return buffer, meta
- 
- d e f   _ b u i l d _ a d v a n c e d _ s t a t s _ s e c t i o n ( 
- 
-         a n a l y s i s _ r e s u l t s :   d i c t [ s t r ,   A n y ] , 
- 
-         s t y l e s :   d i c t [ s t r ,   P a r a g r a p h S t y l e ] , 
- 
-         m e t a :   R e p o r t M e t a d a t a , 
- 
- )   - >   l i s t [ F l o w a b l e ] : 
- 
-         " " " 
- 
-         S h o w s   S k e w n e s s   a n d   K u r t o s i s   f o r   c o l u m n s   t h a t   d e v i a t e   f r o m   n o r m a l . 
- 
-         " " " 
- 
-         i f   " a d v a n c e d _ s t a t s "   n o t   i n   a n a l y s i s _ r e s u l t s   o r   n o t   a n a l y s i s _ r e s u l t s [ " a d v a n c e d _ s t a t s " ] : 
- 
-                 r e t u r n   [ ] 
- 
- 
- 
-         s t o r y :   l i s t [ F l o w a b l e ]   =   [ ] 
- 
-         s t a t s   =   a n a l y s i s _ r e s u l t s [ " a d v a n c e d _ s t a t s " ] 
- 
-         
- 
-         #   F i l t e r   f o r   n o t a b l e   d e v i a t i o n s   ( a b s ( s k e w )   >   1   o r   a b s ( k u r t )   >   3 ) 
- 
-         n o t a b l e   =   { k :   v   f o r   k ,   v   i n   s t a t s . i t e m s ( )   i f   a b s ( v . g e t ( " s k e w n e s s " ,   0 )   o r   0 )   >   1   o r   a b s ( v . g e t ( " k u r t o s i s " ,   0 )   o r   0 )   >   3 } 
- 
-         
- 
-         i f   n o t   n o t a b l e : 
- 
-                 r e t u r n   [ ] 
- 
- 
- 
-         s t o r y . a p p e n d ( P a r a g r a p h ( " D i s t r i b u t i o n   S h a p e   A n a l y s i s " ,   s t y l e s [ " S e c t i o n H e a d i n g " ] ) ) 
- 
-         s t o r y . a p p e n d ( P a r a g r a p h ( 
- 
-                 " T h e   f o l l o w i n g   c o l u m n s   e x h i b i t   s i g n i f i c a n t   s k e w   ( > 1 . 0 )   o r   h e a v y   t a i l s   ( K u r t o s i s   > 3 . 0 ) .   " 
- 
-                 " S t a n d a r d   m e a n / s t d   m e t r i c s   m a y   b e   m i s l e a d i n g   f o r   t h e s e   f e a t u r e s . " , 
- 
-                 s t y l e s [ " B o d y " ] 
- 
-         ) ) 
- 
-         s t o r y . a p p e n d ( S p a c e r ( 1 ,   0 . 1   *   i n c h ) ) 
- 
- 
- 
-         t a b l e _ d a t a   =   [ [ " C o l u m n " ,   " S k e w n e s s " ,   " K u r t o s i s " ,   " S h a p e " ] ] 
- 
-         f o r   c o l ,   v a l   i n   n o t a b l e . i t e m s ( ) : 
- 
-                 s k e w   =   v a l . g e t ( " s k e w n e s s " ,   0 ) 
- 
-                 k u r t   =   v a l . g e t ( " k u r t o s i s " ,   0 ) 
- 
-                 
- 
-                 s h a p e _ d e s c   =   [ ] 
- 
-                 i f   s k e w   >   1 :   s h a p e _ d e s c . a p p e n d ( " R i g h t   S k e w e d " ) 
- 
-                 e l i f   s k e w   <   - 1 :   s h a p e _ d e s c . a p p e n d ( " L e f t   S k e w e d " ) 
- 
-                 i f   k u r t   >   3 :   s h a p e _ d e s c . a p p e n d ( " H e a v y   T a i l s " ) 
- 
-                 
- 
-                 t a b l e _ d a t a . a p p e n d ( [ 
- 
-                         c o l , 
- 
-                         f " { s k e w : . 2 f } " , 
- 
-                         f " { k u r t : . 2 f } " , 
- 
-                         " ,   " . j o i n ( s h a p e _ d e s c ) 
- 
-                 ] ) 
- 
- 
- 
-         s t o r y . a p p e n d ( _ b u i l d _ s t y l e d _ t a b l e ( t a b l e _ d a t a ,   c o l _ w i d t h s = [ 2 . 5   *   i n c h ,   1 . 2   *   i n c h ,   1 . 2   *   i n c h ,   2 . 5   *   i n c h ] ) ) 
- 
-         s t o r y . e x t e n d ( _ d i v i d e r ( ) ) 
- 
-         m e t a . s e c t i o n s _ i n c l u d e d . a p p e n d ( " A d v a n c e d   S t a t i s t i c s " ) 
- 
-         r e t u r n   s t o r y 
- 
- 
- 
- 
- 
- d e f   _ b u i l d _ m u l t i c o l l i n e a r i t y _ s e c t i o n ( 
- 
-         a n a l y s i s _ r e s u l t s :   d i c t [ s t r ,   A n y ] , 
- 
-         s t y l e s :   d i c t [ s t r ,   P a r a g r a p h S t y l e ] , 
- 
-         m e t a :   R e p o r t M e t a d a t a , 
- 
- )   - >   l i s t [ F l o w a b l e ] : 
- 
-         " " " 
- 
-         S h o w s   p o t e n t i a l   m u l t i c o l l i n e a r i t y   ( H i g h   V I F   P r o x y ) . 
- 
-         " " " 
- 
-         i f   " m u l t i c o l l i n e a r i t y "   n o t   i n   a n a l y s i s _ r e s u l t s   o r   n o t   a n a l y s i s _ r e s u l t s [ " m u l t i c o l l i n e a r i t y " ] : 
- 
-                 r e t u r n   [ ] 
- 
- 
- 
-         s t o r y :   l i s t [ F l o w a b l e ]   =   [ ] 
- 
-         m u l t i   =   a n a l y s i s _ r e s u l t s [ " m u l t i c o l l i n e a r i t y " ] 
- 
- 
- 
-         s t o r y . a p p e n d ( P a r a g r a p h ( " M u l t i c o l l i n e a r i t y   W a r n i n g " ,   s t y l e s [ " S e c t i o n H e a d i n g " ] ) ) 
- 
-         s t o r y . a p p e n d ( P a r a g r a p h ( 
- 
-                 " T h e   f o l l o w i n g   f e a t u r e   p a i r s   h a v e   v e r y   h i g h   c o r r e l a t i o n   ( > 0 . 9 5 ) ,   s u g g e s t i n g   t h e y   m a y   p r o v i d e   r e d u n d a n t   i n f o r m a t i o n . " , 
- 
-                 s t y l e s [ " W a r n i n g T e x t " ] 
- 
-         ) ) 
- 
-         s t o r y . a p p e n d ( S p a c e r ( 1 ,   0 . 1   *   i n c h ) ) 
- 
- 
- 
-         t a b l e _ d a t a   =   [ [ " F e a t u r e   A " ,   " F e a t u r e   B " ,   " C o r r e l a t i o n " ,   " V e r d i c t " ] ] 
- 
-         f o r   i t e m   i n   m u l t i : 
- 
-                 t a b l e _ d a t a . a p p e n d ( [ 
- 
-                         i t e m [ " f e a t u r e s " ] [ 0 ] , 
- 
-                         i t e m [ " f e a t u r e s " ] [ 1 ] , 
- 
-                         f " { i t e m [ ' c o r r e l a t i o n ' ] : . 2 f } " , 
- 
-                         " R e d u n d a n t " 
- 
-                 ] ) 
- 
- 
- 
-         s t o r y . a p p e n d ( _ b u i l d _ s t y l e d _ t a b l e ( t a b l e _ d a t a ,   c o l _ w i d t h s = [ 2 . 5   *   i n c h ,   2 . 5   *   i n c h ,   1 . 2   *   i n c h ,   1 . 2   *   i n c h ] ) ) 
- 
-         s t o r y . e x t e n d ( _ d i v i d e r ( ) ) 
- 
-         m e t a . s e c t i o n s _ i n c l u d e d . a p p e n d ( " M u l t i c o l l i n e a r i t y " ) 
- 
-         r e t u r n   s t o r y 
- 
- 
- 
- 
- 
- d e f   _ b u i l d _ t i m e _ s e r i e s _ s e c t i o n ( 
- 
-         a n a l y s i s _ r e s u l t s :   d i c t [ s t r ,   A n y ] , 
- 
-         s t y l e s :   d i c t [ s t r ,   P a r a g r a p h S t y l e ] , 
- 
-         m e t a :   R e p o r t M e t a d a t a , 
- 
- )   - >   l i s t [ F l o w a b l e ] : 
- 
-         " " " 
- 
-         S h o w s   T i m e - S e r i e s   I n t e g r i t y   ( S o r t   o r d e r ,   D r i f t ) . 
- 
-         " " " 
- 
-         i f   " t i m e _ s e r i e s _ a n a l y s i s "   n o t   i n   a n a l y s i s _ r e s u l t s   o r   n o t   a n a l y s i s _ r e s u l t s [ " t i m e _ s e r i e s _ a n a l y s i s " ] : 
- 
-                 r e t u r n   [ ] 
- 
- 
- 
-         s t o r y :   l i s t [ F l o w a b l e ]   =   [ ] 
- 
-         t s   =   a n a l y s i s _ r e s u l t s [ " t i m e _ s e r i e s _ a n a l y s i s " ] 
- 
- 
- 
-         s t o r y . a p p e n d ( P a r a g r a p h ( " T i m e - S e r i e s   I n t e g r i t y " ,   s t y l e s [ " S e c t i o n H e a d i n g " ] ) ) 
- 
-         
- 
-         #   S o r t   S t a t u s 
- 
-         i s _ s o r t e d   =   t s . g e t ( " i s _ s o r t e d " ,   F a l s e ) 
- 
-         s o r t _ t e x t   =   " C h r o n o l o g i c a l l y   S o r t e d   ( G o o d ) "   i f   i s _ s o r t e d   e l s e   " N O T   S o r t e d   b y   T i m e   ( R i s k ) " 
- 
-         s o r t _ c o l o r   =   B r a n d . T E X T _ D A R K   i f   i s _ s o r t e d   e l s e   c o l o r s . H e x C o l o r ( " # b 9 1 c 1 c " ) 
- 
-         
- 
-         s t o r y . a p p e n d ( P a r a g r a p h ( f " P r i m a r y   T i m e   C o l u m n :   < b > { t s . g e t ( ' p r i m a r y _ t i m e _ c o l ' ) } < / b > " ,   s t y l e s [ " B o d y " ] ) ) 
- 
-         s t o r y . a p p e n d ( P a r a g r a p h ( f " S t a t u s :   < f o n t   c o l o r = { s o r t _ c o l o r } > { s o r t _ t e x t } < / f o n t > " ,   s t y l e s [ " B o d y " ] ) ) 
- 
-         s t o r y . a p p e n d ( S p a c e r ( 1 ,   0 . 1   *   i n c h ) ) 
- 
- 
- 
-         #   D r i f t   T a b l e 
- 
-         d r i f t s   =   t s . g e t ( " d r i f t _ d e t e c t e d " ,   [ ] ) 
- 
-         i f   d r i f t s : 
- 
-                 s t o r y . a p p e n d ( P a r a g r a p h ( " < b > C o n c e p t u a l   D r i f t   D e t e c t e d   ( > 3 0 %   M e a n   S h i f t ) < / b > " ,   s t y l e s [ " W a r n i n g T e x t " ] ) ) 
- 
-                 s t o r y . a p p e n d ( S p a c e r ( 1 ,   0 . 0 5   *   i n c h ) ) 
- 
-                 
- 
-                 t a b l e _ d a t a   =   [ [ " C o l u m n " ,   " A v g   ( 1 s t   H a l f ) " ,   " A v g   ( 2 n d   H a l f ) " ,   " %   S h i f t " ] ] 
- 
-                 f o r   d   i n   d r i f t s : 
- 
-                         t a b l e _ d a t a . a p p e n d ( [ 
- 
-                                 d [ " c o l u m n " ] , 
- 
-                                 f " { d [ ' m e a n _ p 1 ' ] } " , 
- 
-                                 f " { d [ ' m e a n _ p 2 ' ] } " , 
- 
-                                 f " { d [ ' s h i f t _ p c t ' ] } % " 
- 
-                         ] ) 
- 
-                 s t o r y . a p p e n d ( _ b u i l d _ s t y l e d _ t a b l e ( t a b l e _ d a t a ) ) 
- 
-         e l s e : 
- 
-                 s t o r y . a p p e n d ( P a r a g r a p h ( " N o   s i g n i f i c a n t   d r i f t   d e t e c t e d   a c r o s s   t h e   t i m e   w i n d o w . " ,   s t y l e s [ " B o d y " ] ) ) 
- 
- 
- 
-         s t o r y . e x t e n d ( _ d i v i d e r ( ) ) 
- 
-         m e t a . s e c t i o n s _ i n c l u d e d . a p p e n d ( " T i m e - S e r i e s   A n a l y s i s " ) 
- 
-         r e t u r n   s t o r y 
- 
- 
+
+
+# ─── Additional Section Builders (Tier 1 Enhancements) ───────────────────────
+
+def _build_advanced_stats_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list[Flowable]:
+    """Build section showing skewness/kurtosis for non-normal distributions."""
+    advanced = analysis_results.get("advanced_stats")
+    if not advanced:
+        meta.sections_skipped.append({"section": "Advanced Stats", "reason": "No advanced stats available."})
+        return []
+    
+    story: list[Flowable] = []
+    story.append(Paragraph("Distribution Shape Analysis", styles["SectionHeading"]))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    # Show columns with notable skewness/kurtosis
+    notable = [(col, stats) for col, stats in advanced.items() 
+               if abs(stats.get("skewness", 0)) > 1 or abs(stats.get("kurtosis", 0)) > 3]
+    
+    if notable:
+        table_data = [["Column", "Skewness", "Kurtosis", "Interpretation"]]
+        for col, stats in notable[:10]:
+            skew = stats.get("skewness", 0)
+            kurt = stats.get("kurtosis", 0)
+            interp = "Right-skewed" if skew > 1 else "Left-skewed" if skew < -1 else "Normal"
+            if abs(kurt) > 3:
+                interp += ", Heavy tails" if kurt > 3 else ", Light tails"
+            table_data.append([col, f"{skew:.2f}", f"{kurt:.2f}", interp])
+        
+        story.append(_build_styled_table(table_data))
+    else:
+        story.append(Paragraph("All numeric columns appear normally distributed.", styles["Body"]))
+    
+    story.extend(_divider())
+    meta.sections_included.append("Advanced Stats")
+    return story
+
+
+def _build_multicollinearity_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list[Flowable]:
+    """Build section showing highly correlated feature pairs."""
+    multicol = analysis_results.get("multicollinearity")
+    if not multicol:
+        meta.sections_skipped.append({"section": "Multicollinearity", "reason": "No multicollinearity data."})
+        return []
+    
+    story: list[Flowable] = []
+    story.append(Paragraph("Multicollinearity Analysis", styles["SectionHeading"]))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    if multicol:
+        table_data = [["Feature 1", "Feature 2", "Correlation"]]
+        for item in multicol[:10]:
+            features = item.get("features", ["?", "?"])
+            corr = item.get("correlation", 0)
+            table_data.append([features[0], features[1], f"{corr:.3f}"])
+        
+        story.append(_build_styled_table(table_data))
+        story.append(Spacer(1, 0.1 * inch))
+        story.append(Paragraph(
+            "<i>High correlation suggests potential redundancy. Consider removing one feature from each pair.</i>",
+            styles["Body"]
+        ))
+    else:
+        story.append(Paragraph("No highly correlated feature pairs detected.", styles["Body"]))
+    
+    story.extend(_divider())
+    meta.sections_included.append("Multicollinearity")
+    return story
+
+
+def _build_time_series_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list[Flowable]:
+    """Build section for time-series analysis (trend/seasonality)."""
+    time_series = analysis_results.get("time_series_analysis")
+    if not time_series or not time_series.get("has_time_series"):
+        meta.sections_skipped.append({"section": "Time-Series Analysis", "reason": "No time-series data."})
+        return []
+    
+    story: list[Flowable] = []
+    story.append(Paragraph("Time-Series Analysis", styles["SectionHeading"]))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    time_col = time_series.get("time_column", "Unknown")
+    story.append(Paragraph(f"<b>Time Column:</b> {time_col}", styles["Body"]))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    analyses = time_series.get("analyses", {})
+    if analyses:
+        table_data = [["Column", "Trend", "Strength", "Seasonality"]]
+        for col, data in analyses.items():
+            trend = data.get("trend", {})
+            season = data.get("seasonality", {})
+            
+            trend_str = trend.get("direction", "None") if trend.get("detected") else "None"
+            strength_str = trend.get("strength", "-") if trend.get("detected") else "-"
+            season_str = season.get("primary_pattern", "-") if season.get("detected") else "None"
+            
+            table_data.append([col, trend_str, strength_str, season_str])
+        
+        story.append(_build_styled_table(table_data))
+    
+    story.extend(_divider())
+    meta.sections_included.append("Time-Series Analysis")
+    return story
