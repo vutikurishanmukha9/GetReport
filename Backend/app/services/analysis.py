@@ -8,6 +8,9 @@ from typing import Any
 import polars as pl
 import numpy as np
 
+# ─── Semantic Inference ───────────────────────────────────────────────────────
+from app.services.semantic_inference import analyze_semantic_structure
+
 # ─── Logger ──────────────────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)
 
@@ -554,5 +557,16 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10) -> dict[str, Any
     # Add Tier 1 enhancements
     result["time_series_analysis"] = time_series_analysis
     result["missing_patterns"] = missing_patterns
+    
+    # Semantic Column Intelligence
+    try:
+        semantic_analysis = analyze_semantic_structure(df)
+        result["semantic_analysis"] = semantic_analysis.to_dict()
+        logger.info(f"Semantic analysis: Domain={semantic_analysis.domain.primary_domain}, " +
+                    f"{len(semantic_analysis.analytical_columns)} analytical cols, " +
+                    f"{len(semantic_analysis.suggested_pairs)} suggestions")
+    except Exception as e:
+        logger.warning(f"Semantic analysis failed: {e}")
+        result["semantic_analysis"] = None
     
     return result
