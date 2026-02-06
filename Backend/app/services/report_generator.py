@@ -565,47 +565,105 @@ def _build_executive_summary(
     meta: ReportMetadata,
 ) -> list[Flowable]:
     """
-    Build the executive summary table showing descriptive stats for ALL numeric columns.
-
-    Original logic preserved:
-        - Only builds if "summary" key exists in analysis_results
-        - Table with ["Metric", "Value"] headers
-        - Floats formatted to .2f, others to str()
-        - TableStyle with header bg, body bg, grid, center align
-
-    Enhanced:
-        - Iterates over ALL columns in summary (original only showed the first one)
-        - Each column gets its own clearly labeled sub-table
-        - Uses branded styling via _build_styled_table
+    Build the executive summary with:
+    1. Data Quality Grade (from confidence scores) - KEY METRIC FIRST
+    2. Key highlights 
+    3. Descriptive stats for ALL numeric columns
     """
-    if "summary" not in analysis_results or not analysis_results["summary"]:
-        meta.sections_skipped.append({"section": "Executive Summary", "reason": "No summary stats available."})
-        logger.debug("Executive summary skipped — no data.")
-        return []
-
     story: list[Flowable] = []
-    story.append(Paragraph("Executive Summary", styles["SectionHeading"]))   # original heading
-    story.append(Spacer(1, 0.1 * inch))                                      # original spacer
-
-    summary = analysis_results["summary"]
-
-    # Enhanced: iterate ALL columns (original only took the first)
-    for col_name, metrics in summary.items():
-        story.append(Paragraph(f"Statistics: {col_name}", styles["SubHeading"]))
-
-        # Original logic: build ["Metric", "Value"] table, format floats to .2f
-        table_data = [["Metric", "Value"]]
-        for k, v in metrics.items():
-            val = f"{v:.2f}" if isinstance(v, (int, float)) else str(v)  # original formatting
-            table_data.append([k.capitalize(), val])
-
-        story.append(_build_styled_table(table_data, col_widths=[3.0 * inch, 2.5 * inch]))
+    story.append(Paragraph("Executive Summary", styles["SectionHeading"]))
+    story.append(Spacer(1, 0.1 * inch))
+    
+    # ── Data Quality Grade (Tier 1 highlight) ─────────────────────────────────
+    confidence_data = analysis_results.get("confidence_scores")
+    if confidence_data:
+        dataset_grade = confidence_data.get("dataset_grade", "N/A")
+        dataset_conf = confidence_data.get("dataset_confidence", 0)
+        high_count = confidence_data.get("high_confidence_count", 0)
+        low_count = confidence_data.get("low_confidence_count", 0)
+        
+        # Color mapping for grades
+        grade_colors = {
+            "A": colors.HexColor("#22c55e"),  # Green
+            "B": colors.HexColor("#3b82f6"),  # Blue  
+            "C": colors.HexColor("#eab308"),  # Yellow
+            "D": colors.HexColor("#f97316"),  # Orange
+            "F": colors.HexColor("#ef4444"),  # Red
+        }
+        grade_color = grade_colors.get(dataset_grade, colors.gray)
+        
+        # Build quality summary box
+        quality_text = f"""
+        <b>Overall Data Quality: Grade {dataset_grade}</b> ({dataset_conf:.0f}% confidence)<br/>
+        <font size="9">{high_count} high-confidence columns | {low_count} low-confidence columns</font>
+        """
+        quality_para = Paragraph(quality_text.strip(), styles["Body"])
+        quality_table = Table([[quality_para]], colWidths=[5.5 * inch])
+        quality_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 14),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 14),
+            ("TOPPADDING", (0, 0), (-1, -1), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+            ("BOX", (0, 0), (-1, -1), 2, grade_color),
+        ]))
+        story.append(quality_table)
+        story.append(Spacer(1, 0.15 * inch))
+        
+        # Critical issues callout
+        critical = confidence_data.get("critical_issues", [])
+        if critical:
+            issues_text = "<b>Issues Requiring Attention:</b><br/>" + "<br/>".join(f"• {i}" for i in critical[:3])
+            story.append(Paragraph(issues_text, styles["Body"]))
+            story.append(Spacer(1, 0.1 * inch))
+    
+    # ── Key Metadata Summary ──────────────────────────────────────────────────
+    metadata = analysis_results.get("metadata", {})
+    if metadata:
+        rows = metadata.get("total_rows", "?")
+        cols = metadata.get("total_columns", "?")
+        num_cols = metadata.get("numeric_columns", 0)
+        cat_cols = metadata.get("categorical_columns", 0)
+        story.append(Paragraph(
+            f"<b>Dataset:</b> {rows:,} rows × {cols} columns ({num_cols} numeric, {cat_cols} categorical)",
+            styles["Body"]
+        ))
+        story.append(Spacer(1, 0.1 * inch))
+    
+    # ── Domain Detection Summary ──────────────────────────────────────────────
+    semantic = analysis_results.get("semantic_analysis")
+    if semantic:
+        domain_info = semantic.get("domain", {})
+        domain_name = domain_info.get("primary", "Unknown").replace("_", " ").title()
+        confidence = domain_info.get("confidence", 0)
+        story.append(Paragraph(
+            f"<b>Detected Domain:</b> {domain_name} ({int(confidence * 100)}% confidence)",
+            styles["Body"]
+        ))
         story.append(Spacer(1, 0.15 * inch))
 
-    story.extend(_divider())
+    # ── Descriptive Statistics ────────────────────────────────────────────────
+    if "summary" not in analysis_results or not analysis_results["summary"]:
+        meta.sections_skipped.append({"section": "Executive Summary Stats", "reason": "No summary stats available."})
+    else:
+        summary = analysis_results["summary"]
+        story.append(Paragraph("<b>Descriptive Statistics</b>", styles["SubHeading"]))
+        story.append(Spacer(1, 0.05 * inch))
 
+        for col_name, metrics in summary.items():
+            story.append(Paragraph(f"<i>{col_name}</i>", styles["TableCaption"]))
+
+            table_data = [["Metric", "Value"]]
+            for k, v in metrics.items():
+                val = f"{v:.2f}" if isinstance(v, (int, float)) else str(v)
+                table_data.append([k.capitalize(), val])
+
+            story.append(_build_styled_table(table_data, col_widths=[3.0 * inch, 2.5 * inch]))
+            story.append(Spacer(1, 0.1 * inch))
+
+    story.extend(_divider())
     meta.sections_included.append("Executive Summary")
-    logger.info("Executive summary built — %d column(s).", len(summary))
+    logger.info("Executive summary built with quality grade.")
     return story
 
 
@@ -1014,15 +1072,16 @@ def generate_pdf_report(
     story: list[Flowable] = []
 
     # ── 3. Build sections in order ───────────────────────────────────────────
+    # REORDERED for better narrative: Executive Summary first (key takeaways)
     # Each builder is independent — if one has no data it returns [] and logs why
 
     story.extend(_build_title_page(filename, styles))
-    story.extend(_build_metadata_section(analysis_results, styles, meta))
-    story.extend(_build_semantic_analysis_section(analysis_results, styles, meta))  # NEW
-    story.extend(_build_confidence_scores_section(analysis_results, styles, meta))  # Tier 1: Trust
-    story.extend(_build_analysis_decisions_section(analysis_results, styles, meta))  # Tier 1: Why I Did X
+    story.extend(_build_executive_summary(analysis_results, styles, meta))          # KEY FINDINGS FIRST
+    story.extend(_build_metadata_section(analysis_results, styles, meta))           # Then: What's in the data
+    story.extend(_build_confidence_scores_section(analysis_results, styles, meta))  # Tier 1: Data Quality Grade
+    story.extend(_build_semantic_analysis_section(analysis_results, styles, meta))  # Domain detection
+    story.extend(_build_analysis_decisions_section(analysis_results, styles, meta))  # Tier 1: Methodology
     story.extend(_build_cleaning_section(analysis_results, styles, meta))
-    story.extend(_build_executive_summary(analysis_results, styles, meta))
     
     # New: Statistical Deep Dive
     story.extend(_build_advanced_stats_section(analysis_results, styles, meta))
@@ -1361,23 +1420,33 @@ def _build_confidence_scores_section(
     styles: dict[str, ParagraphStyle],
     meta: ReportMetadata,
 ) -> list:
-    """Build section showing column confidence scores (completeness, consistency, validity, stability)."""
+    """Build section showing column confidence scores with color-coded grades."""
     story = []
     
     confidence_data = analysis_results.get("confidence_scores")
     if not confidence_data:
-        meta.sections_skipped.append("Confidence Scores")
+        meta.sections_skipped.append("Data Quality Assessment")
         return story
     
-    story.append(Paragraph("Column Confidence Scores", styles["Heading1"]))
+    story.append(Paragraph("Data Quality Assessment", styles["Heading1"]))
     story.append(Paragraph(
-        "Each column is graded on four dimensions: Completeness (non-null %), Consistency (format uniformity), "
-        "Validity (values within expected ranges), and Stability (variance). Grades range from A (excellent) to F (critical issues).",
+        "Each column is graded A-F across four dimensions: <b>Completeness</b> (non-null %), "
+        "<b>Consistency</b> (format uniformity), <b>Validity</b> (expected ranges), and "
+        "<b>Stability</b> (variance detection).",
         styles["Body"]
     ))
     story.append(Spacer(1, 0.15 * inch))
     
-    # Dataset summary
+    # Grade color mapping
+    grade_colors = {
+        "A": colors.HexColor("#dcfce7"),  # Light green
+        "B": colors.HexColor("#dbeafe"),  # Light blue  
+        "C": colors.HexColor("#fef9c3"),  # Light yellow
+        "D": colors.HexColor("#ffedd5"),  # Light orange
+        "F": colors.HexColor("#fee2e2"),  # Light red
+    }
+    
+    # Dataset summary with colored grade
     dataset_grade = confidence_data.get("dataset_grade", "N/A")
     dataset_conf = confidence_data.get("dataset_confidence", 0)
     high_count = confidence_data.get("high_confidence_count", 0)
@@ -1393,30 +1462,67 @@ def _build_confidence_scores_section(
     # Critical issues callout
     critical = confidence_data.get("critical_issues", [])
     if critical:
-        story.append(Paragraph("<b>Critical Issues:</b>", styles["Normal"]))
+        story.append(Paragraph("<b>Issues Detected:</b>", styles["Normal"]))
         for issue in critical[:5]:
-            story.append(Paragraph(f"⚠ {issue}", styles["Body"]))
+            story.append(Paragraph(f"• {issue}", styles["Body"]))
         story.append(Spacer(1, 0.1 * inch))
     
-    # Column scores table (top 10)
+    # Column scores table with color-coded grades
     columns = confidence_data.get("columns", [])
     if columns:
-        table_data = [["Column", "Grade", "Complete", "Consist", "Valid", "Stable"]]
+        # Build custom table with colored grade cells
+        from reportlab.platypus import Paragraph as Para
+        
+        header = ["Column", "Grade", "Complete", "Consist", "Valid", "Stable"]
+        table_data = [header]
+        row_colors = []  # Track background colors for grade column
+        
         for col in columns[:15]:  # Limit to 15 columns
+            grade = col.get("grade", "?")
             table_data.append([
-                col.get("column", "")[:20],  # Truncate long names
-                col.get("grade", "?"),
+                col.get("column", "")[:20],
+                grade,
                 f"{col.get('completeness', 0):.0f}%",
                 f"{col.get('consistency', 0):.0f}%",
                 f"{col.get('validity', 0):.0f}%",
                 f"{col.get('stability', 0):.0f}%",
             ])
+            row_colors.append(grade_colors.get(grade, colors.white))
         
         col_widths = [2.0 * inch, 0.6 * inch, 0.8 * inch, 0.8 * inch, 0.8 * inch, 0.8 * inch]
-        story.append(_build_styled_table(table_data, col_widths))
+        table = Table(table_data, colWidths=col_widths)
+        
+        # Build style with colored grade cells
+        style_commands = [
+            # Header
+            ("BACKGROUND", (0, 0), (-1, 0), Brand.PRIMARY),
+            ("TEXTCOLOR", (0, 0), (-1, 0), Brand.TEXT_LIGHT),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 9),
+            # Body
+            ("FONTSIZE", (0, 1), (-1, -1), 8),
+            ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+            ("GRID", (0, 0), (-1, -1), 0.5, Brand.BORDER),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]
+        
+        # Add colored backgrounds for grade column (column 1)
+        for row_idx, bg_color in enumerate(row_colors, start=1):
+            style_commands.append(("BACKGROUND", (1, row_idx), (1, row_idx), bg_color))
+        
+        # Alternate row backgrounds for other columns
+        for row_idx in range(1, len(table_data)):
+            if row_idx % 2 == 0:
+                style_commands.append(("BACKGROUND", (0, row_idx), (0, row_idx), Brand.ROW_ALT))
+                for col_idx in range(2, 6):
+                    style_commands.append(("BACKGROUND", (col_idx, row_idx), (col_idx, row_idx), Brand.ROW_ALT))
+        
+        table.setStyle(TableStyle(style_commands))
+        story.append(table)
     
     story.extend(_divider())
-    meta.sections_included.append("Confidence Scores")
+    meta.sections_included.append("Data Quality Assessment")
     return story
 
 
@@ -1425,50 +1531,98 @@ def _build_analysis_decisions_section(
     styles: dict[str, ParagraphStyle],
     meta: ReportMetadata,
 ) -> list:
-    """Build section showing why each analysis was run or skipped."""
+    """Build section showing why each analysis was run or skipped with grouped layout."""
     story = []
     
     decisions_data = analysis_results.get("analysis_decisions")
     if not decisions_data:
-        meta.sections_skipped.append("Analysis Decisions")
+        meta.sections_skipped.append("Methodology & Transparency")
         return story
     
-    story.append(Paragraph("Analysis Decisions", styles["Heading1"]))
+    story.append(Paragraph("Methodology & Transparency", styles["Heading1"]))
     story.append(Paragraph(
-        "Transparency into why each analysis step was run or skipped. "
-        "This ensures automation decisions are explainable and auditable.",
+        "This section documents which analyses were performed and why. "
+        "Transparency ensures decisions are explainable and auditable.",
         styles["Body"]
     ))
     story.append(Spacer(1, 0.15 * inch))
     
-    # Summary counts
+    # Summary counts with visual indicator
     summary = decisions_data.get("summary", {})
     ran = summary.get("ran", 0)
     skipped = summary.get("skipped", 0)
     total = summary.get("total", 0)
     
-    story.append(Paragraph(
-        f"<b>Summary:</b> {ran} analyses ran, {skipped} skipped (out of {total} possible)",
-        styles["Normal"]
-    ))
-    story.append(Spacer(1, 0.1 * inch))
+    # Summary box
+    summary_text = f"""
+    <b>Analysis Summary:</b> {ran} of {total} analyses performed<br/>
+    <font size="9" color="#6b7280">{skipped} skipped due to data constraints</font>
+    """
+    summary_para = Paragraph(summary_text.strip(), styles["Body"])
+    summary_table = Table([[summary_para]], colWidths=[5.5 * inch])
+    summary_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f0f9ff")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#3b82f6")),
+    ]))
+    story.append(summary_table)
+    story.append(Spacer(1, 0.15 * inch))
     
-    # Decision table
+    # Decision table with color-coded status
     decisions = decisions_data.get("decisions", [])
     if decisions:
-        table_data = [["Analysis", "Decision", "Reason"]]
-        for d in decisions:
-            decision_icon = "✓" if d.get("decision") == "ran" else "○" if d.get("decision") == "skipped" else "◐"
-            table_data.append([
-                d.get("analysis", "")[:25],
-                decision_icon + " " + d.get("decision", "").upper(),
-                d.get("reason", "")[:50],
-            ])
+        # Color mapping for decision status
+        status_colors = {
+            "ran": colors.HexColor("#dcfce7"),      # Light green
+            "skipped": colors.HexColor("#fef3c7"),  # Light amber
+            "partial": colors.HexColor("#dbeafe"),  # Light blue
+            "failed": colors.HexColor("#fee2e2"),   # Light red
+        }
         
-        col_widths = [2.2 * inch, 1.0 * inch, 3.0 * inch]
-        story.append(_build_styled_table(table_data, col_widths))
+        table_data = [["Analysis", "Status", "Reason"]]
+        row_colors = []
+        
+        for d in decisions:
+            status = d.get("decision", "")
+            status_icon = "✓" if status == "ran" else "○" if status == "skipped" else "◐" if status == "partial" else "✗"
+            
+            table_data.append([
+                d.get("analysis", "")[:28],
+                f"{status_icon} {status.upper()}",
+                d.get("reason", "")[:55],
+            ])
+            row_colors.append(status_colors.get(status, colors.white))
+        
+        col_widths = [2.2 * inch, 0.9 * inch, 3.1 * inch]
+        table = Table(table_data, colWidths=col_widths)
+        
+        # Build style with colored status cells
+        style_commands = [
+            # Header
+            ("BACKGROUND", (0, 0), (-1, 0), Brand.PRIMARY),
+            ("TEXTCOLOR", (0, 0), (-1, 0), Brand.TEXT_LIGHT),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 9),
+            # Body
+            ("FONTSIZE", (0, 1), (-1, -1), 8),
+            ("ALIGN", (1, 0), (1, -1), "CENTER"),
+            ("GRID", (0, 0), (-1, -1), 0.5, Brand.BORDER),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ]
+        
+        # Add colored backgrounds for status column (column 1)
+        for row_idx, bg_color in enumerate(row_colors, start=1):
+            style_commands.append(("BACKGROUND", (1, row_idx), (1, row_idx), bg_color))
+        
+        table.setStyle(TableStyle(style_commands))
+        story.append(table)
     
     story.extend(_divider())
-    meta.sections_included.append("Analysis Decisions")
+    meta.sections_included.append("Methodology & Transparency")
     return story
 
