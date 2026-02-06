@@ -1,7 +1,6 @@
-import { Server, Terminal, Code2, Copy } from "lucide-react";
+import { Terminal, Copy, Gauge, Brain, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ApiDocs = () => {
     return (
@@ -34,6 +33,8 @@ const ApiDocs = () => {
 
                         {/* Endpoints */}
                         <section id="endpoints" className="space-y-8">
+                            <h2 className="text-2xl font-bold mb-4">Endpoints</h2>
+
                             <div>
                                 <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                                     <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-mono">POST</span>
@@ -70,6 +71,43 @@ const ApiDocs = () => {
   -d '{"rules": {"age": {"action": "fill_mean"}}}'`}
                                 />
                             </div>
+
+                            <div>
+                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-mono">GET</span>
+                                    /jobs/{'{task_id}'}/report
+                                </h3>
+                                <p className="text-muted-foreground mb-4">Download the generated PDF report.</p>
+                                <CodeBlock
+                                    code={`curl https://api.getreport.com/api/jobs/123-abc-456/report \\
+  -o report.pdf`}
+                                />
+                            </div>
+                        </section>
+
+                        {/* Response Format */}
+                        <section id="response" className="space-y-6">
+                            <h2 className="text-2xl font-bold mb-4">Response Format</h2>
+                            <p className="text-muted-foreground mb-4">
+                                All API responses include confidence scores and analysis decisions for transparency.
+                            </p>
+                            <div className="grid gap-4 sm:grid-cols-3">
+                                <div className="p-4 border rounded-lg">
+                                    <Gauge className="h-5 w-5 text-primary mb-2" />
+                                    <h4 className="font-semibold mb-1">Confidence Scores</h4>
+                                    <p className="text-sm text-muted-foreground">A-F grades for each column</p>
+                                </div>
+                                <div className="p-4 border rounded-lg">
+                                    <Brain className="h-5 w-5 text-primary mb-2" />
+                                    <h4 className="font-semibold mb-1">Analysis Decisions</h4>
+                                    <p className="text-sm text-muted-foreground">Why each analysis ran/skipped</p>
+                                </div>
+                                <div className="p-4 border rounded-lg">
+                                    <FileText className="h-5 w-5 text-primary mb-2" />
+                                    <h4 className="font-semibold mb-1">Semantic Domain</h4>
+                                    <p className="text-sm text-muted-foreground">Detected industry + confidence</p>
+                                </div>
+                            </div>
                         </section>
                     </div>
 
@@ -80,6 +118,7 @@ const ApiDocs = () => {
                             <ul className="space-y-2 text-sm text-muted-foreground">
                                 <li><a href="#auth" className="hover:text-primary">Authentication</a></li>
                                 <li><a href="#endpoints" className="hover:text-primary">Endpoints</a></li>
+                                <li><a href="#response" className="hover:text-primary">Response Format</a></li>
                             </ul>
                         </div>
                         <div className="p-6 rounded-xl bg-primary/5 border border-primary/10">
@@ -87,7 +126,9 @@ const ApiDocs = () => {
                             <p className="text-sm text-muted-foreground mb-4">
                                 Contact our developer support team for custom integrations.
                             </p>
-                            <Button size="sm" variant="outline" className="w-full">Contact Support</Button>
+                            <Link to="/contact">
+                                <Button size="sm" variant="outline" className="w-full">Contact Support</Button>
+                            </Link>
                         </div>
                     </div>
                 </div>
