@@ -270,8 +270,23 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
 # ─── Cleaning Pipeline (Polars) ──────────────────────────────────────────────
 def clean_data(
     df: pl.DataFrame, 
-    rules: dict[str, Any] | None = None
-) -> tuple[pl.DataFrame, CleaningReport]:
+    rules: dict[str, Any] | None = None,
+    dag: "TransformationDAG | None" = None,
+    dataset_name: str = "",
+) -> tuple[pl.DataFrame, CleaningReport, "TransformationDAG"]:
+    """
+    Clean the dataframe with optional transformation tracking.
+    
+    Args:
+        df: Input DataFrame
+        rules: User-specified cleaning rules
+        dag: Optional TransformationDAG for audit tracking
+        dataset_name: Name for audit trail
+        
+    Returns:
+        Tuple of (cleaned_df, cleaning_report, transformation_dag)
+    """
+    from app.services.transformation_dag import TransformationDAG, create_dag
     
     if not isinstance(df, pl.DataFrame):
          raise InvalidDataFrameError(f"Expected pl.DataFrame, got {type(df)}")
@@ -279,54 +294,124 @@ def clean_data(
     start_time = time.perf_counter()
     report = CleaningReport()
     
+    # Initialize DAG if not provided
+    if dag is None:
+        dag = create_dag(df, dataset_name)
+    
     original_height = df.height
     original_width = df.width
     
-    # 1. Standardize Names
+    # ─── Step 1: Standardize Names ───────────────────────────────────────────
+    step_start = time.perf_counter()
+    df_before = df.clone()
+    
     new_cols = {c: _to_snake_case(c) for c in df.columns}
     df = df.rename(new_cols)
     report.columns_renamed = new_cols
+    
+    # Only add node if columns actually changed
+    changed_cols = {k: v for k, v in new_cols.items() if k != v}
+    if changed_cols:
+        dag.add_node(
+            operation="rename_columns",
+            df_before=df_before,
+            df_after=df,
+            parameters={"mappings": changed_cols},
+            duration_ms=(time.perf_counter() - step_start) * 1000,
+        )
 
-    # 2. Apply Rules (Interactive)
+    # ─── Step 2: Apply User Rules (Interactive) ──────────────────────────────
     if rules:
         for original_col, rule in rules.items():
             target_col = _to_snake_case(original_col)
-            if target_col not in df.columns: continue
+            if target_col not in df.columns: 
+                continue
             
             action = rule.get("action")
+            step_start = time.perf_counter()
+            df_before = df.clone()
+            
             if action == "drop_rows":
-                # Polars: filter is fast
                 df = df.filter(pl.col(target_col).is_not_null())
+                dag.add_node(
+                    operation="drop_null_rows",
+                    df_before=df_before,
+                    df_after=df,
+                    target_column=target_col,
+                    duration_ms=(time.perf_counter() - step_start) * 1000,
+                )
                 
             elif action == "fill_mean":
                 if df[target_col].dtype in [pl.Int64, pl.Float64]:
                     mean_val = df[target_col].mean()
-                    df = df.with_columns(pl.col(target_col).fill_null(mean_val))
-                    report.numeric_nans_filled += 1
+                    null_cnt = df[target_col].null_count()
+                    if null_cnt > 0:
+                        df = df.with_columns(pl.col(target_col).fill_null(mean_val))
+                        report.numeric_nans_filled += null_cnt
+                        dag.add_node(
+                            operation="fill_null_mean",
+                            df_before=df_before,
+                            df_after=df,
+                            target_column=target_col,
+                            parameters={"fill_value": mean_val, "nulls_filled": null_cnt},
+                            duration_ms=(time.perf_counter() - step_start) * 1000,
+                            values_changed=null_cnt,
+                        )
 
             elif action == "fill_median":
                 if df[target_col].dtype in [pl.Int64, pl.Float64, pl.Float32, pl.Int32]:
                     median_val = df[target_col].median()
                     if median_val is not None:
-                        df = df.with_columns(pl.col(target_col).fill_null(median_val))
-                        report.numeric_nans_filled += 1
+                        null_cnt = df[target_col].null_count()
+                        if null_cnt > 0:
+                            df = df.with_columns(pl.col(target_col).fill_null(median_val))
+                            report.numeric_nans_filled += null_cnt
+                            dag.add_node(
+                                operation="fill_null_median",
+                                df_before=df_before,
+                                df_after=df,
+                                target_column=target_col,
+                                parameters={"fill_value": median_val, "nulls_filled": null_cnt},
+                                duration_ms=(time.perf_counter() - step_start) * 1000,
+                                values_changed=null_cnt,
+                            )
             
             elif action == "fill_mode":
-                # Mode in Polars returns a Series
                 mode_s = df[target_col].mode()
                 if mode_s.len() > 0:
                     mode_val = mode_s[0]
                     if mode_val is not None:
-                        df = df.with_columns(pl.col(target_col).fill_null(mode_val))
-                        report.categorical_nans_filled += 1
+                        null_cnt = df[target_col].null_count()
+                        if null_cnt > 0:
+                            df = df.with_columns(pl.col(target_col).fill_null(mode_val))
+                            report.categorical_nans_filled += null_cnt
+                            dag.add_node(
+                                operation="fill_null_mode",
+                                df_before=df_before,
+                                df_after=df,
+                                target_column=target_col,
+                                parameters={"fill_value": mode_val, "nulls_filled": null_cnt},
+                                duration_ms=(time.perf_counter() - step_start) * 1000,
+                                values_changed=null_cnt,
+                            )
 
             elif action == "fill_value":
                  val = rule.get("value")
                  if val is not None:
-                    df = df.with_columns(pl.col(target_col).fill_null(val))
+                    null_cnt = df[target_col].null_count()
+                    if null_cnt > 0:
+                        df = df.with_columns(pl.col(target_col).fill_null(val))
+                        dag.add_node(
+                            operation="fill_null_value",
+                            df_before=df_before,
+                            df_after=df,
+                            target_column=target_col,
+                            parameters={"fill_value": val, "nulls_filled": null_cnt},
+                            duration_ms=(time.perf_counter() - step_start) * 1000,
+                            values_changed=null_cnt,
+                        )
 
             elif action == "replace_outliers_median":
-                # IQR Method
                 if df[target_col].dtype in [pl.Int64, pl.Float64]:
                     q1 = df[target_col].quantile(0.25)
                     q3 = df[target_col].quantile(0.75)
@@ -336,52 +421,80 @@ def clean_data(
                         upper_bound = q3 + 1.5 * iqr
                         median_val = df[target_col].median()
                         
-                        # Replace outliers with median
+                        # Calculate outlier count for impact
+                        outlier_mask = (df[target_col] < lower_bound) | (df[target_col] > upper_bound)
+                        outliers_replaced = df.filter(outlier_mask).height
+                        
                         df = df.with_columns(
-                            pl.when((pl.col(target_col) < lower_bound) | (pl.col(target_col) > upper_bound))
+                            pl.when(outlier_mask)
                             .then(median_val)
                             .otherwise(pl.col(target_col))
                             .alias(target_col)
                         )
+                        dag.add_node(
+                            operation="replace_outliers",
+                            df_before=df_before,
+                            df_after=df,
+                            target_column=target_col,
+                            parameters={
+                                "method": "iqr",
+                                "lower_bound": lower_bound,
+                                "upper_bound": upper_bound,
+                                "replacement": median_val,
+                                "outliers_replaced": outliers_replaced,
+                            },
+                            duration_ms=(time.perf_counter() - step_start) * 1000,
+                            values_changed=outliers_replaced,
+                        )
 
-    # 3. Drop fully null rows/cols (Not straightforward in Polars, but efficient via expressions)
-    # Actually, dropping fully null columns is just `dropna(how='all')` equiv.
-    # Polars doesn't have `how='all'`. We must check null counts.
-    # For now, we skip "drop fully empty rows" as it requires horizontal scan which is expensive.
-    
-    # Only drop fully null columns
-    # df = df[[s.name for s in df if s.null_count() != df.height]]
-    
-    # 4. Remove Duplicates
+    # ─── Step 3: Remove Duplicates ───────────────────────────────────────────
+    step_start = time.perf_counter()
+    df_before = df.clone()
     init_rows = df.height
     df = df.unique()
-    report.duplicate_rows_removed = init_rows - df.height
+    dups_removed = init_rows - df.height
+    report.duplicate_rows_removed = dups_removed
     
-    # 5. Type Conversions & Safe Imputation
-    # Polars has strict types. We iterate and cast.
+    if dups_removed > 0:
+        dag.add_node(
+            operation="remove_duplicates",
+            df_before=df_before,
+            df_after=df,
+            parameters={"duplicates_removed": dups_removed},
+            duration_ms=(time.perf_counter() - step_start) * 1000,
+        )
+    
+    # ─── Step 4: Type Conversions & Safe Imputation ──────────────────────────
     id_patterns = ["id", "code", "sku", "zip", "phone"]
     
     for col in df.columns:
         col_lower = col.lower()
         is_id = any(p in col_lower for p in id_patterns)
         
-        # Determine target type logic here...
-        # For simplicity in this rough migration, we rely on Polars inference primarily.
-        
-        # Missing Value Handling from original logic:
-        # Numeric -> Leave NaN (Polars uses null)
-        # Categorical -> Fill "Unknown"
         dtype = df[col].dtype
         if dtype == pl.Utf8 or dtype == pl.Object:
             null_cnt = df[col].null_count()
             if null_cnt > 0:
+                step_start = time.perf_counter()
+                df_before = df.clone()
+                
                 df = df.with_columns(pl.col(col).fill_null("Unknown"))
                 report.categorical_nans_filled += null_cnt
+                
+                dag.add_node(
+                    operation="fill_null_value",
+                    df_before=df_before,
+                    df_after=df,
+                    target_column=col,
+                    parameters={"fill_value": "Unknown", "nulls_filled": null_cnt},
+                    duration_ms=(time.perf_counter() - step_start) * 1000,
+                    values_changed=null_cnt,
+                )
                 
     report.timing_ms = (time.perf_counter() - start_time) * 1000
     report.finalize()
     
-    return df, report
+    return df, report, dag
 
 # ─── Dataset Info (Polars) ───────────────────────────────────────────────────
 def get_dataset_info(df: pl.DataFrame) -> dict[str, Any]:

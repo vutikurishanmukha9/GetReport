@@ -130,8 +130,10 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
         # Reload (Polars is fast)
         df = load_dataframe(file_path)
         
-        # Clean with Rules
-        cleaned_df, cleaning_report = await run_in_threadpool(clean_data, df, rules)
+        # Clean with Rules (returns DAG for audit trail)
+        cleaned_df, cleaning_report, transformation_dag = await run_in_threadpool(
+            clean_data, df, rules, None, filename
+        )
         
         # Analyze
         title_task_manager.update_progress(task_id, 60, "Running statistical analysis...")
@@ -186,7 +188,8 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
             "cleaning_report": cleaning_report_dict,
             "analysis": analysis_result,
             "charts": charts,
-            "insights": insights_result.to_dict()
+            "insights": insights_result.to_dict(),
+            "transformation_dag": transformation_dag.to_dict(),  # Tier 3: Audit trail
         }
         
         title_task_manager.complete_job(task_id, final_result)
@@ -581,3 +584,100 @@ def _recalc_summary(issues: list) -> dict:
         if status in summary:
             summary[status] += 1
     return summary
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TIER 3: Transformation DAG Endpoints
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/jobs/{task_id}/dag")
+async def get_transformation_dag(task_id: str):
+    """
+    Get the complete transformation DAG for a job.
+    
+    Returns the full audit trail of all data transformations applied.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+    
+    dag_data = job.result.get("transformation_dag")
+    if not dag_data:
+        raise HTTPException(400, "No transformation DAG available (job may still be processing)")
+    
+    return dag_data
+
+
+@router.get("/jobs/{task_id}/dag/export")
+async def export_transformation_dag(task_id: str, format: str = "json"):
+    """
+    Export the transformation DAG as an audit log.
+    
+    Args:
+        format: "json" for ISO-compliant JSON, "csv" for spreadsheet export
+        
+    Returns:
+        Audit log in the specified format
+    """
+    from app.services.transformation_dag import from_dict
+    from fastapi.responses import PlainTextResponse
+    
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+    
+    dag_data = job.result.get("transformation_dag")
+    if not dag_data:
+        raise HTTPException(400, "No transformation DAG available")
+    
+    # Reconstruct DAG from dict
+    dag = from_dict(dag_data)
+    
+    if format.lower() == "csv":
+        csv_content = dag.to_audit_csv()
+        return PlainTextResponse(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=audit_log_{task_id}.csv"}
+        )
+    else:
+        # Default to JSON audit log
+        return dag.to_audit_log()
+
+
+@router.get("/jobs/{task_id}/dag/summary")
+async def get_dag_summary(task_id: str):
+    """
+    Get a high-level summary of the transformation DAG.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+    
+    dag_data = job.result.get("transformation_dag")
+    if not dag_data:
+        raise HTTPException(400, "No transformation DAG available")
+    
+    return dag_data.get("summary", {})
+
+
+@router.get("/jobs/{task_id}/dag/{node_id}")
+async def get_dag_node(task_id: str, node_id: str):
+    """
+    Get details of a single transformation node.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+    
+    dag_data = job.result.get("transformation_dag")
+    if not dag_data:
+        raise HTTPException(400, "No transformation DAG available")
+    
+    nodes = dag_data.get("nodes", {})
+    node = nodes.get(node_id)
+    
+    if not node:
+        raise HTTPException(404, f"Node {node_id} not found in DAG")
+    
+    return node
