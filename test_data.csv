@@ -1,0 +1,22 @@
+id,name,email,age,salary,department,hire_date,performance_score,city,status
+1,John Smith,john.smith@email.com,35,75000,Engineering,2021-03-15,A,New York,active
+2,Jane Doe,jane.doe@email.com,28,65000,Marketing,2022-01-10,B,Los Angeles,active
+3,Bob Wilson,,45,85000,Engineering,2020-05-20,A,Chicago,active
+4,Alice Brown,alice.brown@email.com,,70000,HR,2021-08-22,C,Boston,active
+5,Charlie Davis,charlie.davis@email.com,32,72000,Engineering,2021-11-30,B,San Francisco,active
+6,Emily Chen,emily.chen@email.com,29,,Sales,2022-03-01,A,Seattle,active
+7,Michael Lee,michael.lee@email.com,38,90000,Engineering,2019-09-14,A,Austin,active
+8,Sarah Johnson,sarah.johnson@email.com,41,78000,Marketing,,B,Denver,active
+9,David Kim,david.kim@email.com,35,82000,Sales,2020-12-05,A,Miami,active
+10,Lisa Wang,lisa.wang@email.com,27,58000,HR,2023-02-14,C,Portland,
+11,Tom Harris,invalid-email,33,68000,Engineering,2021-07-19,B,Phoenix,active
+12,Nancy White,nancy.white@email.com,55,95000,Executive,2018-01-01,A,New York,active
+13,,robert.black@email.com,42,77000,Sales,2020-08-30,B,Chicago,active
+14,Jennifer Lopez,jennifer.lopez@email.com,31,71000,Marketing,2021-04-25,A,Houston,active
+15,James Brown,james.brown@email.com,37,79000,Engineering,2020-06-12,B,Atlanta,active
+1,John Smith,john.smith@email.com,35,75000,Engineering,2021-03-15,A,New York,active
+16,Anna Taylor,anna.taylor@email.com,26,55000,HR,2023-05-01,C,Seattle,active
+17,Kevin Moore,kevin.moore@email.com,44,88000,Sales,2019-10-20,A,Dallas,active
+18,Rachel Green,rachel.green@email.com,30,66000,Marketing,2022-02-28,B,San Diego,active
+19,Chris Anderson,chris.anderson@email.com,500,73000,Engineering,2021-09-08,A,Las Vegas,active
+20,Michelle Clark,michelle.clark@email.com,29,62000,HR,2022-07-15,B,Minneapolis,active

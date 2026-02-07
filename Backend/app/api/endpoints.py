@@ -451,6 +451,8 @@ async def approve_issue(task_id: str, issue_id: str, request: IssueActionRequest
                 issue["user_note"] = request.note
             # Update the summary
             ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
+            # Persist to database
+            title_task_manager.update_result(task_id, job.result)
             return {"message": "Issue approved", "issue_id": issue_id}
     
     raise HTTPException(404, "Issue not found")
@@ -478,6 +480,8 @@ async def reject_issue(task_id: str, issue_id: str, request: IssueActionRequest 
             if request and request.note:
                 issue["user_note"] = request.note
             ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
+            # Persist to database
+            title_task_manager.update_result(task_id, job.result)
             return {"message": "Issue rejected", "issue_id": issue_id}
     
     raise HTTPException(404, "Issue not found")
@@ -506,6 +510,8 @@ async def approve_all_issues(task_id: str):
             count += 1
     
     ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
+    # Persist to database
+    title_task_manager.update_result(task_id, job.result)
     return {"message": f"Approved {count} issues", "count": count}
 
 
@@ -532,6 +538,8 @@ async def reject_all_issues(task_id: str):
             count += 1
     
     ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
+    # Persist to database
+    title_task_manager.update_result(task_id, job.result)
     return {"message": f"Rejected {count} issues", "count": count}
 
 
@@ -560,6 +568,8 @@ async def lock_issues(task_id: str):
     ledger_data["locked"] = True
     ledger_data["locked_at"] = datetime.now().isoformat()
     
+    # Persist to database
+    title_task_manager.update_result(task_id, job.result)
     return {"message": "Issue ledger locked", "summary": ledger_data["summary"]}
 
 

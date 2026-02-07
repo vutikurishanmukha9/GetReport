@@ -109,6 +109,16 @@ class TaskManager:
                 )
             conn.commit()
 
+    def update_result(self, task_id: str, result: Dict[str, Any]):
+        """Update just the result JSON without changing status. Used by Issue Ledger endpoints."""
+        result_json = json.dumps(result)
+        with get_db_connection() as conn:
+            conn.execute(
+                "UPDATE jobs SET result_json = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+                (result_json, task_id)
+            )
+            conn.commit()
+
     def complete_job(self, task_id: str, result: Dict[str, Any], report_path: Optional[str] = None):
         result_json = json.dumps(result)
         with get_db_connection() as conn:
