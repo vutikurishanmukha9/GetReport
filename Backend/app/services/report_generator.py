@@ -1253,7 +1253,7 @@ def _build_feature_engineering_section(
     styles: dict[str, ParagraphStyle],
     meta: ReportMetadata,
 ) -> list[Flowable]:
-    """Build section showing ML-ready feature engineering recommendations."""
+    """Build section showing ML-ready feature engineering recommendations with summary."""
     fe = analysis_results.get("feature_engineering")
     if not fe:
         meta.sections_skipped.append({"section": "Feature Engineering", "reason": "No feature engineering data."})
@@ -1261,22 +1261,80 @@ def _build_feature_engineering_section(
     
     story: list[Flowable] = []
     story.append(Paragraph("ML Feature Engineering", styles["SectionHeading"]))
+    story.append(Paragraph(
+        "Intelligent recommendations to prepare your data for machine learning models.",
+        styles["Body"]
+    ))
     story.append(Spacer(1, 0.1 * inch))
     
-    # Encoding Recommendations
+    # Summary counts
+    enc_count = len(fe.get("encoding_recommendations", []))
+    scale_count = len(fe.get("scaling_recommendations", []))
+    extract_count = len(fe.get("feature_extraction", []))
+    
+    if enc_count + scale_count + extract_count > 0:
+        summary_text = f"""
+        <b>Ready-to-use suggestions:</b> {enc_count} encoding, {scale_count} scaling, {extract_count} feature extraction
+        """
+        summary_para = Paragraph(summary_text.strip(), styles["Body"])
+        summary_table = Table([[summary_para]], colWidths=[5.8 * inch])
+        summary_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f0fdf4")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 12),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#22c55e")),
+        ]))
+        story.append(summary_table)
+        story.append(Spacer(1, 0.15 * inch))
+    
+    # Encoding Recommendations with color-coded types
     encodings = fe.get("encoding_recommendations", [])
     if encodings:
         story.append(Paragraph("<b>Categorical Encoding</b>", styles["TableCaption"]))
         story.append(Spacer(1, 0.05 * inch))
         
+        # Color by encoding type
+        encoding_colors = {
+            "one_hot": colors.HexColor("#dbeafe"),
+            "label": colors.HexColor("#dcfce7"),
+            "target": colors.HexColor("#fef3c7"),
+            "binary": colors.HexColor("#ede9fe"),
+            "hash": colors.HexColor("#fee2e2"),
+        }
+        
         table_data = [["Column", "Recommended", "Reason"]]
+        row_colors = []
         for enc in encodings[:8]:
+            encoding_type = enc.get("encoding", "").lower()
             table_data.append([
                 enc.get("column", ""),
                 enc.get("encoding", "").replace("_", " ").title(),
-                enc.get("reason", "")[:60] + "..." if len(enc.get("reason", "")) > 60 else enc.get("reason", "")
+                enc.get("reason", "")[:55] + "..." if len(enc.get("reason", "")) > 55 else enc.get("reason", "")
             ])
-        story.append(_build_styled_table(table_data))
+            row_colors.append(encoding_colors.get(encoding_type, colors.white))
+        
+        col_widths = [1.8 * inch, 1.2 * inch, 3.2 * inch]
+        table = Table(table_data, colWidths=col_widths)
+        
+        style_commands = [
+            ("BACKGROUND", (0, 0), (-1, 0), Brand.PRIMARY),
+            ("TEXTCOLOR", (0, 0), (-1, 0), Brand.TEXT_LIGHT),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 9),
+            ("FONTSIZE", (0, 1), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, Brand.BORDER),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]
+        
+        # Color-code the encoding type column
+        for row_idx, bg_color in enumerate(row_colors, start=1):
+            style_commands.append(("BACKGROUND", (1, row_idx), (1, row_idx), bg_color))
+        
+        table.setStyle(TableStyle(style_commands))
+        story.append(table)
         story.append(Spacer(1, 0.15 * inch))
     
     # Scaling Recommendations
@@ -1376,7 +1434,7 @@ def _build_recommendations_section(
     styles: dict[str, ParagraphStyle],
     meta: ReportMetadata,
 ) -> list[Flowable]:
-    """Build section showing actionable recommendations."""
+    """Build section showing actionable recommendations with color-coded priorities."""
     recs = analysis_results.get("recommendations")
     if not recs:
         meta.sections_skipped.append({"section": "Recommendations", "reason": "No recommendations data."})
@@ -1384,9 +1442,26 @@ def _build_recommendations_section(
     
     story: list[Flowable] = []
     story.append(Paragraph("Actionable Recommendations", styles["SectionHeading"]))
+    story.append(Paragraph(
+        "Prioritized suggestions based on your data characteristics and detected domain. "
+        "Code hints are provided where applicable.",
+        styles["Body"]
+    ))
     story.append(Spacer(1, 0.1 * inch))
     
-    # High priority first
+    # Priority color mapping
+    priority_colors = {
+        "high": colors.HexColor("#fee2e2"),    # Light red background
+        "medium": colors.HexColor("#fef3c7"),  # Light amber background  
+        "low": colors.HexColor("#dcfce7"),     # Light green background
+    }
+    priority_text_colors = {
+        "high": colors.HexColor("#dc2626"),    # Red text
+        "medium": colors.HexColor("#d97706"),  # Amber text
+        "low": colors.HexColor("#16a34a"),     # Green text
+    }
+    
+    # Collect and sort all recommendations
     all_recs = (
         recs.get("domain_specific", []) +
         recs.get("data_quality", []) +
@@ -1394,18 +1469,52 @@ def _build_recommendations_section(
         recs.get("visualization", [])
     )
     
-    # Sort by priority
     priority_order = {"high": 0, "medium": 1, "low": 2}
     all_recs.sort(key=lambda r: priority_order.get(r.get("priority", "low"), 2))
     
-    for rec in all_recs[:10]:
+    # Summary counts
+    high_count = sum(1 for r in all_recs if r.get("priority") == "high")
+    med_count = sum(1 for r in all_recs if r.get("priority") == "medium")
+    total = len(all_recs)
+    
+    if total > 0:
+        summary_text = f"<b>{total} recommendations</b>: {high_count} high priority, {med_count} medium priority"
+        story.append(Paragraph(summary_text, styles["Body"]))
+        story.append(Spacer(1, 0.1 * inch))
+    
+    # Build recommendations with color-coded badges
+    for rec in all_recs[:12]:  # Limit to 12
         priority = rec.get("priority", "medium")
-        prio_label = "[HIGH]" if priority == "high" else "[MED]" if priority == "medium" else "[LOW]"
+        prio_label = priority.upper()
         category = rec.get("category", "").replace("_", " ").title()
         
-        story.append(Paragraph(f"<b>{prio_label} {rec.get('title', '')}</b>", styles["Normal"]))
+        # Create priority badge with colored background
+        badge_color = priority_colors.get(priority, colors.white)
+        text_color = priority_text_colors.get(priority, colors.black)
+        
+        # Title with inline priority badge
+        title_text = f"<font color='{text_color.hexval()}'><b>[{prio_label}]</b></font> {rec.get('title', '')}"
+        story.append(Paragraph(title_text, styles["Normal"]))
+        
+        # Description and action
         story.append(Paragraph(f"<i>{category}</i>: {rec.get('description', '')}", styles["Body"]))
-        story.append(Paragraph(f"Action: {rec.get('action', '')}", styles["Body"]))
+        story.append(Paragraph(f"<b>Action:</b> {rec.get('action', '')}", styles["Body"]))
+        
+        # Code hint if available - display in monospace style
+        code_hint = rec.get("code_hint")
+        if code_hint:
+            code_text = f"<font name='Courier' size='8' color='#0369a1'><b>→</b> {code_hint}</font>"
+            code_para = Paragraph(code_text, styles["Body"])
+            code_table = Table([[code_para]], colWidths=[5.8 * inch])
+            code_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f0f9ff")),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]))
+            story.append(code_table)
+        
         story.append(Spacer(1, 0.1 * inch))
     
     story.extend(_divider())
