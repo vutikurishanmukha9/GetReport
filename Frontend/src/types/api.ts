@@ -155,9 +155,39 @@ export interface CleaningRulesMap {
   [columnName: string]: CleaningRule;
 }
 
+// Issue Ledger Types
+export interface Issue {
+  id: string;
+  issue_type: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  column: string | null;
+  affected_rows: number;
+  affected_pct: number;
+  description: string;
+  suggested_fix: string;
+  fix_code: string;
+  status: 'pending' | 'approved' | 'rejected' | 'modified';
+  user_note: string;
+}
+
+export interface IssueLedgerData {
+  issues: Issue[];
+  summary: {
+    pending: number;
+    approved: number;
+    rejected: number;
+    modified: number;
+    total: number;
+  };
+  locked: boolean;
+  locked_at: string | null;
+  created_at: string;
+}
+
 export interface InspectionResult {
   filename: string;
   quality_report: InspectionReport;
+  issue_ledger?: IssueLedgerData;  // NEW: Issue Ledger
   preview: Record<string, unknown>[];
   raw_file_path: string;
   stage: "INSPECTION";

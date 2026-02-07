@@ -17,6 +17,7 @@ from app.services.report_renderer import generate_pdf_report
 from app.services.llm_insight import generate_insights
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.services.rag_service import rag_service
+from app.services.issue_ledger import detect_issues, IssueLedger
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -46,10 +47,17 @@ class StatusResponse(BaseModel):
 class AnalysisRulesRequest(BaseModel):
     rules: Dict[str, Any]
 
+class IssueActionRequest(BaseModel):
+    note: str = ""
+
+class IssueModifyRequest(BaseModel):
+    fix_code: str
+    note: str = ""
+
 # ─── Background Processor ────────────────────────────────────────────────────
 async def run_inspection_task(task_id: str, file_path: str, filename: str):
     """
-    Phase 1: Load Request -> Inspect Data -> Pause for User Input.
+    Phase 1: Load Request -> Inspect Data -> Detect Issues -> Pause for User Input.
     """
     try:
         title_task_manager.update_progress(task_id, 10, "Loading file...")
@@ -61,26 +69,32 @@ async def run_inspection_task(task_id: str, file_path: str, filename: str):
         except Exception as e:
             raise ParseError(f"Load failed: {e}")
 
-        # 2. Inspect
-        title_task_manager.update_progress(task_id, 30, "Inspecting data quality...")
+        # 2. Inspect quality
+        title_task_manager.update_progress(task_id, 25, "Inspecting data quality...")
         quality_report = await run_in_threadpool(inspect_dataset, df)
         
-        # 3. Pause and Persist State
-        # We store temp_path in result so Phase 2 can find it. 
-        # In a real production app, this would be an S3 key.
+        # 3. Detect issues for Issue Ledger
+        title_task_manager.update_progress(task_id, 35, "Detecting data issues...")
+        issue_ledger = await run_in_threadpool(detect_issues, df)
+        issue_count = len(issue_ledger.issues)
+        logger.info(f"Task {task_id}: Detected {issue_count} data issues")
+        
+        # 4. Pause and Persist State
+        # We store temp_path in result so Phase 2 can find it.
         partial_result = {
             "filename": filename,
             "quality_report": quality_report,
+            "issue_ledger": issue_ledger.to_dict(),  # NEW: Issue Ledger
             "_temp_path": file_path,
             "stage": "INSPECTION"  # Required for frontend to recognize this phase
         }
         
         # Update status to WAITING_FOR_USER
-        logger.info(f"Task {task_id}: Inspection Complete. Setting WAITING_FOR_USER. Result keys: {list(partial_result.keys())}")
+        logger.info(f"Task {task_id}: Inspection Complete. {issue_count} issues detected. Setting WAITING_FOR_USER.")
         task_manager_response = title_task_manager.update_status(task_id, TaskStatus.WAITING_FOR_USER, partial_result)
         logger.info(f"Task {task_id}: Status Update Triggered.")
         
-        title_task_manager.update_progress(task_id, 40, "Waiting for user review")
+        title_task_manager.update_progress(task_id, 40, f"Review {issue_count} detected issues")
         
     except Exception as e:
         logger.error(f"Inspection failed: {e}")
@@ -391,3 +405,169 @@ async def chat_with_job(task_id: str, request: ChatRequest):
     return response
 
 
+# ─── Issue Ledger Endpoints ──────────────────────────────────────────────────
+
+@router.get("/jobs/{task_id}/issues")
+async def get_issues(task_id: str):
+    """
+    Get the issue ledger for a task.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    
+    # Issue ledger should be in job result during WAITING_FOR_USER phase
+    if not job.result:
+        raise HTTPException(400, "No inspection data available")
+    
+    issue_ledger = job.result.get("issue_ledger")
+    if not issue_ledger:
+        return {"issues": [], "summary": {"total": 0}, "locked": False}
+    
+    return issue_ledger
+
+
+@router.post("/jobs/{task_id}/issues/{issue_id}/approve")
+async def approve_issue(task_id: str, issue_id: str, request: IssueActionRequest = None):
+    """
+    Approve a single issue for execution.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+    
+    if job.status != TaskStatus.WAITING_FOR_USER:
+        raise HTTPException(400, "Job is not in approval phase")
+    
+    ledger_data = job.result.get("issue_ledger")
+    if not ledger_data:
+        raise HTTPException(400, "No issue ledger found")
+    
+    # Find and update the issue
+    for issue in ledger_data.get("issues", []):
+        if issue["id"] == issue_id:
+            issue["status"] = "approved"
+            if request and request.note:
+                issue["user_note"] = request.note
+            # Update the summary
+            ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
+            return {"message": "Issue approved", "issue_id": issue_id}
+    
+    raise HTTPException(404, "Issue not found")
+
+
+@router.post("/jobs/{task_id}/issues/{issue_id}/reject")
+async def reject_issue(task_id: str, issue_id: str, request: IssueActionRequest = None):
+    """
+    Reject an issue - fix will not be applied.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+    
+    if job.status != TaskStatus.WAITING_FOR_USER:
+        raise HTTPException(400, "Job is not in approval phase")
+    
+    ledger_data = job.result.get("issue_ledger")
+    if not ledger_data:
+        raise HTTPException(400, "No issue ledger found")
+    
+    for issue in ledger_data.get("issues", []):
+        if issue["id"] == issue_id:
+            issue["status"] = "rejected"
+            if request and request.note:
+                issue["user_note"] = request.note
+            ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
+            return {"message": "Issue rejected", "issue_id": issue_id}
+    
+    raise HTTPException(404, "Issue not found")
+
+
+@router.post("/jobs/{task_id}/issues/approve-all")
+async def approve_all_issues(task_id: str):
+    """
+    Approve all pending issues.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+    
+    if job.status != TaskStatus.WAITING_FOR_USER:
+        raise HTTPException(400, "Job is not in approval phase")
+    
+    ledger_data = job.result.get("issue_ledger")
+    if not ledger_data:
+        raise HTTPException(400, "No issue ledger found")
+    
+    count = 0
+    for issue in ledger_data.get("issues", []):
+        if issue["status"] == "pending":
+            issue["status"] = "approved"
+            count += 1
+    
+    ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
+    return {"message": f"Approved {count} issues", "count": count}
+
+
+@router.post("/jobs/{task_id}/issues/reject-all")
+async def reject_all_issues(task_id: str):
+    """
+    Reject all pending issues.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+    
+    if job.status != TaskStatus.WAITING_FOR_USER:
+        raise HTTPException(400, "Job is not in approval phase")
+    
+    ledger_data = job.result.get("issue_ledger")
+    if not ledger_data:
+        raise HTTPException(400, "No issue ledger found")
+    
+    count = 0
+    for issue in ledger_data.get("issues", []):
+        if issue["status"] == "pending":
+            issue["status"] = "rejected"
+            count += 1
+    
+    ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
+    return {"message": f"Rejected {count} issues", "count": count}
+
+
+@router.post("/jobs/{task_id}/issues/lock")
+async def lock_issues(task_id: str):
+    """
+    Lock the issue ledger - no more changes allowed.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+    
+    if job.status != TaskStatus.WAITING_FOR_USER:
+        raise HTTPException(400, "Job is not in approval phase")
+    
+    ledger_data = job.result.get("issue_ledger")
+    if not ledger_data:
+        raise HTTPException(400, "No issue ledger found")
+    
+    # Check if there are still pending issues
+    pending = sum(1 for i in ledger_data.get("issues", []) if i["status"] == "pending")
+    if pending > 0:
+        raise HTTPException(400, f"Cannot lock: {pending} issues still pending. Approve or reject all first.")
+    
+    from datetime import datetime
+    ledger_data["locked"] = True
+    ledger_data["locked_at"] = datetime.now().isoformat()
+    
+    return {"message": "Issue ledger locked", "summary": ledger_data["summary"]}
+
+
+def _recalc_summary(issues: list) -> dict:
+    """Recalculate issue summary counts."""
+    summary = {"pending": 0, "approved": 0, "rejected": 0, "modified": 0, "total": len(issues)}
+    for issue in issues:
+        status = issue.get("status", "pending")
+        if status in summary:
+            summary[status] += 1
+    return summary

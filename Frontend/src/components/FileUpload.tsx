@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { ApiResponse, InspectionResult, CleaningRulesMap } from "@/types/api";
 import { api } from "@/services/api";
 import { DataHealthCheck } from "./DataHealthCheck";
+import { IssueLedger } from "./IssueLedger";
 
 interface FileUploadProps {
   onFileUploaded: (data: ApiResponse, taskId: string) => void;
@@ -197,14 +198,45 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     if (activePoll) clearInterval(activePoll);
   };
 
-  // ─── RENDER: HEALTH CHECK UI ──────────────────────────────────────────────
+  // ─── RENDER: HEALTH CHECK + ISSUE LEDGER UI ─────────────────────────────────
   if (inspectionData && !isProcessing) {
+    const issueLedgerData = inspectionData.issue_ledger;
+
+    // Refresh function to re-fetch the inspection data with updated issues
+    const refreshIssues = async () => {
+      if (!taskId) return;
+      try {
+        const status = await api.getTaskStatus(taskId);
+        if (status.result) {
+          const resultData = typeof status.result === 'string'
+            ? JSON.parse(status.result)
+            : status.result;
+          setInspectionData(resultData as InspectionResult);
+        }
+      } catch (e) {
+        console.error("Failed to refresh issues:", e);
+      }
+    };
+
     return (
-      <DataHealthCheck
-        report={inspectionData.quality_report}
-        onContinue={handleCleaningRules}
-        isProcessing={isProcessing}
-      />
+      <div className="space-y-8 max-w-5xl mx-auto">
+        {/* Issue Ledger Section */}
+        {issueLedgerData && issueLedgerData.issues && issueLedgerData.issues.length > 0 && (
+          <IssueLedger
+            taskId={taskId!}
+            data={issueLedgerData}
+            onRefresh={refreshIssues}
+            onProceed={() => handleCleaningRules({})}
+          />
+        )}
+
+        {/* DataHealthCheck for column-level controls */}
+        <DataHealthCheck
+          report={inspectionData.quality_report}
+          onContinue={handleCleaningRules}
+          isProcessing={isProcessing}
+        />
+      </div>
     );
   }
 
