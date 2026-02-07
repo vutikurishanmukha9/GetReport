@@ -125,7 +125,9 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
         title_task_manager.update_progress(task_id, 45, "Applying cleaning rules...")
         title_task_manager.update_progress(task_id, 45, "Applying cleaning rules...")
         from app.services.data_processing import load_dataframe, clean_data, get_dataset_info
+        from app.services.data_processing import load_dataframe, clean_data, get_dataset_info
         from app.services.analysis import analyze_dataset  # Import from analysis.py (has top_categories param)
+        from app.services.comparison import comparison_service # Tier 4
         
         # Reload (Polars is fast)
         df = load_dataframe(file_path)
@@ -146,6 +148,10 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
         
         # Parallel Execution: Charts (CPU) & Insights (IO)
         title_task_manager.update_progress(task_id, 75, "Generating charts & insights...")
+        
+        # Tier 4: Calculate Data Quality Improvement (Before vs After)
+        # Note: 'df' is the original, 'cleaned_df' is the result
+        comparison_report = comparison_service.compare(df, cleaned_df)
         
         # Wrap chart generation to be awaitable
         charts_task = run_in_threadpool(generate_charts, cleaned_df)
@@ -190,6 +196,7 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
             "charts": charts,
             "insights": insights_result.to_dict(),
             "transformation_dag": transformation_dag.to_dict(),  # Tier 3: Audit trail
+            "comparison_report": comparison_report.to_dict(),    # Tier 4: Validation Loop
         }
         
         title_task_manager.complete_job(task_id, final_result)
@@ -376,23 +383,25 @@ async def generate_persistent_report(task_id: str):
         logger.error(f"Persistent report generation failed: {str(e)}")
         raise HTTPException(500, str(e))
 
-@router.get("/jobs/{task_id}/report")
-async def download_report(task_id: str):
-    """
-    Downloads the persisted PDF report.
-    """
-    job = title_task_manager.get_job(task_id)
-    if not job or not job.report_path:
-        raise HTTPException(404, "Report not found. Generate it first.")
-    
-    if not os.path.exists(job.report_path):
-        raise HTTPException(404, "Report file missing from disk.")
-        
-    return FileResponse(
-        job.report_path, 
-        media_type="application/pdf", 
-        filename=os.path.basename(job.report_path)
-    )
+
+# @router.get("/jobs/{task_id}/report")
+# async def download_report(task_id: str):
+#     """
+#     Downloads the persisted PDF report.
+#     """
+#     job = title_task_manager.get_job(task_id)
+#     if not job or not job.report_path:
+#         raise HTTPException(404, "Report not found. Generate it first.")
+#     
+#     if not os.path.exists(job.report_path):
+#         raise HTTPException(404, "Report file missing from disk.")
+#         
+#     return FileResponse(
+#         job.report_path, 
+#         media_type="application/pdf", 
+#         filename=os.path.basename(job.report_path)
+#     )
+
 
 @router.post("/jobs/{task_id}/chat")
 async def chat_with_job(task_id: str, request: ChatRequest):
@@ -681,3 +690,91 @@ async def get_dag_node(task_id: str, node_id: str):
         raise HTTPException(404, f"Node {node_id} not found in DAG")
     
     return node
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TIER 4: Comparison Endpoints
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/jobs/{task_id}/comparison")
+async def get_comparison_report(task_id: str):
+    """
+    Get the Data Quality Comparison Report (Before vs After).
+    
+    Returns metrics on how the data quality improved after cleaning.
+    """
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+    
+    report = job.result.get("comparison_report")
+    if not report:
+        raise HTTPException(400, "Comparison report not available (job may be old or still processing)")
+    
+    return report
+
+
+@router.get("/jobs/{task_id}/report")
+async def download_report_pdf(task_id: str):
+    """
+    Generate and download the comprehensive PDF report (Tier 1-4).
+    Includes:
+    - Executive Summary
+    - Data Quality Grades
+    - Cleaning Actions
+    - Transformation Audit Trail
+    - Comparison Report (Before vs After)
+    - Visualizations
+    """
+    from fastapi.responses import Response
+    from app.services.report_generator import generate_pdf_report
+    
+    job = title_task_manager.get_job(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found or not completed")
+    
+    # Extract data from job result
+    analysis = job.result
+    # Ensure all keys are present for the generator
+    if "analysis" in analysis:
+        # Flatten structure if needed or pass as designed?
+        # generate_pdf_report expects:
+        # analysis_results: dict (the whole result bundle usually, or specific keys?)
+        # Let's check generate_pdf_report signature:
+        # args: analysis_results, charts, filename
+        # And inside it looks for: confidence_scores, semantic_analysis, cleaning_report, etc.
+        # Our final_result has: info, cleaning_report, analysis (contains decisions, summary, semantic, confidence...), charts...
+        
+        # We need to restructure slightly to match what report_generator expects
+        # report_generator expects a flat dict with keys: 'confidence_scores', 'semantic_analysis', etc.
+        # But 'final_result' puts them inside 'analysis'.
+        
+        # Let's flatten for the generator
+        params = {}
+        params.update(analysis.get("analysis", {})) # summary, semantic, confidence, advanced...
+        params["cleaning_report"] = analysis.get("cleaning_report")
+        params["metadata"] = analysis.get("info") # map info -> metadata
+        params["comparison_report"] = analysis.get("comparison_report") # Tier 4
+        
+        charts = analysis.get("charts", {})
+        filename = analysis.get("filename", "report.pdf")
+        
+        try:
+            pdf_buffer, meta = await run_in_threadpool(
+                generate_pdf_report, 
+                params, 
+                charts, 
+                filename
+            )
+            
+            return Response(
+                content=pdf_buffer.getvalue(),
+                media_type="application/pdf",
+                headers={"Content-Disposition": f"attachment; filename=Report_{filename}.pdf"}
+            )
+        except Exception as e:
+            logger.error(f"PDF Generation failed: {e}")
+            raise HTTPException(500, f"Failed to generate PDF: {str(e)}")
+            
+    else:
+        raise HTTPException(400, "Invalid job result format")

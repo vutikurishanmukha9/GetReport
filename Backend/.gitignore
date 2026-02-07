@@ -1,0 +1,31 @@
+# General
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+.env
+.env.*
+!.env.example
+venv/
+env/
+
+# IDEs
+.vscode/
+.idea/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+site/
+
+# Application Artifacts
+*.pdf
+stats.json
+*.db
+tasks.db
+*.log
+*.tmp
+*.bak
+*.swp

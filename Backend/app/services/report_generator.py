@@ -85,6 +85,9 @@ def _build_styles() -> dict[str, ParagraphStyle]:
 
     custom: dict[str, ParagraphStyle] = {}
 
+    # Normal — base style
+    custom["Normal"] = base["Normal"]
+
     # Title — large, white, centered (used on the dark title page)
     custom["ReportTitle"] = ParagraphStyle(
         "ReportTitle",
@@ -148,6 +151,9 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         rightIndent=12,
     )
 
+    # Insight — alias for general usage
+    custom["Insight"] = custom["InsightText"]
+
     # Warning text — used inside quality flag boxes
     custom["WarningText"] = ParagraphStyle(
         "WarningText",
@@ -157,6 +163,18 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         alignment=TA_LEFT,
         leading=13,
         leftIndent=10,
+    )
+
+    # Table Caption — used above tables
+    custom["TableCaption"] = ParagraphStyle(
+        "TableCaption",
+        parent=base["Normal"],
+        fontSize=10,
+        textColor=Brand.TEXT_DARK,
+        alignment=TA_LEFT,
+        fontName="Helvetica-Bold",
+        leading=14,
+        spaceAfter=4,
     )
 
     # Footer text
@@ -559,6 +577,86 @@ def _build_cleaning_section(
     return story
 
 
+def _build_comparison_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list[Flowable]:
+    """
+    Build the Data Quality Improvement section (Before vs After).
+    Shows the delta in key metrics.
+    """
+    comp = analysis_results.get("comparison_report")
+    if not comp:
+        meta.sections_skipped.append({"section": "Quality Comparison", "reason": "No comparison data."})
+        return []
+
+    story: list[Flowable] = []
+    story.append(Paragraph("Data Quality Improvement", styles["SectionHeading"]))
+    story.append(Paragraph(
+        "Impact assessment showing data quality metrics before and after cleaning.",
+        styles["Body"]
+    ))
+    story.append(Spacer(1, 0.1 * inch))
+
+    # Summary Metrics Table
+    summary = comp.get("summary", {})
+    if summary:
+        # Completeness Delta
+        # Quality Delta (Completeness + Uniqueness)
+        comp_before = summary.get("completeness", {}).get("before", 0)
+        comp_after = summary.get("completeness", {}).get("after", 0)
+        comp_delta = summary.get("completeness", {}).get("delta", 0)
+        
+        uniq_before = summary.get("uniqueness", {}).get("before", 0)
+        uniq_after = summary.get("uniqueness", {}).get("after", 0)
+        uniq_delta = summary.get("uniqueness", {}).get("delta", 0)
+        
+        # Color the deltas (Green if positive)
+        def color_delta(val, suffix="%"):
+            color = "#16a34a" if val > 0 else "#dc2626" if val < 0 else "#6b7280"
+            sign = "+" if val > 0 else ""
+            return f"<font color='{color}'><b>{sign}{val}{suffix}</b></font>"
+
+        table_data = [
+            ["Metric", "Before", "After", "Improvement"],
+            ["Completeness Score", f"{comp_before}%", f"{comp_after}%", color_delta(comp_delta)],
+            ["Uniqueness Score", f"{uniq_before}%", f"{uniq_after}%", color_delta(uniq_delta)],
+            ["Rows", f"{summary.get('rows', {}).get('before')}", f"{summary.get('rows', {}).get('after')}", 
+             color_delta(summary.get('rows', {}).get('delta', 0), "")],
+        ]
+        
+        story.append(_build_styled_table(table_data))
+        story.append(Spacer(1, 0.15 * inch))
+        
+        # Highlight significant column improvements
+        # Filter for columns with > 0 delta in missing_count
+        cols = comp.get("columns", {})
+        improved_cols = []
+        for col_name, data in cols.items():
+            for m in data.get("metrics", []):
+                if m["metric"] == "missing_count" and m["delta"] < 0:
+                    improved_cols.append((col_name, abs(m["delta"])))
+        
+        if improved_cols:
+            improved_cols.sort(key=lambda x: x[1], reverse=True)
+            top_Improvements = improved_cols[:5]
+            
+            story.append(Paragraph("<b>Top Recovered Columns</b> (Missing Values Fixed)", styles["TableCaption"]))
+            story.append(Spacer(1, 0.05 * inch))
+            
+            imp_data = [["Column", "Missing Values Fixed"]]
+            for col, count in top_Improvements:
+                imp_data.append([col, f"{int(count)}"])
+            
+            story.append(_build_styled_table(imp_data, col_widths=[4.0 * inch, 2.0 * inch]))
+            
+    story.extend(_divider())
+    meta.sections_included.append("Quality Comparison")
+    return story
+
+
+
 def _build_executive_summary(
     analysis_results: dict[str, Any],
     styles: dict[str, ParagraphStyle],
@@ -624,8 +722,12 @@ def _build_executive_summary(
         cols = metadata.get("total_columns", "?")
         num_cols = metadata.get("numeric_columns", 0)
         cat_cols = metadata.get("categorical_columns", 0)
+        
+        # Format rows with commas if it's a number
+        rows_fmt = f"{rows:,}" if isinstance(rows, (int, float)) else str(rows)
+        
         story.append(Paragraph(
-            f"<b>Dataset:</b> {rows:,} rows × {cols} columns ({num_cols} numeric, {cat_cols} categorical)",
+            f"<b>Dataset:</b> {rows_fmt} rows × {cols} columns ({num_cols} numeric, {cat_cols} categorical)",
             styles["Body"]
         ))
         story.append(Spacer(1, 0.1 * inch))
@@ -1083,6 +1185,9 @@ def generate_pdf_report(
     story.extend(_build_analysis_decisions_section(analysis_results, styles, meta))  # Tier 1: Methodology
     story.extend(_build_cleaning_section(analysis_results, styles, meta))
     
+    # Tier 4: Validation Loop (Before vs After)
+    story.extend(_build_comparison_section(analysis_results, styles, meta))
+    
     # New: Statistical Deep Dive
     story.extend(_build_advanced_stats_section(analysis_results, styles, meta))
     story.extend(_build_multicollinearity_section(analysis_results, styles, meta))
@@ -1319,12 +1424,12 @@ def _build_feature_engineering_section(
         table = Table(table_data, colWidths=col_widths)
         
         style_commands = [
-            ("BACKGROUND", (0, 0), (-1, 0), Brand.PRIMARY),
+            ("BACKGROUND", (0, 0), (-1, 0), Brand.TABLE_HEADER),
             ("TEXTCOLOR", (0, 0), (-1, 0), Brand.TEXT_LIGHT),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE", (0, 0), (-1, 0), 9),
             ("FONTSIZE", (0, 1), (-1, -1), 8),
-            ("GRID", (0, 0), (-1, -1), 0.5, Brand.BORDER),
+            ("GRID", (0, 0), (-1, -1), 0.5, Brand.DIVIDER),
             ("TOPPADDING", (0, 0), (-1, -1), 4),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ]
@@ -1537,7 +1642,7 @@ def _build_confidence_scores_section(
         meta.sections_skipped.append("Data Quality Assessment")
         return story
     
-    story.append(Paragraph("Data Quality Assessment", styles["Heading1"]))
+    story.append(Paragraph("Data Quality Assessment", styles["SectionHeading"]))
     story.append(Paragraph(
         "Each column is graded A-F across four dimensions: <b>Completeness</b> (non-null %), "
         "<b>Consistency</b> (format uniformity), <b>Validity</b> (expected ranges), and "
@@ -1604,14 +1709,14 @@ def _build_confidence_scores_section(
         # Build style with colored grade cells
         style_commands = [
             # Header
-            ("BACKGROUND", (0, 0), (-1, 0), Brand.PRIMARY),
+            ("BACKGROUND", (0, 0), (-1, 0), Brand.TABLE_HEADER),
             ("TEXTCOLOR", (0, 0), (-1, 0), Brand.TEXT_LIGHT),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE", (0, 0), (-1, 0), 9),
             # Body
             ("FONTSIZE", (0, 1), (-1, -1), 8),
             ("ALIGN", (1, 0), (-1, -1), "CENTER"),
-            ("GRID", (0, 0), (-1, -1), 0.5, Brand.BORDER),
+            ("GRID", (0, 0), (-1, -1), 0.5, Brand.DIVIDER),
             ("TOPPADDING", (0, 0), (-1, -1), 4),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ]
@@ -1623,9 +1728,9 @@ def _build_confidence_scores_section(
         # Alternate row backgrounds for other columns
         for row_idx in range(1, len(table_data)):
             if row_idx % 2 == 0:
-                style_commands.append(("BACKGROUND", (0, row_idx), (0, row_idx), Brand.ROW_ALT))
+                style_commands.append(("BACKGROUND", (0, row_idx), (0, row_idx), Brand.TABLE_ROW_ALT))
                 for col_idx in range(2, 6):
-                    style_commands.append(("BACKGROUND", (col_idx, row_idx), (col_idx, row_idx), Brand.ROW_ALT))
+                    style_commands.append(("BACKGROUND", (col_idx, row_idx), (col_idx, row_idx), Brand.TABLE_ROW_ALT))
         
         table.setStyle(TableStyle(style_commands))
         story.append(table)
@@ -1648,7 +1753,7 @@ def _build_analysis_decisions_section(
         meta.sections_skipped.append("Methodology & Transparency")
         return story
     
-    story.append(Paragraph("Methodology & Transparency", styles["Heading1"]))
+    story.append(Paragraph("Methodology & Transparency", styles["SectionHeading"]))
     story.append(Paragraph(
         "This section documents which analyses were performed and why. "
         "Transparency ensures decisions are explainable and auditable.",
@@ -1711,14 +1816,14 @@ def _build_analysis_decisions_section(
         # Build style with colored status cells
         style_commands = [
             # Header
-            ("BACKGROUND", (0, 0), (-1, 0), Brand.PRIMARY),
+            ("BACKGROUND", (0, 0), (-1, 0), Brand.TABLE_HEADER),
             ("TEXTCOLOR", (0, 0), (-1, 0), Brand.TEXT_LIGHT),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE", (0, 0), (-1, 0), 9),
             # Body
             ("FONTSIZE", (0, 1), (-1, -1), 8),
             ("ALIGN", (1, 0), (1, -1), "CENTER"),
-            ("GRID", (0, 0), (-1, -1), 0.5, Brand.BORDER),
+            ("GRID", (0, 0), (-1, -1), 0.5, Brand.DIVIDER),
             ("TOPPADDING", (0, 0), (-1, -1), 4),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
