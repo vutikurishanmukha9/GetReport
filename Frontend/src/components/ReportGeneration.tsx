@@ -249,7 +249,7 @@ export const ReportGeneration = ({
                   <div className="space-y-3 text-sm">
                     {analysis.time_series_analysis.drift_detected?.length > 0 ? (
                       <div className="space-y-2">
-                        <p className="font-medium text-amber-700">⚠ Conceptual Drift Detected (&gt;30% Shift):</p>
+                        <p className="font-medium text-amber-700">Warning: Conceptual Drift Detected (&gt;30% Shift):</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {analysis.time_series_analysis.drift_detected.map((d: any, i: number) => (
                             <div key={i} className="bg-amber-50 p-2 rounded border border-amber-200 flex justify-between items-center">

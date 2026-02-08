@@ -46,6 +46,7 @@ class StatusResponse(BaseModel):
 
 class AnalysisRulesRequest(BaseModel):
     rules: Dict[str, Any]
+    analysis_config: Optional[Dict[str, Any]] = None # Tier 5
 
 class IssueActionRequest(BaseModel):
     note: str = ""
@@ -105,7 +106,7 @@ async def run_inspection_task(task_id: str, file_path: str, filename: str):
             except: pass
 
 
-async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
+async def resume_analysis_task(task_id: str, rules: Dict[str, Any], analysis_config_dict: Optional[Dict[str, Any]] = None):
     """
     Phase 2: User Rules -> Clean -> Analyze -> Report.
     """
@@ -127,6 +128,7 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
         from app.services.data_processing import load_dataframe, clean_data, get_dataset_info
         from app.services.data_processing import load_dataframe, clean_data, get_dataset_info
         from app.services.analysis import analyze_dataset  # Import from analysis.py (has top_categories param)
+        from app.services.analysis_config import AnalysisConfig # Tier 5
         from app.services.comparison import comparison_service # Tier 4
         
         # Reload (Polars is fast)
@@ -144,7 +146,16 @@ async def resume_analysis_task(task_id: str, rules: Dict[str, Any]):
         
         # Extract optional config
         top_cats = rules.get("top_categories", 10)
-        analysis_result = await run_in_threadpool(analyze_dataset, cleaned_df, top_cats)
+        
+        # Tier 5: Analysis Config
+        analysis_config = None
+        if analysis_config_dict:
+            try:
+                analysis_config = AnalysisConfig(**analysis_config_dict)
+            except Exception as e:
+                logger.warning(f"Invalid analysis config provided: {e}")
+                
+        analysis_result = await run_in_threadpool(analyze_dataset, cleaned_df, top_cats, analysis_config)
         
         # Parallel Execution: Charts (CPU) & Insights (IO)
         title_task_manager.update_progress(task_id, 75, "Generating charts & insights...")
@@ -301,7 +312,7 @@ async def start_analysis(
        logger.warning(msg)
        return JSONResponse(status_code=400, content={"message": msg})
         
-    background_tasks.add_task(resume_analysis_task, task_id, request.rules)
+    background_tasks.add_task(resume_analysis_task, task_id, request.rules, request.analysis_config)
     return {"message": "Analysis started"}
 
 @router.get("/status/{task_id}", response_model=StatusResponse)
