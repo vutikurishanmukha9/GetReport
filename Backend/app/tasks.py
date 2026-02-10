@@ -2,6 +2,45 @@ import os
 import asyncio
 import logging
 from typing import Dict, Any, Optional
+import threading
+
+def run_async_wrapper(coro):
+    """
+    Run an async coroutine synchronously, handling existing event loops.
+    If a loop is already running (e.g. in Celery eager mode/API thread), run in a separate thread.
+    Otherwise, use asyncio.run().
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        # Loop is running, run in a separate thread to avoid conflict
+        logger.info("Event loop detected. Running async task in separate thread.")
+        result = None
+        exception = None
+        
+        def run_in_thread():
+            nonlocal result, exception
+            try:
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                result = new_loop.run_until_complete(coro)
+                new_loop.close()
+            except Exception as e:
+                exception = e
+
+        thread = threading.Thread(target=run_in_thread)
+        thread.start()
+        thread.join()
+        
+        if exception:
+            raise exception
+        return result
+    else:
+        # No loop running, use standard asyncio.run
+        return asyncio.run(coro)
 
 from app.core.celery_app import celery_app
 from app.services.task_manager import title_task_manager, TaskStatus
@@ -131,13 +170,10 @@ def resume_analysis_task(self, task_id: str, rules: Dict[str, Any], analysis_con
         # Charts (Synchronous)
         charts, _ = generate_charts(cleaned_df)
         
-        # Insights (Async - needs loop)
-        # Since we are in a synchronous Celery task, we run async function via asyncio.run
-        # NOTE: ensure insights logic is robust
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        insights_result = loop.run_until_complete(generate_insights(analysis_result))
-        loop.close()
+        # Insights (Async - handled safely)
+        # Since we are in a synchronous Celery task, we use our robust wrapper
+        logger.info(f"Generating insights for task {task_id}...")
+        insights_result = run_async_wrapper(generate_insights(analysis_result))
         
         # RAG Ingestion (Fire and Forget via another task)
         # Prepare text
@@ -188,10 +224,7 @@ def rag_ingest_task(task_id: str, text: str):
     Async wrapper for sync Celery.
     """
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(rag_service.ingest_report(task_id, text))
-        loop.close()
+        run_async_wrapper(rag_service.ingest_report(task_id, text))
     except Exception as e:
         logger.error(f"RAG Ingestion Task failed: {e}")
 
