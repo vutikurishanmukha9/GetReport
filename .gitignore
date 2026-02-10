@@ -5,6 +5,8 @@ Thumbs.db
 *.tmp
 *.bak
 *.swp
+.env
+tasks.db
 
 # IDEs
 .vscode/

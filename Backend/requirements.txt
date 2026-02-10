@@ -49,3 +49,5 @@ pyarrow
 langchain-openai
 langchain-community
 faiss-cpu
+
+psycopg2-binary
