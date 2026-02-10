@@ -33,6 +33,21 @@ def get_celery_app() -> Celery:
     # Optional: If on Windows and no Redis, fallback to eager?
     # For now, let's keep it strict as per critique.
     
+    # Safe Redis Check (Smart Fallback)
+    # If Redis is not running, we switch to 'task_always_eager' (synchronous mode)
+    # This prevents the API from crashing during development if infrastructure is missing.
+    try:
+        import redis
+        client = redis.from_url(redis_url, socket_connect_timeout=1)
+        client.ping()
+        print(f"[Celery] Connected to Redis at {redis_url}")
+    except Exception as e:
+        print(f"[Celery] WARNING: Redis not available ({e}). Running in SYNC mode (task_always_eager=True).")
+        app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True
+        )
+
     return app
 
 celery_app = get_celery_app()

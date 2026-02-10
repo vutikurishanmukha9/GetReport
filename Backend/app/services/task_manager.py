@@ -12,9 +12,11 @@ logger = logging.getLogger(__name__)
 
 # Redis Client for PubSub (Status Updates)
 try:
-    redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+    redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True, socket_connect_timeout=1)
+    redis_client.ping()
+    logger.info(f"Connected to Redis for Pub/Sub at {settings.REDIS_URL}")
 except Exception as e:
-    logger.warning(f"Redis connection failed: {e}. WebSockets will fallback to polling.")
+    logger.warning(f"Redis not available ({e}). WebSockets will fallback to polling.")
     redis_client = None
 
 def publish_update(task_id: str, data: Dict[str, Any]):

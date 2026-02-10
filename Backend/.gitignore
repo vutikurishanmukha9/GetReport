@@ -30,5 +30,7 @@ tasks.db
 *.bak
 *.swp
 
+
 # Generated Outputs
 outputs/
+temp_uploads/
