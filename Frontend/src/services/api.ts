@@ -1,7 +1,26 @@
 import axios from "axios";
-import type { ApiResponse, AnalysisResult, Charts } from "@/types/api";
+import type { ApiResponse, AnalysisResult, Charts, CleaningRulesMap } from "@/types/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+
+// ─── Response Types ─────────────────────────────────────────────────────────
+
+export interface StatusResponse {
+    task_id: string;
+    status: string;
+    progress: number;
+    message: string;
+    result?: Record<string, any> | null;
+    error?: string | null;
+    report_download_url?: string | null;
+}
+
+export interface ReportStatusResponse {
+    status: "ready" | "generating" | "not_started";
+    path?: string;
+}
+
+// ─── Client ─────────────────────────────────────────────────────────────────
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -22,17 +41,15 @@ export const api = {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
-            timeout: 60000, // 60s timeout for large files/AI
+            timeout: 60000,
         });
         return response.data;
     },
 
-    getTaskStatus: async (taskId: string): Promise<any> => {
+    getTaskStatus: async (taskId: string): Promise<StatusResponse> => {
         const response = await apiClient.get(`/status/${taskId}`);
         return response.data;
     },
-
-
 
     /**
      * Chat with the processed report (RAG).
@@ -44,10 +61,17 @@ export const api = {
 
     /**
      * Generate PDF on the server using stored analysis results.
-     * (Secure: No round-trip of data).
      */
-    generatePersistentReport: async (taskId: string): Promise<{ message: string; path: string }> => {
+    generatePersistentReport: async (taskId: string): Promise<{ message: string; path: string | null }> => {
         const response = await apiClient.post(`/jobs/${taskId}/report`);
+        return response.data;
+    },
+
+    /**
+     * Check if the PDF report is ready for download.
+     */
+    getReportStatus: async (taskId: string): Promise<ReportStatusResponse> => {
+        const response = await apiClient.get(`/jobs/${taskId}/report/status`);
         return response.data;
     },
 
@@ -64,7 +88,7 @@ export const api = {
     /**
      * Stage 2: Resume analysis with cleaning rules.
      */
-    startAnalysis: async (taskId: string, rules: any): Promise<{ message: string }> => {
+    startAnalysis: async (taskId: string, rules: Record<string, any>): Promise<{ message: string }> => {
         const response = await apiClient.post(`/jobs/${taskId}/analyze`, { rules });
         return response.data;
     },

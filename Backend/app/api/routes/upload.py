@@ -1,0 +1,77 @@
+"""
+Upload Route — File ingestion endpoint.
+"""
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Request
+from pydantic import BaseModel
+import logging
+import os
+import re
+
+from app.core.limiter import limiter, UPLOAD_LIMIT
+from app.core.config import settings
+from app.services.task_manager import title_task_manager
+from app.services.storage import get_storage_provider
+from app.tasks import inspect_file_task
+
+storage = get_storage_provider()
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+class TaskResponse(BaseModel):
+    task_id: str
+    message: str
+
+@router.post("/upload", response_model=TaskResponse)
+@limiter.limit(UPLOAD_LIMIT)
+async def upload_file(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...)
+):
+    """
+    Initiates processing using Streaming Upload (RAM Safe).
+    Returns Task ID immediately.
+    """
+    try:
+        # Pre-validate extension
+        if not file.filename.lower().endswith(('.csv', '.xls', '.xlsx')):
+             raise HTTPException(400, "Invalid file type. Only CSV and Excel supported.")
+         
+        # Enforce file size limit
+        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        content = await file.read()
+        if len(content) > max_bytes:
+            raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
+        await file.seek(0)  # Reset for downstream read
+             
+        # Sanitize Filename (Security Fix)
+        base_name = os.path.basename(file.filename)
+        safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', base_name)
+        
+        if not safe_filename:
+            safe_filename = "unnamed_file.csv"
+             
+        # Create Task
+        task_id = title_task_manager.create_job(safe_filename)
+        
+        # Save file via Storage Service
+        file_ref = storage.save_upload(file.file, safe_filename)
+        
+        # Start Inspection Task (Phase 1) - VIA CELERY
+        inspect_file_task.delay(task_id, file_ref, safe_filename)
+        
+        # Schedule cleanup for old reports
+        from app.services.cleanup import cleanup_old_files
+        output_dir = os.path.join(os.getcwd(), "outputs")
+        background_tasks.add_task(cleanup_old_files, output_dir, 86400)
+        
+        return TaskResponse(
+            task_id=task_id, 
+            message="File uploaded. Processing started."
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Upload failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

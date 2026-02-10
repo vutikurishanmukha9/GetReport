@@ -53,12 +53,40 @@ export const ReportGeneration = ({
     setStatus("Compiling statistical analysis on server...");
 
     try {
-      // 1. Trigger Server-Side Generation (Secure)
+      // 1. Trigger Server-Side Generation (async via Celery)
       await api.generatePersistentReport(tid);
-      setStatus("Downloading PDF...");
-      setProgress(80);
+      setStatus("Generating PDF report...");
+      setProgress(30);
 
-      // 2. Fetch the generated Blob
+      // 2. Poll report status until ready (fixes race condition)
+      const maxAttempts = 60; // 60 * 2s = 2min max wait
+      let attempts = 0;
+      let ready = false;
+
+      while (attempts < maxAttempts && !ready) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        attempts++;
+
+        try {
+          const reportStatus = await api.getReportStatus(tid);
+          if (reportStatus.status === "ready") {
+            ready = true;
+            setProgress(80);
+          } else {
+            setProgress(Math.min(30 + (attempts * 0.8), 75)); // Gradual progress
+            setStatus(`Generating PDF report... (${attempts}s)`);
+          }
+        } catch {
+          // Status endpoint not available yet, keep polling
+        }
+      }
+
+      if (!ready) {
+        throw new Error("Report generation timed out. Please try again.");
+      }
+
+      // 3. Download the ready PDF
+      setStatus("Downloading PDF...");
       const blob = await api.downloadReportBlob(tid);
 
       setStatus("Report ready for download!");
@@ -77,7 +105,7 @@ export const ReportGeneration = ({
       setStatus("Failed to generate report.");
       toast({
         title: "Generation Failed",
-        description: "Could not generate PDF report. Please try again.",
+        description: error instanceof Error ? error.message : "Could not generate PDF report. Please try again.",
         variant: "destructive",
       });
     } finally {

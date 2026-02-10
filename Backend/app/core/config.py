@@ -5,6 +5,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     DATABASE_URL: str = "" # Logic: If set, use Postgres. Else, use SQLite.
     REDIS_URL: str = "redis://localhost:6379/0" # Default local Redis
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_DEFAULT: str = "60/minute"
+    MAX_UPLOAD_SIZE_MB: int = 50
     
     class Config:
         env_file = ".env"

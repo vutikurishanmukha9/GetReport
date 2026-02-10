@@ -2,10 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import json
 import time
 import random
 from dataclasses import dataclass, field
 from typing import Any
+
+try:
+    import tiktoken
+    _ENCODER = tiktoken.encoding_for_model("gpt-4o-mini")
+except Exception:
+    _ENCODER = None
 
 from openai import (
     AsyncOpenAI,
@@ -162,11 +169,34 @@ def _validate_analysis_payload(analysis_data: dict[str, Any]) -> None:
 
 
 # ─── Prompt Builder ──────────────────────────────────────────────────────────
+# Token budget constants
+MAX_PROMPT_TOKENS = 3000  # Cap total prompt at ~3k tokens to control costs
+
+def _count_tokens(text: str) -> int:
+    """Count tokens using tiktoken. Falls back to word estimate."""
+    if _ENCODER:
+        return len(_ENCODER.encode(text))
+    return len(text.split())  # Rough fallback: ~1 token per word
+
+def _truncate_to_budget(text: str, max_tokens: int) -> str:
+    """Truncate text to fit within token budget."""
+    if _ENCODER:
+        tokens = _ENCODER.encode(text)
+        if len(tokens) <= max_tokens:
+            return text
+        return _ENCODER.decode(tokens[:max_tokens]) + "\n[...truncated for token budget...]"
+    # Fallback: char-based estimate (4 chars ~= 1 token)
+    max_chars = max_tokens * 4
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "\n[...truncated for token budget...]"
+
 def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
     """
     Construct the system and user prompts from the full analysis output.
     
     Enhanced with:
+        - Token budgeting via tiktoken to control LLM costs
         - Sample rows (from 'metadata.preview') to give Ground Truth context.
         - Semantic Column Types (from 'metadata.dtypes').
         - Structured layout to force the AI to look at the actual data values.
@@ -185,51 +215,38 @@ def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
         "   - Keep it professional and concise."
     )
 
-    # ── User prompt — build sections dynamically ─────────────────────────────
+    # ── User prompt — build sections dynamically with token budgeting ────
     sections: list[str] = []
+    tokens_used = _count_tokens(system_prompt)
+    budget_remaining = MAX_PROMPT_TOKENS - tokens_used
 
-    # Section: Semantic Context (Column Types)
-    metadata = analysis_data.get("metadata", {})
-    if metadata.get("dtypes"):
-        sections.append(
-            "--- COLUMN DATA TYPES ---\n"
-            f"{metadata['dtypes']}"
-        )
+    # Priority-ordered sections (most important first)
+    section_builders = [
+        ("COLUMN DATA TYPES", lambda: json.dumps(analysis_data.get("metadata", {}).get("dtypes", {}), default=str)),
+        ("DESCRIPTIVE STATISTICS (Numeric)", lambda: json.dumps(analysis_data.get("summary", {}), default=str)),
+        ("STRONG CORRELATIONS (|r| >= 0.7)", lambda: json.dumps(analysis_data.get("strong_correlations", []), default=str)),
+        ("OUTLIERS (IQR Method)", lambda: json.dumps(analysis_data.get("outliers", {}), default=str)),
+        ("CATEGORICAL DISTRIBUTION (Top Values)", lambda: json.dumps(analysis_data.get("categorical_distribution", {}), default=str)),
+        ("DATA QUALITY FLAGS", lambda: json.dumps(analysis_data.get("column_quality_flags", {}), default=str)),
+    ]
 
-    # Section 1: Descriptive Statistics
-    if analysis_data.get("summary"):
-        sections.append(
-            "--- DESCRIPTIVE STATISTICS (Numeric) ---\n"
-            f"{analysis_data['summary']}"
-        )
-
-    # Section 2: Correlation
-    if analysis_data.get("strong_correlations"):
-        sections.append(
-            "--- STRONG CORRELATIONS (|r| >= 0.7) ---\n"
-            f"{analysis_data['strong_correlations']}"
-        )
-
-    # Section 3: Outliers
-    if analysis_data.get("outliers"):
-        sections.append(
-            "--- OUTLIERS (IQR Method) ---\n"
-            f"{analysis_data['outliers']}"
-        )
-
-    # Section 4: Categorical Distribution
-    if analysis_data.get("categorical_distribution"):
-        sections.append(
-            "--- CATEGORICAL DISTRIBUTION (Top Values) ---\n"
-            f"{analysis_data['categorical_distribution']}"
-        )
-
-    # Section 5: Data Quality Flags
-    if analysis_data.get("column_quality_flags"):
-        sections.append(
-            "--- DATA QUALITY FLAGS ---\n"
-            f"{analysis_data['column_quality_flags']}"
-        )
+    for title, builder in section_builders:
+        content = builder()
+        if not content or content in ("{}", "[]", "null"):
+            continue
+        
+        section_text = f"--- {title} ---\n{content}"
+        section_tokens = _count_tokens(section_text)
+        
+        if section_tokens <= budget_remaining:
+            sections.append(section_text)
+            budget_remaining -= section_tokens
+        elif budget_remaining > 100:  # Still some room — truncate
+            sections.append(_truncate_to_budget(section_text, budget_remaining))
+            budget_remaining = 0
+            break
+        else:
+            break  # No budget left
 
     # ── Assemble full user prompt ───────────────────────────────────────────
     user_prompt = (
@@ -238,7 +255,8 @@ def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
         + "\n\n".join(sections)
     )
 
-    logger.debug("Prompt built — %d sections included.", len(sections))
+    total_tokens = _count_tokens(system_prompt) + _count_tokens(user_prompt)
+    logger.info(f"Prompt built — {len(sections)} sections, ~{total_tokens} tokens (budget: {MAX_PROMPT_TOKENS})")
     return system_prompt, user_prompt
 
 

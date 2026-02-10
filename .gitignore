@@ -1,4 +1,4 @@
-# General
+# ─── General ─────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 *.log
@@ -6,13 +6,27 @@ Thumbs.db
 *.bak
 *.swp
 .env
-tasks.db
 
-# IDEs
+# ─── IDEs ────────────────────────────────────────────────
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
-# Frontend (Node/Vite) - kept as backup/reference if needed, though Frontend/ has its own
+# ─── Python / Backend ───────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+*.db
+
+# ─── Node / Frontend ────────────────────────────────────
 node_modules/
 dist/
 dist-ssr/
@@ -20,3 +34,13 @@ dist-ssr/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+bun.lockb
+vite.config.ts.timestamp-*
+
+# ─── Application Artifacts ──────────────────────────────
+outputs/
+temp_uploads/
+*.pdf
+stats.json
+test_data.csv
+vector_stores/
