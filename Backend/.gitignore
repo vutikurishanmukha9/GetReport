@@ -29,3 +29,6 @@ tasks.db
 *.tmp
 *.bak
 *.swp
+
+# Generated Outputs
+outputs/

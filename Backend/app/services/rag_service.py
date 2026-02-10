@@ -17,7 +17,47 @@ from langchain_core.output_parsers import StrOutputParser
 
 from app.core.config import settings
 
+
+import re # Security: Regex for sanitization
+
 logger = logging.getLogger(__name__)
+
+class SecurityGuard:
+    """Basic security sanitization for LLM inputs"""
+    
+    # Common injection patterns
+    INJECTION_PATTERNS = [
+        r"ignore previous instructions",
+        r"system prompt",
+        r"openai api key",
+        r"simulated ai",
+        r"do not reveal",
+    ]
+    
+    @staticmethod
+    def sanitize_input(text: str) -> str:
+        """
+        Sanitize text to prevent basic prompt injection and control character attacks.
+        """
+        if not text:
+            return ""
+            
+        # 1. Remove control characters (except newlines/tabs)
+        # Filters out null bytes etc that might mess with downstream systems
+        text = "".join(ch for ch in text if ch == "\n" or ch == "\t" or ch >= " ")
+        
+        # 2. Check for injection attempts (Basic heuristic)
+        # We don't block them (false positives), but we can log or neutralize
+        # For this implementation, we'll log warnings
+        for pattern in SecurityGuard.INJECTION_PATTERNS:
+            if re.search(pattern, text, re.IGNORECASE):
+                logger.warning(f"Potential Prompt Injection detected: '{pattern}' in input.")
+                # Optional: redact or fail?
+                # For now, we proceed but with awareness. 
+                # Better: In a real system, we might wrap this in <user_input> tags 
+                # and instruct the LLM to treat it as data only.
+                
+        return text.strip()
 
 
 class RAGConfig:
@@ -269,6 +309,9 @@ class EnhancedRAGService:
                     "error": error_msg,
                     "task_id": task_id
                 }
+                
+            # Sanitize (Security)
+            text_content = SecurityGuard.sanitize_input(text_content)
             
             # Split text into chunks
             chunks = self.text_splitter.split_text(text_content)
@@ -411,6 +454,9 @@ class EnhancedRAGService:
                     "error": "Question cannot be empty",
                     "task_id": task_id
                 }
+                
+            # Sanitize (Security)
+            question = SecurityGuard.sanitize_input(question)
             
             # Load vector store
             vector_store = await self._load_vector_store(task_id)

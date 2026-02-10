@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
@@ -18,12 +18,15 @@ from app.services.llm_insight import generate_insights
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.services.rag_service import rag_service
 from app.services.issue_ledger import detect_issues, IssueLedger
+from app.services.storage import get_storage_provider
+from app.tasks import inspect_file_task, resume_analysis_task, generate_pdf_task
+
+storage = get_storage_provider()
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Global Process Pool for CPU-bound tasks (PDF Generation)
-process_pool = ProcessPoolExecutor(max_workers=3)
+# Global Process Pool REMOVED - Using Celery
 
 # ─── Data Models ─────────────────────────────────────────────────────────────
 
@@ -56,171 +59,10 @@ class IssueModifyRequest(BaseModel):
     note: str = ""
 
 # ─── Background Processor ────────────────────────────────────────────────────
-async def run_inspection_task(task_id: str, file_path: str, filename: str):
-    """
-    Phase 1: Load Request -> Inspect Data -> Detect Issues -> Pause for User Input.
-    """
-    try:
-        title_task_manager.update_progress(task_id, 10, "Loading file...")
-        from app.services.data_processing import load_dataframe, inspect_dataset
-        
-        # 1. Load
-        try:
-            df = load_dataframe(file_path)
-        except Exception as e:
-            raise ParseError(f"Load failed: {e}")
-
-        # 2. Inspect quality
-        title_task_manager.update_progress(task_id, 25, "Inspecting data quality...")
-        quality_report = await run_in_threadpool(inspect_dataset, df)
-        
-        # 3. Detect issues for Issue Ledger
-        title_task_manager.update_progress(task_id, 35, "Detecting data issues...")
-        issue_ledger = await run_in_threadpool(detect_issues, df)
-        issue_count = len(issue_ledger.issues)
-        logger.info(f"Task {task_id}: Detected {issue_count} data issues")
-        
-        # 4. Pause and Persist State
-        # We store temp_path in result so Phase 2 can find it.
-        partial_result = {
-            "filename": filename,
-            "quality_report": quality_report,
-            "issue_ledger": issue_ledger.to_dict(),  # NEW: Issue Ledger
-            "_temp_path": file_path,
-            "stage": "INSPECTION"  # Required for frontend to recognize this phase
-        }
-        
-        # Update status to WAITING_FOR_USER
-        logger.info(f"Task {task_id}: Inspection Complete. {issue_count} issues detected. Setting WAITING_FOR_USER.")
-        task_manager_response = title_task_manager.update_status(task_id, TaskStatus.WAITING_FOR_USER, partial_result)
-        logger.info(f"Task {task_id}: Status Update Triggered.")
-        
-        title_task_manager.update_progress(task_id, 40, f"Review {issue_count} detected issues")
-        
-    except Exception as e:
-        logger.error(f"Inspection failed: {e}")
-        title_task_manager.fail_job(task_id, str(e))
-        # Cleanup if failed
-        if os.path.exists(file_path):
-            try: os.remove(file_path)
-            except: pass
 
 
-async def resume_analysis_task(task_id: str, rules: Dict[str, Any], analysis_config_dict: Optional[Dict[str, Any]] = None):
-    """
-    Phase 2: User Rules -> Clean -> Analyze -> Report.
-    """
-    job = title_task_manager.get_job(task_id)
-    if not job or not job.result:
-        logger.error(f"Task {task_id} invalid for resumption.")
-        return
-        
-    file_path = job.result.get("_temp_path")
-    filename = job.result.get("filename", "unknown")
-    
-    if not file_path or not os.path.exists(file_path):
-        title_task_manager.fail_job(task_id, "Source file expired or missing. Please upload again.")
-        return
 
-    try:
-        title_task_manager.update_progress(task_id, 45, "Applying cleaning rules...")
-        title_task_manager.update_progress(task_id, 45, "Applying cleaning rules...")
-        from app.services.data_processing import load_dataframe, clean_data, get_dataset_info
-        from app.services.data_processing import load_dataframe, clean_data, get_dataset_info
-        from app.services.analysis import analyze_dataset  # Import from analysis.py (has top_categories param)
-        from app.services.analysis_config import AnalysisConfig # Tier 5
-        from app.services.comparison import comparison_service # Tier 4
-        
-        # Reload (Polars is fast)
-        df = load_dataframe(file_path)
-        
-        # Clean with Rules (returns DAG for audit trail)
-        cleaned_df, cleaning_report, transformation_dag = await run_in_threadpool(
-            clean_data, df, rules, None, filename
-        )
-        
-        # Analyze
-        title_task_manager.update_progress(task_id, 60, "Running statistical analysis...")
-        dataset_info = await run_in_threadpool(get_dataset_info, cleaned_df)
-        cleaning_report_dict = cleaning_report.to_dict()
-        
-        # Extract optional config
-        top_cats = rules.get("top_categories", 10)
-        
-        # Tier 5: Analysis Config
-        analysis_config = None
-        if analysis_config_dict:
-            try:
-                analysis_config = AnalysisConfig(**analysis_config_dict)
-            except Exception as e:
-                logger.warning(f"Invalid analysis config provided: {e}")
-                
-        analysis_result = await run_in_threadpool(analyze_dataset, cleaned_df, top_cats, analysis_config)
-        
-        # Parallel Execution: Charts (CPU) & Insights (IO)
-        title_task_manager.update_progress(task_id, 75, "Generating charts & insights...")
-        
-        # Tier 4: Calculate Data Quality Improvement (Before vs After)
-        # Note: 'df' is the original, 'cleaned_df' is the result
-        comparison_report = comparison_service.compare(df, cleaned_df)
-        
-        # Wrap chart generation to be awaitable
-        charts_task = run_in_threadpool(generate_charts, cleaned_df)
-        insights_task = generate_insights(analysis_result)
-        
-        # Run both concurrently
-        results = await asyncio.gather(charts_task, insights_task)
-        charts_data, _ = results[0]
-        insights_result = results[1]
-        
-        charts = charts_data
-        
-        # ─── RAG Ingestion ───
-        # Build a text representation of the findings for the chatbot
-        rag_text = f"""
-        Analysis Report for {filename}
-        
-        --- Metadata ---
-        Rows: {dataset_info.get('rows')}
-        Columns: {dataset_info.get('columns')}
-        
-        --- Summary Statistics ---
-        {str(analysis_result.get('summary', {}))}
-        
-        --- Insights ---
-        {insights_result.to_dict().get('response', '')}
-        
-        --- Cleaning Actions ---
-        {cleaning_report.to_dict()}
-        """
-        # Fire-and-forget ingestion so we don't block the report generation
-        # The Chat feature will become available a few seconds after the report is ready
-        asyncio.create_task(rag_service.ingest_report(task_id, rag_text))
-        
-        title_task_manager.update_progress(task_id, 95, "Rendering PDF...")
-        
-        final_result = {
-            "filename": filename,
-            "info": dataset_info,
-            "cleaning_report": cleaning_report_dict,
-            "analysis": analysis_result,
-            "charts": charts,
-            "insights": insights_result.to_dict(),
-            "transformation_dag": transformation_dag.to_dict(),  # Tier 3: Audit trail
-            "comparison_report": comparison_report.to_dict(),    # Tier 4: Validation Loop
-        }
-        
-        title_task_manager.complete_job(task_id, final_result)
-        
-    except Exception as e:
-        logger.error(f"Analysis failed: {e}")
-        title_task_manager.fail_job(task_id, str(e))
-        
-    finally:
-        # Now we can delete the temp file
-        if os.path.exists(file_path):
-            try: os.remove(file_path)
-            except: pass
+
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
@@ -254,29 +96,23 @@ async def upload_file(
         # Create Task
         task_id = title_task_manager.create_job(safe_filename)
         
-        # Stream file to disk using tempfile
-        # We use a temp directory that allows persistence during the background task
-        # mkstemp creates a file that we must manage (delete manually)
-        fd, temp_path = tempfile.mkstemp(suffix=f"_{safe_filename}")
-        
+        # Save file via Storage Service
         try:
-            with os.fdopen(fd, 'wb') as tmp:
-                shutil.copyfileobj(file.file, tmp)
+            file_ref = storage.save_upload(file.file, safe_filename)
         except Exception as write_err:
-            os.remove(temp_path)
             raise write_err
         
-        # Start Inspection Task (Phase 1)
-        background_tasks.add_task(
-            run_inspection_task, 
+        # Start Inspection Task (Phase 1) - VIA CELERY
+        inspect_file_task.delay(
             task_id, 
-            temp_path, 
+            file_ref, 
             safe_filename
         )
         
         # Also schedule strict hygiene cleanup for old reports
         from app.services.cleanup import cleanup_old_files
         output_dir = os.path.join(os.getcwd(), "outputs")
+        # Note: We should ideally also clean up the storage provider, but for LocalStorage it handles its own folder
         background_tasks.add_task(cleanup_old_files, output_dir, 86400) # 24h retention
         
         return TaskResponse(
@@ -312,7 +148,8 @@ async def start_analysis(
        logger.warning(msg)
        return JSONResponse(status_code=400, content={"message": msg})
         
-    background_tasks.add_task(resume_analysis_task, task_id, request.rules, request.analysis_config)
+    # Start Analysis Task (Phase 2) - VIA CELERY
+    resume_analysis_task.delay(task_id, request.rules, request.analysis_config)
     return {"message": "Analysis started"}
 
 @router.get("/status/{task_id}", response_model=StatusResponse)
@@ -333,6 +170,79 @@ async def get_task_status(task_id: str):
         error=job.error,
         report_download_url=f"/api/jobs/{job.id}/report" if job.report_path else None
     )
+
+@router.websocket("/ws/status/{task_id}")
+async def websocket_status(websocket: WebSocket, task_id: str):
+    """
+    Real-time status updates via WebSockets + Redis PubSub.
+    """
+    await websocket.accept()
+    
+    # Check if task exists
+    job = title_task_manager.get_job(task_id)
+    if not job:
+        await websocket.close(code=4004, reason="Task not found")
+        return
+
+    # Subscribe to Redis Channel
+    from app.services.task_manager import redis_client
+    
+    if not redis_client:
+        # Fallback: Polling if no Redis
+        try:
+            while True:
+                job = title_task_manager.get_job(task_id)
+                if job:
+                    data = {
+                        "task_id": job.id,
+                        "status": job.status,
+                        "progress": job.progress,
+                        "message": job.message,
+                        "result": job.result
+                    }
+                    await websocket.send_json(data)
+                    if job.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
+                        break
+                await asyncio.sleep(2)
+        except WebSocketDisconnect:
+            pass
+        return
+
+    # Redis PubSub Logic
+    pubsub = redis_client.pubsub()
+    channel = f"task:{task_id}"
+    pubsub.subscribe(channel)
+    
+    try:
+        # Send initial state
+        initial_data = {
+            "task_id": job.id,
+            "status": job.status,
+            "progress": job.progress,
+            "message": job.message,
+            "result": job.result
+        }
+        await websocket.send_json(initial_data)
+        
+        while True:
+            # Check for messages
+            message = pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+            if message:
+                data = json.loads(message["data"])
+                await websocket.send_json(data)
+                
+                # Close if terminal state
+                status = data.get("status")
+                if status in [TaskStatus.COMPLETED.value, TaskStatus.FAILED.value]:
+                    break
+            
+            # Keep alive / Heartbeat can be handled here if needed
+            await asyncio.sleep(0.1)
+            
+    except WebSocketDisconnect:
+        pass
+    finally:
+        pubsub.unsubscribe(channel)
 
 @router.post("/jobs/{task_id}/report")
 async def generate_persistent_report(task_id: str):
@@ -369,17 +279,23 @@ async def generate_persistent_report(task_id: str):
         if cleaning_data:
             analysis_data["cleaning_report"] = cleaning_data
         
-        # Generate PDF (CPU Bound - Offload to Process)
-        # We use a ProcessPool to avoid GIL blocking the API during PDF generation
+        # Generate PDF (Via Celery Task now)
+        # However, the endpoint expects to return the path *immediately*? 
+        # Actually, generate_persistent_report is usually called by frontend polling until ready.
+        # But this endpoint generates ON DEMAND.
+        # If we move to Celery, this endpoint becomes "start generation".
+        # BUT: For backward compatibility with "Restart & Die" section, let's look at the critique.
+        # Critique said "ProcessPoolExecutor(max_workers=3)" is a bottleneck.
+        # So we SHOULD use Celery.
         
-        loop = asyncio.get_running_loop()
-        pdf_buffer, metadata = await loop.run_in_executor(
-            process_pool,
-            generate_pdf_report,
-            analysis_data,
-            result.get("charts", {}),
-            filename
-        )
+        # Trigger Celery Task
+        generate_pdf_task.delay(task_id)
+        
+        return {"message": "Report generation started. Check status.", "path": None}
+        
+    except Exception as e:
+        logger.error(f"Persistent report generation failed: {str(e)}")
+        raise HTTPException(500, str(e))
         
         # Save to disk
         with open(pdf_path, "wb") as f:

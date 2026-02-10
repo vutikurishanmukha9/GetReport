@@ -5,8 +5,26 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
 from enum import Enum
 from app.db import get_db_connection, init_db
+from app.core.config import settings
+import redis
 
 logger = logging.getLogger(__name__)
+
+# Redis Client for PubSub (Status Updates)
+try:
+    redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+except Exception as e:
+    logger.warning(f"Redis connection failed: {e}. WebSockets will fallback to polling.")
+    redis_client = None
+
+def publish_update(task_id: str, data: Dict[str, Any]):
+    """Publish update to Redis channel"""
+    if redis_client:
+        try:
+            channel = f"task:{task_id}"
+            redis_client.publish(channel, json.dumps(data))
+        except Exception as e:
+            logger.error(f"Redis publish failed: {e}")
 
 # Ensure DB is initialized on module load (or app startup)
 # For simplicity, we call it here, but ideally Main.py calls it.
@@ -93,6 +111,14 @@ class TaskManager:
                     (progress, task_id)
                 )
             conn.commit()
+            
+        # Publish real-time update
+        publish_update(task_id, {
+            "task_id": task_id,
+            "status": "processing", # Assumed if progress updates
+            "progress": progress,
+            "message": message or "Processing..."
+        })
 
     def update_status(self, task_id: str, status: TaskStatus, result: Optional[Dict[str, Any]] = None):
         with get_db_connection() as conn:
@@ -108,6 +134,14 @@ class TaskManager:
                     (status, task_id)
                 )
             conn.commit()
+            
+        # Publish real-time update
+        publish_update(task_id, {
+            "task_id": task_id,
+            "status": status,
+            "progress": 100 if status == TaskStatus.COMPLETED else None,
+            "result": result
+        })
 
     def update_result(self, task_id: str, result: Dict[str, Any]):
         """Update just the result JSON without changing status. Used by Issue Ledger endpoints."""
@@ -117,7 +151,18 @@ class TaskManager:
                 "UPDATE jobs SET result_json = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
                 (result_json, task_id)
             )
+            conn.execute(
+                "UPDATE jobs SET result_json = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+                (result_json, task_id)
+            )
             conn.commit()
+            
+        # Publish real-time update (Issue Ledger change)
+        publish_update(task_id, {
+            "task_id": task_id,
+            "type": "ledger_update",
+            "result": result
+        })
 
     def complete_job(self, task_id: str, result: Dict[str, Any], report_path: Optional[str] = None):
         result_json = json.dumps(result)
@@ -137,6 +182,15 @@ class TaskManager:
             )
             conn.commit()
             
+        # Publish real-time update
+        publish_update(task_id, {
+            "task_id": task_id,
+            "status": TaskStatus.COMPLETED,
+            "progress": 100,
+            "message": "Completed",
+            "result": result
+        })
+            
     def fail_job(self, task_id: str, error_msg: str):
         with get_db_connection() as conn:
             conn.execute(
@@ -152,5 +206,12 @@ class TaskManager:
             )
             conn.commit()
             logger.error(f"Job {task_id} marked as FAILED in DB: {error_msg}")
+            
+        # Publish real-time update
+        publish_update(task_id, {
+            "task_id": task_id,
+            "status": TaskStatus.FAILED,
+            "error": error_msg
+        })
 
 title_task_manager = TaskManager()
