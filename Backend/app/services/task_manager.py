@@ -1,6 +1,7 @@
 import uuid
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
 from enum import Enum
@@ -52,6 +53,34 @@ class Job:
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     report_path: Optional[str] = None
+    result_path: Optional[str] = None  # Path to result JSON file
+
+# ─── File-Based Result Storage ───────────────────────────────────────────────
+RESULTS_DIR = os.path.join(os.getcwd(), "outputs")
+
+def _get_result_file_path(task_id: str) -> str:
+    """Get the file path for storing a task's result JSON."""
+    task_dir = os.path.join(RESULTS_DIR, task_id)
+    os.makedirs(task_dir, exist_ok=True)
+    return os.path.join(task_dir, "result.json")
+
+def _save_result_to_file(task_id: str, result: Dict[str, Any]) -> str:
+    """Write result JSON to file, return the file path."""
+    file_path = _get_result_file_path(task_id)
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2, default=str)
+    logger.info(f"Result saved to file: {file_path}")
+    return file_path
+
+def _load_result_from_file(file_path: str) -> Optional[Dict[str, Any]]:
+    """Read result JSON from file."""
+    try:
+        if file_path and os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to read result file {file_path}: {e}")
+    return None
 
 class TaskManager:
     """
@@ -81,9 +110,15 @@ class TaskManager:
         if not row:
             return None
             
-        # Parse result JSON if present
+        # Load result from file first, fall back to DB column (backward compat)
         result_data = None
-        if row["result_json"]:
+        result_file = row.get("result_path") if hasattr(row, 'get') else (row["result_path"] if "result_path" in row.keys() else None)
+        
+        if result_file:
+            result_data = _load_result_from_file(result_file)
+        
+        # Fallback: read from result_json column if file not found
+        if result_data is None and row["result_json"]:
             try:
                 result_data = json.loads(row["result_json"])
             except:
@@ -97,7 +132,8 @@ class TaskManager:
             filename=row["filename"],
             result=result_data,
             error=row["error"],
-            report_path=row["report_path"]
+            report_path=row["report_path"],
+            result_path=result_file
         )
 
     def update_progress(self, task_id: str, progress: int, message: Optional[str] = None):
@@ -125,10 +161,11 @@ class TaskManager:
     def update_status(self, task_id: str, status: TaskStatus, result: Optional[Dict[str, Any]] = None):
         with get_db_connection() as conn:
             if result:
-                result_json = json.dumps(result)
+                # Save result to file instead of DB
+                result_file_path = _save_result_to_file(task_id, result)
                 conn.execute(
-                    "UPDATE jobs SET status = ?, result_json = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
-                    (status, result_json, task_id)
+                    "UPDATE jobs SET status = ?, result_path = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+                    (status, result_file_path, task_id)
                 )
             else:
                 conn.execute(
@@ -147,15 +184,11 @@ class TaskManager:
 
     def update_result(self, task_id: str, result: Dict[str, Any]):
         """Update just the result JSON without changing status. Used by Issue Ledger endpoints."""
-        result_json = json.dumps(result)
+        result_file_path = _save_result_to_file(task_id, result)
         with get_db_connection() as conn:
             conn.execute(
-                "UPDATE jobs SET result_json = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
-                (result_json, task_id)
-            )
-            conn.execute(
-                "UPDATE jobs SET result_json = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
-                (result_json, task_id)
+                "UPDATE jobs SET result_path = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+                (result_file_path, task_id)
             )
             conn.commit()
             
@@ -167,7 +200,7 @@ class TaskManager:
         })
 
     def complete_job(self, task_id: str, result: Dict[str, Any], report_path: Optional[str] = None):
-        result_json = json.dumps(result)
+        result_file_path = _save_result_to_file(task_id, result)
         with get_db_connection() as conn:
             conn.execute(
                 """
@@ -175,12 +208,12 @@ class TaskManager:
                 SET status = ?, 
                     progress = 100, 
                     message = 'Completed', 
-                    result_json = ?, 
+                    result_path = ?, 
                     report_path = ?,
                     updated_at = CURRENT_TIMESTAMP 
                 WHERE task_id = ?
                 """,
-                (TaskStatus.COMPLETED, result_json, report_path, task_id)
+                (TaskStatus.COMPLETED, result_file_path, report_path, task_id)
             )
             conn.commit()
             

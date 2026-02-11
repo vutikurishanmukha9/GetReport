@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_DEFAULT: str = "60/minute"
     MAX_UPLOAD_SIZE_MB: int = 50
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:8080"
     
     class Config:
         env_file = ".env"

@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import json
+import os
 import time
 import random
 from dataclasses import dataclass, field
 from typing import Any
+from jinja2 import Environment, FileSystemLoader
 
 try:
     import tiktoken
@@ -25,6 +27,10 @@ from app.core.config import settings
 
 # ─── Logger ──────────────────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)
+
+# ─── Jinja2 Template Environment ─────────────────────────────────────────────
+TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates", "prompts")
+_jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), trim_blocks=True, lstrip_blocks=True)
 
 # ─── Constants ───────────────────────────────────────────────────────────────
 MODEL: str                  = "gpt-4o-mini"       # original model preserved
@@ -195,28 +201,14 @@ def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
     """
     Construct the system and user prompts from the full analysis output.
     
-    Enhanced with:
-        - Token budgeting via tiktoken to control LLM costs
-        - Sample rows (from 'metadata.preview') to give Ground Truth context.
-        - Semantic Column Types (from 'metadata.dtypes').
-        - Structured layout to force the AI to look at the actual data values.
+    Uses Jinja2 templates from app/templates/prompts/ for maintainability.
+    Enhanced with token budgeting via tiktoken to control LLM costs.
     """
-    # ── System prompt ──
-    system_prompt = (
-        "You are a professional data analyst. Your job is to analyze the provided dataset statistics "
-        "AND sample rows to generate clear, actionable insights.\n\n"
-        "Crucial Rules:\n"
-        "1. REALITY CHECK: Use the 'Sample Rows' to understand what the data actually represents (e.g. is 'Amt' money? is 'Status' a workflow?).\n"
-        "2. NO HALLUCINATIONS: Do not invent columns or values that are not in the provided data.\n"
-        "3. Output Format:\n"
-        "   - Write 3 to 5 key insights.\n"
-        "   - Number each insight (1., 2., 3., etc.).\n"
-        "   - Each insight must be specific to this dataset's context.\n"
-        "   - Keep it professional and concise."
-    )
+    # ── System prompt from template ──
+    system_prompt = _jinja_env.get_template("insight_system.txt").render()
 
     # ── User prompt — build sections dynamically with token budgeting ────
-    sections: list[str] = []
+    sections: list[dict[str, str]] = []
     tokens_used = _count_tokens(system_prompt)
     budget_remaining = MAX_PROMPT_TOKENS - tokens_used
 
@@ -239,21 +231,18 @@ def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
         section_tokens = _count_tokens(section_text)
         
         if section_tokens <= budget_remaining:
-            sections.append(section_text)
+            sections.append({"title": title, "content": content})
             budget_remaining -= section_tokens
         elif budget_remaining > 100:  # Still some room — truncate
-            sections.append(_truncate_to_budget(section_text, budget_remaining))
+            truncated = _truncate_to_budget(content, budget_remaining - 20)
+            sections.append({"title": title, "content": truncated})
             budget_remaining = 0
             break
         else:
             break  # No budget left
 
-    # ── Assemble full user prompt ───────────────────────────────────────────
-    user_prompt = (
-        "Analyze the following dataset statistics and sample values. "
-        "Provide 3-5 key insights. Focus on the BUSINESS/REAL-WORLD meaning of the patterns you see.\n\n"
-        + "\n\n".join(sections)
-    )
+    # ── Render user prompt from template ─────────────────────────────────
+    user_prompt = _jinja_env.get_template("insight_user.txt").render(sections=sections)
 
     total_tokens = _count_tokens(system_prompt) + _count_tokens(user_prompt)
     logger.info(f"Prompt built — {len(sections)} sections, ~{total_tokens} tokens (budget: {MAX_PROMPT_TOKENS})")

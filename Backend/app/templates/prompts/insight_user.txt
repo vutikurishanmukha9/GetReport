@@ -1,0 +1,7 @@
+Analyze the following dataset statistics and sample values. Provide 3-5 key insights. Focus on the BUSINESS/REAL-WORLD meaning of the patterns you see.
+
+{% for section in sections %}
+--- {{ section.title }} ---
+{{ section.content }}
+
+{% endfor %}

@@ -37,11 +37,17 @@ async def upload_file(
         if not file.filename.lower().endswith(('.csv', '.xls', '.xlsx')):
              raise HTTPException(400, "Invalid file type. Only CSV and Excel supported.")
          
-        # Enforce file size limit
+        # Enforce file size limit (streaming — avoids loading entire file to RAM)
         max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
-        content = await file.read()
-        if len(content) > max_bytes:
-            raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
+        size = 0
+        CHUNK_SIZE = 64 * 1024  # 64KB chunks
+        while True:
+            chunk = await file.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > max_bytes:
+                raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
         await file.seek(0)  # Reset for downstream read
              
         # Sanitize Filename (Security Fix)

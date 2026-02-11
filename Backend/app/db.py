@@ -110,16 +110,21 @@ def _create_schema(cursor):
         message TEXT,
         progress INTEGER DEFAULT 0,
         result_json TEXT,
+        result_path TEXT,
         error TEXT,
         report_path TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     """)
+    # Migration: add result_path if table already exists without it
+    try:
+        cursor.execute("ALTER TABLE jobs ADD COLUMN result_path TEXT")
+    except Exception:
+        pass  # Column already exists
 
 def _create_schema_postgres(cursor):
     """Postgres Schema"""
-    # Differences: DATETIME -> TIMESTAMP, remove SQLite specific pragmas if any
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS jobs (
         task_id TEXT PRIMARY KEY,
@@ -128,12 +133,18 @@ def _create_schema_postgres(cursor):
         message TEXT,
         progress INTEGER DEFAULT 0,
         result_json TEXT,
+        result_path TEXT,
         error TEXT,
         report_path TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+    # Migration: add result_path if table already exists without it
+    try:
+        cursor.execute("ALTER TABLE jobs ADD COLUMN result_path TEXT")
+    except Exception:
+        pass  # Column already exists
 
 # ─── Connection Factory ──────────────────────────────────────────────────────
 @contextmanager
