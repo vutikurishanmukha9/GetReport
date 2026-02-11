@@ -382,6 +382,21 @@ class EnhancedRAGService:
                 "task_id": task_id
             }
     
+    def ingest_report_sync(
+        self,
+        task_id: str,
+        text_content: str,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Synchronous wrapper around ``ingest_report``.
+
+        Celery workers run a plain sync event loop, so this avoids the
+        ``run_async_wrapper`` threading hack.
+        """
+        import asyncio
+        return asyncio.run(self.ingest_report(task_id, text_content, metadata))
+    
     async def _load_vector_store(self, task_id: str) -> Optional[FAISS]:
         """Load vector store from in-memory cache only."""
         cached_store = await self.cache.get(task_id)

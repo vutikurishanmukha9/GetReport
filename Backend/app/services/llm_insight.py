@@ -470,3 +470,15 @@ async def generate_insights(analysis_data: dict[str, Any]) -> InsightResult:
         result.total_tokens, result.response_time_ms, result.retries_attempted
     )
     return result
+
+
+# ─── Sync Wrapper (for Celery / non-async callers) ──────────────────────────
+def generate_insights_sync(analysis_data: dict[str, Any]) -> InsightResult:
+    """
+    Synchronous wrapper around ``generate_insights``.
+
+    Celery workers run a plain sync event loop, so this avoids the
+    ``run_async_wrapper`` threading hack.
+    """
+    import asyncio
+    return asyncio.run(generate_insights(analysis_data))

@@ -31,6 +31,10 @@ tasks.db
 *.swp
 
 
+
 # Generated Outputs
 outputs/
 temp_uploads/
+
+# Hypothesis testing
+.hypothesis/

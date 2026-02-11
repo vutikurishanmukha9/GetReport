@@ -9,6 +9,13 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: str = "60/minute"
     MAX_UPLOAD_SIZE_MB: int = 50
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:8080"
+
+    # ─── Analysis Thresholds ─────────────────────────────────────────────
+    IQR_LOWER_MULTIPLIER: float = 1.5
+    IQR_UPPER_MULTIPLIER: float = 1.5
+    CORRELATION_STRONG_THRESHOLD: float = 0.7
+    SKEWNESS_THRESHOLD: float = 1.0
+    ID_UNIQUENESS_THRESHOLD: float = 0.98
     
     class Config:
         env_file = ".env"

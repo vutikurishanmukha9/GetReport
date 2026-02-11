@@ -27,15 +27,17 @@ from app.services.insight_ranking import rank_insights
 # ─── Logger ──────────────────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)
 
-# ─── Constants ───────────────────────────────────────────────────────────────
-IQR_LOWER_MULTIPLIER: float = 1.5
-IQR_UPPER_MULTIPLIER: float = 1.5
-CORRELATION_STRONG_THRESHOLD: float = 0.7
+# ─── Constants (from centralized config — overridable via env vars) ──────────
+from app.core.config import settings
 
-SKEWNESS_THRESHOLD: float = 1.0
+IQR_LOWER_MULTIPLIER: float = settings.IQR_LOWER_MULTIPLIER
+IQR_UPPER_MULTIPLIER: float = settings.IQR_UPPER_MULTIPLIER
+CORRELATION_STRONG_THRESHOLD: float = settings.CORRELATION_STRONG_THRESHOLD
+
+SKEWNESS_THRESHOLD: float = settings.SKEWNESS_THRESHOLD
 
 # ─── Semantic Column Detection Thresholds ─────────────────────────────────────
-ID_UNIQUENESS_THRESHOLD: float = 0.98  # >98% unique values AND name suggests ID = likely ID
+ID_UNIQUENESS_THRESHOLD: float = settings.ID_UNIQUENESS_THRESHOLD  # >98% unique values AND name suggests ID = likely ID
 EXCEL_DATE_RANGE = (25569, 73050)  # Excel serial dates: 1970-2100
 # Only very strong ID patterns - avoid false positives like "student_number" which is valid data
 ID_COLUMN_PATTERNS = ['_id', 'uuid', 'guid', 'pk', 'primary_key', 'row_id', 'record_id']

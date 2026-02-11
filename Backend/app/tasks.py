@@ -1,46 +1,6 @@
 import os
-import asyncio
 import logging
 from typing import Dict, Any, Optional
-import threading
-
-def run_async_wrapper(coro):
-    """
-    Run an async coroutine synchronously, handling existing event loops.
-    If a loop is already running (e.g. in Celery eager mode/API thread), run in a separate thread.
-    Otherwise, use asyncio.run().
-    """
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        # Loop is running, run in a separate thread to avoid conflict
-        logger.info("Event loop detected. Running async task in separate thread.")
-        result = None
-        exception = None
-        
-        def run_in_thread():
-            nonlocal result, exception
-            try:
-                new_loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(new_loop)
-                result = new_loop.run_until_complete(coro)
-                new_loop.close()
-            except Exception as e:
-                exception = e
-
-        thread = threading.Thread(target=run_in_thread)
-        thread.start()
-        thread.join()
-        
-        if exception:
-            raise exception
-        return result
-    else:
-        # No loop running, use standard asyncio.run
-        return asyncio.run(coro)
 
 from app.core.celery_app import celery_app
 from app.services.task_manager import title_task_manager, TaskStatus
@@ -54,7 +14,7 @@ from app.services.analysis import analyze_dataset
 from app.services.analysis_config import AnalysisConfig
 from app.services.comparison import comparison_service
 from app.services.visualization import generate_charts
-from app.services.llm_insight import generate_insights
+from app.services.llm_insight import generate_insights, generate_insights_sync
 from app.services.report_renderer import generate_pdf_report
 from app.services.cleanup import cleanup_old_files
 
@@ -170,10 +130,9 @@ def resume_analysis_task(self, task_id: str, rules: Dict[str, Any], analysis_con
         # Charts (Synchronous)
         charts, _ = generate_charts(cleaned_df)
         
-        # Insights (Async - handled safely)
-        # Since we are in a synchronous Celery task, we use our robust wrapper
+        # Insights (sync wrapper around the async function)
         logger.info(f"Generating insights for task {task_id}...")
-        insights_result = run_async_wrapper(generate_insights(analysis_result))
+        insights_result = generate_insights_sync(analysis_result)
         
         # RAG Ingestion (Fire and Forget via another task)
         # Prepare text
@@ -221,10 +180,10 @@ def resume_analysis_task(self, task_id: str, rules: Dict[str, Any], analysis_con
 def rag_ingest_task(task_id: str, text: str):
     """
     Ingest text into vector store (RAG).
-    Async wrapper for sync Celery.
+    Uses the sync wrapper to avoid threading hacks.
     """
     try:
-        run_async_wrapper(rag_service.ingest_report(task_id, text))
+        rag_service.ingest_report_sync(task_id, text)
     except Exception as e:
         logger.error(f"RAG Ingestion Task failed: {e}")
 
