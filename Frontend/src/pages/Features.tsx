@@ -105,7 +105,97 @@ const Features = () => {
                 </div>
             </div>
         </div>
-    );
-};
 
-export default Features;
+            {/* Technical Specs */ }
+    <div className="bg-muted/30 border-y py-24">
+        <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+                <h2 className="text-3xl font-bold mb-4">built for Scale & Security</h2>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                    Enterprise-grade infrastructure designed for sensitive data workloads.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+                <div>
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                        <ShieldCheck className="h-5 w-5 text-primary" /> Security First
+                    </h3>
+                    <ul className="space-y-4">
+                        <li className="flex gap-3">
+                            <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                                <div className="h-2 w-2 rounded-full bg-green-600" />
+                            </div>
+                            <div>
+                                <p className="font-semibold">Ephemeral Processing</p>
+                                <p className="text-sm text-muted-foreground">Data is processed in-memory and discarded immediately after analysis.</p>
+                            </div>
+                        </li>
+                        <li className="flex gap-3">
+                            <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                                <div className="h-2 w-2 rounded-full bg-green-600" />
+                            </div>
+                            <div>
+                                <p className="font-semibold">PII Redaction</p>
+                                <p className="text-sm text-muted-foreground">Automatic detection and masking of sensitive PII before AI processing.</p>
+                            </div>
+                        </li>
+                        <li className="flex gap-3">
+                            <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                                <div className="h-2 w-2 rounded-full bg-green-600" />
+                            </div>
+                            <div>
+                                <p className="font-semibold">Encryption</p>
+                                <p className="text-sm text-muted-foreground">TLS 1.3 encryption in transit. No data at rest persistence.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                        <Gauge className="h-5 w-5 text-primary" /> Performance
+                    </h3>
+                    <ul className="space-y-4">
+                        <li className="flex gap-3">
+                            <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                <div className="h-2 w-2 rounded-full bg-blue-600" />
+                            </div>
+                            <div>
+                                <p className="font-semibold">Polars Engine</p>
+                                <p className="text-sm text-muted-foreground">Multi-threaded data processing for 100k+ row datasets in seconds.</p>
+                            </div>
+                        </li>
+                        <li className="flex gap-3">
+                            <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                <div className="h-2 w-2 rounded-full bg-blue-600" />
+                            </div>
+                            <div>
+                                <p className="font-semibold">Async Architecture</p>
+                                <p className="text-sm text-muted-foreground">Non-blocking Celery workers handle heavy compute tasks.</p>
+                            </div>
+                        </li>
+                        <li className="flex gap-3">
+                            <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                <div className="h-2 w-2 rounded-full bg-blue-600" />
+                            </div>
+                            <div>
+                                <p className="font-semibold">Smart Sampling</p>
+                                <p className="text-sm text-muted-foreground">Representative sampling for large-scale AI insights without context overflow.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {/* CTA */ }
+    <div className="container mx-auto px-4 py-24 text-center">
+        <h2 className="text-3xl font-bold mb-6">Ready to transform your data?</h2>
+        <Link to="/">
+            <Button size="lg" className="h-12 px-8">Start Your Analysis</Button>
+        </Link>
+    </div>
+
+    export default Features;

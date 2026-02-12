@@ -74,10 +74,37 @@ const Pricing = () => {
                     </Card>
                 </div>
 
-                <div className="mt-24 text-center">
-                    <p className="text-muted-foreground text-sm">
+                <div className="mt-24 max-w-3xl mx-auto">
+                    <h2 className="text-2xl font-bold text-center mb-8">Frequently Asked Questions</h2>
+                    <div className="grid gap-6">
+                        <div className="p-6 border rounded-xl bg-card">
+                            <h3 className="font-semibold mb-2">Is it really free?</h3>
+                            <p className="text-muted-foreground text-sm">
+                                Yes! During our Early Access period, all features are completely free. We want to gather feedback and improve the product.
+                            </p>
+                        </div>
+                        <div className="p-6 border rounded-xl bg-card">
+                            <h3 className="font-semibold mb-2">What happens to my data?</h3>
+                            <p className="text-muted-foreground text-sm">
+                                We practice ephemeral processing. Your data is analyzed in-memory and deleted immediately after the report is generated. We don't train models on your raw data.
+                            </p>
+                        </div>
+                        <div className="p-6 border rounded-xl bg-card">
+                            <h3 className="font-semibold mb-2">Is there a file size limit?</h3>
+                            <p className="text-muted-foreground text-sm">
+                                Currently, we support files up to 50MB. For larger enterprise datasets, please contact our support team.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-16 text-center">
+                    <p className="text-muted-foreground text-sm mb-6">
                         No credit card required. No hidden fees. Just pure data power.
                     </p>
+                    <Link to="/">
+                        <Button size="lg" variant="outline">Start Analyzing</Button>
+                    </Link>
                 </div>
             </div>
         </div>

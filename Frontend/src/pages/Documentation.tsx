@@ -17,6 +17,25 @@ const Documentation = () => {
             </div>
 
             <div className="container mx-auto px-4 py-12 max-w-4xl">
+                {/* Popular Topics Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                    <Link to="#" className="p-6 border rounded-xl hover:bg-muted/50 transition-colors group">
+                        <FileSpreadsheet className="h-8 w-8 text-green-600 mb-3 group-hover:scale-110 transition-transform" />
+                        <h3 className="font-semibold mb-1">Data Prep</h3>
+                        <p className="text-xs text-muted-foreground">Formatting your CSV/Excel for best results</p>
+                    </Link>
+                    <Link to="#" className="p-6 border rounded-xl hover:bg-muted/50 transition-colors group">
+                        <Gauge className="h-8 w-8 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
+                        <h3 className="font-semibold mb-1">Interpreting Scores</h3>
+                        <p className="text-xs text-muted-foreground">Understanding A-F confidence grades</p>
+                    </Link>
+                    <Link to="#" className="p-6 border rounded-xl hover:bg-muted/50 transition-colors group">
+                        <Brain className="h-8 w-8 text-purple-600 mb-3 group-hover:scale-110 transition-transform" />
+                        <h3 className="font-semibold mb-1">AI Insights</h3>
+                        <p className="text-xs text-muted-foreground">How our RAG architecture works</p>
+                    </Link>
+                </div>
+
                 <div className="grid gap-12">
                     {/* Getting Started */}
                     <section>

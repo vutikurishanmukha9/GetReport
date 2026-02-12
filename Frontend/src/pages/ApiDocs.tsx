@@ -85,6 +85,39 @@ const ApiDocs = () => {
                             </div>
                         </section>
 
+                        {/* Error Codes */}
+                        <section id="errors" className="space-y-6">
+                            <h2 className="text-2xl font-bold mb-4">Error Codes</h2>
+                            <div className="border rounded-lg overflow-hidden">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-muted">
+                                        <tr>
+                                            <th className="p-4 font-semibold">Code</th>
+                                            <th className="p-4 font-semibold">Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        <tr>
+                                            <td className="p-4 font-mono text-xs">400 Bad Request</td>
+                                            <td className="p-4">Invalid file format or missing required fields.</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="p-4 font-mono text-xs">413 Payload Too Large</td>
+                                            <td className="p-4">File exceeds the 50MB limit.</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="p-4 font-mono text-xs">429 Too Many Requests</td>
+                                            <td className="p-4">Rate limit exceeded (IP-based).</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="p-4 font-mono text-xs">500 Internal Server Error</td>
+                                            <td className="p-4">Processing failure. Check <code>detail</code> field.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
                         {/* Response Format */}
                         <section id="response" className="space-y-6">
                             <h2 className="text-2xl font-bold mb-4">Response Format</h2>

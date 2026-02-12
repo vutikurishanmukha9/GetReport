@@ -1,0 +1,39 @@
+# ─── GetReport Backend — Dockerignore ────────────────────────────────────────
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.hypothesis
+.mypy_cache
+.ruff_cache
+
+# Virtual environment
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Env files (secrets — set via Render Dashboard)
+.env
+.env.*
+
+# Test DB
+tasks.db
+app.db
+*.db
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Uploads / temp
+uploads/
+temp/
+*.csv
+*.xlsx

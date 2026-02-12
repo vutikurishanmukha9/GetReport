@@ -1,10 +1,9 @@
 """
 report_generator.py
 ~~~~~~~~~~~~~~~~~~~
-PDF report orchestrator.  Imports styles, helpers, and section builders from
-report_styles and report_sections, then assembles them into a single PDF.
-
-This file was refactored from a 1843-line monolith into a thin orchestrator.
+PDF report orchestrator.  Routes to one of two engines based on config:
+  - PDF_ENGINE=reportlab  → existing ReportLab pipeline (default, local dev)
+  - PDF_ENGINE=weasyprint  → Jinja2 HTML/CSS + WeasyPrint (production)
 """
 from __future__ import annotations
 
@@ -13,47 +12,19 @@ import time
 from io import BytesIO
 from typing import Any
 
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate
-from reportlab.platypus.flowables import Flowable
+from app.core.config import settings
 
 # ─── Re-exports (public API used by other modules) ──────────────────────────
 from app.services.report_styles import (
     ReportMetadata,
     InvalidReportInputError,
-    _build_styles,
-    _page_callback,
-    _validate_inputs,
-)
-from app.services.report_sections import (
-    _build_title_page,
-    _build_executive_summary,
-    _build_metadata_section,
-    _build_confidence_scores_section,
-    _build_semantic_analysis_section,
-    _build_analysis_decisions_section,
-    _build_cleaning_section,
-    _build_comparison_section,
-    _build_advanced_stats_section,
-    _build_multicollinearity_section,
-    _build_time_series_section,
-    _build_insights_section,
-    _build_correlations_section,
-    _build_outliers_section,
-    _build_categorical_section,
-    _build_quality_flags_section,
-    _build_feature_engineering_section,
-    _build_smart_schema_section,
-    _build_recommendations_section,
-    _build_visualizations,
 )
 
 # ─── Logger ──────────────────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)
 
 
-# ─── Main Entry Point ────────────────────────────────────────────────────────
+# ─── Public Entry Point (Engine Factory) ─────────────────────────────────────
 def generate_pdf_report(
     analysis_results: dict[str, Any],
     charts: dict[str, Any],
@@ -62,21 +33,66 @@ def generate_pdf_report(
     """
     Generate the full GetReport PDF and return it as a BytesIO buffer.
 
-    Args:
-        analysis_results: The full dict from analyze_dataset() + cleaning_report + insights.
-        charts:           Dict of base64-encoded chart images.
-        filename:         The original uploaded file name.
+    Routes to the correct engine based on ``settings.PDF_ENGINE``:
+      - ``"reportlab"``  → pixel-level ReportLab (default, no system deps)
+      - ``"weasyprint"`` → Jinja2 HTML/CSS → WeasyPrint PDF
 
     Returns:
         Tuple of (BytesIO buffer containing the PDF, ReportMetadata).
-
-    Raises:
-        InvalidReportInputError: If inputs fail validation.
-        Exception:               Re-raised on any unexpected PDF build failure.
     """
+    engine = settings.PDF_ENGINE.lower().strip()
+    logger.info("═══ PDF Engine: %s ═══", engine)
+
+    if engine == "weasyprint":
+        from app.services.report_weasyprint import generate_pdf_weasyprint
+        return generate_pdf_weasyprint(analysis_results, charts, filename)
+    else:
+        return _generate_pdf_reportlab(analysis_results, charts, filename)
+
+
+# ─── ReportLab Engine (Original) ─────────────────────────────────────────────
+def _generate_pdf_reportlab(
+    analysis_results: dict[str, Any],
+    charts: dict[str, Any],
+    filename: str,
+) -> tuple[BytesIO, ReportMetadata]:
+    """Generate PDF using the original ReportLab pipeline."""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate
+    from reportlab.platypus.flowables import Flowable
+
+    from app.services.report_styles import (
+        _build_styles,
+        _page_callback,
+        _validate_inputs,
+    )
+    from app.services.report_sections import (
+        _build_title_page,
+        _build_executive_summary,
+        _build_metadata_section,
+        _build_confidence_scores_section,
+        _build_semantic_analysis_section,
+        _build_analysis_decisions_section,
+        _build_cleaning_section,
+        _build_comparison_section,
+        _build_advanced_stats_section,
+        _build_multicollinearity_section,
+        _build_time_series_section,
+        _build_insights_section,
+        _build_correlations_section,
+        _build_outliers_section,
+        _build_categorical_section,
+        _build_quality_flags_section,
+        _build_feature_engineering_section,
+        _build_smart_schema_section,
+        _build_recommendations_section,
+        _build_visualizations,
+    )
+
     start_time = time.perf_counter()
     meta       = ReportMetadata(filename=filename)
-    logger.info("═══ PDF Report Generation Started — '%s' ═══", filename)
+    logger.info("═══ PDF Report Generation Started (ReportLab) — '%s' ═══", filename)
 
     # ── 1. Validate inputs ──────────────────────────────────────────────────
     _validate_inputs(analysis_results, charts, filename)
@@ -142,3 +158,4 @@ def generate_pdf_report(
         meta.charts_skipped,
     )
     return buffer, meta
+

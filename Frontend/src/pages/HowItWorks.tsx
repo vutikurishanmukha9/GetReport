@@ -83,15 +83,58 @@ const HowItWorks = () => {
                     ))}
                 </div>
 
-                <div className="mt-16 text-center">
-                    <Link to="/">
-                        <Button size="lg" className="gap-2 h-12 px-8 text-lg">
-                            Try It Yourself <ArrowRight className="h-5 w-5" />
-                        </Button>
-                    </Link>
+            </div>
+
+            {/* Architecture Diagram (Conceptual) */}
+            <div className="mt-24 pt-24 border-t">
+                <div className="text-center mb-16">
+                    <h2 className="text-3xl font-bold mb-4">Under the Hood</h2>
+                    <p className="text-muted-foreground">How GetReport processes your data securely and efficiently</p>
+                </div>
+
+                <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-4 items-center text-center">
+                    {/* Client */}
+                    <div className="p-6 bg-card border rounded-xl relative">
+                        <div className="text-sm font-semibold mb-2">Frontend</div>
+                        <div className="h-10 w-10 bg-blue-100 rounded-lg mx-auto flex items-center justify-center mb-2">
+                            <Search className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div className="text-xs text-muted-foreground">React/Vite App</div>
+                    </div>
+
+                    <ArrowRight className="hidden md:block h-6 w-6 text-muted-foreground mx-auto" />
+
+                    {/* API */}
+                    <div className="p-6 bg-card border rounded-xl relative">
+                        <div className="text-sm font-semibold mb-2">API Gateway</div>
+                        <div className="h-10 w-10 bg-purple-100 rounded-lg mx-auto flex items-center justify-center mb-2">
+                            <Gauge className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div className="text-xs text-muted-foreground">FastAPI Server</div>
+                    </div>
+
+                    <ArrowRight className="hidden md:block h-6 w-6 text-muted-foreground mx-auto" />
+
+                    {/* Worker */}
+                    <div className="p-6 bg-card border rounded-xl relative">
+                        <div className="text-sm font-semibold mb-2">Analysis Engine</div>
+                        <div className="h-10 w-10 bg-orange-100 rounded-lg mx-auto flex items-center justify-center mb-2">
+                            <Brain className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div className="text-xs text-muted-foreground">Celery + Polars</div>
+                    </div>
                 </div>
             </div>
+
+            <div className="mt-24 text-center">
+                <Link to="/">
+                    <Button size="lg" className="gap-2 h-12 px-8 text-lg">
+                        Try It Yourself <ArrowRight className="h-5 w-5" />
+                    </Button>
+                </Link>
+            </div>
         </div>
+        </div >
     );
 };
 

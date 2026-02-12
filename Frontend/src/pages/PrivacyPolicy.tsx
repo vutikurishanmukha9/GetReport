@@ -76,7 +76,14 @@ const PrivacyPolicy = () => {
                     </section>
 
                     <section>
-                        <h2 className="text-2xl font-semibold mb-4">6. Contact</h2>
+                        <h2 className="text-2xl font-semibold mb-4">6. Cookies & Tracking</h2>
+                        <p className="text-muted-foreground leading-relaxed">
+                            We use minimal cookies strictly for session management and security. We do not use third-party tracking cookies or advertising pixels. Your analysis session is private.
+                        </p>
+                    </section>
+
+                    <section>
+                        <h2 className="text-2xl font-semibold mb-4">7. Contact</h2>
                         <p className="text-muted-foreground leading-relaxed">
                             If you have any questions about this privacy policy, please contact us at privacy@getreport.com.
                         </p>

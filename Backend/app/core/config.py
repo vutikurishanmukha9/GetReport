@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     CORRELATION_STRONG_THRESHOLD: float = 0.7
     SKEWNESS_THRESHOLD: float = 1.0
     ID_UNIQUENESS_THRESHOLD: float = 0.98
+
+    # ─── PDF Engine ──────────────────────────────────────────────────────
+    PDF_ENGINE: str = "reportlab"  # "reportlab" (local dev) or "weasyprint" (production)
     
     class Config:
         env_file = ".env"

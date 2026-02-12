@@ -1,0 +1,374 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   GetReport — PDF Stylesheet (WeasyPrint)
+   Modern, professional design with gradient headers and color-coded badges.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Page Setup ─────────────────────────────────────────────────────────── */
+@page {
+    size: letter;
+    margin: 0.6in 0.6in 0.75in 0.6in;
+
+    @bottom-center {
+        content: "GetReport — Automated Data Intelligence";
+        font-size: 7pt;
+        color: #94a3b8;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+    }
+    @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-size: 7pt;
+        color: #94a3b8;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+    }
+}
+
+@page :first {
+    @bottom-center { content: none; }
+    @bottom-right  { content: none; }
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+    font-size: 9pt;
+    line-height: 1.55;
+    color: #1e293b;
+    background: #fff;
+}
+
+/* ─── Title Page ─────────────────────────────────────────────────────────── */
+.title-page {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 9in;
+    text-align: center;
+}
+
+.title-page__brand {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #6366f1;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+}
+
+.title-page__name {
+    font-size: 28pt;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+    margin-bottom: 8px;
+}
+
+.title-page__subtitle {
+    font-size: 13pt;
+    color: #64748b;
+    font-weight: 400;
+    margin-bottom: 40px;
+}
+
+.title-page__divider {
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 2px;
+    margin: 0 auto 40px;
+}
+
+.title-page__meta {
+    font-size: 9pt;
+    color: #94a3b8;
+}
+
+.title-page__meta strong {
+    color: #475569;
+}
+
+/* ─── Section Headers ────────────────────────────────────────────────────── */
+.section {
+    page-break-inside: avoid;
+    margin-bottom: 18px;
+}
+
+.section-header {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 6px 6px 0 0;
+    font-size: 12pt;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    margin-bottom: 0;
+}
+
+.section-header--green {
+    background: linear-gradient(135deg, #059669, #10b981);
+}
+
+.section-header--blue {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+}
+
+.section-header--amber {
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+}
+
+.section-header--red {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+}
+
+.section-header--teal {
+    background: linear-gradient(135deg, #0d9488, #14b8a6);
+}
+
+.section-header--slate {
+    background: linear-gradient(135deg, #475569, #64748b);
+}
+
+.section-body {
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    padding: 14px 16px;
+    background: #ffffff;
+}
+
+/* ─── Tables ─────────────────────────────────────────────────────────────── */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 8.5pt;
+    margin: 8px 0;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+thead th {
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 700;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
+}
+
+tbody tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ─── Badges ─────────────────────────────────────────────────────────────── */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 7.5pt;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.badge--a, .badge--high { background: #dcfce7; color: #166534; }
+.badge--b              { background: #dbeafe; color: #1e40af; }
+.badge--c, .badge--medium { background: #fef3c7; color: #92400e; }
+.badge--d, .badge--low    { background: #fee2e2; color: #991b1b; }
+.badge--info           { background: #e0e7ff; color: #3730a3; }
+.badge--positive       { background: #dcfce7; color: #166534; }
+.badge--negative       { background: #fee2e2; color: #991b1b; }
+.badge--neutral        { background: #f1f5f9; color: #475569; }
+
+/* Priority colors */
+.priority-high   { color: #dc2626; font-weight: 700; }
+.priority-medium { color: #d97706; font-weight: 600; }
+.priority-low    { color: #16a34a; font-weight: 600; }
+
+/* ─── Stats Cards ────────────────────────────────────────────────────────── */
+.stats-row {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.stat-card {
+    flex: 1;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-align: center;
+}
+
+.stat-card__value {
+    font-size: 18pt;
+    font-weight: 800;
+    color: #6366f1;
+    line-height: 1.2;
+}
+
+.stat-card__label {
+    font-size: 7.5pt;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* ─── Insight Cards ──────────────────────────────────────────────────────── */
+.insight-card {
+    background: #f8fafc;
+    border-left: 4px solid #6366f1;
+    padding: 10px 14px;
+    margin: 8px 0;
+    border-radius: 0 6px 6px 0;
+}
+
+.insight-card--warning {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+}
+
+.insight-card--danger {
+    border-left-color: #ef4444;
+    background: #fef2f2;
+}
+
+.insight-card--success {
+    border-left-color: #10b981;
+    background: #ecfdf5;
+}
+
+.insight-card__title {
+    font-weight: 700;
+    font-size: 9.5pt;
+    color: #0f172a;
+    margin-bottom: 3px;
+}
+
+.insight-card__text {
+    font-size: 8.5pt;
+    color: #475569;
+    line-height: 1.5;
+}
+
+/* ─── Charts ─────────────────────────────────────────────────────────────── */
+.chart-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 10px 0;
+}
+
+.chart-card {
+    flex: 1 1 45%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    page-break-inside: avoid;
+}
+
+.chart-card img {
+    width: 100%;
+    display: block;
+}
+
+.chart-card__caption {
+    font-size: 8pt;
+    color: #64748b;
+    text-align: center;
+    padding: 6px 10px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* ─── Recommendations ────────────────────────────────────────────────────── */
+.recommendation {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 6px 0;
+    background: #ffffff;
+}
+
+.recommendation__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.recommendation__title {
+    font-weight: 700;
+    font-size: 9.5pt;
+    color: #0f172a;
+}
+
+.recommendation__detail {
+    font-size: 8.5pt;
+    color: #475569;
+    line-height: 1.5;
+}
+
+/* ─── Utility ────────────────────────────────────────────────────────────── */
+.text-muted { color: #94a3b8; }
+.text-small { font-size: 8pt; }
+.text-bold  { font-weight: 700; }
+.mt-8       { margin-top: 8px; }
+.mt-12      { margin-top: 12px; }
+.mb-8       { margin-bottom: 8px; }
+
+.divider {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 14px 0;
+}
+
+/* ─── Page Breaks ────────────────────────────────────────────────────────── */
+.page-break {
+    page-break-before: always;
+}
+
+.no-break {
+    page-break-inside: avoid;
+}
+
+/* ─── Grade Circle ───────────────────────────────────────────────────────── */
+.grade-circle {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    border-radius: 50%;
+    text-align: center;
+    font-size: 16pt;
+    font-weight: 800;
+    color: white;
+}
+
+.grade-a { background: linear-gradient(135deg, #059669, #10b981); }
+.grade-b { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+.grade-c { background: linear-gradient(135deg, #d97706, #f59e0b); }
+.grade-d { background: linear-gradient(135deg, #dc2626, #ef4444); }

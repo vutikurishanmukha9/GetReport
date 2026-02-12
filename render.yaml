@@ -1,0 +1,88 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# GetReport — Render Blueprint (Infrastructure as Code)
+#
+# Services:
+#   1. Backend API  (FastAPI + WeasyPrint)     — Docker, Web Service
+#   2. Celery Worker (background tasks)        — Docker, Background Worker
+#   3. Frontend     (Vite React)               — Static Site
+#   4. Redis        (Celery broker/backend)    — Render Redis
+#
+# External (not managed by Render):
+#   - Neon DB Postgres → Set DATABASE_URL in Render Dashboard
+#   - OpenAI API       → Set OPENAI_API_KEY in Render Dashboard
+# ═══════════════════════════════════════════════════════════════════════════════
+
+services:
+  # ─── 1. Backend API ──────────────────────────────────────────────────────────
+  - type: web
+    name: getreport-api
+    runtime: docker
+    dockerfilePath: ./Backend/Dockerfile
+    dockerContext: ./Backend
+    plan: starter
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Set manually → Neon DB Postgres connection string
+      - key: REDIS_URL
+        fromService:
+          name: getreport-redis
+          type: redis
+          property: connectionString
+      - key: OPENAI_API_KEY
+        sync: false # Set manually in Render Dashboard
+      - key: PDF_ENGINE
+        value: weasyprint
+      - key: CORS_ORIGINS
+        sync: false # Set to your frontend URL, e.g. https://getreport.onrender.com
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  # ─── 2. Celery Worker ───────────────────────────────────────────────────────
+  - type: worker
+    name: getreport-worker
+    runtime: docker
+    dockerfilePath: ./Backend/Dockerfile
+    dockerContext: ./Backend
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          name: getreport-redis
+          type: redis
+          property: connectionString
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PDF_ENGINE
+        value: weasyprint
+    dockerCommand: celery -A app.core.celery_app worker --loglevel=info --concurrency=2
+
+  # ─── 3. Frontend (Static Site) ──────────────────────────────────────────────
+  - type: web
+    name: getreport-frontend
+    runtime: static
+    buildCommand: cd Frontend && npm install && npm run build
+    staticPublishPath: ./Frontend/dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false # Set to https://getreport-api.onrender.com/api
+
+# ─── 4. Redis ──────────────────────────────────────────────────────────────────
+databases:
+  - name: getreport-redis
+    plan: starter
+    ipAllowList: []  # Only allow internal connections
