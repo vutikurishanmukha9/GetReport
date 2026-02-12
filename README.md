@@ -3,10 +3,16 @@
 ## Motto
 **Turn Your Data Into Professional Reports in Seconds.**
 
-## Overview
-GetReport is an intelligent data analysis platform that transforms raw CSV/Excel files into comprehensive PDF reports with minimal effort. It combines automated statistical analysis, semantic data understanding, and AI-powered insights to deliver actionable business intelligence.
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev/)
+[![Celery](https://img.shields.io/badge/Celery-5.3-37814A?logo=celery)](https://docs.celeryq.dev/)
+[![WeasyPrint](https://img.shields.io/badge/PDF_Engine-WeasyPrint-FF6600)](https://weasyprint.org/)
 
 ---
+
+## Overview
+GetReport is an intelligent data analysis platform that transforms raw CSV/Excel files into comprehensive PDF reports with minimal effort. It combines automated statistical analysis, semantic data understanding, and AI-powered insights to deliver actionable business intelligence.
 
 ## Problem Solved
 Data analysis traditionally requires:
@@ -24,37 +30,26 @@ Data analysis traditionally requires:
 
 ## Key Features
 
-### Semantic Column Intelligence
-- **Domain Detection**: Automatically identifies dataset context (Education, Sales, Healthcare, HR, Finance, Logistics, IoT)
-- **Column Role Classification**: Distinguishes between identifiers, metrics, dimensions, and analytical columns
-- **Smart Filtering**: Excludes ID/date columns from visualizations while keeping meaningful numeric data
+### Dual-Engine PDF Generation (New)
+- **Local Dev**: Uses `ReportLab` for fast, lightweight PDF generation without system dependencies.
+- **Production**: Uses `WeasyPrint` for HTML/CSS-driven, highly styled reports with professional typography and layouts.
+- **Seamless Switch**: Controlled via `PDF_ENGINE` environment variable.
 
-### ML-Ready Feature Engineering
-- **Encoding Recommendations**: Suggests One-Hot, Label, or Target encoding for categorical variables
-- **Scaling Suggestions**: Recommends StandardScaler, MinMax, RobustScaler, or Log transforms based on data distribution
-- **Feature Extraction Ideas**: Proposes new features from dates (year, month, weekday) and text (length, word count)
+### Trust Foundation (Tier 1)
+- **Column Confidence Scores**: Grades every column on Completeness, Consistency, Validity, and Stability.
+- **Decision Transparency**: Logs why specific tests (Correlation, Time-Series, Anova) were run or skipped.
+- **Semantic Intelligence**: Auto-detects domains (Sales, HR, Finance, Healthcare) to tailor insights.
 
-### Smart Schema Inference
-- **Type Correction**: Detects numbers stored as strings, Excel serial dates, and other type mismatches
-- **Relationship Detection**: Identifies foreign key relationships and derived columns
-- **Quality Checks**: Flags whitespace issues, inconsistent casing, and near-constant columns
-
-### Actionable Recommendations
-- **Domain-Specific Guidance**: Tailored suggestions based on detected domain (e.g., "Analyze Attrition Risk" for HR data)
-- **Data Quality Priorities**: Ranked recommendations for handling missing values, duplicates, and outliers
-- **Analysis Suggestions**: Next-step recommendations for deeper exploration
+### Advanced Intelligence (Tier 2)
+- **RAG-Powered Insights**: Uses Retrieval-Augmented Generation to provide narrative context without exposing raw confidential rows to AI models.
+- **Smart Remediation**: Identifies quality issues (outliers, missing values) and suggests ranked cleaning actions.
+- **ML-Ready Recommendations**: Suggests optimal encodings and scalers for future machine learning workflows.
 
 ### Robust Statistical Analysis
 - **17-Point EDA Checklist**: Rigorous validation including skewness, kurtosis, multicollinearity (VIF)
 - **Outlier Detection**: IQR-based flagging with configurable thresholds
 - **Correlation Analysis**: Strong pair detection with heatmap visualization
 - **Time-Series Detection**: Automatic trend and seasonality analysis when date columns present
-
-### Professional PDF Reports
-- **Executive Summary**: Key metrics and data health overview
-- **Data Intelligence Section**: Domain detection, column roles, analysis pairs
-- **Multiple Visualizations**: Correlation heatmaps, distribution histograms, bar charts, boxplots
-- **Cleaning Documentation**: Full audit trail of data transformations applied
 
 ---
 
@@ -65,7 +60,7 @@ Data analysis traditionally requires:
 |-----------|------------|
 | Framework | React + Vite |
 | Language | TypeScript |
-| Styling | Tailwind CSS, shadcn/ui |
+| Styling | Tailwind CSS, Shadcn/UI |
 | Icons | Lucide React |
 | State | TanStack Query |
 
@@ -73,10 +68,11 @@ Data analysis traditionally requires:
 | Component | Technology |
 |-----------|------------|
 | Framework | FastAPI (Python 3.12+) |
+| Task Queue | Celery + Redis |
 | Data Processing | Polars, NumPy |
-| Analysis | SciPy, Scikit-learn |
-| PDF Generation | ReportLab Platypus |
-| Database | SQLite + SQLAlchemy |
+| PDF Engine 1 | ReportLab (Local) |
+| PDF Engine 2 | WeasyPrint (Production) |
+| Database | SQLite (Local) / PostgreSQL (Prod) |
 | AI | OpenAI API (GPT-4o) |
 
 ---
@@ -92,22 +88,20 @@ GetReport/
 │   │   ├── api/            # FastAPI endpoints
 │   │   ├── services/       # Core business logic
 │   │   │   ├── analysis.py           # Statistical analysis
-│   │   │   ├── visualization.py      # Chart generation
-│   │   │   ├── report_generator.py   # PDF creation
+│   │   │   ├── report_weasyprint.py  # New HTML/CSS PDF engine
+│   │   │   ├── report_generator.py   # PDF factory
 │   │   │   ├── semantic_inference.py # Domain/column detection
-│   │   │   ├── feature_engineering.py# ML prep suggestions
-│   │   │   ├── smart_schema.py       # Type inference
-│   │   │   └── recommendations.py    # Actionable insights
+│   │   │   └── tasks.py              # Celery tasks
 │   │   └── db/             # Database models
-│   └── outputs/            # Generated PDFs (auto-cleanup >24h)
-└── README.md
+│   └── Dockerfile          # Production build
+└── render.yaml             # Render deployment blueprint
 ```
 
 ---
 
 ## Setup and Running
 
-### Backend
+### Backend (Local)
 ```bash
 cd Backend
 # Activate virtual environment
@@ -117,35 +111,44 @@ source venv/bin/activate         # Linux/Mac
 # Install dependencies
 pip install -r requirements.txt
 
-# Run server
+# Run server (Defaults to PDF_ENGINE=reportlab)
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend
+### Frontend (Local)
 ```bash
 cd Frontend
 npm install
 npm run dev
 ```
 
-Access the application at `http://localhost:5173`
+Access the application at `http://localhost:8080`
 
 ---
 
-## API Reference
+## Deployment (Production)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/upload` | Upload file (streaming) - Returns Task ID |
-| GET | `/api/status/{task_id}` | Check progress / Get inspection report |
-| POST | `/api/jobs/{task_id}/analyze` | Submit cleaning rules and start analysis |
-| POST | `/api/jobs/{task_id}/report` | Generate/regenerate PDF from results |
-| GET | `/api/jobs/{task_id}/report` | Download generated PDF |
-| POST | `/api/jobs/{task_id}/chat` | Chat with analyzed data (RAG) |
+The project is optimized for deployment on **Render.com** (or any Docker-based cloud).
+
+### Deployment Artifacts
+- **render.yaml**: Blueprint for fully automated deployment (API, Worker, Redis, Frontend).
+- **Dockerfile**: Multi-stage build installing WeasyPrint system dependencies (Pango, Cairo) and SSL certs.
+- **deployment_guide.md**: Detailed step-by-step instructions.
+
+### Environment Variables
+| Variable | Default (Local) | Production |
+|----------|-----------------|------------|
+| `PDF_ENGINE` | `reportlab` | `weasyprint` |
+| `DATABASE_URL` | (empty) -> uses `tasks.db` | `postgres://user:pass@host/db?sslmode=require` |
+| `REDIS_URL` | `redis://localhost:6379/0` | `redis://redishost:6379/0` |
+| `OPENAI_API_KEY`| (required for AI) | (required for AI) |
 
 ---
 
 ## Architecture Highlights
+
+### Asynchronous Pipeline
+`Client` -> `API` -> `Redis` -> `Celery Worker` -> `PDF Engine`
 
 ### Two-Stage Pipeline
 1. **Inspection Phase**: Upload triggers immediate data profiling. User reviews quality issues and selects cleaning actions.
@@ -156,11 +159,6 @@ Access the application at `http://localhost:5173`
 - **Polars Engine**: High-performance DataFrame operations (faster than Pandas)
 - **Process Pool**: PDF generation offloaded to separate process to avoid blocking API
 - **Automatic Cleanup**: Old temp files and reports cleaned after 24 hours
-
-### Resilient Design
-- **Graceful Degradation**: Each analysis section handles errors independently
-- **Comprehensive Logging**: Full audit trail for debugging
-- **Type Safety**: Python type hints throughout codebase
 
 ---
 
