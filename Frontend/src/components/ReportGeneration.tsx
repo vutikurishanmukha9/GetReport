@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight, AlertTriangle, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,13 @@ export const ReportGeneration = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
+  // Refs to safely cancel polling when component unmounts
+  const cancelledRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
+    cancelledRef.current = false;
+
     if (step === "generating" && !isGenerating && !downloadUrl) {
       if (!taskId) {
         console.error("No Task ID found for generation.");
@@ -45,6 +51,12 @@ export const ReportGeneration = ({
       }
       generateReport(taskId);
     }
+
+    return () => {
+      // Cleanup: cancel pending polls on unmount / re-run
+      cancelledRef.current = true;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [step, taskId]);
 
   const generateReport = async (tid: string) => {
@@ -55,31 +67,16 @@ export const ReportGeneration = ({
     try {
       // 1. Trigger Server-Side Generation (async via Celery)
       await api.generatePersistentReport(tid);
+      if (cancelledRef.current) return;
+
       setStatus("Generating PDF report...");
       setProgress(30);
 
-      // 2. Poll report status until ready (fixes race condition)
-      const maxAttempts = 60; // 60 * 2s = 2min max wait
-      let attempts = 0;
-      let ready = false;
+      // 2. Poll report status using recursive setTimeout (safe on unmount)
+      const maxAttempts = 60;
+      const ready = await pollReportStatus(tid, 0, maxAttempts);
 
-      while (attempts < maxAttempts && !ready) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
-
-        try {
-          const reportStatus = await api.getReportStatus(tid);
-          if (reportStatus.status === "ready") {
-            ready = true;
-            setProgress(80);
-          } else {
-            setProgress(Math.min(30 + (attempts * 0.8), 75)); // Gradual progress
-            setStatus(`Generating PDF report... (${attempts}s)`);
-          }
-        } catch {
-          // Status endpoint not available yet, keep polling
-        }
-      }
+      if (cancelledRef.current) return;
 
       if (!ready) {
         throw new Error("Report generation timed out. Please try again.");
@@ -88,6 +85,7 @@ export const ReportGeneration = ({
       // 3. Download the ready PDF
       setStatus("Downloading PDF...");
       const blob = await api.downloadReportBlob(tid);
+      if (cancelledRef.current) return;
 
       setStatus("Report ready for download!");
       const url = window.URL.createObjectURL(blob);
@@ -101,6 +99,7 @@ export const ReportGeneration = ({
       });
 
     } catch (error) {
+      if (cancelledRef.current) return;
       console.error("Report generation failed:", error);
       setStatus("Failed to generate report.");
       toast({
@@ -109,8 +108,41 @@ export const ReportGeneration = ({
         variant: "destructive",
       });
     } finally {
-      setIsGenerating(false);
+      if (!cancelledRef.current) setIsGenerating(false);
     }
+  };
+
+  /** Recursive setTimeout poller — checks cancelledRef before each iteration */
+  const pollReportStatus = (tid: string, attempt: number, max: number): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (cancelledRef.current || attempt >= max) {
+        resolve(false);
+        return;
+      }
+
+      timerRef.current = setTimeout(async () => {
+        if (cancelledRef.current) { resolve(false); return; }
+
+        try {
+          const reportStatus = await api.getReportStatus(tid);
+          if (reportStatus.status === "ready") {
+            if (!cancelledRef.current) setProgress(80);
+            resolve(true);
+            return;
+          }
+        } catch {
+          // Status endpoint not available yet, keep polling
+        }
+
+        if (!cancelledRef.current) {
+          setProgress(Math.min(30 + (attempt * 0.8), 75));
+          setStatus(`Generating PDF report... (${(attempt + 1) * 2}s)`);
+        }
+
+        // Recurse for next attempt
+        resolve(pollReportStatus(tid, attempt + 1, max));
+      }, 2000);
+    });
   };
 
   const downloadFile = () => {

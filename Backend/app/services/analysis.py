@@ -8,17 +8,9 @@ from typing import Any
 import polars as pl
 import numpy as np
 
-# ─── Semantic Inference ───────────────────────────────────────────────────────
-from app.services.semantic_inference import analyze_semantic_structure
-
-# ─── Tier 1: Trust Foundation ─────────────────────────────────────────────────
-from app.services.confidence_scoring import calculate_confidence_scores
-from app.services.analysis_decisions import evaluate_analysis_decisions
-
-# ─── Tier 2: Advanced Intelligence ────────────────────────────────────────────
-from app.services.feature_engineering import analyze_feature_engineering
-from app.services.smart_schema import analyze_smart_schema
-from app.services.recommendations import generate_recommendations
+# ─── Note: Tier 1/2 services (confidence_scoring, analysis_decisions,
+# semantic_inference, feature_engineering, smart_schema, recommendations)
+# are lazy-imported inside analysis_pipeline.py steps.
 
 # ─── Tier 5: Analysis Selection Engine ────────────────────────────────────────
 from app.services.analysis_config import AnalysisConfig
@@ -619,78 +611,16 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
     result["time_series_analysis"] = time_series_analysis
     result["missing_patterns"] = missing_patterns
     
-    # ─── Tier 1: Column Confidence Scores ─────────────────────────────────────
-    try:
-        confidence_report = calculate_confidence_scores(df)
-        result["confidence_scores"] = confidence_report.to_dict()
-        logger.info(f"Confidence scoring: Dataset grade={confidence_report._get_dataset_grade()}, "
-                    f"{confidence_report.high_confidence_count} high/{confidence_report.low_confidence_count} low confidence columns")
-    except Exception as e:
-        logger.warning(f"Confidence scoring failed: {e}")
-        result["confidence_scores"] = None
-    
-    # ─── Tier 1: Analysis Decisions (Why I Did X) ─────────────────────────────
-    try:
-        decision_log = evaluate_analysis_decisions(df)
-        result["analysis_decisions"] = decision_log.to_dict()
-        ran_count = decision_log.to_dict()["summary"]["ran"]
-        skipped_count = decision_log.to_dict()["summary"]["skipped"]
-        logger.info(f"Analysis decisions: {ran_count} ran, {skipped_count} skipped")
-    except Exception as e:
-        logger.warning(f"Analysis decisions failed: {e}")
-        result["analysis_decisions"] = None
-    
-    # Semantic Column Intelligence
-    try:
-        semantic_analysis = analyze_semantic_structure(df)
-        result["semantic_analysis"] = semantic_analysis.to_dict()
-        logger.info(f"Semantic analysis: Domain={semantic_analysis.domain.primary_domain} "
-                    f"({semantic_analysis.domain.confidence*100:.0f}% confidence), "
-                    f"{len(semantic_analysis.analytical_columns)} analytical cols, "
-                    f"{len(semantic_analysis.suggested_pairs)} suggestions")
-    except Exception as e:
-        logger.warning(f"Semantic analysis failed: {e}")
-        result["semantic_analysis"] = None
-    
-    # ─── Tier 2: Advanced Intelligence ────────────────────────────────────────
-    
-    # Feature Engineering Recommendations
-    try:
-        column_roles = {}
-        if result.get("semantic_analysis") and result["semantic_analysis"].get("column_roles"):
-            column_roles = {k: v.get("role", "") for k, v in result["semantic_analysis"]["column_roles"].items()}
-        
-        fe_result = analyze_feature_engineering(df, column_roles)
-        result["feature_engineering"] = fe_result.to_dict()
-        logger.info(f"Feature engineering: {len(fe_result.encoding_recommendations)} encoding, "
-                    f"{len(fe_result.scaling_recommendations)} scaling suggestions")
-    except Exception as e:
-        logger.warning(f"Feature engineering analysis failed: {e}")
-        result["feature_engineering"] = None
-    
-    # Smart Schema Inference
-    try:
-        schema_result = analyze_smart_schema(df)
-        result["smart_schema"] = schema_result.to_dict()
-        logger.info(f"Smart schema: {len(schema_result.type_corrections)} corrections, "
-                    f"{len(schema_result.relationships)} relationships")
-    except Exception as e:
-        logger.warning(f"Smart schema analysis failed: {e}")
-        result["smart_schema"] = None
-    
-    # Actionable Recommendations
-    try:
-        domain = "unknown"
-        if result.get("semantic_analysis") and result["semantic_analysis"].get("domain"):
-            domain = result["semantic_analysis"]["domain"].get("primary", "unknown")
-        
-        rec_result = generate_recommendations(df, domain, result)
-        result["recommendations"] = rec_result.to_dict()
-        high_priority = rec_result.get_high_priority()
-        logger.info(f"Recommendations: {rec_result.to_dict()['total_count']} total, "
-                    f"{len(high_priority)} high priority")
-    except Exception as e:
-        logger.warning(f"Recommendations generation failed: {e}")
-        result["recommendations"] = None
+    # ─── Tier 1 + Tier 2: Pipeline Steps ─────────────────────────────────────────
+    # Each step enriches `result` in-place. Only data errors are caught;
+    # code bugs (ImportError, AttributeError) propagate immediately.
+    from app.services.analysis_pipeline import run_pipeline
+    pipeline_outcome = run_pipeline(df, result)
+    if pipeline_outcome.failed:
+        logger.warning(
+            "Pipeline: %d step(s) failed: %s",
+            len(pipeline_outcome.failed),
+            [s.name for s in pipeline_outcome.failed],
+        )
     
     return result

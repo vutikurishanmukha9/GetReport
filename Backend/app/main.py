@@ -13,10 +13,21 @@ app = FastAPI(title=settings.PROJECT_NAME)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Set all CORS enabled origins
+# Set all CORS enabled origins (with production-aware guard)
+_cors_origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
+
+# Safety: warn if localhost origins are active alongside a real DATABASE_URL
+import logging as _logging
+_cors_logger = _logging.getLogger("cors")
+if settings.DATABASE_URL and any("localhost" in o for o in _cors_origins):
+    _cors_logger.warning(
+        "⚠ CORS allows localhost origins while DATABASE_URL is set (production?). "
+        "Set CORS_ORIGINS env var to restrict origins in production."
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
