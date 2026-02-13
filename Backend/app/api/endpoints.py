@@ -27,14 +27,16 @@ router.include_router(chat.router, tags=["chat"])
 router.include_router(issues.router, tags=["issues"])
 
 
-# ─── Data Models (shared) ───────────────────────────────────────────────────
+from app.services.analysis_config import AnalysisConfig
 
 class AnalysisRulesRequest(BaseModel):
     rules: Dict[str, Any]
-    analysis_config: Optional[Dict[str, Any]] = None
+    analysis_config: Optional[AnalysisConfig] = None
 
 
 # ─── Start Analysis (remains here as it bridges upload → analysis) ───────────
+
+from starlette.concurrency import run_in_threadpool
 
 @router.post("/jobs/{task_id}/analyze")
 @limiter.limit(ANALYZE_LIMIT)
@@ -49,7 +51,9 @@ async def start_analysis(
     """
     logger.info(f"Received start_analysis for {task_id}. Rules keys: {list(body.rules.keys())}")
     
-    job = title_task_manager.get_job(task_id)
+    # Fix: Run synchronous DB/File call in threadpool to avoid blocking async event loop
+    job = await run_in_threadpool(title_task_manager.get_job, task_id)
+    
     if not job:
         logger.error(f"Job {task_id} NOT FOUND.")
         raise HTTPException(404, "Job not found")
@@ -59,7 +63,8 @@ async def start_analysis(
     if job.status != TaskStatus.WAITING_FOR_USER:
        msg = f"Job is not waiting for input. Current status: {job.status}"
        logger.warning(msg)
-       return JSONResponse(status_code=400, content={"message": msg})
+       # Fix: Return 409 Conflict for state errors
+       return JSONResponse(status_code=409, content={"message": msg})
         
     # Start Analysis Task (Phase 2) - VIA CELERY
     resume_analysis_task.delay(task_id, body.rules, body.analysis_config)

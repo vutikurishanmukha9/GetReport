@@ -1,4 +1,3 @@
-import axios from "axios";
 import type { ApiResponse, AnalysisResult, Charts, CleaningRulesMap } from "@/types/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
@@ -22,12 +21,39 @@ export interface ReportStatusResponse {
 
 // ─── Client ─────────────────────────────────────────────────────────────────
 
-const apiClient = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
+async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const headers = {
         "Content-Type": "application/json",
-    },
-});
+        ...options.headers,
+    };
+
+    const response = await fetch(url, {
+        ...options,
+        headers,
+    });
+
+    if (!response.ok) {
+        // Try to parse error message from JSON
+        let errorMessage = `HTTP Error ${response.status}`;
+        try {
+            const errorData = await response.json();
+            errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch (e) {
+            // Ignore JSON parse error, use status text
+            errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+    }
+
+    // Handle Blob responses specially
+    if (options.headers && (options.headers as any)["Content-Type"] === undefined && endpoint.includes("/report") && options.method === "GET") {
+         // This is a bit hacky but covers the downloadReportBlob case where we shouldn't parse JSON
+         // Actually, let's handle it in the specific method
+    }
+
+    return response.json();
+}
 
 export const api = {
     /**
@@ -37,59 +63,69 @@ export const api = {
         const formData = new FormData();
         formData.append("file", file);
 
-        const response = await apiClient.post("/upload", formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
-            timeout: 60000,
+        const response = await fetch(`${API_BASE_URL}/upload`, {
+            method: "POST",
+            body: formData,
+            // Fetch automatically sets Content-Type for FormData, do NOT set it manually
         });
-        return response.data;
+
+        if (!response.ok) {
+            let errorMessage = `Upload failed: ${response.statusText}`;
+            try {
+                const data = await response.json();
+                errorMessage = data.detail || errorMessage;
+            } catch (e) {}
+             throw new Error(errorMessage);
+        }
+        return response.json();
     },
 
     getTaskStatus: async (taskId: string): Promise<StatusResponse> => {
-        const response = await apiClient.get(`/status/${taskId}`);
-        return response.data;
+        return fetchClient<StatusResponse>(`/status/${taskId}`);
     },
 
     /**
      * Chat with the processed report (RAG).
      */
     chatWithJob: async (taskId: string, question: string): Promise<{ answer: string; sources: string[] }> => {
-        const response = await apiClient.post(`/jobs/${taskId}/chat`, { question });
-        return response.data;
+        return fetchClient<{ answer: string; sources: string[] }>(`/jobs/${taskId}/chat`, {
+            method: "POST",
+            body: JSON.stringify({ question }),
+        });
     },
 
     /**
      * Generate PDF on the server using stored analysis results.
      */
     generatePersistentReport: async (taskId: string): Promise<{ message: string; path: string | null }> => {
-        const response = await apiClient.post(`/jobs/${taskId}/report`);
-        return response.data;
+        return fetchClient<{ message: string; path: string | null }>(`/jobs/${taskId}/report`, {
+            method: "POST",
+        });
     },
 
     /**
      * Check if the PDF report is ready for download.
      */
     getReportStatus: async (taskId: string): Promise<ReportStatusResponse> => {
-        const response = await apiClient.get(`/jobs/${taskId}/report/status`);
-        return response.data;
+        return fetchClient<ReportStatusResponse>(`/jobs/${taskId}/report/status`);
     },
 
     /**
      * Download the already generated PDF.
      */
     downloadReportBlob: async (taskId: string): Promise<Blob> => {
-        const response = await apiClient.get(`/jobs/${taskId}/report`, {
-            responseType: "blob",
-        });
-        return response.data;
+        const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/report`);
+        if (!response.ok) throw new Error("Failed to download report");
+        return response.blob();
     },
 
     /**
      * Stage 2: Resume analysis with cleaning rules.
      */
     startAnalysis: async (taskId: string, rules: Record<string, any>): Promise<{ message: string }> => {
-        const response = await apiClient.post(`/jobs/${taskId}/analyze`, { rules });
-        return response.data;
+        return fetchClient<{ message: string }>(`/jobs/${taskId}/analyze`, {
+            method: "POST",
+            body: JSON.stringify({ rules }),
+        });
     },
 };
