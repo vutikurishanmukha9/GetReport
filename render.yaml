@@ -13,15 +13,17 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 services:
-  # ─── 1. Backend API ──────────────────────────────────────────────────────────
+  # ─── 1. Backend API + Worker (Single Container) ─────────────────────────────
   - type: web
-    name: getreport-api
+    name: getreport-backend
     runtime: docker
     dockerfilePath: ./Backend/Dockerfile
     dockerContext: ./Backend
     plan: starter
     region: oregon
     healthCheckPath: /health
+    # Single Service Mode: Run start.sh to launch both API and Celery
+    numInstances: 1 
     envVars:
       - key: DATABASE_URL
         sync: false # Set manually → Neon DB Postgres connection string
@@ -35,30 +37,17 @@ services:
       - key: PDF_ENGINE
         value: weasyprint
       - key: CORS_ORIGINS
-        sync: false # Set to your frontend URL, e.g. https://getreport.onrender.com
+        sync: false # Set to your frontend URL
+      - key: SKEWNESS_THRESHOLD
+        value: "1.0"
+      - key: STORAGE_TYPE
+        value: local 
+      - key: MAX_CONTENT_LENGTH
+        value: "52428800" # 50MB
       - key: PYTHONUNBUFFERED
         value: "1"
 
-  # ─── 2. Celery Worker ───────────────────────────────────────────────────────
-  - type: worker
-    name: getreport-worker
-    runtime: docker
-    dockerfilePath: ./Backend/Dockerfile
-    dockerContext: ./Backend
-    plan: starter
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: REDIS_URL
-        fromService:
-          name: getreport-redis
-          type: redis
-          property: connectionString
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: PDF_ENGINE
-        value: weasyprint
-    dockerCommand: celery -A app.core.celery_app worker --loglevel=info --concurrency=2
+  # (Removed separate worker service to allow shared local storage)
 
   # ─── 3. Frontend (Static Site) ──────────────────────────────────────────────
   - type: web

@@ -7,18 +7,26 @@ from typing import Optional, Dict, Any, List
 from enum import Enum
 from app.db import get_db_connection, init_db
 from app.core.config import settings
-import redis
+from app.services.storage import get_storage_provider
+try:
+    import redis
+except ImportError:
+    redis = None
 
 logger = logging.getLogger(__name__)
+storage = get_storage_provider()
 
 # Redis Client for PubSub (Status Updates)
-try:
-    redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True, socket_connect_timeout=1)
-    redis_client.ping()
-    logger.info(f"Connected to Redis for Pub/Sub at {settings.REDIS_URL}")
-except Exception as e:
-    logger.warning(f"Redis not available ({e}). WebSockets will fallback to polling.")
-    redis_client = None
+redis_client = None
+if redis:
+    try:
+        redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True, socket_connect_timeout=1)
+        redis_client.ping()
+        logger.info(f"Connected to Redis for Pub/Sub at {settings.REDIS_URL}")
+    except Exception as e:
+        logger.warning(f"Redis not available ({e}). WebSockets will fallback to polling.")
+else:
+    logger.warning("Redis module not found. Install 'redis' for real-time updates.")
 
 def publish_update(task_id: str, data: Dict[str, Any]):
     """Publish update to Redis channel"""
@@ -55,31 +63,44 @@ class Job:
     report_path: Optional[str] = None
     result_path: Optional[str] = None  # Path to result JSON file
 
-# ─── File-Based Result Storage ───────────────────────────────────────────────
-RESULTS_DIR = os.path.join(os.getcwd(), "outputs")
+import io
 
-def _get_result_file_path(task_id: str) -> str:
-    """Get the file path for storing a task's result JSON."""
-    task_dir = os.path.join(RESULTS_DIR, task_id)
-    os.makedirs(task_dir, exist_ok=True)
-    return os.path.join(task_dir, "result.json")
+# ─── Storage-Based Result Management ─────────────────────────────────────────
 
-def _save_result_to_file(task_id: str, result: Dict[str, Any]) -> str:
-    """Write result JSON to file, return the file path."""
-    file_path = _get_result_file_path(task_id)
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2, default=str)
-    logger.info(f"Result saved to file: {file_path}")
-    return file_path
+def _save_result_to_storage(task_id: str, result: Dict[str, Any]) -> str:
+    """
+    Save result JSON to storage (Local or S3).
+    Returns the file reference (path or key).
+    """
+    # Serialize to JSON bytes
+    json_bytes = json.dumps(result, indent=2, default=str).encode("utf-8")
+    file_obj = io.BytesIO(json_bytes)
+    
+    # Filename for metadata (storage provider generates unique key usually)
+    # We prefix with task_id to make it identifiable if storage allows
+    filename = f"{task_id}_result.json"
+    
+    # Save
+    file_ref = storage.save_upload(file_obj, filename)
+    logger.info(f"Result saved to storage: {file_ref}")
+    return file_ref
 
-def _load_result_from_file(file_path: str) -> Optional[Dict[str, Any]]:
-    """Read result JSON from file."""
+def _load_result_from_storage(file_ref: str) -> Optional[Dict[str, Any]]:
+    """
+    Load result JSON from storage reference.
+    """
+    if not file_ref:
+        return None
+        
     try:
-        if file_path and os.path.exists(file_path):
-            with open(file_path, "r", encoding="utf-8") as f:
+        # get_absolute_path ensures it's available locally (downloads if needed)
+        local_path = storage.get_absolute_path(file_ref)
+        
+        if os.path.exists(local_path):
+            with open(local_path, "r", encoding="utf-8") as f:
                 return json.load(f)
     except Exception as e:
-        logger.error(f"Failed to read result file {file_path}: {e}")
+        logger.error(f"Failed to read result from storage {file_ref}: {e}")
     return None
 
 class TaskManager:
@@ -110,15 +131,16 @@ class TaskManager:
         if not row:
             return None
             
-        # Load result from file first, fall back to DB column (backward compat)
+        # Load result from storage first (preferred)
         result_data = None
-        result_file = row.get("result_path") if hasattr(row, 'get') else (row["result_path"] if "result_path" in row.keys() else None)
+        result_ref = row.get("result_path") if hasattr(row, 'get') else (row["result_path"] if "result_path" in row.keys() else None)
         
-        if result_file:
-            result_data = _load_result_from_file(result_file)
+        if result_ref:
+            result_data = _load_result_from_storage(result_ref)
         
-        # Fallback: read from result_json column if file not found
-        if result_data is None and row["result_json"]:
+        # Fallback: read from result_json column if storage ref not found (Legacy Support)
+        # Note: We are removing result_json usage, but keeping read capability for old records is safe.
+        if result_data is None and "result_json" in row.keys() and row["result_json"]:
             try:
                 result_data = json.loads(row["result_json"])
             except:
@@ -133,7 +155,7 @@ class TaskManager:
             result=result_data,
             error=row["error"],
             report_path=row["report_path"],
-            result_path=result_file
+            result_path=result_ref
         )
 
     def update_progress(self, task_id: str, progress: int, message: Optional[str] = None):
@@ -161,11 +183,11 @@ class TaskManager:
     def update_status(self, task_id: str, status: TaskStatus, result: Optional[Dict[str, Any]] = None):
         with get_db_connection() as conn:
             if result:
-                # Save result to file instead of DB
-                result_file_path = _save_result_to_file(task_id, result)
+                # Save result to storage
+                result_ref = _save_result_to_storage(task_id, result)
                 conn.execute(
                     "UPDATE jobs SET status = ?, result_path = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
-                    (status, result_file_path, task_id)
+                    (status, result_ref, task_id)
                 )
             else:
                 conn.execute(
@@ -184,11 +206,11 @@ class TaskManager:
 
     def update_result(self, task_id: str, result: Dict[str, Any]):
         """Update just the result JSON without changing status. Used by Issue Ledger endpoints."""
-        result_file_path = _save_result_to_file(task_id, result)
+        result_ref = _save_result_to_storage(task_id, result)
         with get_db_connection() as conn:
             conn.execute(
                 "UPDATE jobs SET result_path = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
-                (result_file_path, task_id)
+                (result_ref, task_id)
             )
             conn.commit()
             
@@ -200,7 +222,7 @@ class TaskManager:
         })
 
     def complete_job(self, task_id: str, result: Dict[str, Any], report_path: Optional[str] = None):
-        result_file_path = _save_result_to_file(task_id, result)
+        result_ref = _save_result_to_storage(task_id, result)
         with get_db_connection() as conn:
             conn.execute(
                 """
@@ -213,7 +235,7 @@ class TaskManager:
                     updated_at = CURRENT_TIMESTAMP 
                 WHERE task_id = ?
                 """,
-                (TaskStatus.COMPLETED, result_file_path, report_path, task_id)
+                (TaskStatus.COMPLETED, result_ref, report_path, task_id)
             )
             conn.commit()
             

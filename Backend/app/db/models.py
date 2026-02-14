@@ -10,7 +10,7 @@ class Job(Base):
     status = Column(String, default="PENDING")         # PENDING, PROCESSING, COMPLETED, FAILED
     progress = Column(Integer, default=0)
     message = Column(String, default="Initialized")
-    result = Column(JSON, nullable=True)               # Stores analysis summary/stats
+    result_path = Column(String, nullable=True)        # Path to result JSON file (Storage Ref)
     report_path = Column(String, nullable=True)        # Path to generated PDF
     error = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

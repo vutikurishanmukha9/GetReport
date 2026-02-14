@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from openai import AsyncOpenAI
 from app.core.config import settings
-from app.core.rag_utils import TextSplitter, SimpleVectorStore
+from app.core.rag_utils import TextSplitter, SimpleVectorStore, PostgresVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -152,12 +152,19 @@ class EnhancedRAGService:
             # Embed
             embeddings = await self._get_embeddings(chunks)
 
-            # Store
-            store = SimpleVectorStore()
-            metadatas = [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
-            store.add_texts(chunks, embeddings, metadatas)
-
-            await self.cache.set(task_id, store)
+            # Store (Hybrid: Postgres for Prod, In-Memory for Local)
+            if settings.DATABASE_URL:
+                store = PostgresVectorStore(task_id)
+                # Run sync DB op in thread pool if needed, but for now direct call 
+                # (PostgresVectorStore manages its own connection per call)
+                store.add_texts(chunks, embeddings, [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))])
+                logger.info(f"Report {task_id} ingested into Postgres Vector Store")
+            else:
+                # Local In-Memory Fallback
+                store = SimpleVectorStore()
+                metadatas = [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
+                store.add_texts(chunks, embeddings, metadatas)
+                await self.cache.set(task_id, store)
             
             return {"success": True, "num_chunks": len(chunks)}
         except Exception as e:
@@ -176,9 +183,13 @@ class EnhancedRAGService:
             
             try:
                 # 1. Get Store
-                store = await self.cache.get(task_id)
-                if not store:
-                    return {"success": False, "error": "Report not processed or expired."}
+                if settings.DATABASE_URL:
+                    store = PostgresVectorStore(task_id)
+                    # Postgres store is stateless, effectively always "loaded"
+                else:
+                    store = await self.cache.get(task_id)
+                    if not store:
+                        return {"success": False, "error": "Report not processed or expired."}
 
                 # 2. Embed Question
                 q_embed = (await self._get_embeddings([question]))[0]

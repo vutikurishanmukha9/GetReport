@@ -128,3 +128,91 @@ class SimpleVectorStore:
         store = cls()
         store.add_texts(texts, embeddings, metadatas)
         return store
+
+class PostgresVectorStore:
+    """
+    Persistent vector store using Postgres + pgvector.
+    Scalable for multi-worker production.
+    """
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+        # We don't store connection, we get it per operation to be safe with threads/processes
+    
+    def add_texts(self, texts: List[str], embeddings: List[List[float]], metadatas: Optional[List[Dict[str, Any]]] = None):
+        import json
+        from app.db import get_db_connection
+        
+        with get_db_connection() as conn:
+            # Prepare batch data
+            rows = []
+            for i, text in enumerate(texts):
+                meta = metadatas[i] if metadatas else {}
+                chunk_index = meta.get("chunk_index", i)
+                # Format vector as string "[0.1,0.2,...]"
+                vector_str = f"[{','.join(map(str, embeddings[i]))}]"
+                rows.append((self.task_id, text, chunk_index, json.dumps(meta), vector_str))
+                
+            # Execute Batch Insert
+            # Note: For strict Postgres, we might need executemany or just loop
+            # conn.executemany is cleaner
+            cursor = conn.cursor()
+            cursor.executemany(
+                """
+                INSERT INTO document_chunks (task_id, content, chunk_index, metadata, embedding)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                rows
+            )
+            conn.commit()
+
+    def similarity_search_with_score(self, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+        import json
+        from app.db import get_db_connection
+        
+        vector_str = f"[{','.join(map(str, query_embedding))}]"
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            # Cosine Distance (<=>). Lower is closer.
+            # We want Similarity = 1 - Distance
+            # We explicitly cast to vector just in case
+            cursor.execute(
+                """
+                SELECT content, metadata, embedding <=> %s as distance
+                FROM document_chunks
+                WHERE task_id = %s
+                ORDER BY distance ASC
+                LIMIT %s
+                """,
+                (vector_str, self.task_id, k)
+            )
+            rows = cursor.fetchall()
+            
+            results = []
+            for row in rows:
+                # row is tuple or dict depending on factory.
+                # In db.py, Local(SQLite) -> Row, Postgres -> dict (RealDictCursor) or tuple (base wrapper)?
+                # db.py PostgresConnection wrapper essentially mimics SQLite behavior but let's check.
+                # The wrapper doesn't use RealDictCursor by default in `get_db_connection` for Postgres?
+                # Wait, db.py line 161: conn = psycopg2.connect(..., cursor_factory=RealDictCursor)
+                # So for Postgres, row is a dict-like object.
+                
+                # Check if row is dict or tuple/object
+                if isinstance(row, dict) or hasattr(row, "keys"):
+                    content = row["content"]
+                    metadata = row["metadata"]
+                    if isinstance(metadata, str):
+                        metadata = json.loads(metadata)
+                    distance = row["distance"]
+                else:
+                    # Fallback for tuple
+                    content = row[0]
+                    metadata = row[1]
+                    if isinstance(metadata, str):
+                        metadata = json.loads(metadata)
+                    distance = row[2]
+                
+                score = 1 - float(distance)
+                results.append(({"content": content, "metadata": metadata}, score))
+                
+            return results

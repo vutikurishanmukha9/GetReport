@@ -40,10 +40,18 @@ COPY --from=builder /install /usr/local
 # Copy application code
 COPY . .
 
+# Create necessary directories for runtime
+RUN mkdir -p /app/temp_uploads /app/outputs /app/temp_cache && \
+    chmod -R 777 /app/temp_uploads /app/outputs /app/temp_cache
+
 # ─── Environment ─────────────────────────────────────────────────────────────
 ENV PDF_ENGINE=weasyprint
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+
+# Copy startup script
+COPY start.sh .
+RUN chmod +x start.sh
 
 # ─── Health check ────────────────────────────────────────────────────────────
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
@@ -51,5 +59,5 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 
 EXPOSE 8000
 
-# Default: run the API.  Override with dockerCommand in render.yaml for workers.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run both Celery and FastAPI via script
+CMD ["./start.sh"]
