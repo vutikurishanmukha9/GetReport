@@ -5,28 +5,66 @@ Thumbs.db
 *.tmp
 *.bak
 *.swp
+*.swo
 .env
+.env.*
+!.env.example
 
-# ─── IDEs ────────────────────────────────────────────────
+# ─── IDEs & Editors ──────────────────────────────────────
 .vscode/
 .idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
+.fleet/
 
-# ─── Python / Backend ───────────────────────────────────
+# ─── Python ──────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ─── Virtual Environments ────────────────────────────────
 venv/
 env/
+ENV/
+.venv/
+
+# ─── Testing & Tooling ───────────────────────────────────
 .pytest_cache/
 .coverage
 htmlcov/
-*.db
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
 
-# ─── Node / Frontend ────────────────────────────────────
+# ─── Database & State ────────────────────────────────────
+*.db
+*.sqlite3
+dump.rdb
+celerybeat-schedule
+celerybeat.pid
+
+# ─── Node / Frontend ─────────────────────────────────────
 node_modules/
 dist/
 dist-ssr/
@@ -34,13 +72,16 @@ dist-ssr/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 bun.lockb
 vite.config.ts.timestamp-*
 
 # ─── Application Artifacts ──────────────────────────────
 outputs/
 temp_uploads/
+temp_cache/
 *.pdf
 stats.json
 test_data.csv
 vector_stores/
+chroma_db/

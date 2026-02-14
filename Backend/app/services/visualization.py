@@ -9,7 +9,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # Import semantic column classifier
-from app.services.analysis import _classify_numeric_columns
+from app.services.analysis import classify_numeric_columns
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     logger.info(f"Visualization: Total columns={df.width}, numeric={len(all_numeric_cols)}, categorical={len(cat_cols)}")
     
     # Filter to only analytical numeric columns (exclude IDs, dates, low-variance)
-    column_classification = _classify_numeric_columns(df, all_numeric_cols)
+    column_classification = classify_numeric_columns(df, all_numeric_cols)
     numeric_cols = column_classification["analytical"]
     
     logger.info(f"Visualization: After classification - analytical={len(numeric_cols)}, excluded={len(column_classification.get('excluded', []))}")

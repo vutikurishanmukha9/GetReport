@@ -12,7 +12,7 @@
 ---
 
 ## Overview
-GetReport is an intelligent data analysis platform that transforms raw CSV/Excel files into comprehensive PDF reports with minimal effort. It combines automated statistical analysis, semantic data understanding, and AI-powered insights to deliver actionable business intelligence.
+GetReport is an intelligent data analysis platform that transforms raw CSV/Excel files into comprehensive PDF reports with minimal effort. It combines **high-performance statistical analysis**, **hybrid-search RAG**, and **security-first design** to deliver actionable business intelligence.
 
 ## Problem Solved
 Data analysis traditionally requires:
@@ -23,16 +23,21 @@ Data analysis traditionally requires:
 **GetReport eliminates these barriers** by providing a single platform that:
 1. Automatically detects data quality issues
 2. Applies intelligent cleaning based on user approval
-3. Performs deep statistical analysis
+3. Performs deep statistical analysis **(optimized for speed)**
 4. Generates publication-ready PDF reports
 
 ---
 
 ## Key Features
 
-### Dual-Engine PDF Generation (New)
+### Security First Design (New)
+- **Magic Number Validation**: strictly verifies file signatures (ZIP/OLE2) to prevent extension spoofing.
+- **Content Inspection**: Rejects binary files masquerading as CSVs.
+- **Input Sanitization**: Guards against prompt injection in RAG workflows.
+
+### Dual-Engine PDF Generation
 - **Local Dev**: Uses `ReportLab` for fast, lightweight PDF generation without system dependencies.
-- **Production**: Uses `WeasyPrint` for HTML/CSS-driven, highly styled reports with professional typography and layouts.
+- **Production**: Uses `WeasyPrint` with **CSS Caching** for high-performance, styled reports.
 - **Seamless Switch**: Controlled via `PDF_ENGINE` environment variable.
 
 ### Trust Foundation (Tier 1)
@@ -41,15 +46,14 @@ Data analysis traditionally requires:
 - **Semantic Intelligence**: Auto-detects domains (Sales, HR, Finance, Healthcare) to tailor insights.
 
 ### Advanced Intelligence (Tier 2)
-- **RAG-Powered Insights**: Uses Retrieval-Augmented Generation to provide narrative context without exposing raw confidential rows to AI models.
-- **Smart Remediation**: Identifies quality issues (outliers, missing values) and suggests ranked cleaning actions.
+- **Hybrid RAG Engine**: Combines **Dense Vector Search** with **Sparse Keyword Scoring** for precise context retrieval.
+- **Smart Text Splitting**: Preserves semantic meaning by splitting text by paragraphs/sentences instead of arbitrary chunks.
 - **ML-Ready Recommendations**: Suggests optimal encodings and scalers for future machine learning workflows.
 
-### Robust Statistical Analysis
-- **17-Point EDA Checklist**: Rigorous validation including skewness, kurtosis, multicollinearity (VIF)
-- **Outlier Detection**: IQR-based flagging with configurable thresholds
-- **Correlation Analysis**: Strong pair detection with heatmap visualization
-- **Time-Series Detection**: Automatic trend and seasonality analysis when date columns present
+### High-Performance Analysis
+- **Modular Architecture**: Clean, maintainable `app/services/analysis/` package structure.
+- **Polars Lazy Execution**: Single-pass computation for summary statistics and outlier detection (~10x faster).
+- **Time-Series Detection**: Automatic trend and seasonality analysis when date columns present.
 
 ---
 
@@ -69,10 +73,10 @@ Data analysis traditionally requires:
 |-----------|------------|
 | Framework | FastAPI (Python 3.12+) |
 | Task Queue | Celery + Redis |
-| Data Processing | Polars, NumPy |
-| PDF Engine 1 | ReportLab (Local) |
-| PDF Engine 2 | WeasyPrint (Production) |
+| Data Processing | Polars (Lazy Execution), NumPy |
+| PDF Engine | WeasyPrint (with CSS Cache) / ReportLab |
 | Database | SQLite (Local) / PostgreSQL (Prod) |
+| Storage | Local Disk / AWS S3 (Configurable) |
 | AI | OpenAI API (GPT-4o) |
 
 ---
@@ -86,11 +90,17 @@ GetReport/
 ├── Backend/
 │   ├── app/
 │   │   ├── api/            # FastAPI endpoints
+│   │   ├── core/           # Config, Security, Validation
+│   │   │   ├── config.py
+│   │   │   ├── file_validation.py # Security hardening
 │   │   ├── services/       # Core business logic
-│   │   │   ├── analysis.py           # Statistical analysis
-│   │   │   ├── report_weasyprint.py  # New HTML/CSS PDF engine
-│   │   │   ├── report_generator.py   # PDF factory
-│   │   │   ├── semantic_inference.py # Domain/column detection
+│   │   │   ├── analysis/             # Modular Analysis Engine
+│   │   │   │   ├── core.py           # Orchestrator
+│   │   │   │   ├── statistics.py     # Lazy Polars stats
+│   │   │   │   ├── outliers.py       # Optimized outlier detection
+│   │   │   ├── report_weasyprint.py  # PDF Engine + CSS Cache
+│   │   │   ├── storage.py            # Local/S3 Storage Adapter
+│   │   │   ├── rag_service.py        # Hybrid Search RAG
 │   │   │   └── tasks.py              # Celery tasks
 │   │   └── db/             # Database models
 │   └── Dockerfile          # Production build
@@ -141,6 +151,10 @@ The project is optimized for deployment on **Render.com** (or any Docker-based c
 | `PDF_ENGINE` | `reportlab` | `weasyprint` |
 | `DATABASE_URL` | (empty) -> uses `tasks.db` | `postgres://user:pass@host/db?sslmode=require` |
 | `REDIS_URL` | `redis://localhost:6379/0` | `redis://redishost:6379/0` |
+| `STORAGE_TYPE` | `local` | `s3` |
+| `AWS_ACCESS_KEY_ID` | (optional) | (required for S3) |
+| `AWS_SECRET_ACCESS_KEY` | (optional) | (required for S3) |
+| `AWS_BUCKET_NAME` | (optional) | (required for S3) |
 | `OPENAI_API_KEY`| (required for AI) | (required for AI) |
 
 ---
@@ -157,7 +171,7 @@ The project is optimized for deployment on **Render.com** (or any Docker-based c
 ### Performance Optimizations
 - **Streaming Uploads**: Large files handled via temp files to prevent RAM exhaustion
 - **Polars Engine**: High-performance DataFrame operations (faster than Pandas)
-- **Process Pool**: PDF generation offloaded to separate process to avoid blocking API
+- **Asynchronous Processing**: Heavy compute (Analysis, PDF Gen) offloaded to Celery workers to keep API responsive
 - **Automatic Cleanup**: Old temp files and reports cleaned after 24 hours
 
 ---

@@ -25,6 +25,29 @@ logger = logging.getLogger(__name__)
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 
+class CSSCache:
+    """
+    Singleton cache for the parsed WeasyPrint CSS object.
+    Parsing CSS is expensive; we should do it only once.
+    """
+    _css = None
+    
+    @classmethod
+    def get(cls) -> Any:
+        """
+        Get the cached CSS object, parsing it if necessary.
+        Must be called where weasyprint is known to be installed.
+        """
+        if cls._css is None:
+            from weasyprint import CSS
+            css_path = _TEMPLATE_DIR / "report.css"
+            logger.info("Compiling and caching CSS from %s", css_path)
+            cls._css = CSS(filename=str(css_path))
+        return cls._css
+
+
+
+
 def generate_pdf_weasyprint(
     analysis_results: dict[str, Any],
     charts: dict[str, Any],
@@ -83,12 +106,11 @@ def generate_pdf_weasyprint(
             "Set PDF_ENGINE=reportlab for local development."
         )
 
-    css_path = _TEMPLATE_DIR / "report.css"
     pdf_bytes = HTML(
         string=html_content,
         base_url=str(_TEMPLATE_DIR),
     ).write_pdf(
-        stylesheets=[CSS(filename=str(css_path))],
+        stylesheets=[CSSCache.get()],
     )
 
     buffer = BytesIO(pdf_bytes)

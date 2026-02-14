@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     SKEWNESS_THRESHOLD: float = 1.0
     ID_UNIQUENESS_THRESHOLD: float = 0.98
 
+    # ─── Storage ─────────────────────────────────────────────────────────
+    STORAGE_TYPE: str = "local" # "local" or "s3"
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+    AWS_REGION: str = "us-east-1"
+    AWS_BUCKET_NAME: str = "getreport-uploads"
+
     # ─── PDF Engine ──────────────────────────────────────────────────────
     PDF_ENGINE: str = "reportlab"  # "reportlab" (local dev) or "weasyprint" (production)
     

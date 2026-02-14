@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.services.task_manager import title_task_manager
 from app.services.storage import get_storage_provider
 from app.tasks import inspect_file_task
+from app.core.file_validation import validate_file_signature
 
 storage = get_storage_provider()
 logger = logging.getLogger(__name__)
@@ -36,6 +37,9 @@ async def upload_file(
         # Pre-validate extension
         if not file.filename.lower().endswith(('.csv', '.xls', '.xlsx')):
              raise HTTPException(400, "Invalid file type. Only CSV and Excel supported.")
+             
+        # Content Validation (Phase 4 Security Hardening)
+        await validate_file_signature(file)
          
         # Enforce file size limit (streaming — avoids loading entire file to RAM)
         max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
