@@ -5,9 +5,25 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.limiter import limiter
 
-from app.api import endpoints
+from contextlib import asynccontextmanager
 
-app = FastAPI(title=settings.PROJECT_NAME)
+from app.api import endpoints
+from app.db import init_db
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize Database
+    try:
+        init_db()
+    except Exception as e:
+        # Log critical error but don't crash app immediately (or do if DB is mandatory?)
+        # For now, log it clearly.
+        import logging
+        logging.getLogger("uvicorn").error(f"DATABASE INIT FAILED: {e}")
+    yield
+    # Shutdown logic (if any)
+
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 # Rate Limiting
 app.state.limiter = limiter

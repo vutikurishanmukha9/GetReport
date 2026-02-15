@@ -5,10 +5,6 @@ set -e
 echo "Starting Celery Worker..."
 celery -A app.core.celery_app worker --loglevel=info --concurrency=2 &
 
-# Initialize Database (Run Migrations)
-echo "Running Database Migrations..."
-python init_db.py
-
 # Start FastAPI Application in the foreground
 echo "Starting FastAPI Server..."
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000
