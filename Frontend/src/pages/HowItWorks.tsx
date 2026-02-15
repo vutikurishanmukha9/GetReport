@@ -134,7 +134,7 @@ const HowItWorks = () => {
                 </Link>
             </div>
         </div>
-        </div >
+
     );
 };
 
