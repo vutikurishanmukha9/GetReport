@@ -59,3 +59,11 @@ def health_check():
 def root():
     return {"message": "Welcome to GetReport API"}
 
+@app.get("/debug-init-db")
+def debug_init_db():
+    try:
+        init_db()
+        return {"status": "success", "message": "Database initialized manually."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
