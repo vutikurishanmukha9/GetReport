@@ -128,4 +128,13 @@ export const api = {
             body: JSON.stringify({ rules }),
         });
     },
+
+    /**
+     * Get the WebSocket URL for real-time status updates.
+     */
+    getWebSocketUrl: (taskId: string): string => {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const host = API_BASE_URL.replace(/^https?:\/\//, "");
+        return `${protocol}//${host}/ws/status/${taskId}`;
+    },
 };

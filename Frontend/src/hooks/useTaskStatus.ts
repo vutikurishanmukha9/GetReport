@@ -1,179 +1,136 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { api } from "@/services/api";
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { api, StatusResponse } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
-/**
- * Status response from the backend.
- */
-export interface TaskStatusData {
-  task_id: string;
-  status: string;
+export type TaskStatus = 'PENDING' | 'PROCESSING' | 'WAITING_FOR_USER' | 'COMPLETED' | 'FAILED';
+
+interface UseTaskStatusResult {
+  status: TaskStatus | 'CONNECTING' | 'DISCONNECTED';
   progress: number;
   message: string;
-  result?: Record<string, any> | null;
-  error?: string | null;
-  report_download_url?: string | null;
+  result: any | null;
+  error: string | null;
+  isConnected: boolean;
+  connect: (taskId: string) => void;
+  disconnect: () => void;
 }
 
-interface UseTaskStatusOptions {
-  /** Polling interval in ms (fallback if WS fails). Default: 3000 */
-  pollingInterval?: number;
-  /** Whether to auto-connect. Default: true */
-  enabled?: boolean;
-}
-
-/**
- * Custom hook for real-time task status updates.
- * 
- * Strategy:
- * 1. Attempts WebSocket connection first (real-time, low latency)
- * 2. Falls back to HTTP polling if WebSocket fails
- * 3. Auto-cleans up on unmount or task completion
- * 
- * Usage:
- * ```tsx
- * const { status, progress, message, result, error, isConnected } = useTaskStatus(taskId);
- * ```
- */
-export function useTaskStatus(
-  taskId: string | null,
-  options: UseTaskStatusOptions = {}
-) {
-  const { pollingInterval = 3000, enabled = true } = options;
-  
-  const [data, setData] = useState<TaskStatusData | null>(null);
+export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
+  const [status, setStatus] = useState<UseTaskStatusResult['status']>('CONNECTING');
+  const [progress, setProgress] = useState(0);
+  const [message, setMessage] = useState('');
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionType, setConnectionType] = useState<"ws" | "polling" | "none">("none");
-  
+
   const wsRef = useRef<WebSocket | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const mountedRef = useRef(true);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const taskIdRef = useRef<string | null>(null);
 
-  // Terminal states — stop listening when reached
-  const isTerminal = data?.status === "COMPLETED" || data?.status === "FAILED";
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      disconnect();
+    };
+  }, []);
 
-  const cleanup = useCallback(() => {
+  // Auto-connect if activeTaskId is provided
+  useEffect(() => {
+    if (activeTaskId) {
+      connect(activeTaskId);
+    } else {
+      disconnect();
+    }
+  }, [activeTaskId]);
+
+  const disconnect = useCallback(() => {
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
     setIsConnected(false);
-    setConnectionType("none");
+    setStatus('DISCONNECTED');
   }, []);
 
-  // Start HTTP polling fallback
-  const startPolling = useCallback(() => {
-    if (!taskId || pollingRef.current) return;
-    
-    setConnectionType("polling");
-    setIsConnected(true);
-    
-    const poll = async () => {
-      if (!mountedRef.current) return;
+  const connect = useCallback((taskId: string) => {
+    // Prevent duplicate connections
+    if (wsRef.current?.readyState === WebSocket.OPEN && taskIdRef.current === taskId) {
+      return;
+    }
+
+    disconnect();
+    taskIdRef.current = taskId;
+    setStatus('CONNECTING');
+
+    const url = api.getWebSocketUrl(taskId);
+    console.log(`Connecting to WebSocket: ${url}`);
+
+    const ws = new WebSocket(url);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log("WebSocket Connected");
+      setIsConnected(true);
+      setStatus('PROCESSING'); // Assume processing initially or wait for message
+      // Reset retry logic if any
+    };
+
+    ws.onmessage = (event) => {
       try {
-        const response = await api.getTaskStatus(taskId);
-        if (mountedRef.current) {
-          setData(response);
-          // Stop polling on terminal states
-          if (response.status === "COMPLETED" || response.status === "FAILED") {
-            cleanup();
-          }
+        const data = JSON.parse(event.data);
+        // Expected format: { task_id, status, progress, message, result?, error? }
+
+        if (data.status) setStatus(data.status.toUpperCase() as TaskStatus);
+        if (data.progress !== undefined) setProgress(data.progress);
+        if (data.message) setMessage(data.message);
+        if (data.result) setResult(data.result);
+        if (data.error) setError(data.error);
+
+        if (['COMPLETED', 'FAILED'].includes(data.status?.toUpperCase())) {
+          ws.close(); // Clean close on terminal state
         }
-      } catch (err) {
-        console.error("[useTaskStatus] Polling error:", err);
+      } catch (e) {
+        console.error("Failed to parse WebSocket message:", e);
       }
     };
-    
-    // Immediate first poll
-    poll();
-    pollingRef.current = setInterval(poll, pollingInterval);
-  }, [taskId, pollingInterval, cleanup]);
 
-  // Try WebSocket first, fall back to polling
-  useEffect(() => {
-    if (!taskId || !enabled || isTerminal) return;
-    
-    mountedRef.current = true;
-    
-    // Construct WS URL from current page location
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = import.meta.env.VITE_API_URL 
-      ? new URL(import.meta.env.VITE_API_URL).host 
-      : "localhost:8000";
-    const wsUrl = `${protocol}//${host}/api/ws/status/${taskId}`;
-    
-    try {
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-      
-      ws.onopen = () => {
-        if (mountedRef.current) {
-          setIsConnected(true);
-          setConnectionType("ws");
-          console.log("[useTaskStatus] WebSocket connected");
-        }
-      };
-      
-      ws.onmessage = (event) => {
-        if (!mountedRef.current) return;
-        try {
-          const parsed: TaskStatusData = JSON.parse(event.data);
-          setData(parsed);
-          
-          if (parsed.status === "COMPLETED" || parsed.status === "FAILED") {
-            cleanup();
-          }
-        } catch (err) {
-          console.error("[useTaskStatus] Failed to parse WS message:", err);
-        }
-      };
-      
-      ws.onerror = () => {
-        console.warn("[useTaskStatus] WebSocket error, falling back to polling");
-        ws.close();
-      };
-      
-      ws.onclose = () => {
-        if (mountedRef.current && !isTerminal) {
-          // WebSocket closed unexpectedly — fallback to polling
-          wsRef.current = null;
-          startPolling();
-        }
-      };
-      
-    } catch (err) {
-      // WebSocket constructor failed — fallback to polling
-      console.warn("[useTaskStatus] WebSocket unavailable, using polling");
-      startPolling();
-    }
-    
-    return () => {
-      mountedRef.current = false;
-      cleanup();
+    ws.onerror = (e) => {
+      console.error("WebSocket Error:", e);
+      setError("Connection error");
+      // Do not close here, let onclose handle it
     };
-  }, [taskId, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    ws.onclose = (event) => {
+      console.log("WebSocket Disconnected", event.code, event.reason);
+      setIsConnected(false);
+      wsRef.current = null;
+
+      // Reconnect logic?
+      // If checking status of a long-running job, we should retry.
+      // But if the job explicitly completed/failed (closed by us), don't retry.
+      if (taskIdRef.current === taskId && status !== 'COMPLETED' && status !== 'FAILED') {
+        // Retry in 3s
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log("Reconnecting...");
+          connect(taskId);
+        }, 3000);
+      }
+    };
+
+  }, [status, disconnect]);
 
   return {
-    /** Full status data object */
-    data,
-    /** Current status string (e.g., "PROCESSING", "COMPLETED") */
-    status: data?.status ?? null,
-    /** Progress percentage (0-100) */
-    progress: data?.progress ?? 0,
-    /** Human-readable status message */
-    message: data?.message ?? "",
-    /** Final result (only when COMPLETED) */
-    result: data?.result ?? null,
-    /** Error message (only when FAILED) */
-    error: data?.error ?? null,
-    /** Whether actively receiving updates */
+    status,
+    progress,
+    message,
+    result,
+    error,
     isConnected,
-    /** Connection method: "ws" | "polling" | "none" */
-    connectionType,
-    /** Whether task has reached a terminal state */
-    isTerminal,
+    connect,
+    disconnect
   };
-}
+};

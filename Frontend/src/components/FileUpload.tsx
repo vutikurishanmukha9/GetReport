@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Upload, FileSpreadsheet, AlertCircle, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ interface FileUploadProps {
   onFileUploaded: (data: ApiResponse, taskId: string) => void;
 }
 
+import { useTaskStatus } from "@/hooks/useTaskStatus"; // Add import
+
 export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -21,12 +23,55 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   // New States for Interactive Cleaning
   const [taskId, setTaskId] = useState<string | null>(null);
   const [inspectionData, setInspectionData] = useState<InspectionResult | null>(null);
-  const [activePoll, setActivePoll] = useState<NodeJS.Timeout | null>(null);
+
+  // Track what we are waiting for
+  const [expectedPhase, setExpectedPhase] = useState<'INSPECTION' | 'ANALYSIS' | null>(null);
+
+  // Real-Time Status Hook
+  const { status: taskStatus, result: taskResult, error: taskError } = useTaskStatus(taskId || undefined);
 
   const { toast } = useToast();
 
+  // React to WebSocket Status Updates
+  useEffect(() => {
+    if (!taskId || !expectedPhase || !taskStatus) return;
+
+    const normalizedStatus = taskStatus.toUpperCase();
+
+    // CASE 1: Inspection Ready
+    if (expectedPhase === 'INSPECTION') {
+      if (normalizedStatus === 'WAITING_FOR_USER' && taskResult && taskResult.stage === 'INSPECTION') {
+        setInspectionData(taskResult as InspectionResult);
+        setIsProcessing(false);
+        setExpectedPhase(null); // Stop waiting
+        toast({ title: "Data Inspection Complete", description: "Please review the issues found." });
+      }
+    }
+
+    // CASE 2: Analysis Complete
+    if (expectedPhase === 'ANALYSIS') {
+      if (normalizedStatus === 'COMPLETED') {
+        if (taskResult && 'analysis' in taskResult) {
+          setIsProcessing(false);
+          setInspectionData(null);
+          setExpectedPhase(null);
+          onFileUploaded(taskResult as ApiResponse, taskId);
+          toast({ title: "Analysis Complete!", description: `Successfully analyzed ${taskResult.info.rows} rows.` });
+        }
+      }
+    }
+
+    // CASE 3: Failure
+    if (normalizedStatus === 'FAILED') {
+      setIsProcessing(false);
+      setExpectedPhase(null);
+      toast({ title: "Processing Failed", description: taskError || "An error occurred.", variant: "destructive" });
+    }
+
+  }, [taskId, expectedPhase, taskStatus, taskResult, taskError]);
+
   const validateFile = (file: File): boolean => {
-    // ... (validation logic same as before)
+    // ... (keep existing validation)
     const validTypes = [
       "text/csv",
       "application/vnd.ms-excel",
@@ -58,98 +103,19 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     return true;
   };
 
-  const startPolling = (taskId: string, expectedPhase: 'INSPECTION' | 'ANALYSIS') => {
-    const pollInterval = setInterval(async () => {
-      try {
-        const status = await api.getTaskStatus(taskId);
-
-        let resultData = status.result;
-        if (typeof resultData === 'string') {
-          try {
-            resultData = JSON.parse(resultData);
-          } catch (e) {
-            console.error("Failed to parse result JSON:", e);
-          }
-        }
-
-        // CASE 1: Inspection Ready
-        // Only trigger this if we are LOOKING for inspection results.
-        const normalizedStatus = status.status?.toUpperCase();
-        if (expectedPhase === 'INSPECTION' && normalizedStatus === 'WAITING_FOR_USER' && resultData && resultData.stage === 'INSPECTION') {
-          clearInterval(pollInterval);
-          setInspectionData(resultData as InspectionResult);
-          setIsProcessing(false);
-          toast({
-            title: "Data Inspection Complete",
-            description: "Please review the issues found.",
-          });
-          return;
-        }
-
-        // CASE 2: Analysis Complete
-        // Only trigger if we are waiting for analysis (or if it just happens to be done).
-        if (normalizedStatus === 'COMPLETED') {
-          if ('analysis' in (status.result || {})) {
-            clearInterval(pollInterval);
-            setIsProcessing(false);
-            setInspectionData(null);
-            onFileUploaded(status.result as ApiResponse, taskId);
-            toast({
-              title: "Analysis Complete!",
-              description: `Successfully analyzed ${status.result.info.rows} rows.`,
-            });
-            return;
-          }
-        }
-
-        // CASE 3: Failure
-        else if (normalizedStatus === 'FAILED') {
-          clearInterval(pollInterval);
-          setIsProcessing(false);
-          // If we were in ANALYSIS phase, failing implies we messed up.
-          const errorText = status.error || "Analysis failed";
-          // If we see "Job is not waiting" here (unlikely via polling, but via POST response), handle it.
-          // But polling just sees FAILED.
-          throw new Error(errorText);
-        }
-
-        // CASE 4: Still Processing
-        else {
-          // If expectedPhase is ANALYSIS, and status is WAITING_FOR_USER, 
-          // it means the background worker hasn't picked it up yet. 
-          // WE MUST NOT set isProcessing(false).
-          // Just wait.
-        }
-      } catch (err: any) {
-        clearInterval(pollInterval);
-        setIsProcessing(false);
-        toast({
-          title: "Error",
-          description: err.message || "Connection lost during polling.",
-          variant: "destructive",
-        });
-      }
-    }, 3000); // 3s polling (Optimized for reduced load)
-    setActivePoll(pollInterval);
-  };
-
   const processFile = async (file: File) => {
     setIsProcessing(true);
     setSelectedFile(file);
     setInspectionData(null);
 
     try {
-      toast({
-        title: "Uploading...",
-        description: "Sending file to server...",
-      });
+      toast({ title: "Uploading...", description: "Sending file to server..." });
 
       const { task_id } = await api.uploadFile(file);
       setTaskId(task_id);
-      startPolling(task_id, 'INSPECTION');
+      setExpectedPhase('INSPECTION'); // Start waiting for inspection
 
     } catch (error: any) {
-      // ... error handling
       console.error("Error initiating upload:", error);
       let errorMessage = "Could not start upload.";
       if (error.response?.data?.detail) errorMessage = error.response.data.detail;
@@ -165,9 +131,8 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
     try {
       await api.startAnalysis(taskId, rules);
-      startPolling(taskId, 'ANALYSIS');
+      setExpectedPhase('ANALYSIS'); // Start waiting for analysis
     } catch (error: any) {
-      // ... error handling
       console.error("Failed to start analysis:", error);
       const errorMsg = error.response?.data?.message || "Failed to apply rules.";
       toast({ title: "Error", description: errorMsg, variant: "destructive" });
@@ -195,7 +160,8 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   const clearFile = () => {
     setSelectedFile(null);
     setInspectionData(null);
-    if (activePoll) clearInterval(activePoll);
+    setExpectedPhase(null);
+    setTaskId(null); // Disconnect WebSocket
   };
 
   // ─── RENDER: HEALTH CHECK + ISSUE LEDGER UI ─────────────────────────────────
