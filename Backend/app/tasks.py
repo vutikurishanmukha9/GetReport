@@ -180,10 +180,10 @@ def resume_analysis_task(self, task_id: str, rules: Dict[str, Any], analysis_con
 def rag_ingest_task(task_id: str, text: str):
     """
     Ingest text into vector store (RAG).
-    Uses the sync wrapper to avoid threading hacks.
+    Uses the blocking sync method to avoid asyncio.run() issues.
     """
     try:
-        rag_service.ingest_report_sync(task_id, text)
+        rag_service.ingest_report_blocking(task_id, text)
     except Exception as e:
         logger.error(f"RAG Ingestion Task failed: {e}")
 

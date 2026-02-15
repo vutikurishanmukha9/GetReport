@@ -3,7 +3,7 @@ import asyncio
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime, timedelta
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 from app.core.config import settings
 from app.core.rag_utils import TextSplitter, SimpleVectorStore, PostgresVectorStore
 
@@ -109,9 +109,11 @@ class EnhancedRAGService:
         
         if self.enabled:
             self.client = AsyncOpenAI(api_key=self.api_key)
-            logger.info("RAG Service initialized (Native OpenAI)")
+            self.sync_client = OpenAI(api_key=self.api_key)
+            logger.info("RAG Service initialized (Native OpenAI Async+Sync)")
         else:
             self.client = None
+            self.sync_client = None
             logger.warning("RAG Service DISABLED (No API Key)")
 
         self.text_splitter = TextSplitter(
@@ -137,8 +139,22 @@ class EnhancedRAGService:
             logger.error(f"Embedding generation failed: {e}")
             raise
 
+    def _get_embeddings_sync(self, texts: List[str]) -> List[List[float]]:
+        """Get embeddings using Sync OpenAI Client (for Celery)"""
+        if not self.sync_client:
+            raise RuntimeError("RAG Service Disabled")
+        try:
+            response = self.sync_client.embeddings.create(
+                input=texts,
+                model="text-embedding-3-small"
+            )
+            return [d.embedding for d in response.data]
+        except Exception as e:
+            logger.error(f"Embedding generation failed: {e}")
+            raise
+
     async def ingest_report(self, task_id: str, text_content: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Ingest report text into in-memory vector store"""
+        """Ingest report text into vector store (Async)"""
         if not self.enabled:
             return {"success": False, "error": "Disabled"}
 
@@ -171,9 +187,38 @@ class EnhancedRAGService:
             logger.error(f"Ingest failed: {e}")
             return {"success": False, "error": str(e)}
 
-    def ingest_report_sync(self, task_id: str, text_content: str, metadata: Optional[Dict[str, Any]] = None):
-         """Sync wrapper for Celery"""
-         return asyncio.run(self.ingest_report(task_id, text_content, metadata))
+    def ingest_report_blocking(self, task_id: str, text_content: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Synchronous version of ingest_report for Celery workers.
+        Avoids asyncio.run() entirely.
+        """
+        if not self.enabled:
+            return {"success": False, "error": "Disabled"}
+
+        try:
+            # Split
+            text_content = SecurityGuard.sanitize_input(text_content)
+            chunks = self.text_splitter.split_text(text_content)
+            if not chunks:
+                 return {"success": False, "error": "No text chunks"}
+            
+            # Embed (Sync)
+            embeddings = self._get_embeddings_sync(chunks)
+            
+            # Store
+            if settings.DATABASE_URL:
+                 store = PostgresVectorStore(task_id)
+                 # Sync call to add_texts
+                 store.add_texts(chunks, embeddings, [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))])
+                 logger.info(f"Report {task_id} ingested into Postgres Vector Store (Sync)")
+            else:
+                 logger.warning("Local In-Memory RAG not supported in Blocking Mode (Celery). Use DATABASE_URL for RAG.")
+                 return {"success": False, "error": "Local RAG not supported in Worker Process"}
+            
+            return {"success": True, "num_chunks": len(chunks)}
+        except Exception as e:
+            logger.error(f"Ingest (Blocking) failed: {e}")
+            return {"success": False, "error": str(e)}
 
     async def chat_with_report(self, task_id: str, question: str, k: int = 4, include_sources: bool = False) -> Dict[str, Any]:
         """Chat with the report context"""

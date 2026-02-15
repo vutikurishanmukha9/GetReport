@@ -67,9 +67,40 @@ def test_rag_factory_logic():
         else:
              print("✗ Prod Mode incorrectly used In-Memory Cache")
 
+def test_blocking_ingest():
+    print("\nTesting Blocking Ingestion (Sync)...")
+    settings.OPENAI_API_KEY = "sk-mock-key"
+    settings.DATABASE_URL = "postgresql://user:pass@localhost/db"
+    
+    with patch("app.services.rag_service.PostgresVectorStore") as MockStore:
+        rag = EnhancedRAGService()
+        
+        # Mock Sync Client
+        rag.sync_client = MagicMock()
+        rag.sync_client.embeddings.create.return_value.data = [MagicMock(embedding=[0.1]*1536)]
+        
+        # Run Blocking Ingest
+        result = rag.ingest_report_blocking("task_sync", "some text")
+        
+        if result["success"]:
+            print("✓ Blocking Ingest succeeded")
+        else:
+            print(f"✗ Blocking Ingest failed: {result}")
+            
+        if rag.sync_client.embeddings.create.called:
+            print("✓ Blocking Ingest used Sync OpenAI Client")
+        else:
+            print("✗ Blocking Ingest did NOT use Sync OpenAI Client")
+            
+        if MockStore.return_value.add_texts.called:
+            print("✓ Blocking Ingest used PostgresVectorStore (Sync)")
+        else:
+            print("✗ Blocking Ingest did NOT use PostgresVectorStore")
+
 if __name__ == "__main__":
     try:
         test_rag_factory_logic()
+        test_blocking_ingest()
     except Exception as e:
         print(f"✗ Test Failed: {e}")
         import traceback
