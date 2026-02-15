@@ -39,10 +39,10 @@ def publish_update(task_id: str, data: Dict[str, Any]):
 
 # Ensure DB is initialized on module load (or app startup)
 # For simplicity, we call it here, but ideally Main.py calls it.
-try:
-    init_db()
-except Exception as e:
-    logger.error(f"DB Init failed: {e}")
+# try:
+#     init_db()
+# except Exception as e:
+#     logger.error(f"DB Init failed: {e}")
 
 class TaskStatus(str, Enum):
     PENDING = "pending"
