@@ -73,7 +73,7 @@ class ReportMetadata:
 
 
 # ─── Style Factory ───────────────────────────────────────────────────────────
-def _build_styles() -> dict[str, ParagraphStyle]:
+def get_custom_styles() -> dict[str, ParagraphStyle]:
     """
     Create the full branded style sheet for the report.
     Extends the base ReportLab styles with GetReport-specific overrides.
