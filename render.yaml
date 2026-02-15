@@ -28,10 +28,7 @@ services:
       - key: DATABASE_URL
         sync: false # Set manually → Neon DB Postgres connection string
       - key: REDIS_URL
-        fromService:
-          name: getreport-redis
-          type: redis
-          property: connectionString
+        sync: false # Set manually → Your External Redis URL (e.g., Upstash/Neon)
       - key: OPENAI_API_KEY
         sync: false # Set manually in Render Dashboard
       - key: PDF_ENGINE
@@ -46,8 +43,6 @@ services:
         value: "52428800" # 50MB
       - key: PYTHONUNBUFFERED
         value: "1"
-
-  # (Removed separate worker service to allow shared local storage)
 
   # ─── 3. Frontend (Static Site) ──────────────────────────────────────────────
   - type: web
@@ -69,9 +64,3 @@ services:
     envVars:
       - key: VITE_API_URL
         sync: false # Set to https://getreport-api.onrender.com/api
-
-# ─── 4. Redis ──────────────────────────────────────────────────────────────────
-databases:
-  - name: getreport-redis
-    plan: starter
-    ipAllowList: []  # Only allow internal connections
