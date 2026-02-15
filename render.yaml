@@ -34,7 +34,7 @@ services:
       - key: PDF_ENGINE
         value: weasyprint
       - key: CORS_ORIGINS
-        sync: false # Set to your frontend URL
+        value: https://getreport-frontend.onrender.com,http://localhost:5173
       - key: SKEWNESS_THRESHOLD
         value: "1.0"
       - key: STORAGE_TYPE
@@ -45,9 +45,9 @@ services:
         value: "1"
 
   # ─── 3. Frontend (Static Site) ──────────────────────────────────────────────
-  - type: web
+  # ─── 3. Frontend (Static Site) ──────────────────────────────────────────────
+  - type: static
     name: getreport-frontend
-    runtime: static
     buildCommand: cd Frontend && npm install && npm run build
     staticPublishPath: ./Frontend/dist
     headers:
@@ -63,4 +63,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        sync: false # Set to https://getreport-api.onrender.com/api
+        value: https://getreport.onrender.com/api
