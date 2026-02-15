@@ -48,8 +48,11 @@ _RETRYABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
 )
 
 
-# ─── OpenAI Client (module-level, original logic) ───────────────────────────
-client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+# ─── OpenAI Client (Lazy Initialization) ──────────────────────────────────────
+client = None
+if settings.OPENAI_API_KEY:
+    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+# Else: client remains None, handled in generate_insights
 
 
 # ─── Custom Exceptions ───────────────────────────────────────────────────────
@@ -415,7 +418,7 @@ async def generate_insights(analysis_data: dict[str, Any]) -> InsightResult:
     start_time = time.perf_counter()
 
     # ── 1. Check API key (original logic preserved) ─────────────────────────
-    if not settings.OPENAI_API_KEY:
+    if not settings.OPENAI_API_KEY or not client:
         logger.warning("OPENAI_API_KEY is not configured — returning fallback.")
         return _build_fallback("no_api_key")                # original behavior
 
