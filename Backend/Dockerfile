@@ -49,9 +49,8 @@ ENV PDF_ENGINE=weasyprint
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Copy startup script
-COPY start.sh .
-RUN chmod +x start.sh
+# Start script
+RUN chmod +x ./start.sh
 
 # ─── Health check ────────────────────────────────────────────────────────────
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
