@@ -27,9 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgdk-pixbuf-2.0-0 \
     libffi-dev \
     libcairo2 \
-    fonts-liberation \
     fonts-dejavu-core \
     ca-certificates \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -50,7 +50,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # Start script
-RUN chmod +x ./start.sh
+RUN dos2unix ./start.sh && chmod +x ./start.sh
 
 # ─── Health check ────────────────────────────────────────────────────────────
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
