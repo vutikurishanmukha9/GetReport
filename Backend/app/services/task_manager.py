@@ -114,12 +114,30 @@ class TaskManager:
         initial_status = TaskStatus.PENDING
         initial_message = "Job created"
         
-        with get_db_connection() as conn:
-            conn.execute(
-                "INSERT INTO jobs (task_id, status, filename, message, progress) VALUES (?, ?, ?, ?, ?)",
-                (task_id, initial_status, filename, initial_message, 0)
-            )
-            conn.commit()
+        args = (task_id, initial_status, filename, initial_message, 0)
+        query = "INSERT INTO jobs (task_id, status, filename, message, progress) VALUES (?, ?, ?, ?, ?)"
+
+        try:
+            with get_db_connection() as conn:
+                conn.execute(query, args)
+                conn.commit()
+        except Exception as e:
+            # Self-Healing: If table missing, create it and retry once.
+            msg = str(e).lower()
+            if "relation" in msg and "does not exist" in msg:
+                logger.warning(f"Jobs table missing ({msg}). Attempting self-healing init_db()...")
+                try:
+                    init_db()
+                    # Retry
+                    with get_db_connection() as conn:
+                        conn.execute(query, args)
+                        conn.commit()
+                    logger.info("Self-healing successful. Job created.")
+                except Exception as retry_err:
+                    logger.error(f"Self-healing failed: {retry_err}")
+                    raise e
+            else:
+                raise e
             
         logger.info(f"Job {task_id} created in DB.")
         return task_id
