@@ -9,7 +9,7 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
-COPY requirements.txt .
+COPY Backend/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install \
     -r requirements.txt \
     weasyprint>=62.0
@@ -37,8 +37,8 @@ WORKDIR /app
 # Copy pre-built Python packages
 COPY --from=builder /install /usr/local
 
-# Copy application code
-COPY . .
+# Copy application code (from Backend/ directory)
+COPY Backend/ .
 
 # Create necessary directories for runtime
 RUN mkdir -p /app/temp_uploads /app/outputs /app/temp_cache && \

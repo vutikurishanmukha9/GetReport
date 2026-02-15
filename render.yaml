@@ -18,7 +18,7 @@ services:
     name: getreport-backend
     runtime: docker
     dockerfilePath: ./Backend/Dockerfile
-    dockerContext: ./Backend
+    dockerContext: .
     plan: starter
     region: oregon
     healthCheckPath: /health
