@@ -50,10 +50,21 @@ async def validate_file_signature(file: UploadFile) -> None:
 
     # 3. CSV (Text-based)
     elif filename.endswith(".csv"):
-        # CSVs don't have magic numbers. We check if the header looks like text.
-        # Binary files often likely contain null bytes, which are rare in valid CSVs.
-        if b"\x00" in header:
-             logger.warning(f"Validation failed: {filename} contains null bytes, likely binary.")
+        # CSVs don't have magic numbers. We check for text content.
+        # Fix: Valid UTF-16/32 files contain null bytes used as padding.
+        # Strategy: Try decoding common encodings first. If valid text, accept.
+        
+        is_text = False
+        for encoding in ["utf-8", "utf-16", "latin-1"]:
+            try:
+                header.decode(encoding)
+                is_text = True
+                break
+            except UnicodeError:
+                continue
+                
+        if not is_text and b"\x00" in header:
+             logger.warning(f"Validation failed: {filename} contains null bytes and failed text decoding.")
              raise HTTPException(
                 status_code=400,
                 detail="Invalid file content. CSV file appears to be binary."

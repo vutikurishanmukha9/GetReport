@@ -18,6 +18,9 @@ storage = get_storage_provider()
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# Global state for lazy cleanup (DoS prevention)
+_last_cleanup_time = 0
+
 class TaskResponse(BaseModel):
     task_id: str
     message: str
@@ -70,10 +73,22 @@ async def upload_file(
         # Start Inspection Task (Phase 1) - VIA CELERY
         inspect_file_task.delay(task_id, file_ref, safe_filename)
         
-        # Schedule cleanup for old reports
+        # Schedule cleanup for old reports (Lazy Cleanup: Max once per hour)
+        # Prevents separate thread per request (DoS mitigation)
         from app.services.cleanup import cleanup_old_files
-        output_dir = os.path.join(os.getcwd(), "outputs")
-        background_tasks.add_task(cleanup_old_files, output_dir, 86400)
+        import time
+        
+        global _last_cleanup_time
+        try:
+            _last_cleanup_time
+        except NameError:
+            _last_cleanup_time = 0
+            
+        now = time.time()
+        if now - _last_cleanup_time > 3600:
+            output_dir = os.path.join(os.getcwd(), "outputs")
+            background_tasks.add_task(cleanup_old_files, output_dir, 86400)
+            _last_cleanup_time = now
         
         return TaskResponse(
             task_id=task_id, 

@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_DEFAULT: str = "60/minute"
     MAX_UPLOAD_SIZE_MB: int = 50
+    
+    # ⚠ SECURITY WARNING: These defaults are for local development ONLY.
+    # In production, you MUST override CORS_ORIGINS via environment variable to restrict access.
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:8080"
 
     # ─── Analysis Thresholds ─────────────────────────────────────────────
