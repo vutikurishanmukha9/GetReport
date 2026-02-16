@@ -60,32 +60,3 @@ def health_check():
 def root():
     return {"message": "Welcome to GetReport API"}
 
-@app.get("/debug-init-db")
-def debug_init_db():
-    try:
-        init_db()
-        return {"status": "success", "message": "Database initialized manually."}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-@app.get("/debug-tables")
-def debug_tables():
-    from app.db import get_db_connection, settings
-    try:
-        if settings.DATABASE_URL:
-            # Postgres: Query pg_stat_user_tables
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT schemaname, tablename 
-                    FROM pg_catalog.pg_tables 
-                    WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';
-                """)
-                tables = cursor.fetchall()
-            return {"status": "success", "db_url": settings.DATABASE_URL.split("@")[1] if "@" in settings.DATABASE_URL else "MASKED", "tables": tables}
-        else:
-            # SQLite: Query sqlite_master
-            return {"status": "info", "message": "SQLite mode (Local)"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-

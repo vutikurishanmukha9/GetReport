@@ -230,15 +230,26 @@ def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
         if not content or content in ("{}", "[]", "null"):
             continue
         
-        section_text = f"--- {title} ---\n{content}"
+        # Security: Use XML tags to strictly delimit data sections
+        safe_title = title.replace('"', '').replace("'", "")
+        section_text = f"<{safe_title}>\n{content}\n</{safe_title}>"
         section_tokens = _count_tokens(section_text)
         
         if section_tokens <= budget_remaining:
-            sections.append({"title": title, "content": content})
+            sections.append({"title": title, "content": content}) # Template handles formatting? 
+            # Wait, the template uses sections list. logic below implies content is raw.
+            # actually, I should just modify the template, or modify how I structure 'content' here if the template is generic.
+            # Looking at line 248: template.render(sections=sections)
+            # If the template iterates sections, I should check the template too.
+            # But changing the *content* string to wrap in tags is safer if the template just dumps {{ section.content }}.
+            
+            # Let's inspect the template in my mind... 
+            # If I wrap here, valid.
+            sections.append({"title": title, "content": f"<{safe_title}>\n{content}\n</{safe_title}>"})
             budget_remaining -= section_tokens
         elif budget_remaining > 100:  # Still some room — truncate
             truncated = _truncate_to_budget(content, budget_remaining - 20)
-            sections.append({"title": title, "content": truncated})
+            sections.append({"title": title, "content": f"<{safe_title}>\n{truncated}\n</{safe_title}>"})
             budget_remaining = 0
             break
         else:

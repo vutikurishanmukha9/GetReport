@@ -28,7 +28,8 @@ class PostgresCursor:
         def replace_placeholder(match):
             if match.group(1): return match.group(1)
             return "%s"
-        pattern = r"(\'[^\']*\'|\"[^\"]*\")|\?"
+        # Regex to handle standard SQL ('') and Postgres (\') escaping
+        pattern = r"(\'(?:[^'\\]|\\.|'')*\'|\"(?:[^\"\\]|\\.|\"\")*\")|\?"
         pg_sql = re.sub(pattern, replace_placeholder, sql)
         return self.cursor.execute(pg_sql, params)
 
@@ -90,7 +91,8 @@ class AsyncPostgresCursor:
             counter += 1
             return f"${counter}"
 
-        pattern = r"(\'[^\']*\'|\"[^\"]*\")|\?"
+        # Regex to handle standard SQL ('') and Postgres (\') escaping
+        pattern = r"(\'(?:[^'\\]|\\.|'')*\'|\"(?:[^\"\\]|\\.|\"\")*\")|\?"
         pg_sql = re.sub(pattern, replace_placeholder, sql)
         
         self._last_result = await self.conn.fetch(pg_sql, *params)

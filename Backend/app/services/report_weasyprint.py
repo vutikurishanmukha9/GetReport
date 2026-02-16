@@ -72,9 +72,10 @@ def generate_pdf_weasyprint(
     logger.info("═══ PDF Report Generation Started (WeasyPrint) — '%s' ═══", filename)
 
     # ── 1. Render HTML from template ────────────────────────────────────────
+    # Security: autoescape=True to prevent HTML injection from user data
     env = Environment(
         loader=FileSystemLoader(str(_TEMPLATE_DIR)),
-        autoescape=False,  # We control the HTML ourselves
+        autoescape=True,
     )
     template = env.get_template("report.html")
 
