@@ -168,8 +168,7 @@ async def init_async_db():
             async_pg_pool = await asyncpg.create_pool(
                 dsn=settings.DATABASE_URL, 
                 min_size=1, 
-                max_size=20,
-                server_settings={'search_path': 'public'}
+                max_size=20
             )
             logger.info("Async PostgreSQL Pool initialized (search_path=public).")
 
@@ -211,10 +210,9 @@ def _init_postgres_sync():
             pg_pool = psycopg2.pool.ThreadedConnectionPool(
                 minconn=1, maxconn=20,
                 dsn=settings.DATABASE_URL,
-                cursor_factory=RealDictCursor,
-                options="-c search_path=public"
+                cursor_factory=RealDictCursor
             )
-            print("[DB-INIT] PostgreSQL Sync Pool created (search_path=public).")
+            print("[DB-INIT] PostgreSQL Sync Pool created.")
             
         conn = pg_pool.getconn()
         try:
