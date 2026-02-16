@@ -228,11 +228,20 @@ def _init_postgres_sync():
             # 1. Create Core Tables (Critical)
             print("[DB-INIT] Creating core tables (Forcing public schema)...")
             try:
+                # Ensure schema exists (Just in case)
+                cursor.execute("CREATE SCHEMA IF NOT EXISTS public;")
+                
                 # Force PUBLIC schema to avoid search_path ambiguity
                 _create_core_tables_explicit(cursor)
                 conn.commit()
                 print("[DB-INIT] Core tables CREATE commands executed & COMMITTED.")
                 
+                # DIAGNOSTIC: List all tables in public schema
+                print("[DB-INIT] DIAGOSTIC: Listing tables in 'public' schema:")
+                cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';")
+                tables = cursor.fetchall()
+                print(f"[DB-INIT] Tables found: {[t['table_name'] for t in tables]}")
+
                 # VERIFICATION: Check public.jobs
                 cursor.execute("SELECT to_regclass('public.jobs');")
                 result = cursor.fetchone()
