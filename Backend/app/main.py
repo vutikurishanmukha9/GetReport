@@ -8,20 +8,21 @@ from app.core.limiter import limiter
 from contextlib import asynccontextmanager
 
 from app.api import endpoints
-from app.db import init_db
+from app.db import init_db, close_db, init_async_db, close_async_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize Database
+    # Startup
     try:
-        init_db()
+        init_db()  # Run Sync Schema Init
+        await init_async_db() # Init Async Pool
     except Exception as e:
-        # Log critical error but don't crash app immediately (or do if DB is mandatory?)
-        # For now, log it clearly.
         import logging
         logging.getLogger("uvicorn").error(f"DATABASE INIT FAILED: {e}")
     yield
-    # Shutdown logic (if any)
+    # Shutdown
+    await close_async_db()
+    close_db()
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 

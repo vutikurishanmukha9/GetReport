@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
 from enum import Enum
-from app.db import get_db_connection, init_db
+from app.db import get_db_connection, get_async_db_connection, init_db
 from app.core.config import settings
 from app.services.storage import get_storage_provider
 try:
@@ -28,6 +28,10 @@ if redis:
 else:
     logger.warning("Redis module not found. Install 'redis' for real-time updates.")
 
+# Async Redis (if needed later) or just use Sync Redis client for publish (it's fast enough)
+# For now, we stick to sync redis publish even in async methods unless it blocks too much.
+# Usually publish is very fast (0.5ms).
+
 def publish_update(task_id: str, data: Dict[str, Any]):
     """Publish update to Redis channel"""
     if redis_client:
@@ -36,13 +40,6 @@ def publish_update(task_id: str, data: Dict[str, Any]):
             redis_client.publish(channel, json.dumps(data))
         except Exception as e:
             logger.error(f"Redis publish failed: {e}")
-
-# Ensure DB is initialized on module load (or app startup)
-# For simplicity, we call it here, but ideally Main.py calls it.
-# try:
-#     init_db()
-# except Exception as e:
-#     logger.error(f"DB Init failed: {e}")
 
 class TaskStatus(str, Enum):
     PENDING = "pending"
@@ -61,41 +58,27 @@ class Job:
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     report_path: Optional[str] = None
-    result_path: Optional[str] = None  # Path to result JSON file
+    result_path: Optional[str] = None
+    version: int = 0  # For Optimistic Locking
 
 import io
 
 # ─── Storage-Based Result Management ─────────────────────────────────────────
 
 def _save_result_to_storage(task_id: str, result: Dict[str, Any]) -> str:
-    """
-    Save result JSON to storage (Local or S3).
-    Returns the file reference (path or key).
-    """
-    # Serialize to JSON bytes
+    """Save result JSON to storage (Local or S3). Returns reference."""
     json_bytes = json.dumps(result, indent=2, default=str).encode("utf-8")
     file_obj = io.BytesIO(json_bytes)
-    
-    # Filename for metadata (storage provider generates unique key usually)
-    # We prefix with task_id to make it identifiable if storage allows
     filename = f"{task_id}_result.json"
-    
-    # Save
     file_ref = storage.save_upload(file_obj, filename)
     logger.info(f"Result saved to storage: {file_ref}")
     return file_ref
 
 def _load_result_from_storage(file_ref: str) -> Optional[Dict[str, Any]]:
-    """
-    Load result JSON from storage reference.
-    """
-    if not file_ref:
-        return None
-        
+    """Load result JSON from storage reference."""
+    if not file_ref: return None
     try:
-        # get_absolute_path ensures it's available locally (downloads if needed)
         local_path = storage.get_absolute_path(file_ref)
-        
         if os.path.exists(local_path):
             with open(local_path, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -105,64 +88,154 @@ def _load_result_from_storage(file_ref: str) -> Optional[Dict[str, Any]]:
 
 class TaskManager:
     """
-    Manages job states using SQLite persistence.
-    Replaces the In-Memory Dictionary implementation.
+    Manages job states using Database persistence.
+    Supports both Sync (Celery) and Async (FastAPI) contexts.
     """
 
-    def create_job(self, filename: str) -> str:
+    # ─── ASYNC METHODS (For FastAPI) ─────────────────────────────────────────
+
+    async def create_job_async(self, filename: str) -> str:
         task_id = str(uuid.uuid4())
         initial_status = TaskStatus.PENDING
         initial_message = "Job created"
         
-        args = (task_id, initial_status, filename, initial_message, 0)
-        query = "INSERT INTO jobs (task_id, status, filename, message, progress) VALUES (?, ?, ?, ?, ?)"
+        # No Self-Healing here. DB Schema must be correct.
+        query = "INSERT INTO jobs (task_id, status, filename, message, progress, version) VALUES (?, ?, ?, ?, ?, ?)"
+        args = (task_id, initial_status, filename, initial_message, 0, 1)
 
-        try:
-            with get_db_connection() as conn:
-                conn.execute(query, args)
-                conn.commit()
-        except Exception as e:
-            # Self-Healing: If table missing, create it and retry once.
-            msg = str(e).lower()
-            if "relation" in msg and "does not exist" in msg:
-                logger.warning(f"Jobs table missing ({msg}). Attempting self-healing init_db()...")
-                try:
-                    init_db()
-                    # Retry
-                    with get_db_connection() as conn:
-                        conn.execute(query, args)
-                        conn.commit()
-                    logger.info("Self-healing successful. Job created.")
-                except Exception as retry_err:
-                    logger.error(f"Self-healing failed: {retry_err}")
-                    raise e
-            else:
-                raise e
+        async with get_async_db_connection() as conn:
+            await conn.execute(query, args)
+            await conn.commit()
             
-        logger.info(f"Job {task_id} created in DB.")
+        logger.info(f"Job {task_id} created in DB (Async).")
+        return task_id
+
+    async def get_job_async(self, task_id: str) -> Optional[Job]:
+        async with get_async_db_connection() as conn:
+            # We assume wrapper returns dict-like or row-like object
+            cursor = await conn.execute("SELECT * FROM jobs WHERE task_id = ?", (task_id,))
+            row = await cursor.fetchone()
+            
+        if not row:
+            return None
+            
+        # Helper to safely access row by name (supports dict or sqlite Row)
+        def get_col(r, keys):
+            # asyncpg Record behaves like mapping. aiosqlite Row behaves like mapping.
+            return r[keys]
+
+        # Load result from storage
+        result_data = None
+        result_ref = row["result_path"]
+        
+        # IO Block: Reading from storage (Synchronous IO).
+        # Theoretically we should make storage async too, but for local files it's fast.
+        # For S3 it's an HTTP request (blocking). 
+        # TODO: Make storage provider async. For now, we assume it's acceptable for small JSONs.
+        if result_ref:
+            result_data = _load_result_from_storage(result_ref)
+        
+        return Job(
+            id=row["task_id"],
+            status=TaskStatus(row["status"]),
+            message=row["message"],
+            progress=row["progress"],
+            filename=row["filename"],
+            result=result_data,
+            error=row["error"],
+            report_path=row["report_path"],
+            result_path=result_ref,
+            version=row["version"]
+        )
+
+    async def update_status_async(self, task_id: str, status: TaskStatus, result: Optional[Dict[str, Any]] = None):
+        """
+        Updates status. 
+        Note: We define 'Optimistic Locking' here as simply ensuring we increment version.
+        For strict concurrency, we would need to pass expected_version, but API doesn't support it yet.
+        So we just Atomically Increment.
+        """
+        result_ref = None
+        if result:
+            result_ref = _save_result_to_storage(task_id, result)
+
+        async with get_async_db_connection() as conn:
+            if result_ref:
+                await conn.execute(
+                    """
+                    UPDATE jobs 
+                    SET status = ?, result_path = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1
+                    WHERE task_id = ?
+                    """,
+                    (status, result_ref, task_id)
+                )
+            else:
+                await conn.execute(
+                    """
+                    UPDATE jobs 
+                    SET status = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1
+                    WHERE task_id = ?
+                    """,
+                    (status, task_id)
+                )
+            await conn.commit()
+            
+        publish_update(task_id, {
+            "task_id": task_id,
+            "status": status,
+            "progress": 100 if status == TaskStatus.COMPLETED else None,
+            "result": result
+        })
+
+    async def update_result_async(self, task_id: str, result: Dict[str, Any]):
+        """Async update just the result JSON without changing status."""
+        result_ref = _save_result_to_storage(task_id, result)
+        async with get_async_db_connection() as conn:
+            await conn.execute(
+                "UPDATE jobs SET result_path = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
+                (result_ref, task_id)
+            )
+            await conn.commit()
+            
+        publish_update(task_id, {
+            "task_id": task_id,
+            "type": "ledger_update",
+            "result": result
+        })
+
+    # ─── SYNC METHODS (Legacy/Celery) ────────────────────────────────────────
+
+    def create_job(self, filename: str) -> str:
+        """Sync version for testing or legacy calls"""
+        task_id = str(uuid.uuid4())
+        initial_status = TaskStatus.PENDING
+        initial_message = "Job created"
+        
+        args = (task_id, initial_status, filename, initial_message, 0, 1)
+        query = "INSERT INTO jobs (task_id, status, filename, message, progress, version) VALUES (?, ?, ?, ?, ?, ?)"
+
+        with get_db_connection() as conn:
+            conn.execute(query, args)
+            conn.commit()
+            
+        logger.info(f"Job {task_id} created in DB (Sync).")
         return task_id
 
     def get_job(self, task_id: str) -> Optional[Job]:
         with get_db_connection() as conn:
             row = conn.execute("SELECT * FROM jobs WHERE task_id = ?", (task_id,)).fetchone()
             
-        if not row:
-            return None
+        if not row: return None
             
-        # Load result from storage first (preferred)
         result_data = None
-        result_ref = row.get("result_path") if hasattr(row, 'get') else (row["result_path"] if "result_path" in row.keys() else None)
+        # Access via dict (psycopg2) or Row (sqlite)
+        result_ref = row["result_path"] if "result_path" in row.keys() else None
         
         if result_ref:
             result_data = _load_result_from_storage(result_ref)
-        
-        # Fallback: read from result_json column if storage ref not found (Legacy Support)
-        # Note: We are removing result_json usage, but keeping read capability for old records is safe.
-        if result_data is None and "result_json" in row.keys() and row["result_json"]:
-            try:
-                result_data = json.loads(row["result_json"])
-            except:
-                pass
+        elif "result_json" in row.keys() and row["result_json"]:
+             try: result_data = json.loads(row["result_json"])
+             except: pass
                 
         return Job(
             id=row["task_id"],
@@ -173,27 +246,27 @@ class TaskManager:
             result=result_data,
             error=row["error"],
             report_path=row["report_path"],
-            result_path=result_ref
+            result_path=result_ref,
+            version=row.get("version", 0) if hasattr(row, "get") else row["version"]
         )
 
     def update_progress(self, task_id: str, progress: int, message: Optional[str] = None):
         with get_db_connection() as conn:
             if message:
                 conn.execute(
-                    "UPDATE jobs SET progress = ?, message = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+                    "UPDATE jobs SET progress = ?, message = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
                     (progress, message, task_id)
                 )
             else:
                 conn.execute(
-                    "UPDATE jobs SET progress = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+                    "UPDATE jobs SET progress = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
                     (progress, task_id)
                 )
             conn.commit()
             
-        # Publish real-time update
         publish_update(task_id, {
             "task_id": task_id,
-            "status": "processing", # Assumed if progress updates
+            "status": "processing",
             "progress": progress,
             "message": message or "Processing..."
         })
@@ -201,20 +274,18 @@ class TaskManager:
     def update_status(self, task_id: str, status: TaskStatus, result: Optional[Dict[str, Any]] = None):
         with get_db_connection() as conn:
             if result:
-                # Save result to storage
                 result_ref = _save_result_to_storage(task_id, result)
                 conn.execute(
-                    "UPDATE jobs SET status = ?, result_path = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+                    "UPDATE jobs SET status = ?, result_path = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
                     (status, result_ref, task_id)
                 )
             else:
                 conn.execute(
-                    "UPDATE jobs SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
+                    "UPDATE jobs SET status = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
                     (status, task_id)
                 )
             conn.commit()
             
-        # Publish real-time update
         publish_update(task_id, {
             "task_id": task_id,
             "status": status,
@@ -222,23 +293,29 @@ class TaskManager:
             "result": result
         })
 
-    def update_result(self, task_id: str, result: Dict[str, Any]):
-        """Update just the result JSON without changing status. Used by Issue Ledger endpoints."""
-        result_ref = _save_result_to_storage(task_id, result)
+    def fail_job(self, task_id: str, error_msg: str):
         with get_db_connection() as conn:
             conn.execute(
-                "UPDATE jobs SET result_path = ?, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?",
-                (result_ref, task_id)
+                """
+                UPDATE jobs 
+                SET status = ?, 
+                    message = 'Failed', 
+                    error = ?,
+                    updated_at = CURRENT_TIMESTAMP,
+                    version = version + 1
+                WHERE task_id = ?
+                """,
+                (TaskStatus.FAILED, error_msg, task_id)
             )
             conn.commit()
+            logger.error(f"Job {task_id} marked as FAILED in DB: {error_msg}")
             
-        # Publish real-time update (Issue Ledger change)
         publish_update(task_id, {
             "task_id": task_id,
-            "type": "ledger_update",
-            "result": result
+            "status": TaskStatus.FAILED,
+            "error": error_msg
         })
-
+    
     def complete_job(self, task_id: str, result: Dict[str, Any], report_path: Optional[str] = None):
         result_ref = _save_result_to_storage(task_id, result)
         with get_db_connection() as conn:
@@ -250,43 +327,20 @@ class TaskManager:
                     message = 'Completed', 
                     result_path = ?, 
                     report_path = ?,
-                    updated_at = CURRENT_TIMESTAMP 
+                    updated_at = CURRENT_TIMESTAMP, 
+                    version = version + 1
                 WHERE task_id = ?
                 """,
                 (TaskStatus.COMPLETED, result_ref, report_path, task_id)
             )
             conn.commit()
             
-        # Publish real-time update
         publish_update(task_id, {
             "task_id": task_id,
             "status": TaskStatus.COMPLETED,
             "progress": 100,
             "message": "Completed",
             "result": result
-        })
-            
-    def fail_job(self, task_id: str, error_msg: str):
-        with get_db_connection() as conn:
-            conn.execute(
-                """
-                UPDATE jobs 
-                SET status = ?, 
-                    message = 'Failed', 
-                    error = ?,
-                    updated_at = CURRENT_TIMESTAMP 
-                WHERE task_id = ?
-                """,
-                (TaskStatus.FAILED, error_msg, task_id)
-            )
-            conn.commit()
-            logger.error(f"Job {task_id} marked as FAILED in DB: {error_msg}")
-            
-        # Publish real-time update
-        publish_update(task_id, {
-            "task_id": task_id,
-            "status": TaskStatus.FAILED,
-            "error": error_msg
         })
 
 title_task_manager = TaskManager()

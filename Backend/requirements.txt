@@ -8,6 +8,9 @@ pydantic-settings>=2.2.1
 celery[redis]>=5.3.6
 redis>=5.0.3
 psycopg2-binary>=2.9.9
+asyncpg
+aiosqlite
+redis
 
 # Data Processing
 polars>=1.2.1

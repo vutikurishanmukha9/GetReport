@@ -1,6 +1,10 @@
 import numpy as np
 from typing import List, Dict, Any, Tuple, Optional
 import re
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TextSplitter:
     """
@@ -46,10 +50,6 @@ class TextSplitter:
                     if len(current_chunk) + len(split) + len(separator) > self.chunk_size:
                         if current_chunk:
                             result_splits.append(current_chunk)
-                        
-                        # Use overlap if possible (simplified here: just backtrack a bit? 
-                        # actually, proper overlap is hard without tokenizers. 
-                        # We'll use a sliding window approach for simplicity or just simple accumulation)
                         current_chunk = split
                     else:
                         current_chunk += (separator if current_chunk else "") + split
@@ -60,10 +60,6 @@ class TextSplitter:
                 new_splits.extend(result_splits)
             good_splits = new_splits
 
-        # Final pass via simpler sliding window if strict size needed? 
-        # The above logic is a decent approximation of recursive splitting.
-        # Let's verify lengths and force split if still too big?
-        # For now, we trust the separators to do good enough work.
         return [c.strip() for c in good_splits if c.strip()]
 
 class SimpleVectorStore:
@@ -133,28 +129,93 @@ class PostgresVectorStore:
     """
     Persistent vector store using Postgres + pgvector.
     Scalable for multi-worker production.
+    Supports both Sync and Async operations.
     """
     def __init__(self, task_id: str):
         self.task_id = task_id
-        # We don't store connection, we get it per operation to be safe with threads/processes
-    
-    def add_texts(self, texts: List[str], embeddings: List[List[float]], metadatas: Optional[List[Dict[str, Any]]] = None):
-        import json
-        from app.db import get_db_connection
+
+    async def add_texts_async(self, texts: List[str], embeddings: List[List[float]], metadatas: Optional[List[Dict[str, Any]]] = None):
+        """Async insert using native asyncpg types"""
+        from app.db import get_async_db_connection
         
-        with get_db_connection() as conn:
+        async with get_async_db_connection() as conn:
             # Prepare batch data
             rows = []
             for i, text in enumerate(texts):
                 meta = metadatas[i] if metadatas else {}
                 chunk_index = meta.get("chunk_index", i)
-                # Format vector as string "[0.1,0.2,...]"
+                # asyncpg handles list[float] mapping to vector automatically if pgvector type is known,
+                # BUT mostly it handles it as string or expects explicit cast.
+                # To be safe and since we don't know if types are loaded, we format as string.
+                # HOWEVER, asyncpg with pgvector usually expects string "[1,2,3]" or list if codec registered.
+                # We will use string format to be robust.
+                vector_str = f"[{','.join(map(str, embeddings[i]))}]"
+                
+                # metadata can be passed as dict if using jsonb, asyncpg handles it
+                rows.append((self.task_id, text, chunk_index, json.dumps(meta), vector_str))
+
+            # Executemany
+            await conn.conn.executemany( # Access internal asyncpg connection for executemany
+                """
+                INSERT INTO document_chunks (task_id, content, chunk_index, metadata, embedding)
+                VALUES ($1, $2, $3, $4, $5)
+                """,
+                rows
+            )
+            # asyncpg auto-commits usually, but let's be explicit if wrapper requires
+            # Our AsyncPostgresConnection.commit is pass, so strictly asyncpg auto-commits.
+
+    async def similarity_search_with_score_async(self, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+        """Async search"""
+        from app.db import get_async_db_connection
+        
+        vector_str = f"[{','.join(map(str, query_embedding))}]"
+        
+        async with get_async_db_connection() as conn:
+            # We use our wrapper execute, but we need to handle $n replacement if using ?
+            # Wait, here we write raw SQL. Our wrapper expects ?.
+            # BUT asyncpg natively uses $n.
+            # If we utilize `conn.execute` (our wrapper), we must use `?`.
+            # OR we bypass wrapper and use `await conn.conn.fetch` if we want raw power.
+            # Let's use our wrapper for consistency of connection management, 
+            # but our wrapper expects `?`.
+            
+            # Query: embedding <=> ?
+            rows = await conn.conn.fetch(
+                """
+                SELECT content, metadata, embedding <=> $1 as distance
+                FROM document_chunks
+                WHERE task_id = $2
+                ORDER BY distance ASC
+                LIMIT $3
+                """,
+                vector_str, self.task_id, k
+            )
+            
+            results = []
+            for row in rows:
+                content = row["content"]
+                metadata = row["metadata"]
+                if isinstance(metadata, str):
+                    metadata = json.loads(metadata)
+                distance = row["distance"]
+                score = 1 - float(distance)
+                results.append(({"content": content, "metadata": metadata}, score))
+                
+            return results
+
+    def add_texts(self, texts: List[str], embeddings: List[List[float]], metadatas: Optional[List[Dict[str, Any]]] = None):
+        """Sync Method (Legacy/Celery)"""
+        from app.db import get_db_connection
+        
+        with get_db_connection() as conn:
+            rows = []
+            for i, text in enumerate(texts):
+                meta = metadatas[i] if metadatas else {}
+                chunk_index = meta.get("chunk_index", i)
                 vector_str = f"[{','.join(map(str, embeddings[i]))}]"
                 rows.append((self.task_id, text, chunk_index, json.dumps(meta), vector_str))
                 
-            # Execute Batch Insert
-            # Note: For strict Postgres, we might need executemany or just loop
-            # conn.executemany is cleaner
             cursor = conn.cursor()
             cursor.executemany(
                 """
@@ -166,16 +227,13 @@ class PostgresVectorStore:
             conn.commit()
 
     def similarity_search_with_score(self, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
-        import json
+        """Sync Method"""
         from app.db import get_db_connection
         
         vector_str = f"[{','.join(map(str, query_embedding))}]"
         
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            # Cosine Distance (<=>). Lower is closer.
-            # We want Similarity = 1 - Distance
-            # We explicitly cast to vector just in case
             cursor.execute(
                 """
                 SELECT content, metadata, embedding <=> %s as distance
@@ -190,27 +248,17 @@ class PostgresVectorStore:
             
             results = []
             for row in rows:
-                # row is tuple or dict depending on factory.
-                # In db.py, Local(SQLite) -> Row, Postgres -> dict (RealDictCursor) or tuple (base wrapper)?
-                # db.py PostgresConnection wrapper essentially mimics SQLite behavior but let's check.
-                # The wrapper doesn't use RealDictCursor by default in `get_db_connection` for Postgres?
-                # Wait, db.py line 161: conn = psycopg2.connect(..., cursor_factory=RealDictCursor)
-                # So for Postgres, row is a dict-like object.
-                
-                # Check if row is dict or tuple/object
                 if isinstance(row, dict) or hasattr(row, "keys"):
                     content = row["content"]
                     metadata = row["metadata"]
-                    if isinstance(metadata, str):
-                        metadata = json.loads(metadata)
                     distance = row["distance"]
                 else:
-                    # Fallback for tuple
                     content = row[0]
                     metadata = row[1]
-                    if isinstance(metadata, str):
-                        metadata = json.loads(metadata)
                     distance = row[2]
+
+                if isinstance(metadata, str):
+                    metadata = json.loads(metadata)
                 
                 score = 1 - float(distance)
                 results.append(({"content": content, "metadata": metadata}, score))

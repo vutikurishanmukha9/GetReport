@@ -21,7 +21,7 @@ async def chat_with_job(request: Request, task_id: str, body: ChatRequest):
     """
     Chat with the analyzed data (RAG).
     """
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or job.status != TaskStatus.COMPLETED:
          raise HTTPException(400, "Job is not completed yet.")
          

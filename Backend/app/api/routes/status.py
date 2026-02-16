@@ -29,7 +29,7 @@ async def get_task_status(request: Request, task_id: str):
     """
     Check the progress of a processing task.
     """
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
 
@@ -83,11 +83,12 @@ async def websocket_status(websocket: WebSocket, task_id: str):
             finally:
                 pubsub.unsubscribe(channel)
         else:
-            # Fallback: Internal polling (no Redis)
+            # Fallback: Internal polling (no Redis) - ASYNC DB POLLING
             logger.info(f"WebSocket fallback to polling for task {task_id}")
             try:
                 while True:
-                    job = title_task_manager.get_job(task_id)
+                    # Async Poll
+                    job = await title_task_manager.get_job_async(task_id)
                     if job:
                         await websocket.send_json({
                             "task_id": task_id,

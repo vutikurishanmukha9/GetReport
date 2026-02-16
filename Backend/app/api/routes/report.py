@@ -30,7 +30,7 @@ async def generate_persistent_report(request: Request, task_id: str):
     Triggers PDF generation via Celery and returns immediately.
     Frontend should poll /jobs/{task_id}/report/status until ready.
     """
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found")
     if not job.result:
@@ -51,7 +51,7 @@ async def get_report_status(task_id: str):
     Check if the PDF report has been generated and is ready for download.
     Returns: { status: 'generating' | 'ready' | 'not_started', path?: string }
     """
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found")
     
@@ -69,7 +69,7 @@ async def download_report(task_id: str):
     Downloads the persisted PDF report.
     Returns 202 if still generating, 200 + file if ready.
     """
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or not job.report_path:
         raise HTTPException(404, "Report not found. Generate it first.")
     
@@ -93,7 +93,7 @@ async def download_full_report_pdf(task_id: str):
     """
     from app.services.report_generator import generate_pdf_report
     
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found or not completed")
     
@@ -111,6 +111,7 @@ async def download_full_report_pdf(task_id: str):
     filename = analysis.get("filename", "report.pdf")
     
     try:
+        # PDF Generator is sync/CPU heavy, keep in threadpool
         pdf_buffer, meta = await run_in_threadpool(
             generate_pdf_report, params, charts, filename
         )
@@ -132,7 +133,7 @@ async def get_transformation_dag(task_id: str):
     """
     Get the complete transformation DAG for a job.
     """
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
     
@@ -150,7 +151,7 @@ async def export_transformation_dag(task_id: str, format: str = "json"):
     """
     from app.services.transformation_dag import from_dict
     
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
     
@@ -174,7 +175,7 @@ async def export_transformation_dag(task_id: str, format: str = "json"):
 @router.get("/jobs/{task_id}/dag/summary")
 async def get_dag_summary(task_id: str):
     """Get a high-level summary of the transformation DAG."""
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
     
@@ -188,7 +189,7 @@ async def get_dag_summary(task_id: str):
 @router.get("/jobs/{task_id}/dag/{node_id}")
 async def get_dag_node(task_id: str, node_id: str):
     """Get details of a single transformation node."""
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
     
@@ -212,7 +213,7 @@ async def get_comparison_report(task_id: str):
     """
     Get the Data Quality Comparison Report (Before vs After).
     """
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
     

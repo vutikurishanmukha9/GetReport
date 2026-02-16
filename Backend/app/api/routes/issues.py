@@ -31,9 +31,9 @@ def _recalc_summary(issues: list) -> dict:
     return summary
 
 
-def _get_job_and_ledger(task_id: str):
+async def _get_job_and_ledger(task_id: str):
     """Helper: get job and validate it's in approval phase with a ledger."""
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
     
@@ -50,7 +50,7 @@ def _get_job_and_ledger(task_id: str):
 @router.get("/jobs/{task_id}/issues")
 async def get_issues(task_id: str):
     """Get the issue ledger for a task."""
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found")
     
@@ -67,7 +67,7 @@ async def get_issues(task_id: str):
 @router.post("/jobs/{task_id}/issues/{issue_id}/approve")
 async def approve_issue(task_id: str, issue_id: str, request: IssueActionRequest = None):
     """Approve a single issue for execution."""
-    job, ledger_data = _get_job_and_ledger(task_id)
+    job, ledger_data = await _get_job_and_ledger(task_id)
     
     for issue in ledger_data.get("issues", []):
         if issue["id"] == issue_id:
@@ -75,7 +75,7 @@ async def approve_issue(task_id: str, issue_id: str, request: IssueActionRequest
             if request and request.note:
                 issue["user_note"] = request.note
             ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
-            title_task_manager.update_result(task_id, job.result)
+            await title_task_manager.update_result_async(task_id, job.result)
             return {"message": "Issue approved", "issue_id": issue_id}
     
     raise HTTPException(404, "Issue not found")
@@ -84,7 +84,7 @@ async def approve_issue(task_id: str, issue_id: str, request: IssueActionRequest
 @router.post("/jobs/{task_id}/issues/{issue_id}/reject")
 async def reject_issue(task_id: str, issue_id: str, request: IssueActionRequest = None):
     """Reject an issue - fix will not be applied."""
-    job, ledger_data = _get_job_and_ledger(task_id)
+    job, ledger_data = await _get_job_and_ledger(task_id)
     
     for issue in ledger_data.get("issues", []):
         if issue["id"] == issue_id:
@@ -92,7 +92,7 @@ async def reject_issue(task_id: str, issue_id: str, request: IssueActionRequest 
             if request and request.note:
                 issue["user_note"] = request.note
             ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
-            title_task_manager.update_result(task_id, job.result)
+            await title_task_manager.update_result_async(task_id, job.result)
             return {"message": "Issue rejected", "issue_id": issue_id}
     
     raise HTTPException(404, "Issue not found")
@@ -101,7 +101,7 @@ async def reject_issue(task_id: str, issue_id: str, request: IssueActionRequest 
 @router.post("/jobs/{task_id}/issues/approve-all")
 async def approve_all_issues(task_id: str):
     """Approve all pending issues."""
-    job, ledger_data = _get_job_and_ledger(task_id)
+    job, ledger_data = await _get_job_and_ledger(task_id)
     
     count = 0
     for issue in ledger_data.get("issues", []):
@@ -110,14 +110,14 @@ async def approve_all_issues(task_id: str):
             count += 1
     
     ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
-    title_task_manager.update_result(task_id, job.result)
+    await title_task_manager.update_result_async(task_id, job.result)
     return {"message": f"Approved {count} issues", "count": count}
 
 
 @router.post("/jobs/{task_id}/issues/reject-all")
 async def reject_all_issues(task_id: str):
     """Reject all pending issues."""
-    job, ledger_data = _get_job_and_ledger(task_id)
+    job, ledger_data = await _get_job_and_ledger(task_id)
     
     count = 0
     for issue in ledger_data.get("issues", []):
@@ -126,14 +126,14 @@ async def reject_all_issues(task_id: str):
             count += 1
     
     ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
-    title_task_manager.update_result(task_id, job.result)
+    await title_task_manager.update_result_async(task_id, job.result)
     return {"message": f"Rejected {count} issues", "count": count}
 
 
 @router.post("/jobs/{task_id}/issues/lock")
 async def lock_issues(task_id: str):
     """Lock the issue ledger - no more changes allowed."""
-    job, ledger_data = _get_job_and_ledger(task_id)
+    job, ledger_data = await _get_job_and_ledger(task_id)
     
     pending = sum(1 for i in ledger_data.get("issues", []) if i["status"] == "pending")
     if pending > 0:
@@ -142,5 +142,5 @@ async def lock_issues(task_id: str):
     ledger_data["locked"] = True
     ledger_data["locked_at"] = datetime.now().isoformat()
     
-    title_task_manager.update_result(task_id, job.result)
+    await title_task_manager.update_result_async(task_id, job.result)
     return {"message": "Issue ledger locked", "summary": ledger_data["summary"]}

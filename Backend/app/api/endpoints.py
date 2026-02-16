@@ -51,8 +51,8 @@ async def start_analysis(
     """
     logger.info(f"Received start_analysis for {task_id}. Rules keys: {list(body.rules.keys())}")
     
-    # Fix: Run synchronous DB/File call in threadpool to avoid blocking async event loop
-    job = await run_in_threadpool(title_task_manager.get_job, task_id)
+    # Job Retrieval (Async)
+    job = await title_task_manager.get_job_async(task_id)
     
     if not job:
         logger.error(f"Job {task_id} NOT FOUND.")

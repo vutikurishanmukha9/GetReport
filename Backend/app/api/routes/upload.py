@@ -62,7 +62,7 @@ async def upload_file(
             safe_filename = "unnamed_file.csv"
              
         # Create Task
-        task_id = title_task_manager.create_job(safe_filename)
+        task_id = await title_task_manager.create_job_async(safe_filename)
         
         # Save file via Storage Service
         file_ref = storage.save_upload(file.file, safe_filename)

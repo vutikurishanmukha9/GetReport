@@ -166,10 +166,12 @@ class EnhancedRAGService:
             # Store (Hybrid: Postgres for Prod, In-Memory for Local)
             if settings.DATABASE_URL:
                 store = PostgresVectorStore(task_id)
-                # Run sync DB op in thread pool if needed, but for now direct call 
-                # (PostgresVectorStore manages its own connection per call)
-                store.add_texts(chunks, embeddings, [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))])
-                logger.info(f"Report {task_id} ingested into Postgres Vector Store")
+                await store.add_texts_async(
+                    chunks, 
+                    embeddings, 
+                    [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
+                )
+                logger.info(f"Report {task_id} ingested into Postgres Vector Store (Async)")
             else:
                 # Local In-Memory Fallback
                 store = SimpleVectorStore()
@@ -226,6 +228,7 @@ class EnhancedRAGService:
                 if settings.DATABASE_URL:
                     store = PostgresVectorStore(task_id)
                     # Postgres store is stateless, effectively always "loaded"
+                    # But we need results now
                 else:
                     store = await self.cache.get(task_id)
                     if not store:
@@ -235,7 +238,11 @@ class EnhancedRAGService:
                 q_embed = (await self._get_embeddings([question]))[0]
 
                 # 3. Retrieve
-                results = store.similarity_search_with_score(q_embed, k=k)
+                if settings.DATABASE_URL:
+                    # Async Retrieval from Postgres
+                    results = await store.similarity_search_with_score_async(q_embed, k=k)
+                else:
+                    results = store.similarity_search_with_score(q_embed, k=k)
                 
                 # Filter by threshold
                 relevant_docs = [
@@ -250,7 +257,6 @@ class EnhancedRAGService:
                     context_str = "\n\n".join([d['content'] for d, s in relevant_docs])
 
                 # 4. Generate Answer
-                # Use clear delimiters and instructions to prevent Prompt Injection
                 system_prompt = f"""You are a helpful data analyst. Answer the user question based ONLY on the context below.
 
 <INSTRUCTIONS>
