@@ -206,22 +206,37 @@ def _init_postgres_sync():
                 dsn=settings.DATABASE_URL,
                 cursor_factory=RealDictCursor
             )
+            logger.info("PostgreSQL Sync Pool created.")
             
         conn = pg_pool.getconn()
         try:
-            cursor = conn.cursor()
-            _create_core_tables(cursor)
-            conn.commit()
+            # 1. Create Core Tables (Critical)
             try:
-                _enable_vector_extension(cursor)
+                cursor = conn.cursor()
+                _create_core_tables(cursor)
                 conn.commit()
+                logger.info("Core tables verified/created.")
             except Exception as e:
                 conn.rollback()
-                logger.warning(f"Vector extension init failed: {e}")
+                logger.error(f"Failed to create core tables: {e}")
+                raise e
+
+            # 2. Enable Extensions (Optional/Risky)
+            try:
+                cursor = conn.cursor()
+                _enable_vector_extension(cursor)
+                conn.commit()
+                logger.info("Vector extension verified/enabled.")
+            except Exception as e:
+                conn.rollback()
+                logger.warning(f"Vector extension init failed (continuing without it): {e}")
+
         finally:
             pg_pool.putconn(conn)
     except Exception as e:
         logger.error(f"Postgres Init Failed: {e}")
+        # We generally want to raise this, but for self-healing we might want to suppress if it's just connection noise?
+        # But if we can't create tables, app is dead.
         raise e
 
 def _create_schema(cursor):

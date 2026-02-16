@@ -99,13 +99,35 @@ class TaskManager:
         initial_status = TaskStatus.PENDING
         initial_message = "Job created"
         
-        # No Self-Healing here. DB Schema must be correct.
+        # Schema: task_id, status, filename, message, progress, version
         query = "INSERT INTO jobs (task_id, status, filename, message, progress, version) VALUES (?, ?, ?, ?, ?, ?)"
         args = (task_id, initial_status, filename, initial_message, 0, 1)
 
-        async with get_async_db_connection() as conn:
-            await conn.execute(query, args)
-            await conn.commit()
+        try:
+            async with get_async_db_connection() as conn:
+                await conn.execute(query, args)
+                await conn.commit()
+        except Exception as e:
+            msg = str(e).lower()
+            # Check for "relation 'jobs' does not exist" (Postgres) or "no such table: jobs" (SQLite)
+            if "relation" in msg and "does not exist" in msg or "no such table" in msg:
+                logger.warning(f"Jobs table missing ({msg}). Attempting self-healing init_db()...")
+                try:
+                    # Run sync init_db in threadpool to avoid blocking
+                    from app.db import init_db
+                    from fastapi.concurrency import run_in_threadpool
+                    await run_in_threadpool(init_db)
+                    
+                    # Retry Insert
+                    async with get_async_db_connection() as conn:
+                        await conn.execute(query, args)
+                        await conn.commit()
+                    logger.info("Self-healing successful. Job created.")
+                except Exception as retry_err:
+                    logger.error(f"Self-healing failed: {retry_err}")
+                    raise e
+            else:
+                raise e
             
         logger.info(f"Job {task_id} created in DB (Async).")
         return task_id
