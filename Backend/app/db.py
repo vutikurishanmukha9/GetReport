@@ -214,26 +214,34 @@ def _init_postgres_sync():
             
         conn = pg_pool.getconn()
         try:
+            # DEBUG: Check Schema Environment
+            cursor = conn.cursor()
+            cursor.execute("SELECT current_schema(), current_user, current_database();")
+            env_info = cursor.fetchone()
+            print(f"[DB-INIT] Env: Schema={env_info['current_schema']}, User={env_info['current_user']}, DB={env_info['current_database']}")
+            
+            cursor.execute("SHOW search_path;")
+            print(f"[DB-INIT] Search Path: {cursor.fetchone()['search_path']}")
+
             # 1. Create Core Tables (Critical)
-            print("[DB-INIT] Creating core tables...")
+            print("[DB-INIT] Creating core tables (Forcing public schema)...")
             try:
-                cursor = conn.cursor()
-                _create_core_tables(cursor)
+                # Force PUBLIC schema to avoid search_path ambiguity
+                _create_core_tables_explicit(cursor)
                 conn.commit()
-                print("[DB-INIT] Core tables CREATE/ALTER commands executed & COMMITTED.")
+                print("[DB-INIT] Core tables CREATE commands executed & COMMITTED.")
                 
-                # VERIFICATION: Check if table actually exists
+                # VERIFICATION: Check public.jobs
                 cursor.execute("SELECT to_regclass('public.jobs');")
                 result = cursor.fetchone()
                 if result and result['to_regclass']:
-                     print(f"[DB-INIT] VERIFIED: Table 'jobs' exists! OID: {result['to_regclass']}")
+                     print(f"[DB-INIT] VERIFIED: Table 'public.jobs' exists! OID: {result['to_regclass']}")
                 else:
-                     print("[DB-INIT] CRITICAL ERROR: Table 'jobs' DOES NOT EXIST after commit!")
+                     print("[DB-INIT] CRITICAL ERROR: Table 'public.jobs' DOES NOT EXIST after commit!")
                      
             except Exception as e:
                 conn.rollback()
                 print(f"[DB-INIT] Failed to create core tables: {e}")
-                logger.error(f"Failed to create core tables: {e}")
                 raise e
 
             # 2. Enable Extensions (Optional/Risky)
@@ -244,8 +252,7 @@ def _init_postgres_sync():
                 print("[DB-INIT] Vector extension verified/enabled.")
             except Exception as e:
                 conn.rollback()
-                print(f"[DB-INIT] Vector extension init failed (continuing without it): {e}")
-                logger.warning(f"Vector extension init failed (continuing without it): {e}")
+                print(f"[DB-INIT] Vector extension init failed: {e}")
 
         finally:
             pg_pool.putconn(conn)
@@ -276,10 +283,10 @@ def _create_schema(cursor):
         try: cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
         except: pass
 
-def _create_core_tables(cursor):
-    """Postgres Core Schema"""
+def _create_core_tables_explicit(cursor):
+    """Postgres Core Schema (Explicit Public Schema)"""
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS jobs (
+    CREATE TABLE IF NOT EXISTS public.jobs (
         task_id TEXT PRIMARY KEY,
         status TEXT NOT NULL,
         filename TEXT,
@@ -293,11 +300,11 @@ def _create_core_tables(cursor):
         version INTEGER DEFAULT 0
     )
     """)
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON public.jobs(status)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON public.jobs(created_at)")
     
     for col in ["result_path TEXT", "version INTEGER DEFAULT 0"]:
-        try: cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
+        try: cursor.execute(f"ALTER TABLE public.jobs ADD COLUMN {col}")
         except: pass
 
 def _enable_vector_extension(cursor):
