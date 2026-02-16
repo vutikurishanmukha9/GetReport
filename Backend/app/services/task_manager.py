@@ -100,7 +100,7 @@ class TaskManager:
         initial_message = "Job created"
         
         # Schema: task_id, status, filename, message, progress, version
-        query = "INSERT INTO jobs (task_id, status, filename, message, progress, version) VALUES (?, ?, ?, ?, ?, ?)"
+        query = "INSERT INTO public.jobs (task_id, status, filename, message, progress, version) VALUES (?, ?, ?, ?, ?, ?)"
         args = (task_id, initial_status, filename, initial_message, 0, 1)
 
         try:
@@ -135,7 +135,7 @@ class TaskManager:
     async def get_job_async(self, task_id: str) -> Optional[Job]:
         async with get_async_db_connection() as conn:
             # We assume wrapper returns dict-like or row-like object
-            cursor = await conn.execute("SELECT * FROM jobs WHERE task_id = ?", (task_id,))
+            cursor = await conn.execute("SELECT * FROM public.jobs WHERE task_id = ?", (task_id,))
             row = await cursor.fetchone()
             
         if not row:
@@ -185,7 +185,7 @@ class TaskManager:
             if result_ref:
                 await conn.execute(
                     """
-                    UPDATE jobs 
+                    UPDATE public.jobs 
                     SET status = ?, result_path = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1
                     WHERE task_id = ?
                     """,
@@ -194,7 +194,7 @@ class TaskManager:
             else:
                 await conn.execute(
                     """
-                    UPDATE jobs 
+                    UPDATE public.jobs 
                     SET status = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1
                     WHERE task_id = ?
                     """,
@@ -214,7 +214,7 @@ class TaskManager:
         result_ref = _save_result_to_storage(task_id, result)
         async with get_async_db_connection() as conn:
             await conn.execute(
-                "UPDATE jobs SET result_path = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
+                "UPDATE public.jobs SET result_path = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
                 (result_ref, task_id)
             )
             await conn.commit()
@@ -234,7 +234,7 @@ class TaskManager:
         initial_message = "Job created"
         
         args = (task_id, initial_status, filename, initial_message, 0, 1)
-        query = "INSERT INTO jobs (task_id, status, filename, message, progress, version) VALUES (?, ?, ?, ?, ?, ?)"
+        query = "INSERT INTO public.jobs (task_id, status, filename, message, progress, version) VALUES (?, ?, ?, ?, ?, ?)"
 
         with get_db_connection() as conn:
             conn.execute(query, args)
@@ -245,7 +245,7 @@ class TaskManager:
 
     def get_job(self, task_id: str) -> Optional[Job]:
         with get_db_connection() as conn:
-            row = conn.execute("SELECT * FROM jobs WHERE task_id = ?", (task_id,)).fetchone()
+            row = conn.execute("SELECT * FROM public.jobs WHERE task_id = ?", (task_id,)).fetchone()
             
         if not row: return None
             
@@ -276,12 +276,12 @@ class TaskManager:
         with get_db_connection() as conn:
             if message:
                 conn.execute(
-                    "UPDATE jobs SET progress = ?, message = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
+                    "UPDATE public.jobs SET progress = ?, message = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
                     (progress, message, task_id)
                 )
             else:
                 conn.execute(
-                    "UPDATE jobs SET progress = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
+                    "UPDATE public.jobs SET progress = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
                     (progress, task_id)
                 )
             conn.commit()
@@ -298,12 +298,12 @@ class TaskManager:
             if result:
                 result_ref = _save_result_to_storage(task_id, result)
                 conn.execute(
-                    "UPDATE jobs SET status = ?, result_path = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
+                    "UPDATE public.jobs SET status = ?, result_path = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
                     (status, result_ref, task_id)
                 )
             else:
                 conn.execute(
-                    "UPDATE jobs SET status = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
+                    "UPDATE public.jobs SET status = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
                     (status, task_id)
                 )
             conn.commit()
