@@ -91,10 +91,22 @@ def _init_postgres():
         import psycopg2
         conn = psycopg2.connect(settings.DATABASE_URL)
         cursor = conn.cursor()
-        _create_schema_postgres(cursor)
+        
+        # 1. Core Schema (Critical)
+        _create_core_tables(cursor)
         conn.commit()
+        logger.info("PostgreSQL Core Tables initialized.")
+        
+        # 2. Vector Store (Optional / Risky)
+        try:
+            _enable_vector_extension(cursor)
+            conn.commit()
+            logger.info("PostgreSQL Vector Store initialized.")
+        except Exception as e:
+            conn.rollback() # Ensure connection is clean
+            logger.warning(f"Vector Store Init Failed (Is 'vector' extension installed?): {e}")
+
         conn.close()
-        logger.info("PostgreSQL Database initialized.")
     except Exception as e:
         logger.error(f"PostgreSQL Init Failed: {e}")
         # Fallback? No, fail hard if config is wrong.
@@ -126,8 +138,8 @@ def _create_schema(cursor):
     # SQLite < 3.35 doesn't support DROP COLUMN, so we skip it to be safe
     # or just leave it as 'dead' data.
 
-def _create_schema_postgres(cursor):
-    """Postgres Schema"""
+def _create_core_tables(cursor):
+    """Postgres Core Schema (Jobs)"""
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS jobs (
         task_id TEXT PRIMARY KEY,
@@ -148,37 +160,35 @@ def _create_schema_postgres(cursor):
     except Exception:
         pass  # Column already exists
 
+def _enable_vector_extension(cursor):
+    """Postgres Vector Store (Optional)"""
     # ─── Vector Store (pgvector) ─────────────────────────────────────────────
+    # 1. Enable Extension
+    cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    
+    # 2. Create Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS document_chunks (
+            id SERIAL PRIMARY KEY,
+            task_id TEXT NOT NULL,
+            content TEXT,
+            chunk_index INTEGER,
+            metadata JSONB,
+            embedding vector(1536),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # 3. Create Index
     try:
-        # 1. Enable Extension
-        cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        
-        # 2. Create Table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS document_chunks (
-                id SERIAL PRIMARY KEY,
-                task_id TEXT NOT NULL,
-                content TEXT,
-                chunk_index INTEGER,
-                metadata JSONB,
-                embedding vector(1536),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
+            cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding 
+            ON document_chunks USING hnsw (embedding vector_cosine_ops)
         """)
-        
-        # 3. Create Index
-        try:
-             cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding 
-                ON document_chunks USING hnsw (embedding vector_cosine_ops)
-            """)
-        except Exception as e:
-            logger.warning(f"Vector Index Creation Failed (Non-critical): {e}")
-
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_task_id ON document_chunks(task_id)")
-
     except Exception as e:
-        logger.warning(f"Vector Store Init Failed (Is 'vector' extension installed?): {e}")
+        logger.warning(f"Vector Index Creation Failed (Non-critical): {e}")
+
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_task_id ON document_chunks(task_id)")
 
 # ─── Connection Factory ──────────────────────────────────────────────────────
 @contextmanager
