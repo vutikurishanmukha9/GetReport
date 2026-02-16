@@ -200,24 +200,39 @@ def _init_postgres_sync():
         from psycopg2 import pool
         from psycopg2.extras import RealDictCursor
         
+        # Debug: Print DB URL (Masked)
+        masked_url = settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else "MASKED"
+        print(f"[DB-INIT] Connecting to PostgreSQL at ...{masked_url}")
+
         if not pg_pool:
             pg_pool = psycopg2.pool.ThreadedConnectionPool(
                 minconn=1, maxconn=20,
                 dsn=settings.DATABASE_URL,
                 cursor_factory=RealDictCursor
             )
-            logger.info("PostgreSQL Sync Pool created.")
+            print("[DB-INIT] PostgreSQL Sync Pool created.")
             
         conn = pg_pool.getconn()
         try:
             # 1. Create Core Tables (Critical)
+            print("[DB-INIT] Creating core tables...")
             try:
                 cursor = conn.cursor()
                 _create_core_tables(cursor)
                 conn.commit()
-                logger.info("Core tables verified/created.")
+                print("[DB-INIT] Core tables CREATE/ALTER commands executed & COMMITTED.")
+                
+                # VERIFICATION: Check if table actually exists
+                cursor.execute("SELECT to_regclass('public.jobs');")
+                result = cursor.fetchone()
+                if result and result['to_regclass']:
+                     print(f"[DB-INIT] VERIFIED: Table 'jobs' exists! OID: {result['to_regclass']}")
+                else:
+                     print("[DB-INIT] CRITICAL ERROR: Table 'jobs' DOES NOT EXIST after commit!")
+                     
             except Exception as e:
                 conn.rollback()
+                print(f"[DB-INIT] Failed to create core tables: {e}")
                 logger.error(f"Failed to create core tables: {e}")
                 raise e
 
@@ -226,17 +241,17 @@ def _init_postgres_sync():
                 cursor = conn.cursor()
                 _enable_vector_extension(cursor)
                 conn.commit()
-                logger.info("Vector extension verified/enabled.")
+                print("[DB-INIT] Vector extension verified/enabled.")
             except Exception as e:
                 conn.rollback()
+                print(f"[DB-INIT] Vector extension init failed (continuing without it): {e}")
                 logger.warning(f"Vector extension init failed (continuing without it): {e}")
 
         finally:
             pg_pool.putconn(conn)
     except Exception as e:
+        print(f"[DB-INIT] PostgreSQL Init FATAL Error: {e}")
         logger.error(f"Postgres Init Failed: {e}")
-        # We generally want to raise this, but for self-healing we might want to suppress if it's just connection noise?
-        # But if we can't create tables, app is dead.
         raise e
 
 def _create_schema(cursor):
