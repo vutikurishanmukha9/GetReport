@@ -26,6 +26,12 @@ def get_celery_app() -> Celery:
         result_serializer="json",
         timezone="UTC",
         enable_utc=True,
+        # Resilience: Don't ack tasks until AFTER they complete.
+        # If a worker dies mid-task, Redis will re-queue the task to another worker.
+        task_acks_late=True,
+        task_reject_on_worker_lost=True,
+        # Give tasks 10 minutes before Redis considers them lost
+        broker_transport_options={'visibility_timeout': 600},
         # Windows Support: 'solo' pool is likely needed for loose check
         # But we let the worker command decide that via -P flag
     )
