@@ -185,6 +185,69 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
         alignment=TA_CENTER,
     )
 
+    # ─── Aliases used by report_renderer.py ──────────────────────────────
+    custom["ModernTitle"] = ParagraphStyle(
+        "ModernTitle",
+        parent=base["Title"],
+        fontSize=24,
+        textColor=Brand.ACCENT,
+        alignment=TA_LEFT,
+        spaceAfter=8,
+        fontName="Helvetica-Bold",
+    )
+
+    custom["ModernHeading"] = ParagraphStyle(
+        "ModernHeading",
+        parent=base["Heading2"],
+        fontSize=16,
+        textColor=Brand.ACCENT,
+        spaceBefore=12,
+        spaceAfter=6,
+        alignment=TA_LEFT,
+    )
+
+    custom["ModernBody"] = ParagraphStyle(
+        "ModernBody",
+        parent=base["Normal"],
+        fontSize=10,
+        textColor=Brand.TEXT_DARK,
+        alignment=TA_LEFT,
+        leading=14,
+    )
+
+    custom["MetaValue"] = ParagraphStyle(
+        "MetaValue",
+        parent=base["Normal"],
+        fontSize=18,
+        textColor=Brand.ACCENT,
+        alignment=TA_CENTER,
+        fontName="Helvetica-Bold",
+        spaceAfter=2,
+    )
+
+    custom["MetaLabel"] = ParagraphStyle(
+        "MetaLabel",
+        parent=base["Normal"],
+        fontSize=9,
+        textColor=colors.grey,
+        alignment=TA_CENTER,
+    )
+
+    custom["InsightBox"] = ParagraphStyle(
+        "InsightBox",
+        parent=base["Normal"],
+        fontSize=10,
+        textColor=Brand.TEXT_DARK,
+        alignment=TA_LEFT,
+        leading=14,
+        leftIndent=12,
+        rightIndent=12,
+        backColor=colors.HexColor("#F0F9FF"),
+        borderColor=Brand.ACCENT,
+        borderWidth=1,
+        borderPadding=8,
+    )
+
     return custom
 
 
