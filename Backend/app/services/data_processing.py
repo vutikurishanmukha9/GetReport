@@ -120,6 +120,9 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
         elif lower_path.endswith((".xls", ".xlsx")):
              # Polars read_excel uses engine='xlsx2csv' or similar internally via dependencies
             df = pl.read_excel(file_path)
+        elif lower_path.endswith(".parquet"):
+            # Parquet: used for intermediate cleaned data files
+            df = pl.read_parquet(file_path)
         else:
             raise UnsupportedFileTypeError(f"Unsupported extension for: {file_path}")
 
