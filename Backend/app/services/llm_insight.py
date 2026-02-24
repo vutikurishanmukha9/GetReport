@@ -33,12 +33,14 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 _jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), trim_blocks=True, lstrip_blocks=True)
 
 # ─── Constants ───────────────────────────────────────────────────────────────
-MODEL: str                  = "gpt-4o-mini"       # original model preserved
+OPENAI_MODEL: str           = "gpt-4o-mini"       # model for OpenAI
+OPENROUTER_MODEL: str       = "google/gemini-2.0-flash-001"  # model for OpenRouter
 MAX_TOKENS: int             = 500                 # original limit preserved
 API_TIMEOUT_SECONDS: float  = 30.0                # hard timeout so calls never hang
 MAX_RETRIES: int            = 3                   # max retry attempts on transient errors
 RETRY_BASE_DELAY_SEC: float = 1.0                 # base delay for exponential backoff
 RETRY_MAX_DELAY_SEC: float  = 16.0                # cap on backoff delay
+OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
 
 # Errors that are transient and worth retrying
 _RETRYABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
@@ -48,11 +50,39 @@ _RETRYABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
 )
 
 
-# ─── OpenAI Client (Lazy Initialization) ──────────────────────────────────────
-client = None
+# ─── LLM Client Initialization (OpenRouter Primary → OpenAI Fallback) ────────
+@dataclass
+class _LLMProvider:
+    client: AsyncOpenAI | None
+    model: str
+    name: str
+
+_providers: list[_LLMProvider] = []
+
+# Priority 1: OpenRouter (if key is set)
+if settings.OPENROUTER_API_KEY:
+    _providers.append(_LLMProvider(
+        client=AsyncOpenAI(
+            api_key=settings.OPENROUTER_API_KEY,
+            base_url=OPENROUTER_BASE_URL,
+        ),
+        model=OPENROUTER_MODEL,
+        name="OpenRouter",
+    ))
+    logger.info("LLM Provider registered: OpenRouter (%s)", OPENROUTER_MODEL)
+
+# Priority 2: OpenAI (if key is set)
 if settings.OPENAI_API_KEY:
-    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-# Else: client remains None, handled in generate_insights
+    _providers.append(_LLMProvider(
+        client=AsyncOpenAI(api_key=settings.OPENAI_API_KEY),
+        model=OPENAI_MODEL,
+        name="OpenAI",
+    ))
+    logger.info("LLM Provider registered: OpenAI (%s)", OPENAI_MODEL)
+
+# Legacy alias (used by checks in generate_insights)
+client = _providers[0].client if _providers else None
+MODEL = _providers[0].model if _providers else OPENAI_MODEL
 
 
 # ─── Custom Exceptions ───────────────────────────────────────────────────────
@@ -255,84 +285,62 @@ def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
 
 
 # ─── Retry Logic ─────────────────────────────────────────────────────────────
-async def _call_openai_with_retry(
+async def _call_provider(
+    provider: _LLMProvider,
     system_prompt: str,
     user_prompt: str,
 ) -> tuple[Any, int]:
     """
-    Call the OpenAI API with exponential backoff retry on transient errors.
-
-    Original logic preserved:
-        - Uses client.chat.completions.create()
-        - Model: gpt-4o-mini
-        - max_tokens: 500
-        - Messages: system + user roles
-
-    Enhanced:
-        - Retries up to MAX_RETRIES times on RateLimitError, ConnectionError, TimeoutError
-        - Exponential backoff with jitter between retries
-        - Specific handling for AuthenticationError (no retry — it won't fix itself)
-        - Hard timeout on each individual API call
-        - Returns both the response object and the number of retries attempted
-
-    Returns:
-        Tuple of (OpenAI response object, number of retries used).
-
-    Raises:
-        AuthenticationError:      If the API key is invalid (no retry).
-        InsightGenerationError:   If all retries are exhausted.
+    Call a single LLM provider with exponential backoff retry.
+    Returns (response, retries_used) or raises on failure.
     """
     retries_used = 0
 
-    for attempt in range(MAX_RETRIES + 1):                  # 0, 1, 2, 3
+    for attempt in range(MAX_RETRIES + 1):
         try:
             logger.info(
-                "OpenAI API call — attempt %d/%d.",
-                attempt + 1, MAX_RETRIES + 1
+                "%s API call — attempt %d/%d (model: %s).",
+                provider.name, attempt + 1, MAX_RETRIES + 1, provider.model
             )
 
-            # Original API call logic preserved exactly
             response = await asyncio.wait_for(
-                client.chat.completions.create(
-                    model=MODEL,                                     # original
-                    messages=[                                       # original structure
+                provider.client.chat.completions.create(
+                    model=provider.model,
+                    messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user",   "content": user_prompt},
                     ],
-                    max_tokens=MAX_TOKENS,                           # original
+                    max_tokens=MAX_TOKENS,
                 ),
                 timeout=API_TIMEOUT_SECONDS,
             )
 
-            logger.info("OpenAI API call succeeded on attempt %d.", attempt + 1)
+            logger.info("%s API call succeeded on attempt %d.", provider.name, attempt + 1)
             return response, retries_used
 
         except AuthenticationError as e:
-            # Auth errors will never fix themselves — fail immediately, no retry
-            logger.error("OpenAI authentication failed: %s", str(e))
+            logger.error("%s authentication failed: %s", provider.name, str(e))
             raise
 
         except _RETRYABLE_EXCEPTIONS as e:
             retries_used = attempt
             if attempt < MAX_RETRIES:
-                # Exponential backoff with jitter
                 delay = min(
                     RETRY_BASE_DELAY_SEC * (2 ** attempt) + random.uniform(0, 1),
                     RETRY_MAX_DELAY_SEC,
                 )
                 logger.warning(
-                    "Transient error on attempt %d (%s: %s) — retrying in %.1f s.",
-                    attempt + 1, type(e).__name__, str(e), delay
+                    "%s transient error on attempt %d (%s: %s) — retrying in %.1f s.",
+                    provider.name, attempt + 1, type(e).__name__, str(e), delay
                 )
                 await asyncio.sleep(delay)
             else:
-                # All retries exhausted
                 logger.error(
-                    "All %d retries exhausted. Last error: %s",
-                    MAX_RETRIES, str(e)
+                    "%s: All %d retries exhausted. Last error: %s",
+                    provider.name, MAX_RETRIES, str(e)
                 )
                 raise InsightGenerationError(
-                    f"OpenAI API failed after {MAX_RETRIES} retries: {str(e)}"
+                    f"{provider.name} API failed after {MAX_RETRIES} retries: {str(e)}"
                 )
 
         except asyncio.TimeoutError:
@@ -343,18 +351,45 @@ async def _call_openai_with_retry(
                     RETRY_MAX_DELAY_SEC,
                 )
                 logger.warning(
-                    "API call timed out on attempt %d — retrying in %.1f s.",
-                    attempt + 1, delay
+                    "%s API timed out on attempt %d — retrying in %.1f s.",
+                    provider.name, attempt + 1, delay
                 )
                 await asyncio.sleep(delay)
             else:
-                logger.error("All %d retries exhausted due to timeouts.", MAX_RETRIES)
+                logger.error("%s: All %d retries exhausted due to timeouts.", provider.name, MAX_RETRIES)
                 raise InsightGenerationError(
-                    f"OpenAI API timed out after {MAX_RETRIES} retries."
+                    f"{provider.name} API timed out after {MAX_RETRIES} retries."
                 )
 
-    # Should never reach here, but just in case
     raise InsightGenerationError("Unexpected state in retry loop.")
+
+
+async def _call_openai_with_retry(
+    system_prompt: str,
+    user_prompt: str,
+) -> tuple[Any, int]:
+    """
+    Try each registered provider in priority order (OpenRouter → OpenAI).
+    If one fails, fall back to the next.
+    """
+    if not _providers:
+        raise InsightGenerationError("No LLM providers configured.")
+
+    last_error = None
+    for provider in _providers:
+        try:
+            return await _call_provider(provider, system_prompt, user_prompt)
+        except (InsightGenerationError, AuthenticationError) as e:
+            logger.warning(
+                "%s failed (%s). Trying next provider...",
+                provider.name, str(e)
+            )
+            last_error = e
+            continue
+
+    raise InsightGenerationError(
+        f"All LLM providers exhausted. Last error: {last_error}"
+    )
 
 
 # ─── Response Validation ─────────────────────────────────────────────────────
@@ -419,10 +454,10 @@ async def generate_insights(analysis_data: dict[str, Any]) -> InsightResult:
     logger.info("═══ Insight Generation Started ═══")
     start_time = time.perf_counter()
 
-    # ── 1. Check API key (original logic preserved) ─────────────────────────
-    if not settings.OPENAI_API_KEY or not client:
-        logger.warning("OPENAI_API_KEY is not configured — returning fallback.")
-        return _build_fallback("no_api_key")                # original behavior
+    # ── 1. Check for any configured provider ─────────────────────────────────
+    if not _providers:
+        logger.warning("No LLM API keys configured (OPENROUTER_API_KEY or OPENAI_API_KEY) — returning fallback.")
+        return _build_fallback("no_api_key")
 
     # ── 2. Validate input ────────────────────────────────────────────────────
     try:
@@ -459,9 +494,12 @@ async def generate_insights(analysis_data: dict[str, Any]) -> InsightResult:
     # ── 7. Assemble result ───────────────────────────────────────────────────
     elapsed_ms = (time.perf_counter() - start_time) * 1000
 
+    # Determine which model actually responded
+    model_used = getattr(response, '_provider_model', MODEL)
+
     result = InsightResult(
         insights_text=insights_text,
-        model_used=MODEL,
+        model_used=model_used,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         total_tokens=prompt_tokens + completion_tokens,

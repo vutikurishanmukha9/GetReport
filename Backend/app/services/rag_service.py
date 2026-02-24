@@ -99,13 +99,25 @@ class EnhancedRAGService:
         self.metrics = RAGMetrics()
         self.semaphore = asyncio.Semaphore(self.config.MAX_CONCURRENT_REQUESTS)
         
-        self.api_key = settings.OPENAI_API_KEY
+        # LLM Provider selection: OpenRouter (primary) → OpenAI (fallback)
+        self.api_key = settings.OPENROUTER_API_KEY or settings.OPENAI_API_KEY
         self.enabled = bool(self.api_key)
         
+        # Determine base_url and model based on which key is available
+        if settings.OPENROUTER_API_KEY:
+            self._base_url = "https://openrouter.ai/api/v1"
+            self._provider_name = "OpenRouter"
+        else:
+            self._base_url = None  # default OpenAI
+            self._provider_name = "OpenAI"
+        
         if self.enabled:
-            self.client = AsyncOpenAI(api_key=self.api_key)
-            self.sync_client = OpenAI(api_key=self.api_key)
-            logger.info("RAG Service initialized (Native OpenAI Async+Sync)")
+            client_kwargs = {"api_key": self.api_key}
+            if self._base_url:
+                client_kwargs["base_url"] = self._base_url
+            self.client = AsyncOpenAI(**client_kwargs)
+            self.sync_client = OpenAI(**client_kwargs)
+            logger.info("RAG Service initialized (%s)", self._provider_name)
         else:
             self.client = None
             self.sync_client = None
