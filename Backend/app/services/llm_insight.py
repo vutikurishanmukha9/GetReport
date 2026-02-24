@@ -22,6 +22,8 @@ from openai import (
     AuthenticationError,
     APIConnectionError,
     APITimeoutError,
+    BadRequestError,
+    NotFoundError,
 )
 from app.core.config import settings
 
@@ -34,13 +36,23 @@ _jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), trim_blocks=True
 
 # ─── Constants ───────────────────────────────────────────────────────────────
 OPENAI_MODEL: str           = "gpt-4o-mini"       # model for OpenAI
-OPENROUTER_MODEL: str       = "google/gemini-2.0-flash-001"  # model for OpenRouter
-MAX_TOKENS: int             = 500                 # original limit preserved
-API_TIMEOUT_SECONDS: float  = 30.0                # hard timeout so calls never hang
-MAX_RETRIES: int            = 3                   # max retry attempts on transient errors
-RETRY_BASE_DELAY_SEC: float = 1.0                 # base delay for exponential backoff
-RETRY_MAX_DELAY_SEC: float  = 16.0                # cap on backoff delay
+MAX_TOKENS: int             = 500
+API_TIMEOUT_SECONDS: float  = 30.0
+MAX_RETRIES: int            = 2                   # fewer retries per model, more models
+RETRY_BASE_DELAY_SEC: float = 1.0
+RETRY_MAX_DELAY_SEC: float  = 8.0
 OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
+
+# OpenRouter models in priority order (free models first, then paid)
+# If a model is paid-only or unavailable, it auto-skips to the next one
+OPENROUTER_MODELS: list[str] = [
+    "google/gemini-2.0-flash-001",        # Free tier
+    "meta-llama/llama-3.1-8b-instruct",   # Free tier
+    "mistralai/mistral-7b-instruct",      # Free tier
+    "google/gemma-2-9b-it",               # Free tier
+    "qwen/qwen-2.5-7b-instruct",         # Free tier
+    "deepseek/deepseek-chat",             # Paid (fallback)
+]
 
 # Errors that are transient and worth retrying
 _RETRYABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
@@ -50,7 +62,7 @@ _RETRYABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
 )
 
 
-# ─── LLM Client Initialization (OpenRouter Primary → OpenAI Fallback) ────────
+# ─── LLM Client Initialization ──────────────────────────────────────────────
 @dataclass
 class _LLMProvider:
     client: AsyncOpenAI | None
@@ -59,28 +71,34 @@ class _LLMProvider:
 
 _providers: list[_LLMProvider] = []
 
-# Priority 1: OpenRouter (if key is set)
+# Register each OpenRouter model as a separate provider (auto-fallback chain)
 if settings.OPENROUTER_API_KEY:
-    _providers.append(_LLMProvider(
-        client=AsyncOpenAI(
-            api_key=settings.OPENROUTER_API_KEY,
-            base_url=OPENROUTER_BASE_URL,
-        ),
-        model=OPENROUTER_MODEL,
-        name="OpenRouter",
-    ))
-    logger.info("LLM Provider registered: OpenRouter (%s)", OPENROUTER_MODEL)
+    _or_client = AsyncOpenAI(
+        api_key=settings.OPENROUTER_API_KEY,
+        base_url=OPENROUTER_BASE_URL,
+    )
+    for model_name in OPENROUTER_MODELS:
+        _providers.append(_LLMProvider(
+            client=_or_client,         # Same client, different model
+            model=model_name,
+            name=f"OpenRouter/{model_name.split('/')[-1]}",
+        ))
+    logger.info(
+        "OpenRouter registered with %d models: %s",
+        len(OPENROUTER_MODELS),
+        ", ".join(m.split("/")[-1] for m in OPENROUTER_MODELS),
+    )
 
-# Priority 2: OpenAI (if key is set)
+# OpenAI as final fallback (if key is set)
 if settings.OPENAI_API_KEY:
     _providers.append(_LLMProvider(
         client=AsyncOpenAI(api_key=settings.OPENAI_API_KEY),
         model=OPENAI_MODEL,
         name="OpenAI",
     ))
-    logger.info("LLM Provider registered: OpenAI (%s)", OPENAI_MODEL)
+    logger.info("OpenAI registered as fallback (%s)", OPENAI_MODEL)
 
-# Legacy alias (used by checks in generate_insights)
+# Legacy aliases
 client = _providers[0].client if _providers else None
 MODEL = _providers[0].model if _providers else OPENAI_MODEL
 
@@ -321,6 +339,14 @@ async def _call_provider(
         except AuthenticationError as e:
             logger.error("%s authentication failed: %s", provider.name, str(e))
             raise
+
+        except (BadRequestError, NotFoundError) as e:
+            # 402 Payment Required or 404 model not found — skip immediately
+            logger.warning(
+                "%s model unavailable (%s: %s) — skipping to next model.",
+                provider.name, type(e).__name__, str(e)
+            )
+            raise InsightGenerationError(f"{provider.name}: {str(e)}")
 
         except _RETRYABLE_EXCEPTIONS as e:
             retries_used = attempt
