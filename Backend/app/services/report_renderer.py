@@ -1,14 +1,17 @@
 import io
 import datetime
 import logging
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, List
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
 
 from app.services.report_styles import get_custom_styles
-from app.services.report_components import build_stat_table, create_chart_section
+from app.services.report_components import (
+    build_stat_table, create_chart_section,
+    build_correlations_table, build_outlier_table,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +21,10 @@ def generate_pdf_report(
     filename: str
 ) -> Tuple[io.BytesIO, Dict[str, Any]]:
     """
-    Generates a PDF file using ReportLab Platypus.
-    Orchestrates the 'Story' using components and styles.
+    Generates a comprehensive PDF report using ReportLab Platypus.
+    Includes all chart types: heatmap, distributions, bar charts, boxplots,
+    scatter plot, donut chart.
+    Includes data tables: correlations, outliers, ranked insights.
     Returns (pdf_buffer, metadata).
     """
     start_time = datetime.datetime.now()
@@ -89,39 +94,128 @@ def generate_pdf_report(
         if cleaning.get("duplicate_rows_removed", 0) > 0:
             clean_text.append(f"• Removed {cleaning['duplicate_rows_removed']} duplicate rows.")
         if cleaning.get("numeric_nans_filled", 0) > 0:
-            clean_text.append(f"• Filled {cleaning['numeric_nans_filled']} missing numeric values.")
+            clean_text.append(f"• Filled {cleaning['numeric_nans_filled']:,} missing numeric values.")
         if cleaning.get("categorical_nans_filled", 0) > 0:
-            clean_text.append(f"• Filled {cleaning['categorical_nans_filled']} missing categorical values.")
+            clean_text.append(f"• Filled {cleaning['categorical_nans_filled']:,} missing categorical values.")
+        if cleaning.get("columns_renamed"):
+            clean_text.append(f"• Standardized {len(cleaning['columns_renamed'])} column names.")
             
         if clean_text:
             story.append(Paragraph("<br/>".join(clean_text), styles['ModernBody']))
             story.append(Spacer(1, 20))
 
-    # ─── 3. AI Insights ─────────────────────────────────────────────────────
+    # ─── 3. Key Correlations Table ──────────────────────────────────────────
+    strong_corrs = analysis_data.get("strong_correlations", [])
+    if strong_corrs:
+        story.append(Paragraph("Key Correlations", styles['ModernHeading']))
+        story.append(Paragraph(
+            "Pairs of columns with strong linear relationships (|r| ≥ 0.7).",
+            styles['ModernBody']
+        ))
+        story.append(Spacer(1, 8))
+        
+        corr_table = build_correlations_table(strong_corrs, styles)
+        if corr_table:
+            story.append(corr_table)
+            story.append(Spacer(1, 20))
+
+    # ─── 4. Outlier Summary Table ───────────────────────────────────────────
+    outliers = analysis_data.get("outliers", {})
+    if outliers:
+        story.append(Paragraph("Outlier Summary (IQR Method)", styles['ModernHeading']))
+        story.append(Paragraph(
+            "Values beyond 1.5× the interquartile range.",
+            styles['ModernBody']
+        ))
+        story.append(Spacer(1, 8))
+        
+        outlier_table = build_outlier_table(outliers, styles)
+        if outlier_table:
+            story.append(outlier_table)
+            story.append(Spacer(1, 20))
+
+    # ─── 5. Top Insights ────────────────────────────────────────────────────
+    ranked_insights = analysis_data.get("ranked_insights", [])
+    if ranked_insights:
+        story.append(Paragraph("Top Data Insights", styles['ModernHeading']))
+        
+        insight_items = []
+        for idx, insight in enumerate(ranked_insights[:5]):  # Top 5
+            if isinstance(insight, dict):
+                title = insight.get("title", insight.get("type", f"Insight {idx+1}"))
+                desc = insight.get("description", insight.get("detail", ""))
+                score = insight.get("score", insight.get("importance", ""))
+                
+                text = f"<b>{idx+1}. {title}</b>"
+                if desc:
+                    text += f"<br/>{desc}"
+                if score:
+                    text += f" <i>(Score: {score})</i>"
+                insight_items.append(text)
+            elif isinstance(insight, str):
+                insight_items.append(f"<b>{idx+1}.</b> {insight}")
+        
+        if insight_items:
+            story.append(Paragraph("<br/><br/>".join(insight_items), styles['InsightBox']))
+            story.append(Spacer(1, 20))
+
+    # ─── 6. AI-Powered Insights ─────────────────────────────────────────────
     insights = analysis_data.get("insights", {})
-    # Support both old string format and new InsightResult dict format
     insights_text = ""
     if isinstance(insights, dict):
          insights_text = insights.get('insights_text', insights.get('response', ''))
     elif isinstance(insights, str):
          insights_text = insights
 
-    if insights_text:
+    if insights_text and "unavailable" not in insights_text.lower():
         story.append(Paragraph("AI-Powered Insights", styles['ModernHeading']))
         formatted_text = insights_text.replace('\n', '<br/>')
         story.append(Paragraph(formatted_text, styles['InsightBox']))
         story.append(Spacer(1, 20))
 
-    # ─── 4. Visualizations ──────────────────────────────────────────────────
+    # ─── 7. Visualizations ──────────────────────────────────────────────────
     story.append(PageBreak())
     story.append(Paragraph("Key Visualizations", styles['ModernTitle']))
+    story.append(Spacer(1, 10))
 
     charts = charts_data or {}
     
+    # 7a. Correlation Heatmap
     create_chart_section(charts.get('correlation_heatmap'), "Correlation Heatmap", styles, story)
     
+    # 7b. Scatter Plot (top correlated pair)
+    scatter = charts.get("scatter_plot")
+    if scatter and isinstance(scatter, dict):
+        label = f"Scatter Plot: {scatter.get('columns', '')}"
+        create_chart_section(scatter.get("image"), label, styles, story)
+    
+    # 7c. Distribution Histograms
     for dist in charts.get('distributions', []):
         create_chart_section(dist.get('image'), f"Distribution: {dist.get('column')}", styles, story)
+    
+    # 7d. Bar Charts (Categorical)
+    bar_charts = charts.get("bar_charts", [])
+    if bar_charts:
+        story.append(PageBreak())
+        story.append(Paragraph("Categorical Analysis", styles['ModernTitle']))
+        story.append(Spacer(1, 10))
+        for bar in bar_charts:
+            create_chart_section(bar.get('image'), f"Frequency: {bar.get('column')}", styles, story)
+    
+    # 7e. Donut Chart
+    donut = charts.get("donut_chart")
+    if donut and isinstance(donut, dict):
+        label = f"Distribution: {donut.get('column', '')}"
+        create_chart_section(donut.get("image"), label, styles, story)
+    
+    # 7f. Boxplots (Bivariate)
+    boxplots = charts.get("boxplots", [])
+    if boxplots:
+        story.append(PageBreak())
+        story.append(Paragraph("Bivariate Analysis", styles['ModernTitle']))
+        story.append(Spacer(1, 10))
+        for box in boxplots:
+            create_chart_section(box.get('image'), f"Comparison: {box.get('column')}", styles, story)
 
     # ─── Build ──────────────────────────────────────────────────────────────
     try:
@@ -133,10 +227,25 @@ def generate_pdf_report(
             "filename": f"Report_{filename}.pdf",
             "size_bytes": file_size,
             "generated_at": start_time.isoformat(),
-            "engine": "ReportLab Platypus"
+            "engine": "ReportLab Platypus",
+            "sections": _count_sections(charts, analysis_data),
         }
         return buffer, metadata
         
     except Exception as e:
         logger.error(f"Platypus build failed: {str(e)}")
         raise
+
+
+def _count_sections(charts: dict, analysis_data: dict) -> dict:
+    """Count what sections were included in the report."""
+    counts = {}
+    for key, val in charts.items():
+        if isinstance(val, list):
+            counts[key] = len(val)
+        elif val:
+            counts[key] = 1
+    counts["correlations_table"] = 1 if analysis_data.get("strong_correlations") else 0
+    counts["outlier_table"] = 1 if analysis_data.get("outliers") else 0
+    counts["ranked_insights"] = len(analysis_data.get("ranked_insights", []))
+    return counts
