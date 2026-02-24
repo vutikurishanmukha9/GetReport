@@ -175,23 +175,60 @@ def generate_pdf_report(
 
     # ─── 7. Visualizations ──────────────────────────────────────────────────
     story.append(PageBreak())
-    story.append(Paragraph("Key Visualizations", styles['ModernTitle']))
-    story.append(Spacer(1, 10))
+    story.append(Paragraph("Deep Dive: Key Visualizations", styles['ModernTitle']))
+    story.append(Paragraph(
+        "Each chart below tells a specific story about your data. "
+        "Read the narrative caption to understand what the visualization reveals.",
+        styles['ModernBody']
+    ))
+    story.append(Spacer(1, 15))
 
     charts = charts_data or {}
+
+    def _add_chart_with_narrative(chart_data, title, styles, story):
+        """Render a chart with its narrative caption."""
+        if not chart_data:
+            return
+        # Handle both plain string (legacy) and dict with narrative
+        if isinstance(chart_data, str):
+            image_b64 = chart_data
+            narrative = None
+        elif isinstance(chart_data, dict):
+            image_b64 = chart_data.get("image")
+            narrative = chart_data.get("narrative")
+        else:
+            return
+        
+        if not image_b64:
+            return
+        
+        create_chart_section(image_b64, title, styles, story)
+        if narrative:
+            story.append(Paragraph(f"<i>{narrative}</i>", styles['InsightBox']))
+            story.append(Spacer(1, 15))
     
     # 7a. Correlation Heatmap
-    create_chart_section(charts.get('correlation_heatmap'), "Correlation Heatmap", styles, story)
+    _add_chart_with_narrative(
+        charts.get('correlation_heatmap'),
+        "Correlation Heatmap", styles, story
+    )
     
     # 7b. Scatter Plot (top correlated pair)
     scatter = charts.get("scatter_plot")
     if scatter and isinstance(scatter, dict):
-        label = f"Scatter Plot: {scatter.get('columns', '')}"
-        create_chart_section(scatter.get("image"), label, styles, story)
+        _add_chart_with_narrative(
+            scatter,
+            f"Relationship: {scatter.get('columns', '')}",
+            styles, story
+        )
     
     # 7c. Distribution Histograms
     for dist in charts.get('distributions', []):
-        create_chart_section(dist.get('image'), f"Distribution: {dist.get('column')}", styles, story)
+        _add_chart_with_narrative(
+            dist,
+            f"Distribution of {dist.get('column', '')}",
+            styles, story
+        )
     
     # 7d. Bar Charts (Categorical)
     bar_charts = charts.get("bar_charts", [])
@@ -200,22 +237,33 @@ def generate_pdf_report(
         story.append(Paragraph("Categorical Analysis", styles['ModernTitle']))
         story.append(Spacer(1, 10))
         for bar in bar_charts:
-            create_chart_section(bar.get('image'), f"Frequency: {bar.get('column')}", styles, story)
+            _add_chart_with_narrative(
+                bar,
+                f"Category Breakdown: {bar.get('column', '')}",
+                styles, story
+            )
     
     # 7e. Donut Chart
     donut = charts.get("donut_chart")
     if donut and isinstance(donut, dict):
-        label = f"Distribution: {donut.get('column', '')}"
-        create_chart_section(donut.get("image"), label, styles, story)
+        _add_chart_with_narrative(
+            donut,
+            f"Composition: {donut.get('column', '')}",
+            styles, story
+        )
     
     # 7f. Boxplots (Bivariate)
     boxplots = charts.get("boxplots", [])
     if boxplots:
         story.append(PageBreak())
-        story.append(Paragraph("Bivariate Analysis", styles['ModernTitle']))
+        story.append(Paragraph("Bivariate Deep Dive", styles['ModernTitle']))
         story.append(Spacer(1, 10))
         for box in boxplots:
-            create_chart_section(box.get('image'), f"Comparison: {box.get('column')}", styles, story)
+            _add_chart_with_narrative(
+                box,
+                f"Comparison: {box.get('column', '')}",
+                styles, story
+            )
 
     # ─── Build ──────────────────────────────────────────────────────────────
     try:
