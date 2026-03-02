@@ -41,8 +41,8 @@ COPY --from=builder /install /usr/local
 COPY Backend/ .
 
 # Create necessary directories for runtime
-RUN mkdir -p /app/temp_uploads /app/outputs /app/temp_cache && \
-    chmod -R 777 /app/temp_uploads /app/outputs /app/temp_cache
+RUN mkdir -p /app/temp_uploads /app/outputs /app/temp_cache /app/data && \
+    chmod -R 777 /app/temp_uploads /app/outputs /app/temp_cache /app/data
 
 # ─── Environment ─────────────────────────────────────────────────────────────
 ENV PDF_ENGINE=weasyprint
