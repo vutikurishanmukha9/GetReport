@@ -1,7 +1,7 @@
 """
 Upload Route — File ingestion endpoint.
 """
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Request
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Request, Depends
 from pydantic import BaseModel
 import logging
 import os
@@ -9,6 +9,7 @@ import re
 
 from app.core.limiter import limiter, UPLOAD_LIMIT
 from app.core.config import settings
+from app.core.auth import verify_api_key
 from app.services.task_manager import title_task_manager
 from app.services.storage import get_storage_provider
 from app.tasks import inspect_file_task
@@ -30,7 +31,8 @@ class TaskResponse(BaseModel):
 async def upload_file(
     request: Request,
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    _auth: None = Depends(verify_api_key),
 ):
     """
     Initiates processing using Streaming Upload (RAM Safe).
@@ -99,4 +101,4 @@ async def upload_file(
         raise
     except Exception as e:
         logger.error(f"Upload failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred during upload.")

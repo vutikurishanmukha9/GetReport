@@ -3,13 +3,14 @@ API Endpoint Aggregator
 Imports and includes all route sub-modules.
 Each module is a focused, single-responsibility router.
 """
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import logging
 
 from app.core.limiter import limiter, ANALYZE_LIMIT
+from app.core.auth import verify_api_key, validate_task_id
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.tasks import resume_analysis_task
 
@@ -44,11 +45,13 @@ async def start_analysis(
     request: Request,
     task_id: str, 
     body: AnalysisRulesRequest, 
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    _auth: None = Depends(verify_api_key),
 ):
     """
     Stage 2: User approves cleaning rules and starts full analysis.
     """
+    validate_task_id(task_id)
     logger.info(f"Received start_analysis for {task_id}. Rules keys: {list(body.rules.keys())}")
     
     # Job Retrieval (Async)

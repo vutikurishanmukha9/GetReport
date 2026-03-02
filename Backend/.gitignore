@@ -35,6 +35,7 @@ tasks.db
 # Generated Outputs
 outputs/
 temp_uploads/
+data/
 
 # Hypothesis testing
 .hypothesis/

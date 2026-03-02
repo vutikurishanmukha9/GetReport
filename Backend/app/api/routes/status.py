@@ -1,7 +1,7 @@
 """
 Status Routes — Task status polling and WebSocket real-time updates.
 """
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Request
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Request, Depends, Query
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import logging
@@ -9,10 +9,15 @@ import asyncio
 import json
 
 from app.core.limiter import limiter, STATUS_LIMIT
+from app.core.auth import verify_api_key, verify_ws_api_key, validate_task_id
 from app.services.task_manager import title_task_manager, TaskStatus
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# WebSocket connection tracking (VULN-06: DoS prevention)
+_active_ws_connections = 0
+MAX_WS_CONNECTIONS = 100
 
 class StatusResponse(BaseModel):
     task_id: str
@@ -25,10 +30,14 @@ class StatusResponse(BaseModel):
 
 @router.get("/status/{task_id}", response_model=StatusResponse)
 @limiter.limit(STATUS_LIMIT)
-async def get_task_status(request: Request, task_id: str):
+async def get_task_status(
+    request: Request, task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
     """
     Check the progress of a processing task.
     """
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -49,12 +58,32 @@ async def get_task_status(request: Request, task_id: str):
 
 
 @router.websocket("/ws/status/{task_id}")
-async def websocket_status(websocket: WebSocket, task_id: str):
+async def websocket_status(websocket: WebSocket, task_id: str, api_key: str = Query(default=None)):
     """
     Real-time status updates via WebSockets + Redis PubSub.
+    Authentication via ?api_key=... query parameter.
     """
+    # VULN-06: WebSocket authentication
+    if not verify_ws_api_key(api_key):
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
+    
+    # Validate task_id format
+    try:
+        validate_task_id(task_id)
+    except HTTPException:
+        await websocket.close(code=4000, reason="Invalid task ID")
+        return
+    
+    # VULN-06: Connection limit
+    global _active_ws_connections
+    if _active_ws_connections >= MAX_WS_CONNECTIONS:
+        await websocket.close(code=4002, reason="Too many connections")
+        return
+    
+    _active_ws_connections += 1
     await websocket.accept()
-    logger.info(f"WebSocket connected for task {task_id}")
+    logger.info(f"WebSocket connected for task {task_id} (active: {_active_ws_connections})")
     
     # Try Redis PubSub first
     try:
@@ -111,3 +140,6 @@ async def websocket_status(websocket: WebSocket, task_id: str):
             await websocket.close()
         except:
             pass
+    finally:
+        _active_ws_connections -= 1
+        logger.info(f"WebSocket closed for task {task_id} (active: {_active_ws_connections})")

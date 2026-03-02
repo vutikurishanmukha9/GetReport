@@ -1,15 +1,17 @@
 """
 Report Routes — PDF generation, status, download, and DAG endpoints.
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse, Response
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import logging
 import os
+import re
 
 from app.core.limiter import limiter, REPORT_LIMIT
+from app.core.auth import verify_api_key, validate_task_id
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.tasks import generate_pdf_task
 
@@ -20,16 +22,36 @@ class AnalysisRulesRequest(BaseModel):
     rules: Dict[str, Any]
     analysis_config: Optional[Dict[str, Any]] = None
 
+# ─── Path Traversal Guard (VULN-05) ─────────────────────────────────────────
+
+ALLOWED_OUTPUT_DIR = os.path.abspath("outputs")
+
+def _validate_report_path(report_path: str) -> str:
+    """Ensure report_path is within the allowed outputs directory."""
+    real_path = os.path.realpath(report_path)
+    if not real_path.startswith(ALLOWED_OUTPUT_DIR):
+        logger.warning(f"Path traversal attempt blocked: {report_path}")
+        raise HTTPException(403, "Access denied")
+    return real_path
+
+def _sanitize_download_filename(filename: str) -> str:
+    """Sanitize filename for Content-Disposition header."""
+    return re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
+
 
 # ─── PDF Generation & Download ──────────────────────────────────────────────
 
 @router.post("/jobs/{task_id}/report")
 @limiter.limit(REPORT_LIMIT)
-async def generate_persistent_report(request: Request, task_id: str):
+async def generate_persistent_report(
+    request: Request, task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
     """
     Triggers PDF generation via Celery and returns immediately.
     Frontend should poll /jobs/{task_id}/report/status until ready.
     """
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found")
@@ -42,15 +64,19 @@ async def generate_persistent_report(request: Request, task_id: str):
         
     except Exception as e:
         logger.error(f"Persistent report generation failed: {str(e)}")
-        raise HTTPException(500, str(e))
+        raise HTTPException(500, "Failed to start report generation.")
 
 
 @router.get("/jobs/{task_id}/report/status")
-async def get_report_status(task_id: str):
+async def get_report_status(
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
     """
     Check if the PDF report has been generated and is ready for download.
     Returns: { status: 'generating' | 'ready' | 'not_started', path?: string }
     """
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found")
@@ -64,35 +90,46 @@ async def get_report_status(task_id: str):
 
 
 @router.get("/jobs/{task_id}/report")
-async def download_report(task_id: str):
+async def download_report(
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
     """
     Downloads the persisted PDF report.
     Returns 202 if still generating, 200 + file if ready.
     """
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job or not job.report_path:
         raise HTTPException(404, "Report not found. Generate it first.")
     
-    if not os.path.exists(job.report_path):
+    # Path traversal guard (VULN-05)
+    safe_path = _validate_report_path(job.report_path)
+    
+    if not os.path.exists(safe_path):
         return JSONResponse(status_code=202, content={"message": "Report is still generating. Try again shortly."})
         
     return FileResponse(
-        job.report_path, 
+        safe_path, 
         media_type="application/pdf", 
-        filename=os.path.basename(job.report_path)
+        filename=_sanitize_download_filename(os.path.basename(safe_path))
     )
 
 
 # ─── Comprehensive PDF (Full Report Generator) ──────────────────────────────
 
 @router.get("/jobs/{task_id}/report/full")
-async def download_full_report_pdf(task_id: str):
+async def download_full_report_pdf(
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
     """
     Generate and download the comprehensive PDF report (Tier 1-4).
     Uses the full report_generator (not the simple renderer).
     """
     from app.services.report_generator import generate_pdf_report
     
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found or not completed")
@@ -109,6 +146,7 @@ async def download_full_report_pdf(task_id: str):
     
     charts = analysis.get("charts", {})
     filename = analysis.get("filename", "report.pdf")
+    safe_filename = _sanitize_download_filename(filename)
     
     try:
         # PDF Generator is sync/CPU heavy, keep in threadpool
@@ -119,20 +157,24 @@ async def download_full_report_pdf(task_id: str):
         return Response(
             content=pdf_buffer.getvalue(),
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=Report_{filename}.pdf"}
+            headers={"Content-Disposition": f"attachment; filename=Report_{safe_filename}.pdf"}
         )
     except Exception as e:
         logger.error(f"PDF Generation failed: {e}")
-        raise HTTPException(500, f"Failed to generate PDF: {str(e)}")
+        raise HTTPException(500, "Failed to generate PDF report.")
 
 
 # ─── Transformation DAG ─────────────────────────────────────────────────────
 
 @router.get("/jobs/{task_id}/dag")
-async def get_transformation_dag(task_id: str):
+async def get_transformation_dag(
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
     """
     Get the complete transformation DAG for a job.
     """
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
@@ -145,12 +187,16 @@ async def get_transformation_dag(task_id: str):
 
 
 @router.get("/jobs/{task_id}/dag/export")
-async def export_transformation_dag(task_id: str, format: str = "json"):
+async def export_transformation_dag(
+    task_id: str, format: str = "json",
+    _auth: None = Depends(verify_api_key),
+):
     """
     Export the transformation DAG as an audit log.
     """
     from app.services.transformation_dag import from_dict
     
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
@@ -173,8 +219,12 @@ async def export_transformation_dag(task_id: str, format: str = "json"):
 
 
 @router.get("/jobs/{task_id}/dag/summary")
-async def get_dag_summary(task_id: str):
+async def get_dag_summary(
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
     """Get a high-level summary of the transformation DAG."""
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
@@ -187,8 +237,12 @@ async def get_dag_summary(task_id: str):
 
 
 @router.get("/jobs/{task_id}/dag/{node_id}")
-async def get_dag_node(task_id: str, node_id: str):
+async def get_dag_node(
+    task_id: str, node_id: str,
+    _auth: None = Depends(verify_api_key),
+):
     """Get details of a single transformation node."""
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
@@ -201,7 +255,7 @@ async def get_dag_node(task_id: str, node_id: str):
     node = nodes.get(node_id)
     
     if not node:
-        raise HTTPException(404, f"Node {node_id} not found in DAG")
+        raise HTTPException(404, f"Node not found in DAG")
     
     return node
 
@@ -209,10 +263,14 @@ async def get_dag_node(task_id: str, node_id: str):
 # ─── Comparison ──────────────────────────────────────────────────────────────
 
 @router.get("/jobs/{task_id}/comparison")
-async def get_comparison_report(task_id: str):
+async def get_comparison_report(
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
     """
     Get the Data Quality Comparison Report (Before vs After).
     """
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")

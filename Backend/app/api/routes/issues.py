@@ -1,13 +1,14 @@
 """
 Issues Route — Issue Ledger CRUD and lifecycle management.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Any
 from datetime import datetime
 import logging
 
+from app.core.auth import verify_api_key, validate_task_id
 from app.services.task_manager import title_task_manager, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -48,8 +49,9 @@ async def _get_job_and_ledger(task_id: str):
 
 
 @router.get("/jobs/{task_id}/issues")
-async def get_issues(task_id: str):
+async def get_issues(task_id: str, _auth: None = Depends(verify_api_key)):
     """Get the issue ledger for a task."""
+    validate_task_id(task_id)
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found")
@@ -65,8 +67,9 @@ async def get_issues(task_id: str):
 
 
 @router.post("/jobs/{task_id}/issues/{issue_id}/approve")
-async def approve_issue(task_id: str, issue_id: str, request: IssueActionRequest = None):
+async def approve_issue(task_id: str, issue_id: str, request: IssueActionRequest = None, _auth: None = Depends(verify_api_key)):
     """Approve a single issue for execution."""
+    validate_task_id(task_id)
     job, ledger_data = await _get_job_and_ledger(task_id)
     
     for issue in ledger_data.get("issues", []):
@@ -82,8 +85,9 @@ async def approve_issue(task_id: str, issue_id: str, request: IssueActionRequest
 
 
 @router.post("/jobs/{task_id}/issues/{issue_id}/reject")
-async def reject_issue(task_id: str, issue_id: str, request: IssueActionRequest = None):
+async def reject_issue(task_id: str, issue_id: str, request: IssueActionRequest = None, _auth: None = Depends(verify_api_key)):
     """Reject an issue - fix will not be applied."""
+    validate_task_id(task_id)
     job, ledger_data = await _get_job_and_ledger(task_id)
     
     for issue in ledger_data.get("issues", []):
@@ -99,8 +103,9 @@ async def reject_issue(task_id: str, issue_id: str, request: IssueActionRequest 
 
 
 @router.post("/jobs/{task_id}/issues/approve-all")
-async def approve_all_issues(task_id: str):
+async def approve_all_issues(task_id: str, _auth: None = Depends(verify_api_key)):
     """Approve all pending issues."""
+    validate_task_id(task_id)
     job, ledger_data = await _get_job_and_ledger(task_id)
     
     count = 0
@@ -115,8 +120,9 @@ async def approve_all_issues(task_id: str):
 
 
 @router.post("/jobs/{task_id}/issues/reject-all")
-async def reject_all_issues(task_id: str):
+async def reject_all_issues(task_id: str, _auth: None = Depends(verify_api_key)):
     """Reject all pending issues."""
+    validate_task_id(task_id)
     job, ledger_data = await _get_job_and_ledger(task_id)
     
     count = 0
@@ -131,8 +137,9 @@ async def reject_all_issues(task_id: str):
 
 
 @router.post("/jobs/{task_id}/issues/lock")
-async def lock_issues(task_id: str):
+async def lock_issues(task_id: str, _auth: None = Depends(verify_api_key)):
     """Lock the issue ledger - no more changes allowed."""
+    validate_task_id(task_id)
     job, ledger_data = await _get_job_and_ledger(task_id)
     
     pending = sum(1 for i in ledger_data.get("issues", []) if i["status"] == "pending")

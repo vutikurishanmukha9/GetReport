@@ -308,7 +308,7 @@ CONTEXT:
             except Exception as e:
                 logger.error(f"Chat failed: {e}")
                 self.metrics.record_query(False)
-                return {"success": False, "error": str(e)}
+                return {"success": False, "error": "An error occurred while processing your question."}
 
 _rag_service_instance = None
 

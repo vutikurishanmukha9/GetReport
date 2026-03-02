@@ -12,7 +12,10 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = "tasks.db"
+# VULN-08: Move DB file to a dedicated data directory
+_db_dir = os.path.abspath(settings.DB_DIR)
+os.makedirs(_db_dir, exist_ok=True)
+DB_PATH = os.path.join(_db_dir, "tasks.db")
 
 # Global Connection Pools
 pg_pool = None

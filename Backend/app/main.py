@@ -4,6 +4,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.limiter import limiter
+from app.core.security_headers import SecurityHeadersMiddleware
 
 from contextlib import asynccontextmanager
 
@@ -30,6 +31,9 @@ app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Security Headers (VULN-10)
+app.add_middleware(SecurityHeadersMiddleware)
+
 # Set all CORS enabled origins (with production-aware guard)
 _cors_origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
 
@@ -42,12 +46,13 @@ if settings.DATABASE_URL and any("localhost" in o for o in _cors_origins):
         "Set CORS_ORIGINS env var to restrict origins in production."
     )
 
+# CORS (VULN-04: Restricted methods and headers)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
 app.include_router(endpoints.router, prefix="/api", tags=["api"])

@@ -10,6 +10,14 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: str = "60/minute"
     MAX_UPLOAD_SIZE_MB: int = 50
     
+    # ─── Security ─────────────────────────────────────────────────────────
+    # API Key: If set, all endpoints require X-API-Key header.
+    # Leave empty to disable auth (dev mode only).
+    API_KEY: str = ""
+    
+    # Max length for chat questions (prompt injection mitigation)
+    MAX_CHAT_QUESTION_LENGTH: int = 500
+    
     # ⚠ SECURITY WARNING: These defaults are for local development ONLY.
     # In production, you MUST override CORS_ORIGINS via environment variable to restrict access.
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:8080"
@@ -27,6 +35,9 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = ""
     AWS_REGION: str = "us-east-1"
     AWS_BUCKET_NAME: str = "getreport-uploads"
+
+    # ─── Database ─────────────────────────────────────────────────────────
+    DB_DIR: str = "data"  # Directory for SQLite files (relative to Backend/)
 
     # ─── PDF Engine ──────────────────────────────────────────────────────
     PDF_ENGINE: str = "reportlab"  # "reportlab" (local dev) or "weasyprint" (production)
