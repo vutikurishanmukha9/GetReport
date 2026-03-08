@@ -32,12 +32,20 @@ else:
 # For now, we stick to sync redis publish even in async methods unless it blocks too much.
 # Usually publish is very fast (0.5ms).
 
+from datetime import date, datetime
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        return super().default(obj)
+
 def publish_update(task_id: str, data: Dict[str, Any]):
     """Publish update to Redis channel"""
     if redis_client:
         try:
             channel = f"task:{task_id}"
-            redis_client.publish(channel, json.dumps(data))
+            redis_client.publish(channel, json.dumps(data, cls=CustomJSONEncoder))
         except Exception as e:
             logger.error(f"Redis publish failed: {e}")
 
