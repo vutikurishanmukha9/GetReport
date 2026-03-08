@@ -349,7 +349,31 @@ def get_db_connection():
         # Postgres Sync
         global pg_pool
         if not pg_pool: _init_postgres_sync()
-        conn = pg_pool.getconn()
+        
+        import psycopg2
+        conn = None
+        retries = 3
+        while retries > 0:
+            try:
+                conn = pg_pool.getconn()
+                # Pre-ping: Neon Serverless Postgres drops idle SSL connections.
+                # If we get a stale connection, this executes and throws an OperationalError.
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT 1")
+                break # Connection is alive and verified
+            except (psycopg2.OperationalError, psycopg2.InterfaceError) as e:
+                # This specific connection is dead. Discard it and try another.
+                if conn:
+                    try:
+                        pg_pool.putconn(conn, close=True)
+                    except Exception:
+                        pass
+                conn = None
+                retries -= 1
+                if retries == 0:
+                    logger.error("Database connection pool exhausted of alive connections.")
+                    raise e
+
         pg_conn = PostgresConnection(conn, pg_pool)
         try: yield pg_conn
         finally: pg_conn.close()
