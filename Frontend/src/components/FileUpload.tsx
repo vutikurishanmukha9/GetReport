@@ -8,6 +8,7 @@ import type { ApiResponse, InspectionResult, CleaningRulesMap } from "@/types/ap
 import { api } from "@/services/api";
 import { DataHealthCheck } from "./DataHealthCheck";
 import { IssueLedger } from "./IssueLedger";
+import { ProcessPipeline } from "./ProcessPipeline";
 
 interface FileUploadProps {
   onFileUploaded: (data: ApiResponse, taskId: string) => void;
@@ -28,7 +29,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   const [expectedPhase, setExpectedPhase] = useState<'INSPECTION' | 'ANALYSIS' | null>(null);
 
   // Real-Time Status Hook
-  const { status: taskStatus, result: taskResult, error: taskError } = useTaskStatus(taskId || undefined);
+  const { status: taskStatus, progress: taskProgress, message: taskMessage, result: taskResult, error: taskError } = useTaskStatus(taskId || undefined);
 
   const { toast } = useToast();
 
@@ -214,6 +215,18 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
     >
+      {/* Process Pipeline — shown when processing is active */}
+      <AnimatePresence>
+        {isProcessing && taskId && (
+          <ProcessPipeline
+            taskStatus={taskStatus}
+            message={taskMessage}
+            progress={taskProgress}
+            isActive={isProcessing}
+          />
+        )}
+      </AnimatePresence>
+
       <Card className="border-2 border-dashed transition-colors duration-200 hover:border-primary/50">
         <CardContent className="p-0">
           <div

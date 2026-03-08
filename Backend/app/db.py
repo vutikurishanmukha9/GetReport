@@ -169,7 +169,7 @@ async def init_async_db():
         global async_pg_pool
         import asyncpg
         if not async_pg_pool:
-            # Enforce public schema to find 'public.jobs'
+            # Enforce public schema to find 'jobs'
             async_pg_pool = await asyncpg.create_pool(
                 dsn=settings.DATABASE_URL, 
                 min_size=1, 
@@ -247,13 +247,13 @@ def _init_postgres_sync():
                 tables = cursor.fetchall()
                 print(f"[DB-INIT] Tables found: {[t['table_name'] for t in tables]}")
 
-                # VERIFICATION: Check public.jobs
-                cursor.execute("SELECT to_regclass('public.jobs');")
+                # VERIFICATION: Check jobs
+                cursor.execute("SELECT to_regclass('jobs');")
                 result = cursor.fetchone()
                 if result and result['to_regclass']:
-                     print(f"[DB-INIT] VERIFIED: Table 'public.jobs' exists! OID: {result['to_regclass']}")
+                     print(f"[DB-INIT] VERIFIED: Table 'jobs' exists! OID: {result['to_regclass']}")
                 else:
-                     print("[DB-INIT] CRITICAL ERROR: Table 'public.jobs' DOES NOT EXIST after commit!")
+                     print("[DB-INIT] CRITICAL ERROR: Table 'jobs' DOES NOT EXIST after commit!")
                      
             except Exception as e:
                 conn.rollback()
@@ -302,7 +302,7 @@ def _create_schema(cursor):
 def _create_core_tables_explicit(cursor):
     """Postgres Core Schema (Explicit Public Schema)"""
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS public.jobs (
+    CREATE TABLE IF NOT EXISTS jobs (
         task_id TEXT PRIMARY KEY,
         status TEXT NOT NULL,
         filename TEXT,
@@ -316,11 +316,11 @@ def _create_core_tables_explicit(cursor):
         version INTEGER DEFAULT 0
     )
     """)
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON public.jobs(status)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON public.jobs(created_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)")
     
     for col in ["result_path TEXT", "version INTEGER DEFAULT 0"]:
-        try: cursor.execute(f"ALTER TABLE public.jobs ADD COLUMN {col}")
+        try: cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
         except: pass
 
 def _enable_vector_extension(cursor):

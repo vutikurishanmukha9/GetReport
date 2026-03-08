@@ -7,18 +7,29 @@ import { HeroSection } from "@/components/HeroSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { Footer } from "@/components/Footer";
 import type { ApiResponse } from "@/types/api";
-import { ChatInterface } from "@/components/ChatInterface"; // Import Chat
+import { ChatInterface } from "@/components/ChatInterface";
+import { ProcessPipeline } from "@/components/ProcessPipeline";
+import { useTaskStatus } from "@/hooks/useTaskStatus";
 
 export type AppStep = "upload" | "preview" | "generating" | "complete";
 
 const Index = () => {
   const [step, setStep] = useState<AppStep>("upload");
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
-  const [taskId, setTaskId] = useState<string | null>(null); // Store Task ID
+  const [taskId, setTaskId] = useState<string | null>(null);
+
+  // Pipeline status tracking for generating/complete phases
+  const {
+    status: pipelineStatus,
+    progress: pipelineProgress,
+    message: pipelineMessage,
+  } = useTaskStatus(
+    step === "generating" && taskId ? taskId : undefined
+  );
 
   const handleFileUploaded = (data: ApiResponse, taskId: string) => {
     setApiData(data);
-    setTaskId(taskId); // Save it
+    setTaskId(taskId);
     setStep("preview");
   };
 
@@ -65,6 +76,18 @@ const Index = () => {
 
         {(step === "generating" || step === "complete") && apiData && (
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12 space-y-12">
+            {/* Process Pipeline — visible during report generation */}
+            {step === "generating" && taskId && (
+              <div className="max-w-4xl mx-auto">
+                <ProcessPipeline
+                  taskStatus={pipelineStatus}
+                  message={pipelineMessage}
+                  progress={pipelineProgress}
+                  isActive={true}
+                />
+              </div>
+            )}
+
             <ReportGeneration
               step={step}
               taskId={taskId}

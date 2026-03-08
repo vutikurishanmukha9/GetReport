@@ -88,8 +88,17 @@ async def websocket_status(websocket: WebSocket, task_id: str, api_key: str = Qu
     # Try Redis PubSub first
     try:
         from app.services.task_manager import redis_client
+        
+        use_redis = False
         if redis_client:
-            pubsub = redis_client.pubsub()
+            try:
+                # Test connection implicitly by getting pubsub
+                pubsub = redis_client.pubsub()
+                use_redis = True
+            except Exception as e:
+                logger.warning(f"Redis PubSub unavailable: {e}. Falling back to polling.")
+                
+        if use_redis:
             channel = f"task:{task_id}"
             pubsub.subscribe(channel)
             
@@ -97,20 +106,28 @@ async def websocket_status(websocket: WebSocket, task_id: str, api_key: str = Qu
                 while True:
                     message = pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
                     if message and message['type'] == 'message':
-                        data = json.loads(message['data'])
-                        await websocket.send_json(data)
-                        
-                        # Close on terminal states
-                        if data.get('status') in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
-                            break
+                        try:
+                            data = json.loads(message['data'])
+                            await websocket.send_json(data)
+                            
+                            # Close on terminal states
+                            if data.get('status') in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
+                                break
+                        except Exception as json_e:
+                            logger.error(f"Error parsing pubsub message: {json_e}")
                     
                     # Heartbeat
                     await asyncio.sleep(0.5)
                     
             except WebSocketDisconnect:
                 logger.info(f"WebSocket disconnected for task {task_id}")
+            except Exception as loop_e:
+                logger.error(f"Redis subscribe loop error: {loop_e}")
             finally:
-                pubsub.unsubscribe(channel)
+                try:
+                    pubsub.unsubscribe(channel)
+                    pubsub.close()
+                except: pass
         else:
             # Fallback: Internal polling (no Redis) - ASYNC DB POLLING
             logger.info(f"WebSocket fallback to polling for task {task_id}")
