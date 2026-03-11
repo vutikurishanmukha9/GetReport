@@ -46,11 +46,18 @@ OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
 # OpenRouter models in priority order (free models first, then paid)
 # If a model is paid-only or unavailable, it auto-skips to the next one
 OPENROUTER_MODELS: list[str] = [
+    # ── Newest free models (highest capability) ──
+    "meta-llama/llama-4-maverick",        # Free tier — Llama 4 flagship
+    "meta-llama/llama-4-scout",           # Free tier — Llama 4 efficient
+    "deepseek/deepseek-v3.2",            # Free tier — DeepSeek V3.2
+    "qwen/qwen3.5-9b",                   # Free tier — Qwen 3.5 9B
+    # ── Established free models (fallbacks) ──
     "google/gemini-2.0-flash-001",        # Free tier
     "meta-llama/llama-3.1-8b-instruct",   # Free tier
     "mistralai/mistral-7b-instruct",      # Free tier
     "google/gemma-2-9b-it",               # Free tier
     "qwen/qwen-2.5-7b-instruct",         # Free tier
+    # ── Paid (last resort before OpenAI) ──
     "deepseek/deepseek-chat",             # Paid (fallback)
 ]
 
