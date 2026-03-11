@@ -129,6 +129,26 @@ export const ProcessPipeline = ({
         });
     }, [taskStatus, message, progress, isActive]);
 
+    // Calculate realistic overall progress
+    const displayProgress = useMemo(() => {
+        const isComplete = taskStatus?.toUpperCase() === "COMPLETED";
+        if (isComplete) return 100;
+        
+        const rawProgress = progress || 0;
+        const currentIndex = Math.max(0, highWaterRef.current);
+        const totalStages = STAGE_DEFINITIONS.length; // 6
+        
+        // If we are at stage index 4 (Insights), we are 4/6 = 66% done.
+        // We map the rawProgress (0-100) to the remaining portion (33%).
+        const baseProgressPercent = (currentIndex / totalStages) * 100;
+        const remainingPercent = 100 - baseProgressPercent;
+        
+        // The relative progress within the current stage(s)
+        const additionalProgress = (rawProgress / 100) * remainingPercent;
+        
+        return Math.min(99, Math.floor(baseProgressPercent + additionalProgress));
+    }, [progress, taskStatus, highWaterRef.current]);
+
     if (!isActive) return null;
 
     const isComplete = taskStatus?.toUpperCase() === "COMPLETED";
@@ -165,8 +185,8 @@ export const ProcessPipeline = ({
                         </div>
                     </div>
                     <div className="flex text-right">
-                        <span className="text-2xl font-semibold tracking-tight tabular-nums">
-                            {progress}
+                        <span className="text-2xl font-semibold tracking-tight tabular-nums animate-in fade-in slide-in-from-bottom-2">
+                            {displayProgress}
                             <span className="text-sm text-muted-foreground ml-0.5">%</span>
                         </span>
                     </div>
