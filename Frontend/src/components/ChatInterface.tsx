@@ -108,8 +108,10 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                                 )}
                             >
                                 {/* Avatar */}
-                                <Avatar className={cn("h-8 w-8 mt-1", msg.role === "assistant" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
-                                    {msg.role === "assistant" ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
+                                <Avatar className={cn("h-8 w-8 mt-1 shrink-0", msg.role === "assistant" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
+                                    <AvatarFallback className="flex items-center justify-center bg-transparent">
+                                        {msg.role === "assistant" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                                    </AvatarFallback>
                                 </Avatar>
 
                                 {/* Message Bubble */}
@@ -139,8 +141,10 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
 
                         {isLoading && (
                             <div className="flex gap-3 mr-auto max-w-[85%]">
-                                <Avatar className="h-8 w-8 mt-1 bg-primary/10 text-primary">
-                                    <Bot className="h-5 w-5" />
+                                <Avatar className="h-8 w-8 mt-1 shrink-0 bg-primary/10 text-primary">
+                                    <AvatarFallback className="flex items-center justify-center bg-transparent">
+                                        <Bot className="h-4 w-4" />
+                                    </AvatarFallback>
                                 </Avatar>
                                 <div className="bg-muted/50 border p-3 rounded-lg rounded-tl-none flex items-center gap-2">
                                     <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
