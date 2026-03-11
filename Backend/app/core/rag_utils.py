@@ -204,6 +204,84 @@ class PostgresVectorStore:
                 
             return results
 
+    async def hybrid_search_async(self, query_text: str, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+        """
+        Async Hybrid Search combining Vector Similarity (pgvector) and Full-Text Keyword Search (tsvector).
+        Uses Reciprocal Rank Fusion (RRF) to combine ranks.
+        """
+        from app.db import get_async_db_connection
+        
+        vector_str = f"[{','.join(map(str, query_embedding))}]"
+        
+        async with get_async_db_connection() as conn:
+            # RRF (Reciprocal Rank Fusion) SQL query
+            rows = await conn.conn.fetch(
+                """
+                WITH vector_search AS (
+                    SELECT 
+                        id, 
+                        content, 
+                        metadata, 
+                        embedding <=> $1 AS vector_distance,
+                        RANK() OVER (ORDER BY embedding <=> $1) as vector_rank
+                    FROM document_chunks
+                    WHERE task_id = $2
+                    ORDER BY vector_distance ASC
+                    LIMIT 20
+                ),
+                keyword_search AS (
+                    SELECT 
+                        id, 
+                        content, 
+                        metadata, 
+                        ts_rank(to_tsvector('english', content), websearch_to_tsquery('english', $3)) AS keyword_score,
+                        RANK() OVER (ORDER BY ts_rank(to_tsvector('english', content), websearch_to_tsquery('english', $3)) DESC) as keyword_rank
+                    FROM document_chunks
+                    WHERE task_id = $2 AND to_tsvector('english', content) @@ websearch_to_tsquery('english', $3)
+                    ORDER BY keyword_score DESC
+                    LIMIT 20
+                )
+                SELECT 
+                    COALESCE(v.id, k.id) as id,
+                    COALESCE(v.content, k.content) as content,
+                    COALESCE(v.metadata, k.metadata) as metadata,
+                    COALESCE(v.vector_distance, 1.0) as vector_distance,
+                    COALESCE(k.keyword_score, 0.0) as keyword_score,
+                    -- RRF Score: 1.0 / (k + rank), using k=60 as standard
+                    (COALESCE(1.0 / (60 + v.vector_rank), 0.0) + 
+                     COALESCE(1.0 / (60 + k.keyword_rank), 0.0)) as rrf_score
+                FROM vector_search v
+                FULL OUTER JOIN keyword_search k ON v.id = k.id
+                ORDER BY rrf_score DESC
+                LIMIT $4
+                """,
+                vector_str, self.task_id, query_text, k
+            )
+            
+            results = []
+            for row in rows:
+                content = row["content"]
+                metadata = row["metadata"]
+                if isinstance(metadata, str):
+                    metadata = json.loads(metadata)
+                
+                # We return RRF score as the metric. 
+                # (RRF score is small, usually 0.01 - 0.033).
+                rrf_score = float(row["rrf_score"])
+                
+                # If the score is purely vector baseline (e.g. no keyword match),
+                # we still want to give it a passing score based on its semantic distance.
+                vector_dist = float(row["vector_distance"])
+                semantic_score = 1.0 - vector_dist
+                
+                # Normalize score so the frontend still sees 0.7+ for good matches.
+                # If RRF is strong (> 0.015), it heavily boosts the semantic score.
+                normalized_score = min(0.99, semantic_score + (rrf_score * 5))
+                
+                results.append(({"content": content, "metadata": metadata}, normalized_score))
+                
+            return results
+
     def add_texts(self, texts: List[str], embeddings: List[List[float]], metadatas: Optional[List[Dict[str, Any]]] = None):
         """Sync Method (Legacy/Celery)"""
         from app.db import get_db_connection

@@ -267,8 +267,8 @@ class EnhancedRAGService:
 
                 # 3. Retrieve
                 if settings.DATABASE_URL:
-                    # Async Retrieval from Postgres
-                    results = await store.similarity_search_with_score_async(q_embed, k=k)
+                    # Async Hybrid Retrieval (Vector + Keyword) from Postgres via RRF
+                    results = await store.hybrid_search_async(question, q_embed, k=k)
                 else:
                     results = store.similarity_search_with_score(q_embed, k=k)
                 
