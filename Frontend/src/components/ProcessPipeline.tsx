@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     Upload,
@@ -80,6 +80,10 @@ interface ProcessPipelineProps {
     message: string;
     progress: number;
     isActive: boolean;
+    /** Optional: minimum stage index that should already be completed on mount.
+     *  When the pipeline remounts in a later phase (e.g. report generation),
+     *  set this so earlier stages don't reset to pending. */
+    minCompletedStage?: number;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -89,13 +93,20 @@ export const ProcessPipeline = ({
     message,
     progress,
     isActive,
+    minCompletedStage,
 }: ProcessPipelineProps) => {
     // High-water-mark: pipeline NEVER goes backwards
-    const highWaterRef = useRef<number>(-1);
+    const highWaterRef = useRef<number>(minCompletedStage ?? -1);
+
+    // Update high-water if minCompletedStage changes (e.g. remount in later phase)
+    useEffect(() => {
+        if (minCompletedStage !== undefined && minCompletedStage > highWaterRef.current) {
+            highWaterRef.current = minCompletedStage;
+        }
+    }, [minCompletedStage]);
 
     const stages: PipelineStage[] = useMemo(() => {
         if (!isActive) {
-            highWaterRef.current = -1;
             return STAGE_DEFINITIONS.map((s) => ({ ...s, status: "pending" as StageStatus }));
         }
 
@@ -202,76 +213,111 @@ export const ProcessPipeline = ({
 };
 
 // ─── Horizontal Pipeline (Desktop) ──────────────────────────────────────────
+// The pipe connectors go BETWEEN circles (edge-to-edge), not through them.
+
+const NODE_SIZE = 44; // px — diameter of each junction node
 
 function HorizontalPipeline({ stages }: { stages: PipelineStage[] }) {
-    const fillPercent = getProgressWidth(stages);
-
     return (
-        <div className="relative">
-            {/* The pipe track (background) */}
-            <div className="absolute top-[22px] left-[20px] right-[20px] h-[6px] rounded-full bg-muted/40 z-0" />
+        <div className="flex items-start justify-between relative">
+            {stages.map((stage, i) => (
+                <div key={stage.id} className="flex items-center flex-1 last:flex-none">
+                    {/* Junction Node */}
+                    <HorizontalStageNode stage={stage} index={i} />
 
-            {/* The flowing fill inside the pipe */}
-            <motion.div
-                className="absolute top-[22px] left-[20px] h-[6px] rounded-full z-[1] overflow-hidden"
-                initial={{ width: 0 }}
-                animate={{ width: `calc(${fillPercent}% - 0px)` }}
-                style={{ maxWidth: "calc(100% - 40px)" }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
-            >
-                {/* Gradient fill */}
-                <div className="h-full w-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-violet-500 rounded-full" />
+                    {/* Connector pipe BETWEEN this node and the next (not through them) */}
+                    {i < stages.length - 1 && (
+                        <div className="flex-1 relative h-[6px] mx-0">
+                            {/* Pipe background track */}
+                            <div className="absolute inset-0 rounded-full bg-muted/30" />
 
-                {/* Flowing shimmer animation */}
-                <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-full"
-                    animate={{ x: ["-100%", "200%"] }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                />
-            </motion.div>
-
-            {/* Stage nodes */}
-            <div className="flex items-start justify-between relative z-10">
-                {stages.map((stage, i) => (
-                    <HorizontalStageNode key={stage.id} stage={stage} index={i} total={stages.length} />
-                ))}
-            </div>
+                            {/* Pipe fill — filled if BOTH this node and the next are completed, 
+                                or this node is completed and next is active */}
+                            <motion.div
+                                className="absolute inset-y-0 left-0 rounded-full overflow-hidden"
+                                initial={{ width: "0%" }}
+                                animate={{
+                                    width: getConnectorFill(stage.status, stages[i + 1]?.status),
+                                }}
+                                transition={{ duration: 0.5, ease: "easeInOut" }}
+                            >
+                                <div className="h-full w-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400" />
+                                {/* Shimmer */}
+                                <motion.div
+                                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+                                    animate={{ x: ["-100%", "200%"] }}
+                                    transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                                />
+                            </motion.div>
+                        </div>
+                    )}
+                </div>
+            ))}
         </div>
     );
+}
+
+function getConnectorFill(currentStatus: StageStatus, nextStatus?: StageStatus): string {
+    if (!nextStatus) return "0%";
+    // This connector is fully filled when both sides are completed
+    if (currentStatus === "completed" && (nextStatus === "completed" || nextStatus === "active")) {
+        return "100%";
+    }
+    // Half-filled when current is active (flow is reaching this connector)
+    if (currentStatus === "active") {
+        return "50%";
+    }
+    // Completed on left side only
+    if (currentStatus === "completed") {
+        return "100%";
+    }
+    return "0%";
 }
 
 // ─── Vertical Pipeline (Mobile) ─────────────────────────────────────────────
 
 function VerticalPipeline({ stages }: { stages: PipelineStage[] }) {
-    const fillPercent = getProgressWidth(stages);
-
     return (
-        <div className="relative pl-5">
-            {/* The pipe track (background) */}
-            <div className="absolute top-[20px] bottom-[20px] left-[18px] w-[6px] rounded-full bg-muted/40 z-0" />
+        <div className="flex flex-col relative">
+            {stages.map((stage, i) => (
+                <div key={stage.id} className="flex flex-col items-start">
+                    {/* Row: node + label */}
+                    <div className="flex items-center gap-4">
+                        <VerticalStageNode stage={stage} index={i} />
+                        <span
+                            className={`text-sm font-medium
+                                ${stage.status === "completed"
+                                    ? "text-emerald-500/90"
+                                    : stage.status === "active"
+                                    ? "text-cyan-400 font-semibold"
+                                    : stage.status === "error"
+                                    ? "text-destructive"
+                                    : "text-muted-foreground/30"
+                                }
+                            `}
+                        >
+                            {stage.label}
+                        </span>
+                    </div>
 
-            {/* The flowing fill inside the pipe */}
-            <motion.div
-                className="absolute top-[20px] left-[18px] w-[6px] rounded-full z-[1] overflow-hidden"
-                initial={{ height: 0 }}
-                animate={{ height: `${fillPercent}%` }}
-                style={{ maxHeight: "calc(100% - 40px)" }}
-                transition={{ duration: 0.8, ease: "easeInOut" }}
-            >
-                <div className="h-full w-full bg-gradient-to-b from-emerald-400 via-cyan-400 to-violet-500 rounded-full" />
-                <motion.div
-                    className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-transparent rounded-full"
-                    animate={{ y: ["-100%", "200%"] }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                />
-            </motion.div>
-
-            {/* Stage nodes */}
-            <div className="flex flex-col gap-0 relative z-10">
-                {stages.map((stage, i) => (
-                    <VerticalStageNode key={stage.id} stage={stage} index={i} />
-                ))}
-            </div>
+                    {/* Vertical connector pipe between nodes */}
+                    {i < stages.length - 1 && (
+                        <div className="ml-[18px] w-[6px] h-6 relative">
+                            <div className="absolute inset-0 rounded-full bg-muted/30" />
+                            <motion.div
+                                className="absolute inset-x-0 top-0 rounded-full overflow-hidden"
+                                initial={{ height: "0%" }}
+                                animate={{
+                                    height: getConnectorFill(stage.status, stages[i + 1]?.status),
+                                }}
+                                transition={{ duration: 0.5, ease: "easeInOut" }}
+                            >
+                                <div className="h-full w-full bg-gradient-to-b from-emerald-400 via-cyan-400 to-emerald-400" />
+                            </motion.div>
+                        </div>
+                    )}
+                </div>
+            ))}
         </div>
     );
 }
@@ -281,44 +327,42 @@ function VerticalPipeline({ stages }: { stages: PipelineStage[] }) {
 function HorizontalStageNode({
     stage,
     index,
-    total,
 }: {
     stage: PipelineStage;
     index: number;
-    total: number;
 }) {
     const Icon = stage.icon;
 
     return (
         <motion.div
-            className="flex flex-col items-center gap-2.5 flex-1"
+            className="flex flex-col items-center gap-2.5 shrink-0"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.06, duration: 0.35 }}
         >
             {/* Pipe junction node */}
             <div className="relative">
-                {/* Outer ring for active state */}
+                {/* Pulsing ring for active */}
                 {stage.status === "active" && (
                     <motion.div
-                        className="absolute -inset-1.5 rounded-full border-2 border-cyan-400/40"
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.6, 0.2, 0.6] }}
+                        className="absolute -inset-2 rounded-full border-2 border-cyan-400/40"
+                        animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.15, 0.5] }}
                         transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                     />
                 )}
 
-                {/* Main junction circle */}
+                {/* Main circle */}
                 <div
                     className={`
                         w-11 h-11 rounded-full border-[3px] flex items-center justify-center
-                        transition-all duration-500
+                        transition-all duration-500 relative z-10 bg-card
                         ${stage.status === "completed"
-                            ? "border-emerald-500/70 bg-emerald-500/15 text-emerald-500"
+                            ? "border-emerald-500/70 text-emerald-500"
                             : stage.status === "active"
-                            ? "border-cyan-400/80 bg-cyan-400/10 text-cyan-400"
+                            ? "border-cyan-400/80 text-cyan-400"
                             : stage.status === "error"
-                            ? "border-destructive/70 bg-destructive/10 text-destructive"
-                            : "border-muted-foreground/15 bg-muted/20 text-muted-foreground/25"
+                            ? "border-destructive/70 text-destructive"
+                            : "border-muted-foreground/15 text-muted-foreground/25"
                         }
                     `}
                 >
@@ -338,18 +382,9 @@ function HorizontalStageNode({
                             <Icon className="w-5 h-5" />
                         </motion.div>
                     ) : (
-                        <Icon className={`w-4 h-4 ${stage.status === "error" ? "w-5 h-5" : ""}`} />
+                        <Icon className="w-4 h-4" />
                     )}
                 </div>
-
-                {/* Active glow dot */}
-                {stage.status === "active" && (
-                    <motion.div
-                        className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400"
-                        animate={{ opacity: [1, 0.3, 1] }}
-                        transition={{ repeat: Infinity, duration: 1 }}
-                    />
-                )}
             </div>
 
             {/* Label */}
@@ -384,85 +419,46 @@ function VerticalStageNode({
 
     return (
         <motion.div
-            className="flex items-center gap-4 py-2.5 relative"
+            className="relative shrink-0"
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05, duration: 0.3 }}
         >
-            {/* Pipe junction */}
-            <div className="relative">
-                {stage.status === "active" && (
-                    <motion.div
-                        className="absolute -inset-1.5 -ml-[20px] rounded-full border-2 border-cyan-400/40"
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.6, 0.2, 0.6] }}
-                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                    />
-                )}
-                
-                <div
-                    className={`
-                        w-[38px] h-[38px] rounded-full border-[3px] flex items-center justify-center
-                        transition-all duration-500 -ml-[20px]
-                        ${stage.status === "completed"
-                            ? "border-emerald-500/70 bg-emerald-500/15 text-emerald-500"
-                            : stage.status === "active"
-                            ? "border-cyan-400/80 bg-cyan-400/10 text-cyan-400"
-                            : stage.status === "error"
-                            ? "border-destructive/70 bg-destructive/10 text-destructive"
-                            : "border-muted-foreground/15 bg-muted/20 text-muted-foreground/25"
-                        }
-                    `}
-                >
-                    {stage.status === "completed" ? (
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                        >
-                            <CheckCircle2 className="w-4 h-4" />
-                        </motion.div>
-                    ) : stage.status === "active" ? (
-                        <motion.div
-                            animate={{ scale: [1, 0.85, 1] }}
-                            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                        >
-                            <Icon className="w-4 h-4" />
-                        </motion.div>
-                    ) : (
-                        <Icon className="w-4 h-4" />
-                    )}
-                </div>
-            </div>
+            {stage.status === "active" && (
+                <motion.div
+                    className="absolute -inset-1.5 rounded-full border-2 border-cyan-400/40"
+                    animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.15, 0.5] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                />
+            )}
 
-            {/* Label */}
-            <span
-                className={`text-sm font-medium
+            <div
+                className={`
+                    w-[38px] h-[38px] rounded-full border-[3px] flex items-center justify-center
+                    transition-all duration-500 bg-card relative z-10
                     ${stage.status === "completed"
-                        ? "text-emerald-500/90"
+                        ? "border-emerald-500/70 text-emerald-500"
                         : stage.status === "active"
-                        ? "text-cyan-400 font-semibold"
+                        ? "border-cyan-400/80 text-cyan-400"
                         : stage.status === "error"
-                        ? "text-destructive"
-                        : "text-muted-foreground/30"
+                        ? "border-destructive/70 text-destructive"
+                        : "border-muted-foreground/15 text-muted-foreground/25"
                     }
                 `}
             >
-                {stage.label}
-            </span>
+                {stage.status === "completed" ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                ) : stage.status === "active" ? (
+                    <motion.div
+                        animate={{ scale: [1, 0.85, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                    >
+                        <Icon className="w-4 h-4" />
+                    </motion.div>
+                ) : (
+                    <Icon className="w-4 h-4" />
+                )}
+            </div>
         </motion.div>
     );
-}
-
-// ─── Utilities ──────────────────────────────────────────────────────────────
-
-function getProgressWidth(stages: PipelineStage[]): number {
-    const allCompleted = stages.every((s) => s.status === "completed");
-    if (allCompleted) return 100;
-
-    const lastActiveOrComplete = stages.reduce(
-        (acc, stage, i) => (stage.status === "completed" || stage.status === "active" ? i : acc),
-        -1
-    );
-    if (lastActiveOrComplete < 0) return 0;
-    return Math.min(((lastActiveOrComplete) / (stages.length - 1)) * 100, 100);
 }

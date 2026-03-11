@@ -84,6 +84,7 @@ const Index = () => {
                   message={pipelineMessage}
                   progress={pipelineProgress}
                   isActive={true}
+                  minCompletedStage={6}
                 />
               </div>
             )}
