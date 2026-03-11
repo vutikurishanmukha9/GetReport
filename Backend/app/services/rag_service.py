@@ -312,13 +312,14 @@ CONTEXT:
                                 {"role": "user", "content": question}
                             ],
                             temperature=self.config.TEMPERATURE,
-                            max_tokens=self.config.MAX_TOKENS
+                            max_tokens=self.config.MAX_TOKENS,
+                            timeout=30.0
                         )
                         break  # Success
-                    except (BadRequestError, NotFoundError) as e:
-                        # 402 Payment Required or 404 model not found — skip
+                    except Exception as e:
+                        # Catch 402/404, timeouts, rate limits, or any other transient error -> skip to next model
                         logger.warning(
-                            "RAG Model %s unavailable (%s: %s) — skipping to next.",
+                            "RAG Model %s failed/unavailable (%s: %s) — skipping to next.",
                             model_name, type(e).__name__, str(e)
                         )
                         last_error = e
