@@ -35,3 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding
 ON document_chunks USING hnsw (embedding vector_cosine_ops);
 
 CREATE INDEX IF NOT EXISTS idx_document_chunks_task_id ON document_chunks(task_id);
+
+-- 5. GIN Index for Full-Text (Keyword) Search (used by Hybrid RAG)
+CREATE INDEX IF NOT EXISTS idx_document_chunks_content_fts 
+ON document_chunks USING gin (to_tsvector('english', content));

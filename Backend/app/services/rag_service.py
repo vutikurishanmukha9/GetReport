@@ -155,7 +155,8 @@ class EnhancedRAGService:
         try:
             response = await self._embed_client.embeddings.create(
                 input=texts,
-                model="text-embedding-3-small"
+                model="text-embedding-3-small",
+                timeout=10.0
             )
             return [d.embedding for d in response.data]
         except Exception as e:
@@ -265,10 +266,16 @@ class EnhancedRAGService:
                 # 2. Embed Question
                 q_embed = (await self._get_embeddings([question]))[0]
 
-                # 3. Retrieve
+                # 3. Retrieve — Hybrid Search (Vector + Keyword) with fallback to vector-only
                 if settings.DATABASE_URL:
-                    # Async Hybrid Retrieval (Vector + Keyword) from Postgres via RRF
-                    results = await store.hybrid_search_async(question, q_embed, k=k)
+                    try:
+                        # Try Hybrid Search first (Vector + Full-Text Keyword via RRF)
+                        results = await store.hybrid_search_async(question, q_embed, k=k)
+                        logger.info("RAG Hybrid Search returned %d results", len(results))
+                    except Exception as hybrid_err:
+                        # If hybrid search fails (e.g., missing GIN index), fall back to pure vector
+                        logger.warning("Hybrid search failed (%s), falling back to vector-only: %s", type(hybrid_err).__name__, str(hybrid_err))
+                        results = await store.similarity_search_with_score_async(q_embed, k=k)
                 else:
                     results = store.similarity_search_with_score(q_embed, k=k)
                 
