@@ -294,6 +294,15 @@ def _create_schema(cursor):
         version INTEGER DEFAULT 0
     )
     """)
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS file_store (
+        file_ref TEXT PRIMARY KEY,
+        data BLOB NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
     # Migrations
     for col in ["result_path TEXT", "version INTEGER DEFAULT 0"]:
         try: cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
@@ -316,6 +325,15 @@ def _create_core_tables_explicit(cursor):
         version INTEGER DEFAULT 0
     )
     """)
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS file_store (
+        file_ref TEXT PRIMARY KEY,
+        data BYTEA NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)")
     

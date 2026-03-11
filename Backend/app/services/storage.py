@@ -126,9 +126,102 @@ class S3StorageProvider(StorageProvider):
         except Exception:
             return False
 
+class DatabaseStorageProvider(StorageProvider):
+    """
+    Stores files in the Database (Postgres BYTEA or SQLite BLOB).
+    Suitable for PAAS deployments like Render with isolated filesystems (no shared disks).
+    """
+    def __init__(self):
+        # Local cache for processing tools (fastexcel, polars)
+        self.local_cache_dir = Path("temp_cache")
+        self.local_cache_dir.mkdir(parents=True, exist_ok=True)
+
+    def save_upload(self, file_obj: BinaryIO, filename: str) -> str:
+        from app.db import get_db_connection
+        from app.core.config import settings as _settings
+        
+        ext = Path(filename).suffix
+        unique_name = f"{uuid.uuid4()}{ext}"
+        
+        # Read the file into memory (FastAPI has already enforced size limits)
+        file_obj.seek(0)
+        raw_data = file_obj.read()
+        
+        # PostgreSQL BYTEA requires psycopg2.Binary() wrapping
+        if _settings.DATABASE_URL:
+            try:
+                import psycopg2
+                data = psycopg2.Binary(raw_data)
+            except ImportError:
+                data = raw_data
+        else:
+            data = raw_data
+        
+        with get_db_connection() as conn:
+            conn.execute(
+                "INSERT INTO file_store (file_ref, data) VALUES (?, ?)",
+                (unique_name, data)
+            )
+            conn.commit()
+            
+        return unique_name
+
+    def get_absolute_path(self, file_ref: str) -> str:
+        from app.db import get_db_connection
+        local_path = self.local_cache_dir / os.path.basename(file_ref)
+        
+        if not local_path.exists():
+            with get_db_connection() as conn:
+                cursor = conn.execute(
+                    "SELECT data FROM file_store WHERE file_ref = ?", 
+                    (file_ref,)
+                )
+                row = cursor.fetchone()
+                
+                if not row:
+                    raise FileNotFoundError(f"File {file_ref} not found in database storage")
+                
+                # Extract binary data — handle dict (psycopg2 RealDictCursor), 
+                # sqlite3.Row, or tuple
+                if isinstance(row, dict):
+                    data = row['data']
+                elif hasattr(row, 'keys'):
+                    data = row['data']
+                else:
+                    data = row[0]
+                    
+                with open(local_path, "wb") as f:
+                    if isinstance(data, memoryview):
+                        f.write(bytes(data))
+                    elif isinstance(data, bytes):
+                        f.write(data)
+                    else:
+                        f.write(bytes(data))
+                        
+        return str(local_path.absolute())
+
+    def delete(self, file_ref: str) -> bool:
+        from app.db import get_db_connection
+        # Delete from local cache
+        local_path = self.local_cache_dir / os.path.basename(file_ref)
+        if local_path.exists():
+            try: local_path.unlink()
+            except: pass
+            
+        # Delete from DB
+        try:
+            with get_db_connection() as conn:
+                conn.execute("DELETE FROM file_store WHERE file_ref = ?", (file_ref,))
+                conn.commit()
+            return True
+        except Exception:
+            return False
+
 # ─── Factory ─────────────────────────────────────────────────────────────────
 
 def get_storage_provider() -> StorageProvider:
     if settings.STORAGE_TYPE.lower() == "s3":
         return S3StorageProvider()
+    elif settings.STORAGE_TYPE.lower() == "db":
+        return DatabaseStorageProvider()
     return LocalStorageProvider()

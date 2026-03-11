@@ -38,7 +38,7 @@ services:
       - key: SKEWNESS_THRESHOLD
         value: "1.0"
       - key: STORAGE_TYPE
-        value: local 
+        value: db 
       - key: MAX_CONTENT_LENGTH
         value: "52428800" # 50MB
       - key: PYTHONUNBUFFERED
