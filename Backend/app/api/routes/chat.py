@@ -37,6 +37,7 @@ async def chat_with_job(
         raise HTTPException(400, "Question cannot be empty.")
     if len(sanitized_question) > settings.MAX_CHAT_QUESTION_LENGTH:
         sanitized_question = sanitized_question[:settings.MAX_CHAT_QUESTION_LENGTH]
-         
-    response = await rag_service.chat_with_report(task_id, sanitized_question)
+    # Pass the full job result (which contains structured analysis & insights)
+    # directly into the RAG context to vastly improve model reasoning context.
+    response = await rag_service.chat_with_report(task_id, sanitized_question, job_result=job.result)
     return response
