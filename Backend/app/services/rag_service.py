@@ -34,7 +34,7 @@ class RAGConfig:
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENROUTER_MODEL: str = "meta-llama/llama-4-scout"  # Free tier
     TEMPERATURE: float = 0.3
-    MAX_TOKENS: int = 1000
+    MAX_TOKENS: int = 500
     # Caching
     CACHE_TTL_SECONDS: int = 3600
     MAX_CACHE_SIZE: int = 100
@@ -343,6 +343,8 @@ CONTEXT:
 \"\"\"
 """
                 models_to_try = OPENROUTER_MODELS if settings.OPENROUTER_API_KEY else [OPENAI_MODEL]
+                # Limit to top 5 models to stay within Render's HTTP timeout
+                models_to_try = models_to_try[:5]
                 
                 response = None
                 last_error = None
@@ -357,7 +359,7 @@ CONTEXT:
                             ],
                             temperature=self.config.TEMPERATURE,
                             max_tokens=self.config.MAX_TOKENS,
-                            timeout=30.0
+                            timeout=10.0
                         )
                         break  # Success
                     except Exception as e:

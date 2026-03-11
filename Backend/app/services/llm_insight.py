@@ -43,21 +43,23 @@ RETRY_BASE_DELAY_SEC: float = 1.0
 RETRY_MAX_DELAY_SEC: float  = 8.0
 OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
 
-# OpenRouter models in priority order (free models first, then paid)
+# OpenRouter models in priority order (fastest free models first for chat responsiveness)
 # If a model is paid-only or unavailable, it auto-skips to the next one
 OPENROUTER_MODELS: list[str] = [
-    # ── Newest free models (highest capability) ──
-    "meta-llama/llama-4-maverick",        # Free tier — Llama 4 flagship
+    # ── Fast free models (prioritize response speed for chat) ──
+    "google/gemini-2.0-flash-001",        # Free tier — extremely fast
+    "meta-llama/llama-3.1-8b-instruct",   # Free tier — small, fast
+    "mistralai/mistral-7b-instruct",      # Free tier — small, fast
+    "qwen/qwen-2.5-7b-instruct",         # Free tier — small, fast
+    "minimax/minimax-01",                 # Free tier — Minimax
+    # ── Capable free models (higher quality) ──
+    "mistralai/mixtral-8x22b-instruct",   # Free tier — Mixtral 8x22B MoE
+    "meta-llama/llama-3.1-70b-instruct",  # Free tier — Llama 3.1 70B
     "meta-llama/llama-4-scout",           # Free tier — Llama 4 efficient
+    "meta-llama/llama-4-maverick",        # Free tier — Llama 4 flagship
     "deepseek/deepseek-v3.2",            # Free tier — DeepSeek V3.2
     "qwen/qwen3.5-9b",                   # Free tier — Qwen 3.5 9B
-    # ── Established free models (fallbacks) ──
-    "minimax/minimax-01",                 # Free tier — Minimax
-    "google/gemini-2.0-flash-001",        # Free tier
-    "meta-llama/llama-3.1-8b-instruct",   # Free tier
-    "mistralai/mistral-7b-instruct",      # Free tier
     "google/gemma-2-9b-it",               # Free tier
-    "qwen/qwen-2.5-7b-instruct",         # Free tier
     # ── Paid (last resort before OpenAI) ──
     "deepseek/deepseek-chat",             # Paid (fallback)
 ]
