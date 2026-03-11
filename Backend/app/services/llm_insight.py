@@ -52,6 +52,7 @@ OPENROUTER_MODELS: list[str] = [
     "deepseek/deepseek-v3.2",            # Free tier — DeepSeek V3.2
     "qwen/qwen3.5-9b",                   # Free tier — Qwen 3.5 9B
     # ── Established free models (fallbacks) ──
+    "minimax/minimax-01",                 # Free tier — Minimax
     "google/gemini-2.0-flash-001",        # Free tier
     "meta-llama/llama-3.1-8b-instruct",   # Free tier
     "mistralai/mistral-7b-instruct",      # Free tier
