@@ -25,7 +25,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
         <div className="flex h-14 sm:h-16 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link to="/" className="flex items-center gap-2 sm:gap-3">
+            <Link to="/" onClick={onReset} className="flex items-center gap-2 sm:gap-3">
               <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-primary">
                 <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
               </div>
