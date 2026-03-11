@@ -3,9 +3,10 @@ import asyncio
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime, timedelta
 
-from openai import AsyncOpenAI, OpenAI
+from openai import AsyncOpenAI, OpenAI, BadRequestError, NotFoundError
 from app.core.config import settings
 from app.core.rag_utils import TextSplitter, SimpleVectorStore, PostgresVectorStore
+from app.services.llm_insight import OPENROUTER_MODELS, OPENAI_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +30,9 @@ class RAGConfig:
     DEFAULT_K: int = 4
     MAX_K: int = 10
     SIMILARITY_THRESHOLD: float = 0.7
-    # Generation
-    MODEL_NAME: str = "gpt-4o-mini"
+    # Generation — model is set dynamically based on provider
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENROUTER_MODEL: str = "meta-llama/llama-4-scout"  # Free tier
     TEMPERATURE: float = 0.3
     MAX_TOKENS: int = 1000
     # Caching
@@ -103,7 +105,7 @@ class EnhancedRAGService:
         self.api_key = settings.OPENROUTER_API_KEY or settings.OPENAI_API_KEY
         self.enabled = bool(self.api_key)
         
-        # Determine base_url and model based on which key is available
+        # Determine base_url based on which key is available
         if settings.OPENROUTER_API_KEY:
             self._base_url = "https://openrouter.ai/api/v1"
             self._provider_name = "OpenRouter"
@@ -123,21 +125,35 @@ class EnhancedRAGService:
             self.sync_client = None
             logger.warning("RAG Service DISABLED (No API Key)")
 
+        # Embeddings ALWAYS use OpenAI directly (OpenRouter doesn't support embeddings)
+        if settings.OPENAI_API_KEY:
+            self._embed_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+            self._embed_sync_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            self._embeddings_enabled = True
+            logger.info("RAG Embeddings: using OpenAI directly")
+        elif settings.OPENROUTER_API_KEY:
+            # Try using OpenRouter for embeddings (may not work for all models)
+            self._embed_client = self.client
+            self._embed_sync_client = self.sync_client
+            self._embeddings_enabled = True
+            logger.warning("RAG Embeddings: attempting via OpenRouter (may fail)")
+        else:
+            self._embed_client = None
+            self._embed_sync_client = None
+            self._embeddings_enabled = False
+
         self.text_splitter = TextSplitter(
             chunk_size=self.config.CHUNK_SIZE,
             chunk_overlap=self.config.CHUNK_OVERLAP
         )
 
     async def _get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Get embeddings for a list of texts using OpenAI"""
-        if not self.client:
-            raise RuntimeError("RAG Service Disabled")
-            
-        # OpenAI batch limit is often 2048, but let's do smaller batches safely
-        # model="text-embedding-3-small"
+        """Get embeddings using OpenAI directly (not OpenRouter)"""
+        if not self._embed_client:
+            raise RuntimeError("RAG Embeddings Disabled (no OpenAI key)")
         
         try:
-            response = await self.client.embeddings.create(
+            response = await self._embed_client.embeddings.create(
                 input=texts,
                 model="text-embedding-3-small"
             )
@@ -148,10 +164,10 @@ class EnhancedRAGService:
 
     def _get_embeddings_sync(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings using Sync OpenAI Client (for Celery)"""
-        if not self.sync_client:
-            raise RuntimeError("RAG Service Disabled")
+        if not self._embed_sync_client:
+            raise RuntimeError("RAG Embeddings Disabled (no OpenAI key)")
         try:
-            response = self.sync_client.embeddings.create(
+            response = self._embed_sync_client.embeddings.create(
                 input=texts,
                 model="text-embedding-3-small"
             )
@@ -229,11 +245,11 @@ class EnhancedRAGService:
             logger.error(f"Ingest (Blocking) failed: {e}")
             return {"success": False, "error": str(e)}
 
-    async def chat_with_report(self, task_id: str, question: str, k: int = 4, include_sources: bool = False) -> Dict[str, Any]:
+    async def chat_with_report(self, task_id: str, question: str, k: int = 4, include_sources: bool = True) -> Dict[str, Any]:
         """Chat with the report context"""
         async with self.semaphore:
             if not self.enabled:
-                return {"success": False, "answer": "RAG Disabled", "error": "No API Key"}
+                return {"success": False, "answer": "Chat is currently unavailable. Please configure an API key.", "sources": []}
             
             try:
                 # 1. Get Store
@@ -244,7 +260,7 @@ class EnhancedRAGService:
                 else:
                     store = await self.cache.get(task_id)
                     if not store:
-                        return {"success": False, "error": "Report not processed or expired."}
+                        return {"success": False, "answer": "Report data has expired. Please re-upload your file.", "sources": []}
 
                 # 2. Embed Question
                 q_embed = (await self._get_embeddings([question]))[0]
@@ -282,25 +298,43 @@ CONTEXT:
 {context_str}
 \"\"\"
 """
-                response = await self.client.chat.completions.create(
-                    model=self.config.MODEL_NAME,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": question}
-                    ],
-                    temperature=self.config.TEMPERATURE,
-                    max_tokens=self.config.MAX_TOKENS
-                )
+                models_to_try = OPENROUTER_MODELS if settings.OPENROUTER_API_KEY else [OPENAI_MODEL]
+                
+                response = None
+                last_error = None
+                
+                for model_name in models_to_try:
+                    try:
+                        response = await self.client.chat.completions.create(
+                            model=model_name,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": question}
+                            ],
+                            temperature=self.config.TEMPERATURE,
+                            max_tokens=self.config.MAX_TOKENS
+                        )
+                        break  # Success
+                    except (BadRequestError, NotFoundError) as e:
+                        # 402 Payment Required or 404 model not found — skip
+                        logger.warning(
+                            "RAG Model %s unavailable (%s: %s) — skipping to next.",
+                            model_name, type(e).__name__, str(e)
+                        )
+                        last_error = e
+                        continue
+                
+                if not response:
+                    raise last_error or RuntimeError("All RAG LLM models failed or unavailable.")
 
-                answer = response.choices[0].message.content
+                answer = response.choices[0].message.content or "I couldn't generate a response. Please try again."
 
-                result = {
+                result: Dict[str, Any] = {
                     "success": True, 
                     "answer": answer,
+                    "sources": [d['content'] for d, s in relevant_docs] if include_sources else [],
                     "task_id": task_id
                 }
-                if include_sources:
-                    result["sources"] = [{"content": d['content'], "score": s} for d, s in relevant_docs]
                 
                 self.metrics.record_query(True)
                 return result
@@ -308,7 +342,7 @@ CONTEXT:
             except Exception as e:
                 logger.error(f"Chat failed: {e}")
                 self.metrics.record_query(False)
-                return {"success": False, "error": "An error occurred while processing your question."}
+                return {"success": False, "answer": f"Sorry, I couldn't process your question. Error: {str(e)}", "sources": []}
 
 _rag_service_instance = None
 
