@@ -148,20 +148,25 @@ class EnhancedRAGService:
         )
 
     async def _get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Get embeddings using OpenAI directly (not OpenRouter)"""
+        """Get embeddings — tries up to 2 times with a short timeout each."""
         if not self._embed_client:
-            raise RuntimeError("RAG Embeddings Disabled (no OpenAI key)")
+            raise RuntimeError("RAG Embeddings Disabled (no API key)")
         
-        try:
-            response = await self._embed_client.embeddings.create(
-                input=texts,
-                model="text-embedding-3-small",
-                timeout=10.0
-            )
-            return [d.embedding for d in response.data]
-        except Exception as e:
-            logger.error(f"Embedding generation failed: {e}")
-            raise
+        last_err = None
+        for attempt in range(2):
+            try:
+                response = await self._embed_client.embeddings.create(
+                    input=texts,
+                    model="text-embedding-3-small",
+                    timeout=8.0
+                )
+                return [d.embedding for d in response.data]
+            except Exception as e:
+                last_err = e
+                logger.warning("Embedding attempt %d/2 failed: %s: %s", attempt + 1, type(e).__name__, str(e))
+        
+        logger.error("All embedding attempts failed. Consider adding OPENAI_API_KEY for reliable embeddings.")
+        raise last_err
 
     def _get_embeddings_sync(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings using Sync OpenAI Client (for Celery)"""
