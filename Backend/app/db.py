@@ -337,9 +337,17 @@ def _create_core_tables_explicit(cursor):
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)")
     
-    for col in ["result_path TEXT", "version INTEGER DEFAULT 0"]:
-        try: cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
-        except: pass
+    # Safe column migrations using SAVEPOINTs.
+    # In PostgreSQL, a failed ALTER TABLE aborts the ENTIRE transaction.
+    # SAVEPOINTs allow us to roll back just the failed statement.
+    for col_name, col_def in [("result_path", "TEXT"), ("version", "INTEGER DEFAULT 0")]:
+        try:
+            cursor.execute(f"SAVEPOINT sp_alter_{col_name}")
+            cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col_name} {col_def}")
+            cursor.execute(f"RELEASE SAVEPOINT sp_alter_{col_name}")
+        except Exception:
+            cursor.execute(f"ROLLBACK TO SAVEPOINT sp_alter_{col_name}")
+            cursor.execute(f"RELEASE SAVEPOINT sp_alter_{col_name}")
 
 def _enable_vector_extension(cursor):
     cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
