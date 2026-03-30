@@ -101,7 +101,7 @@ const TermsOfService = () => {
                     <section>
                         <h2 className="text-2xl font-semibold mb-4">7. Contact</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            Questions about these terms? Contact us at legal@getreport.com.
+                            Questions about these terms? Contact us at vutikurishanmukha9@gmail.com.
                         </p>
                     </section>
                 </div>

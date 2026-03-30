@@ -109,7 +109,7 @@ const Features = () => {
             <div className="bg-muted/30 border-y py-24">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl font-bold mb-4">built for Scale & Security</h2>
+                        <h2 className="text-3xl font-bold mb-4">Built for Scale & Security</h2>
                         <p className="text-muted-foreground max-w-2xl mx-auto">
                             Enterprise-grade infrastructure designed for sensitive data workloads.
                         </p>

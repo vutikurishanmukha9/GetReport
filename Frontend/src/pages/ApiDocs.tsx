@@ -27,7 +27,7 @@ const ApiDocs = () => {
                                 Currently, the API is open for public use without authentication for standard workloads. Rate limits apply based on IP address.
                             </p>
                             <div className="bg-muted p-4 rounded-lg font-mono text-sm">
-                                Base URL: <span className="text-primary">https://api.getreport.com/api</span>
+                                Base URL: <span className="text-primary">https://getreport.onrender.com/api</span>
                             </div>
                         </section>
 
@@ -42,7 +42,7 @@ const ApiDocs = () => {
                                 </h3>
                                 <p className="text-muted-foreground mb-4">Upload a file (CSV/Excel) to start a processing job.</p>
                                 <CodeBlock
-                                    code={`curl -X POST https://api.getreport.com/api/upload \\
+                                    code={`curl -X POST https://getreport.onrender.com/api/upload \\
   -H "Content-Type: multipart/form-data" \\
   -F "file=@dataset.csv"`}
                                 />
@@ -55,7 +55,7 @@ const ApiDocs = () => {
                                 </h3>
                                 <p className="text-muted-foreground mb-4">Check the status of a job and retrieve results.</p>
                                 <CodeBlock
-                                    code={`curl https://api.getreport.com/api/status/123-abc-456`}
+                                    code={`curl https://getreport.onrender.com/api/status/123-abc-456`}
                                 />
                             </div>
 
@@ -66,7 +66,7 @@ const ApiDocs = () => {
                                 </h3>
                                 <p className="text-muted-foreground mb-4">Submit cleaning rules and start the full analysis.</p>
                                 <CodeBlock
-                                    code={`curl -X POST https://api.getreport.com/api/jobs/123-abc-456/analyze \\
+                                    code={`curl -X POST https://getreport.onrender.com/api/jobs/123-abc-456/analyze \\
   -H "Content-Type: application/json" \\
   -d '{"rules": {"age": {"action": "fill_mean"}}}'`}
                                 />
@@ -79,7 +79,7 @@ const ApiDocs = () => {
                                 </h3>
                                 <p className="text-muted-foreground mb-4">Download the generated PDF report.</p>
                                 <CodeBlock
-                                    code={`curl https://api.getreport.com/api/jobs/123-abc-456/report \\
+                                    code={`curl https://getreport.onrender.com/api/jobs/123-abc-456/report \\
   -o report.pdf`}
                                 />
                             </div>

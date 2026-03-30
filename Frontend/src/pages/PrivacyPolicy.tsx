@@ -85,7 +85,7 @@ const PrivacyPolicy = () => {
                     <section>
                         <h2 className="text-2xl font-semibold mb-4">7. Contact</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            If you have any questions about this privacy policy, please contact us at privacy@getreport.com.
+                            If you have any questions about this privacy policy, please contact us at vutikurishanmukha9@gmail.com.
                         </p>
                     </section>
                 </div>

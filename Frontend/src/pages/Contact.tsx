@@ -1,4 +1,4 @@
-import { Mail, MessageSquare, Github, Twitter, Linkedin } from "lucide-react";
+import { Mail, MessageSquare, Github, Linkedin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,9 +35,9 @@ const Contact = () => {
                             </CardHeader>
                             <CardContent>
                                 <p className="text-muted-foreground text-sm mb-1">General inquiries:</p>
-                                <p className="font-medium">hello@getreport.com</p>
+                                <p className="font-medium">vutikurishanmukha9@gmail.com</p>
                                 <p className="text-muted-foreground text-sm mt-3 mb-1">Support:</p>
-                                <p className="font-medium">support@getreport.com</p>
+                                <p className="font-medium">vutikurishanmukha9@gmail.com</p>
                             </CardContent>
                         </Card>
 
@@ -65,10 +65,7 @@ const Contact = () => {
                                     <a href="https://github.com/vutikurishanmukha9/GetReport" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary/10 transition-colors">
                                         <Github className="h-5 w-5" />
                                     </a>
-                                    <a href="#" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary/10 transition-colors">
-                                        <Twitter className="h-5 w-5" />
-                                    </a>
-                                    <a href="#" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary/10 transition-colors">
+                                    <a href="https://linkedin.com/in/vutikurishanmukha9" target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary/10 transition-colors">
                                         <Linkedin className="h-5 w-5" />
                                     </a>
                                 </div>
