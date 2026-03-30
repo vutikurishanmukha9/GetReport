@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { FileText, Github, Linkedin, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const Footer = () => {
@@ -18,45 +18,86 @@ export const Footer = () => {
             </div>
             <p className="text-sm text-muted-foreground max-w-xs">
               Transform your datasets into professional analytical reports instantly.
-              No configuration needed.
+              AI-powered analysis with zero configuration.
             </p>
           </div>
 
-          {/* Product */}
+          {/* How It Works */}
           <div>
-            <h4 className="font-semibold mb-3 sm:mb-4">Product</h4>
+            <h4 className="font-semibold mb-3 sm:mb-4">How It Works</h4>
             <ul className="space-y-2 sm:space-y-3 text-sm text-muted-foreground">
-              <li><Link to="/features" className="hover:text-foreground transition-colors">Features</Link></li>
-              <li><Link to="/how-it-works" className="hover:text-foreground transition-colors">How it Works</Link></li>
-              <li><Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
+              <li className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-bold shrink-0">1</span>
+                Upload CSV or Excel
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-bold shrink-0">2</span>
+                AI analyzes your data
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-bold shrink-0">3</span>
+                Download PDF report
+              </li>
             </ul>
           </div>
 
-          {/* Resources */}
+          {/* Features */}
           <div>
-            <h4 className="font-semibold mb-3 sm:mb-4">Resources</h4>
+            <h4 className="font-semibold mb-3 sm:mb-4">Features</h4>
             <ul className="space-y-2 sm:space-y-3 text-sm text-muted-foreground">
-              <li><Link to="/documentation" className="hover:text-foreground transition-colors">Documentation</Link></li>
-              <li><Link to="/api" className="hover:text-foreground transition-colors">API</Link></li>
-              <li><Link to="/examples" className="hover:text-foreground transition-colors">Examples</Link></li>
+              <li>📊 Statistical Analysis</li>
+              <li>📈 Auto-generated Charts</li>
+              <li>🧠 AI Insights</li>
+              <li>💬 Chat with Your Data</li>
             </ul>
           </div>
 
-          {/* Legal */}
+          {/* Connect */}
           <div>
-            <h4 className="font-semibold mb-3 sm:mb-4">Legal</h4>
+            <h4 className="font-semibold mb-3 sm:mb-4">Connect</h4>
             <ul className="space-y-2 sm:space-y-3 text-sm text-muted-foreground">
-              <li><Link to="/privacy-policy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/terms-of-service" className="hover:text-foreground transition-colors">Terms of Service</Link></li>
-              <li><Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
+              <li>
+                <a
+                  href="https://github.com/vutikurishanmukha9/GetReport"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground transition-colors inline-flex items-center gap-2"
+                >
+                  <Github className="h-4 w-4" />
+                  GitHub
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://linkedin.com/in/vutikurishanmukha9"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground transition-colors inline-flex items-center gap-2"
+                >
+                  <Linkedin className="h-4 w-4" />
+                  LinkedIn
+                </a>
+              </li>
+              <li>
+                <a
+                  href="mailto:vutikurishanmukha9@gmail.com"
+                  className="hover:text-foreground transition-colors inline-flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
         {/* Bottom */}
-        <div className="mt-8 sm:mt-10 md:mt-12 pt-6 sm:pt-8 border-t">
-          <p className="text-xs sm:text-sm text-center text-muted-foreground">
+        <div className="mt-8 sm:mt-10 md:mt-12 pt-6 sm:pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             © {new Date().getFullYear()} GetReport. All rights reserved.
+          </p>
+          <p className="text-xs text-muted-foreground/60">
+            Built with React, FastAPI & AI
           </p>
         </div>
       </div>
