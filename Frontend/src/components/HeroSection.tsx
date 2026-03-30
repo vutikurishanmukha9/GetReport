@@ -69,8 +69,8 @@ export const HeroSection = () => {
               className="flex flex-col items-center p-3 sm:p-4 rounded-xl bg-card border"
             >
               <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-primary mb-2" />
-              <span className="text-xl sm:text-2xl font-bold">10s</span>
-              <span className="text-xs sm:text-sm text-muted-foreground">Average Time</span>
+              <span className="text-xl sm:text-2xl font-bold">&lt; 1 Min</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">Lightning Fast</span>
             </motion.div>
             <motion.div
               whileHover={{ scale: 1.05 }}
