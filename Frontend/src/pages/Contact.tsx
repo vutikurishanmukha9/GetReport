@@ -35,9 +35,9 @@ const Contact = () => {
                             </CardHeader>
                             <CardContent>
                                 <p className="text-muted-foreground text-sm mb-1">General inquiries:</p>
-                                <p className="font-medium">vutikurishanmukha9@gmail.com</p>
+                                <p className="font-medium">vutikurishanmukha@gmail.com</p>
                                 <p className="text-muted-foreground text-sm mt-3 mb-1">Support:</p>
-                                <p className="font-medium">vutikurishanmukha9@gmail.com</p>
+                                <p className="font-medium">vutikurishanmukha@gmail.com</p>
                             </CardContent>
                         </Card>
 
