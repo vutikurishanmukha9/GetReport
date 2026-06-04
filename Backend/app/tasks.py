@@ -17,7 +17,7 @@ from app.services.analysis_config import AnalysisConfig
 from app.services.comparison import comparison_service
 from app.services.visualization import generate_charts
 from app.services.llm_insight import generate_insights, generate_insights_sync
-from app.services.report_renderer import generate_pdf_report
+from app.services.report_generator import generate_pdf_report
 from app.services.cleanup import cleanup_old_files
 
 logger = logging.getLogger(__name__)
@@ -126,6 +126,7 @@ def analyze_data_task(self, context: Dict[str, Any], analysis_config_dict: Optio
 
         analysis_result = analyze_dataset(df, context.get("top_categories", 10), analysis_config)
         dataset_info = get_dataset_info(df)
+        issue_ledger = detect_issues(df)
         
         # Compare with original (Optional optimization: load original again? Or assume stats enough?)
         # For comparison report, we need original DF.
@@ -137,7 +138,8 @@ def analyze_data_task(self, context: Dict[str, Any], analysis_config_dict: Optio
         context.update({
             "analysis_result": analysis_result,
             "dataset_info": dataset_info,
-            "comparison_report": comparison_report.to_dict()
+            "comparison_report": comparison_report.to_dict(),
+            "issue_ledger": issue_ledger.to_dict(),
         })
         return context
     except Exception as e:
@@ -193,6 +195,10 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
             analysis_data["insights"] = context["insights"]
         if context.get("cleaning_report"):
             analysis_data["cleaning_report"] = context["cleaning_report"]
+        if context.get("comparison_report"):
+            analysis_data["comparison_report"] = context["comparison_report"]
+        if context.get("issue_ledger"):
+            analysis_data["issue_ledger"] = context["issue_ledger"]
             
         pdf_buffer, _ = generate_pdf_report(
             analysis_data,
@@ -217,6 +223,7 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
             "insights": context.get("insights", {}),
             "transformation_dag": context["transformation_dag"],
             "comparison_report": context["comparison_report"],
+            "issue_ledger": context.get("issue_ledger", {}),
             "report_path": pdf_path
         }
         
@@ -372,6 +379,10 @@ def generate_pdf_task(task_id: str):
         cleaning_data = result.get("cleaning_report", {})
         if cleaning_data:
             analysis_data["cleaning_report"] = cleaning_data
+        if result.get("comparison_report"):
+            analysis_data["comparison_report"] = result["comparison_report"]
+        if result.get("issue_ledger"):
+            analysis_data["issue_ledger"] = result["issue_ledger"]
             
         # Render
         pdf_buffer, metadata = generate_pdf_report(

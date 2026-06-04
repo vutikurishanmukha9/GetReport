@@ -5,7 +5,7 @@ from typing import Optional, List, Any, Dict
 
 from reportlab.lib import colors
 from reportlab.lib.units import inch, mm
-from reportlab.platypus import Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import Paragraph, Spacer, Table, TableStyle, Image, KeepTogether
 from reportlab.lib.styles import ParagraphStyle
 from app.services.theme import Brand
 
@@ -41,8 +41,6 @@ def create_chart_section(
     if not b64_str:
         return
     
-    story.append(Paragraph(title, styles['ModernHeading']))
-    
     try:
         img_buffer = io.BytesIO(base64.b64decode(b64_str))
         img = Image(img_buffer)
@@ -59,10 +57,14 @@ def create_chart_section(
             img.drawHeight = max_height
             img.drawWidth = max_height / aspect
         
-        story.append(img)
-        story.append(Spacer(1, 15))
+        story.append(KeepTogether([
+            Paragraph(title, styles['ModernHeading']),
+            img,
+            Spacer(1, 15),
+        ]))
     except Exception as e:
         logger.warning(f"Error decoding chart '{title}': {e}")
+        story.append(Paragraph(title, styles['ModernHeading']))
         story.append(Paragraph(f"[Chart unavailable: {title}]", styles['ModernBody']))
 
 
@@ -86,7 +88,7 @@ def build_correlations_table(strong_correlations: List[Dict], styles: dict) -> O
     for pair in strong_correlations[:10]:  # Limit to top 10
         col1 = pair.get("col1", pair.get("column_a", ""))
         col2 = pair.get("col2", pair.get("column_b", ""))
-        r = pair.get("correlation", pair.get("r", 0))
+        r = pair.get("correlation", pair.get("r", pair.get("r_value", 0)))
         
         abs_r = abs(r) if isinstance(r, (int, float)) else 0
         if abs_r >= 0.9:

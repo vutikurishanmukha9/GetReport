@@ -77,6 +77,7 @@ def generate_pdf_weasyprint(
         loader=FileSystemLoader(str(_TEMPLATE_DIR)),
         autoescape=True,
     )
+    env.filters["domain_label"] = _display_domain_name
     template = env.get_template("report.html")
 
     # Build template context
@@ -156,7 +157,7 @@ def _track_sections(
         "Missing Patterns": bool(analysis.get("missing_patterns")),
         "Feature Engineering": bool(analysis.get("feature_engineering")),
         "Smart Schema": bool(analysis.get("smart_schema")),
-        "Recommendations": bool(analysis.get("recommendations") and analysis["recommendations"].get("items")),
+        "Recommendations": bool(analysis.get("recommendations")),
         "Ranked Insights": bool(analysis.get("ranked_insights")),
         "Visualizations": bool(charts),
     }
@@ -168,5 +169,25 @@ def _track_sections(
             meta.sections_skipped.append(section_name)
 
     if charts:
-        meta.charts_included = sum(1 for v in charts.values() if v)
-        meta.charts_skipped = sum(1 for v in charts.values() if not v)
+        meta.charts_included = _count_chart_items(charts, include_present=True)
+        meta.charts_skipped = _count_chart_items(charts, include_present=False)
+
+
+def _display_domain_name(domain: str) -> str:
+    labels = {
+        "logistics": "Supply Chain / Logistics",
+        "sales_ecommerce": "Sales / E-Commerce",
+        "hr_employee": "HR / Employee",
+        "iot_sensor": "IoT / Sensor",
+    }
+    return labels.get(domain, str(domain).replace("_", " ").title())
+
+
+def _count_chart_items(charts: dict[str, Any], include_present: bool) -> int:
+    count = 0
+    for value in charts.values():
+        if isinstance(value, list):
+            count += sum(1 for item in value if bool(item) is include_present)
+        else:
+            count += int(bool(value) is include_present)
+    return count

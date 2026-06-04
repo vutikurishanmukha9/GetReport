@@ -75,6 +75,7 @@ def _generate_pdf_reportlab(
         _build_semantic_analysis_section,
         _build_analysis_decisions_section,
         _build_cleaning_section,
+        _build_issue_ledger_section,
         _build_comparison_section,
         _build_advanced_stats_section,
         _build_multicollinearity_section,
@@ -118,6 +119,7 @@ def _generate_pdf_reportlab(
     story.extend(_build_semantic_analysis_section(analysis_results, styles, meta))
     story.extend(_build_analysis_decisions_section(analysis_results, styles, meta))
     story.extend(_build_cleaning_section(analysis_results, styles, meta))
+    story.extend(_build_issue_ledger_section(analysis_results, styles, meta))
     story.extend(_build_comparison_section(analysis_results, styles, meta))
     story.extend(_build_advanced_stats_section(analysis_results, styles, meta))
     story.extend(_build_multicollinearity_section(analysis_results, styles, meta))

@@ -2,6 +2,7 @@ from __future__ import annotations
 import polars as pl
 import numpy as np
 import logging
+import math
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,7 @@ def detect_trend(df: pl.DataFrame, time_col: str, value_col: str) -> dict[str, A
         ss_res = ((y - y_pred) ** 2).sum()
         ss_tot = ((y - y.mean()) ** 2).sum()
         r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+        p_value = _linear_trend_p_value(float(slope), x, y, y_pred)
         
         # Trend direction
         if abs(slope) < 1e-10:
@@ -65,12 +67,47 @@ def detect_trend(df: pl.DataFrame, time_col: str, value_col: str) -> dict[str, A
             "direction": direction,
             "slope": round(float(slope), 6),
             "r_squared": round(float(r_squared), 4),
+            "p_value": round(float(p_value), 4) if p_value is not None else None,
+            "statistically_significant": bool(p_value is not None and p_value < 0.05),
             "strength": strength,
             "data_points": n
         }
     except Exception as e:
         logger.warning(f"Trend detection failed: {e}")
         return {"detected": False, "reason": str(e)}
+
+
+def _linear_trend_p_value(
+    slope: float,
+    x: np.ndarray,
+    y: np.ndarray,
+    y_pred: np.ndarray,
+) -> float | None:
+    """Approximate two-sided p-value for the fitted slope."""
+    n = len(x)
+    if n < 3:
+        return None
+
+    x_var = float(((x - x.mean()) ** 2).sum())
+    if x_var == 0:
+        return None
+
+    residual_ss = float(((y - y_pred) ** 2).sum())
+    residual_var = residual_ss / (n - 2)
+    if residual_var <= 0:
+        return 0.0
+
+    standard_error = math.sqrt(residual_var / x_var)
+    if standard_error == 0:
+        return 0.0
+
+    t_stat = abs(slope / standard_error)
+    return _normal_two_sided_p_value(t_stat)
+
+
+def _normal_two_sided_p_value(z_score: float) -> float:
+    """Normal approximation used to avoid adding a SciPy dependency."""
+    return math.erfc(z_score / math.sqrt(2))
 
 def detect_seasonality(df: pl.DataFrame, time_col: str, value_col: str) -> dict[str, Any]:
     """

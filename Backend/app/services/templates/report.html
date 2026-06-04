@@ -104,12 +104,17 @@
                 <tr><th>Column</th><th>Score</th><th>Grade</th><th>Factors</th></tr>
             </thead>
             <tbody>
-                {% for col_name, col_data in analysis.confidence_scores.columns.items() %}
+                {% for col_data in analysis.confidence_scores.columns %}
                 <tr>
-                    <td class="text-bold">{{ col_name }}</td>
-                    <td>{{ "%.0f" | format(col_data.score * 100 if col_data.score is defined else 0) }}%</td>
+                    <td class="text-bold">{{ col_data.get('column', '—') }}</td>
+                    <td>{{ "%.0f" | format(col_data.get('overall', 0)) }}%</td>
                     <td><span class="badge badge--{{ (col_data.grade | default('c')) | lower }}">{{ col_data.grade | default('—') }}</span></td>
-                    <td class="text-small text-muted">{{ col_data.get('factors', []) | join(', ') or '—' }}</td>
+                    <td class="text-small text-muted">
+                        Completeness {{ "%.0f" | format(col_data.get('completeness', 0)) }}%,
+                        Consistency {{ "%.0f" | format(col_data.get('consistency', 0)) }}%,
+                        Validity {{ "%.0f" | format(col_data.get('validity', 0)) }}%,
+                        Stability {{ "%.0f" | format(col_data.get('stability', 0)) }}%
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -128,7 +133,7 @@
         {% set sem = analysis.semantic_analysis %}
         {% if sem.get('domain') %}
         <div class="insight-card insight-card--success">
-            <div class="insight-card__title">Detected Domain: {{ sem.domain.get('primary', 'Unknown') }}</div>
+            <div class="insight-card__title">Detected Domain: {{ sem.domain.get('primary', 'Unknown') | domain_label }}</div>
             <div class="insight-card__text">Confidence: {{ "%.0f" | format((sem.domain.get('confidence', 0)) * 100) }}%</div>
         </div>
         {% endif %}
@@ -181,9 +186,9 @@
             <tbody>
                 {% for d in dec.decisions %}
                 <tr>
-                    <td class="text-bold">{{ d.get('name', '—') }}</td>
+                    <td class="text-bold">{{ d.get('analysis', d.get('name', '—')) }}</td>
                     <td>
-                        {% if d.get('ran', false) %}
+                        {% if d.get('decision') == 'ran' or d.get('ran', false) %}
                         <span class="badge badge--positive">Ran</span>
                         {% else %}
                         <span class="badge badge--neutral">Skipped</span>
@@ -195,6 +200,37 @@
             </tbody>
         </table>
         {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# ISSUE LEDGER                                                              #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{% if analysis.get('issue_ledger') and analysis.issue_ledger.get('issues') %}
+<div class="section">
+    <div class="section-header section-header--amber">Issue Ledger</div>
+    <div class="section-body">
+        {% set ledger = analysis.issue_ledger %}
+        {% if ledger.get('summary') %}
+        <p class="mb-8"><strong>{{ ledger.summary.get('total', 0) }}</strong> issues flagged · <strong>{{ ledger.summary.get('approved', 0) }}</strong> approved · <strong>{{ ledger.summary.get('rejected', 0) }}</strong> skipped</p>
+        {% endif %}
+        <table>
+            <thead>
+                <tr><th>Column</th><th>Issue</th><th>Severity</th><th>Status</th><th>Suggested Action</th></tr>
+            </thead>
+            <tbody>
+                {% for issue in ledger.issues[:20] %}
+                <tr>
+                    <td class="text-bold">{{ issue.get('column') or 'Dataset' }}</td>
+                    <td>{{ issue.get('description', '—') }}</td>
+                    <td><span class="badge badge--{{ issue.get('severity', 'medium') }}">{{ issue.get('severity', 'medium') }}</span></td>
+                    <td>{{ issue.get('status', 'pending') }}</td>
+                    <td class="text-small text-muted">{{ issue.get('suggested_fix', '—') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endif %}
@@ -633,17 +669,18 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {# RECOMMENDATIONS                                                            #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
-{% if analysis.get('recommendations') and analysis.recommendations.get('items') %}
+{% if analysis.get('recommendations') %}
 <div class="section page-break">
     <div class="section-header section-header--green">💡 Recommendations</div>
     <div class="section-body">
-        {% for rec in analysis.recommendations.items %}
+        {% set all_recs = analysis.recommendations.get('domain_specific', []) + analysis.recommendations.get('data_quality', []) + analysis.recommendations.get('analysis', []) + analysis.recommendations.get('visualization', []) %}
+        {% for rec in all_recs %}
         <div class="recommendation no-break">
             <div class="recommendation__header">
                 <span class="recommendation__title">{{ rec.get('title', '—') }}</span>
                 <span class="badge badge--{{ (rec.get('priority', 'medium')) | lower }}">{{ rec.get('priority', 'Medium') }}</span>
             </div>
-            <div class="recommendation__detail">{{ rec.get('detail', '—') }}</div>
+            <div class="recommendation__detail">{{ rec.get('description', rec.get('detail', '—')) }}</div>
             {% if rec.get('action') %}
             <p class="text-small mt-8"><strong>Action:</strong> {{ rec.action }}</p>
             {% endif %}
@@ -683,16 +720,48 @@
 <div class="section page-break">
     <div class="section-header">📈 Visualizations</div>
     <div class="section-body">
-        <div class="chart-grid">
-            {% for chart_name, chart_b64 in charts.items() %}
-            {% if chart_b64 %}
-            <div class="chart-card">
-                <img src="data:image/png;base64,{{ chart_b64 }}" alt="{{ chart_name }}">
-                <div class="chart-card__caption">{{ chart_name | replace('_', ' ') | title }}</div>
-            </div>
-            {% endif %}
-            {% endfor %}
+        {% if charts.get('correlation_heatmap') %}
+        <div class="chart-card no-break">
+            <img src="data:image/png;base64,{{ charts.correlation_heatmap }}" alt="Correlation Heatmap">
+            <div class="chart-card__caption">Correlation Heatmap</div>
         </div>
+        {% endif %}
+        {% if charts.get('scatter_plot') and charts.scatter_plot.get('image') %}
+        <div class="chart-card no-break">
+            <img src="data:image/png;base64,{{ charts.scatter_plot.image }}" alt="Relationship Scatter Plot">
+            <div class="chart-card__caption">Relationship: {{ charts.scatter_plot.get('columns', '') }}</div>
+        </div>
+        {% endif %}
+        {% for chart in charts.get('distributions', []) %}
+        {% if chart.get('image') %}
+        <div class="chart-card no-break">
+            <img src="data:image/png;base64,{{ chart.image }}" alt="Distribution Chart">
+            <div class="chart-card__caption">Distribution of {{ chart.get('column', '') }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% for chart in charts.get('bar_charts', []) %}
+        {% if chart.get('image') %}
+        <div class="chart-card no-break">
+            <img src="data:image/png;base64,{{ chart.image }}" alt="Bar Chart">
+            <div class="chart-card__caption">Category Breakdown: {{ chart.get('column', '') }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% if charts.get('donut_chart') and charts.donut_chart.get('image') %}
+        <div class="chart-card no-break">
+            <img src="data:image/png;base64,{{ charts.donut_chart.image }}" alt="Composition Chart">
+            <div class="chart-card__caption">Composition: {{ charts.donut_chart.get('column', '') }}</div>
+        </div>
+        {% endif %}
+        {% for chart in charts.get('boxplots', []) %}
+        {% if chart.get('image') %}
+        <div class="chart-card no-break">
+            <img src="data:image/png;base64,{{ chart.image }}" alt="Boxplot">
+            <div class="chart-card__caption">Comparison: {{ chart.get('column', '') }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
     </div>
 </div>
 {% endif %}

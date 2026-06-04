@@ -18,6 +18,7 @@ from reportlab.platypus import (
     Table,
     TableStyle,
     PageBreak,
+    KeepTogether,
 )
 from reportlab.platypus.flowables import Flowable
 
@@ -30,6 +31,17 @@ from app.services.report_styles import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _display_domain_name(domain: str) -> str:
+    """Format domain IDs for report readers."""
+    labels = {
+        "logistics": "Supply Chain / Logistics",
+        "sales_ecommerce": "Sales / E-Commerce",
+        "hr_employee": "HR / Employee",
+        "iot_sensor": "IoT / Sensor",
+    }
+    return labels.get(domain, str(domain).replace("_", " ").title())
 
 
 # ─── Section Builders ────────────────────────────────────────────────────────
@@ -97,7 +109,7 @@ def _build_semantic_analysis_section(
     story.append(Spacer(1, 0.1 * inch))
 
     domain_info = semantic.get("domain", {})
-    domain_name = domain_info.get("primary", "Unknown").replace("_", " ").title()
+    domain_name = _display_domain_name(domain_info.get("primary", "Unknown"))
     confidence = domain_info.get("confidence", 0)
     matched_keywords = domain_info.get("matched_keywords", [])
 
@@ -194,6 +206,48 @@ def _build_cleaning_section(
     story.append(_build_styled_table(table_data, col_widths=[3.5 * inch, 2.0 * inch]))
     story.extend(_divider())
     meta.sections_included.append("Cleaning Summary")
+    return story
+
+
+def _build_issue_ledger_section(
+    analysis_results: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+    meta: ReportMetadata,
+) -> list[Flowable]:
+    """Build a full issue ledger with flagged, cleaned, and skipped decisions."""
+    ledger = analysis_results.get("issue_ledger")
+    issues = ledger.get("issues", []) if isinstance(ledger, dict) else []
+    if not issues:
+        meta.sections_skipped.append({"section": "Issue Ledger", "reason": "No issue ledger data."})
+        return []
+
+    story: list[Flowable] = []
+    story.append(Paragraph("Issue Ledger", styles["SectionHeading"]))
+    summary = ledger.get("summary", {})
+    story.append(Paragraph(
+        f"<b>{summary.get('total', len(issues))}</b> issues flagged | "
+        f"<b>{summary.get('approved', 0)}</b> approved | "
+        f"<b>{summary.get('rejected', 0)}</b> skipped",
+        styles["Body"],
+    ))
+    story.append(Spacer(1, 0.1 * inch))
+
+    table_data = [["Column", "Issue", "Severity", "Status", "Suggested Action"]]
+    for issue in issues[:20]:
+        table_data.append([
+            issue.get("column") or "Dataset",
+            issue.get("description", ""),
+            str(issue.get("severity", "")).title(),
+            str(issue.get("status", "")).title(),
+            issue.get("suggested_fix", ""),
+        ])
+
+    story.append(_build_styled_table(
+        table_data,
+        col_widths=[1.0 * inch, 2.0 * inch, 0.8 * inch, 0.8 * inch, 1.8 * inch],
+    ))
+    story.extend(_divider())
+    meta.sections_included.append("Issue Ledger")
     return story
 
 
@@ -320,7 +374,7 @@ def _build_executive_summary(
     semantic = analysis_results.get("semantic_analysis")
     if semantic:
         domain_info = semantic.get("domain", {})
-        domain_name = domain_info.get("primary", "Unknown").replace("_", " ").title()
+        domain_name = _display_domain_name(domain_info.get("primary", "Unknown"))
         confidence = domain_info.get("confidence", 0)
         story.append(Paragraph(
             f"<b>Detected Domain:</b> {domain_name} ({int(confidence * 100)}% confidence)",
@@ -523,27 +577,50 @@ def _build_visualizations(
     has_any_chart = False
 
     if "correlation_heatmap" in charts and charts["correlation_heatmap"]:
-        story.append(Paragraph("Correlation Analysis", styles["SectionHeading"]))
-        story.append(Spacer(1, 0.1 * inch))
+        section_items: list[Flowable] = [
+            Paragraph("Correlation Analysis", styles["SectionHeading"]),
+            Spacer(1, 0.1 * inch),
+        ]
         img = _decode_image(charts["correlation_heatmap"], 6 * inch, 4.5 * inch, "Correlation Heatmap", meta)
         if img:
-            story.append(img)
-            story.append(Spacer(1, 0.25 * inch))
+            section_items.extend([img, Spacer(1, 0.25 * inch)])
+            story.append(KeepTogether(section_items))
             has_any_chart = True
         else:
+            story.extend(section_items)
             story.append(Paragraph("Correlation heatmap could not be rendered.", styles["Body"]))
+
+    scatter = charts.get("scatter_plot")
+    if scatter and isinstance(scatter, dict):
+        columns = scatter.get("columns", "")
+        image = scatter.get("image", "")
+        title = f"Relationship: {columns}" if columns else "Relationship Scatter Plot"
+        img = _decode_image(image, 5.5 * inch, 4.0 * inch, title, meta)
+        if img:
+            story.append(KeepTogether([
+                Paragraph(title, styles["SectionHeading"]),
+                Spacer(1, 0.1 * inch),
+                img,
+                Spacer(1, 0.25 * inch),
+            ]))
+            has_any_chart = True
+        else:
+            story.append(Paragraph(f"{title} could not be rendered.", styles["Body"]))
 
     if "distributions" in charts and charts["distributions"]:
         story.append(Paragraph("Feature Distributions", styles["SectionHeading"]))
         for dist in charts["distributions"]:
             col_label = dist.get("column", "Unknown")
-            story.append(Paragraph(f"Distribution of {col_label}", styles["SubHeading"]))
             img = _decode_image(dist.get("image", ""), 5 * inch, 3 * inch, f"Distribution: {col_label}", meta)
             if img:
-                story.append(img)
-                story.append(Spacer(1, 0.1 * inch))
+                story.append(KeepTogether([
+                    Paragraph(f"Distribution of {col_label}", styles["SubHeading"]),
+                    img,
+                    Spacer(1, 0.1 * inch),
+                ]))
                 has_any_chart = True
             else:
+                story.append(Paragraph(f"Distribution of {col_label}", styles["SubHeading"]))
                 story.append(Paragraph(f"Distribution chart for '{col_label}' could not be rendered.", styles["Body"]))
                 story.append(Spacer(1, 0.1 * inch))
 

@@ -123,11 +123,18 @@ def rank_insights(analysis_results: Dict[str, Any]) -> List[RankedInsight]:
             if trend.get("detected"):
                 strength = trend.get("strength_score", 0.5) # Assuming strength score exists or default
                 direction = trend.get("direction")
+                p_value = trend.get("p_value")
+                significance_note = ""
+                if p_value is not None:
+                    if p_value < 0.05:
+                        significance_note = f" (statistically significant, p={p_value:.2f})"
+                    else:
+                        significance_note = f" (not statistically significant, p={p_value:.2f})"
                 
                 insights.append(RankedInsight(
                     type="trend",
                     variable=col,
-                    description=f"{direction.title()} trend detected over time",
+                    description=f"{direction.title()} trend in {col} over time{significance_note}",
                     score=0.75 + (strength * 0.2), # Boost score by strength
                     evidence=trend
                 ))
