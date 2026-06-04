@@ -211,9 +211,9 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   return (
     <motion.div
       className="max-w-2xl mx-auto"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
+      transition={{ duration: 0.4, delay: 0.1 }}
     >
       {/* Process Pipeline — shown when processing is active */}
       <AnimatePresence>
@@ -227,12 +227,12 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
         )}
       </AnimatePresence>
 
-      <Card className="border-2 border-dashed transition-colors duration-200 hover:border-primary/50">
+      <Card className="border border-border bg-card/40 backdrop-blur-sm shadow-premium rounded-2xl overflow-hidden transition-all duration-300 hover:border-primary/20 hover:shadow-lg">
         <CardContent className="p-0">
           <div
             className={`
-              relative p-6 sm:p-8 md:p-12 text-center transition-all duration-200 min-h-[400px] flex flex-col items-center justify-center
-              ${isDragging ? "bg-primary/5 border-primary" : ""}
+              relative p-6 sm:p-8 md:p-12 text-center transition-all duration-200 min-h-[380px] flex flex-col items-center justify-center
+              ${isDragging ? "bg-primary/5 border-primary/45" : ""}
               ${isProcessing ? "opacity-75 pointer-events-none" : ""}
             `}
             onDragOver={(e) => {
@@ -245,12 +245,12 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
             {/* Upload Icon */}
             <motion.div
               className={`
-                mx-auto mb-4 sm:mb-6 flex h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20 items-center justify-center 
-                rounded-full transition-all duration-200
-                ${isDragging ? "bg-primary/20" : "bg-muted"}
+                mx-auto mb-4 sm:mb-6 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center 
+                rounded-full transition-all duration-200 shadow-premium border border-border/80
+                ${isDragging ? "bg-primary/20 border-primary/40 text-primary" : "bg-muted text-muted-foreground"}
               `}
-              animate={{ scale: isDragging ? 1.1 : 1 }}
-              transition={{ type: "spring", stiffness: 300 }}
+              animate={{ scale: isDragging ? 1.08 : 1 }}
+              transition={{ type: "spring", stiffness: 260 }}
             >
               <AnimatePresence mode="wait">
                 {isProcessing ? (
@@ -259,17 +259,17 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                     initial={{ opacity: 0, rotate: 0 }}
                     animate={{ opacity: 1, rotate: 360 }}
                     exit={{ opacity: 0 }}
-                    transition={{ rotate: { repeat: Infinity, duration: 1, ease: "linear" } }}
-                    className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 rounded-full border-2 border-primary border-t-transparent"
+                    transition={{ rotate: { repeat: Infinity, duration: 1.2, ease: "linear" } }}
+                    className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border-2 border-primary border-t-transparent"
                   />
                 ) : selectedFile ? (
                   <motion.div
                     key="file"
-                    initial={{ opacity: 0, scale: 0.5 }}
+                    initial={{ opacity: 0, scale: 0.7 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
+                    exit={{ opacity: 0, scale: 0.7 }}
                   >
-                    <FileSpreadsheet className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />
+                    <FileSpreadsheet className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -278,7 +278,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <Upload className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-muted-foreground" />
+                    <Upload className="h-6 w-6 sm:h-7 sm:w-7" />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -289,39 +289,39 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
               {selectedFile ? (
                 <motion.div
                   key="selected"
-                  className="space-y-2"
-                  initial={{ opacity: 0, y: 10 }}
+                  className="space-y-3"
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={{ opacity: 0, y: -8 }}
                 >
                   <div className="flex items-center justify-center gap-2 text-sm sm:text-base">
-                    <span className="font-medium truncate max-w-[200px] sm:max-w-[300px]">
+                    <span className="font-display font-medium text-foreground truncate max-w-[200px] sm:max-w-[300px]">
                       {selectedFile.name}
                     </span>
                     {!isProcessing && (
                       <button
                         onClick={clearFile}
-                        className="p-1 hover:bg-muted rounded-full transition-colors"
+                        className="p-1 hover:bg-muted/80 rounded-full transition-colors active:scale-90"
                       >
-                        <X className="h-4 w-4 text-muted-foreground" />
+                        <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                       </button>
                     )}
                   </div>
                   {isProcessing && (
-                    <p className="text-sm text-muted-foreground">Processing your file...</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-mono">processing file...</p>
                   )}
                 </motion.div>
               ) : (
                 <motion.div
                   key="empty"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={{ opacity: 0, y: -8 }}
                 >
-                  <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-2">
+                  <h3 className="text-lg sm:text-xl font-display font-bold mb-2 text-foreground">
                     {isDragging ? "Drop your file here" : "Upload your dataset"}
                   </h3>
-                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6 px-4">
+                  <p className="text-sm text-muted-foreground mb-4 sm:mb-6 px-4 font-sans leading-relaxed">
                     Drag and drop your CSV or Excel file, or click to browse
                   </p>
 
@@ -333,8 +333,8 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                       onChange={handleFileSelect}
                       className="sr-only"
                     />
-                    <Button asChild variant="default" size="lg" className="cursor-pointer">
-                      <span className="text-sm sm:text-base">
+                    <Button asChild variant="default" size="lg" className="cursor-pointer shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95">
+                      <span className="text-sm font-medium">
                         <Upload className="h-4 w-4 mr-2" />
                         Browse Files
                       </span>
@@ -342,18 +342,18 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   </label>
 
                   {/* Supported formats */}
-                  <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6 text-xs sm:text-sm text-muted-foreground">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
-                      <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                      CSV
+                  <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-5 sm:mt-8 text-xs font-mono">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-muted/60 text-muted-foreground rounded-md border border-border/40">
+                      <FileSpreadsheet className="h-3 w-3" />
+                      csv
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
-                      <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                      XLSX
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-muted/60 text-muted-foreground rounded-md border border-border/40">
+                      <FileSpreadsheet className="h-3 w-3" />
+                      xlsx
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded">
-                      <FileSpreadsheet className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                      XLS
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-muted/60 text-muted-foreground rounded-md border border-border/40">
+                      <FileSpreadsheet className="h-3 w-3" />
+                      xls
                     </span>
                   </div>
                 </motion.div>
@@ -365,12 +365,12 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
       {/* Info Note */}
       <motion.div
-        className="flex items-start gap-2 sm:gap-3 mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg bg-muted/50 text-xs sm:text-sm text-muted-foreground"
+        className="flex items-start gap-2.5 sm:gap-3 mt-4 sm:mt-6 p-3 sm:p-4 rounded-xl border border-border/70 bg-muted/20 text-xs sm:text-sm text-muted-foreground leading-relaxed"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.3 }}
       >
-        <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5" />
+        <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-primary mt-0.5" />
         <p>
           Your data is processed securely. Files are not stored permanently and are
           automatically deleted after report generation.

@@ -58,13 +58,13 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
             {/* ─── Global Warnings ─── */}
             {report.issues.filter(i => i.column === "Multiple").map((issue, idx) => (
-                <div key={idx} className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-md flex items-start">
-                    <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 mr-3" />
+                <div key={idx} className="bg-destructive/5 dark:bg-destructive/10 border border-destructive/20 p-4 mb-6 rounded-xl flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                     <div>
-                        <h4 className="text-sm font-bold text-orange-800 uppercase tracking-wide">
+                        <h4 className="text-sm font-bold text-destructive uppercase tracking-wide">
                             {issue.type === 'partial_duplicates' ? "Ambiguous Data Detected" : "Warning"}
                         </h4>
-                        <p className="text-sm text-orange-700 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             {issue.type === 'partial_duplicates'
                                 ? `Found ${issue.count} rows that look identical but have different IDs (Partial Duplicates).`
                                 : issue.suggestion}
@@ -86,7 +86,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     if (!hasIssue) return null;
 
                     return (
-                        <Card key={col.name} className="border-l-4 border-l-yellow-500 shadow-sm">
+                        <Card key={col.name} className="border border-border/80 bg-card hover:border-border transition-all duration-200 rounded-xl shadow-sm">
                             <CardHeader className="pb-3">
                                 <div className="flex justify-between items-start">
                                     <CardTitle className="text-lg font-medium truncate" title={col.name}>
@@ -131,7 +131,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                     onValueChange={(val) => handleActionChange(col.name, val)}
                                 >
                                     <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select action..." />
+                                        <SelectValue placeholder="Select action…" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="default">
@@ -219,7 +219,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     className="w-full sm:w-auto min-w-[200px]"
                 >
                     {isProcessing ? (
-                        "Processing..."
+                        "Processing…"
                     ) : (
                         <>
                             <Play className="mr-2 h-4 w-4" />

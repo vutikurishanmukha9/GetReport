@@ -58,6 +58,26 @@ export interface CategoricalDistribution {
   categories: Record<string, CategoricalStats>;
 }
 
+export interface ColumnConfidence {
+  column: string;
+  completeness: number;
+  consistency: number;
+  validity: number;
+  stability: number;
+  overall: number;
+  grade: string;
+  issues: string[];
+}
+
+export interface ConfidenceScores {
+  columns: ColumnConfidence[];
+  dataset_confidence: number;
+  dataset_grade: string;
+  high_confidence_count: number;
+  low_confidence_count: number;
+  critical_issues: string[];
+}
+
 export interface AnalysisResult {
   metadata: Record<string, unknown>;
   summary: AnalysisSummary;
@@ -73,6 +93,7 @@ export interface AnalysisResult {
     is_sorted: boolean;
     drift_detected: Array<{ column: string; shift_pct: number; mean_p1: number; mean_p2: number }>;
   };
+  confidence_scores?: ConfidenceScores;
   timing_ms: number;
   insights?: string | InsightResult; // Optional: Can be string or object depending on merge
 }
@@ -84,12 +105,22 @@ export interface ChartReport {
   timing_ms: number;
 }
 
+export interface ChartItem {
+  column?: string;
+  columns?: string;
+  image: string;
+  narrative?: string;
+}
+
 export interface Charts {
-  correlation_heatmap?: string;
-  distributions?: Array<{ column: string; image: string }>;
-  bar_charts?: Array<{ column: string; image: string }>;
-  pie_charts?: Array<{ column: string; image: string }>;
-  trend_charts?: Array<{ column: string; image: string }>;
+  correlation_heatmap?: string | { image: string; narrative: string };
+  distributions?: ChartItem[];
+  bar_charts?: ChartItem[];
+  pie_charts?: ChartItem[];
+  trend_charts?: ChartItem[];
+  boxplots?: ChartItem[];
+  scatter_plot?: { columns: string; image: string; narrative: string };
+  donut_chart?: { column: string; image: string; narrative: string };
   [key: string]: unknown;
 }
 

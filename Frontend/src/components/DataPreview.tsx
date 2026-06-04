@@ -39,59 +39,59 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
   const [activeTab, setActiveTab] = useState("preview");
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500">
+    <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-400">
 
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-          <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 shadow-premium">
             <FileSpreadsheet className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold truncate">
+            <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground truncate">
               Dataset Preview
             </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground font-mono mt-0.5">
               {info.rows.toLocaleString()} rows • {info.columns.length} columns • {cleaningReport.duplicate_rows_removed} duplicates removed
             </p>
           </div>
         </div>
 
         <div className="flex gap-2 sm:gap-3">
-          <Button variant="outline" onClick={onBack} className="gap-2">
+          <Button variant="outline" onClick={onBack} className="gap-2 rounded-xl shadow-premium border-border/80 transition-all duration-150 hover:-translate-y-0.5 active:scale-95">
             <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Upload New</span>
+            <span className="hidden sm:inline font-medium">Upload New</span>
           </Button>
-          <Button onClick={onGenerateReport} className="gap-2 flex-1 sm:flex-none">
-            Generate Report
+          <Button onClick={onGenerateReport} className="gap-2 flex-1 sm:flex-none rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95">
+            <span className="font-medium">Generate Report</span>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[400px] mb-6">
-          <TabsTrigger value="preview">Data Preview</TabsTrigger>
-          <TabsTrigger value="quality">Data Quality</TabsTrigger>
+        <TabsList className="bg-muted/40 border border-border/70 p-1 rounded-xl mb-6">
+          <TabsTrigger value="preview" className="rounded-lg text-sm px-4 py-1.5">Data Preview</TabsTrigger>
+          <TabsTrigger value="quality" className="rounded-lg text-sm px-4 py-1.5">Data Quality</TabsTrigger>
         </TabsList>
 
         <TabsContent value="preview" className="space-y-6">
           {/* Column Chips */}
-          <Card>
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="text-lg sm:text-xl">Detected Columns</CardTitle>
+          <Card className="border border-border bg-card/40 backdrop-blur-sm shadow-premium rounded-2xl">
+            <CardHeader className="pb-3 sm:pb-4 border-b border-border/60">
+              <CardTitle className="text-lg font-display font-bold text-foreground">Detected Columns</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2 sm:gap-3">
+            <CardContent className="pt-5">
+              <div className="flex flex-wrap gap-2">
                 {info.columns.map((column) => (
                   <div
                     key={column}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-muted text-sm"
+                    className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-muted/60 text-sm border border-border/40 font-sans"
                   >
-                    <span className="font-medium">{column}</span>
+                    <span className="font-medium text-foreground">{column}</span>
                     <Badge
                       variant={getTypeBadgeVariant(info.dtypes[column])}
-                      className="text-xs gap-1"
+                      className="text-[10px] font-mono gap-1 px-1.5 py-0 border-border/30"
                     >
                       {getTypeIcon(info.dtypes[column])}
                       {info.dtypes[column]}
@@ -103,18 +103,18 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
           </Card>
 
           {/* Data Table */}
-          <Card>
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="text-lg sm:text-xl">First 10 Rows</CardTitle>
+          <Card className="border border-border bg-card/40 backdrop-blur-sm shadow-premium rounded-2xl overflow-hidden">
+            <CardHeader className="pb-3 sm:pb-4 border-b border-border/60">
+              <CardTitle className="text-lg font-display font-bold text-foreground">First 10 Rows</CardTitle>
             </CardHeader>
-            <CardContent className="p-0 sm:p-6 sm:pt-0">
+            <CardContent className="p-0">
               <ScrollArea className="w-full">
                 <div className="min-w-[600px]">
                   <Table>
-                    <TableHeader>
-                      <TableRow>
+                    <TableHeader className="bg-muted/30">
+                      <TableRow className="border-b border-border/60 hover:bg-transparent">
                         {info.columns.map((column) => (
-                          <TableHead key={column} className="font-semibold whitespace-nowrap">
+                          <TableHead key={column} className="font-display font-semibold text-foreground px-4 py-3 whitespace-nowrap">
                             {column}
                           </TableHead>
                         ))}
@@ -124,9 +124,9 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                       {info.preview.map((row, rowIndex) => {
                         if (!row) return null;
                         return (
-                          <TableRow key={rowIndex}>
+                          <TableRow key={rowIndex} className="border-b border-border/60 hover:bg-muted/20">
                             {info.columns.map((column) => (
-                              <TableCell key={column} className="font-mono text-sm whitespace-nowrap">
+                              <TableCell key={column} className="font-mono text-xs text-muted-foreground/90 whitespace-nowrap px-4 py-2.5">
                                 {String(row[column] ?? "-")}
                               </TableCell>
                             ))}
@@ -142,12 +142,12 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
         </TabsContent>
 
         <TabsContent value="quality">
-          <Card>
-            <CardHeader>
-              <CardTitle>Column Quality Analysis</CardTitle>
-              <CardDescription>Review detected issues, missing values, and data types.</CardDescription>
+          <Card className="border border-border bg-card/40 backdrop-blur-sm shadow-premium rounded-2xl overflow-hidden">
+            <CardHeader className="border-b border-border/60">
+              <CardTitle className="text-lg font-display font-bold text-foreground">Column Quality Analysis</CardTitle>
+              <CardDescription className="text-xs font-sans mt-0.5">Review detected issues, missing values, and data types.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <div className="grid gap-4">
                 {info.columns.map((col) => {
                   const missing = info.missing_values?.[col] || { count: 0, percentage: 0 };
@@ -155,19 +155,19 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                   const hasIssues = issues.length > 0 || missing.count > 0;
 
                   return (
-                    <div key={col} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg transition-colors ${hasIssues ? 'bg-orange-50/50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900' : 'hover:bg-muted/30'}`}>
+                    <div key={col} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-xl transition-all duration-200 ${hasIssues ? 'bg-orange-500/5 dark:bg-orange-950/10 border-orange-200/80 dark:border-orange-900/50' : 'bg-muted/10 border-border/60 hover:bg-muted/30'}`}>
                       <div className="mb-2 sm:mb-0">
                         <div className="flex items-center gap-3">
-                          <span className="font-semibold text-base">{col}</span>
-                          <Badge variant="outline" className="text-xs font-mono">
+                          <span className="font-display font-bold text-base text-foreground">{col}</span>
+                          <Badge variant="outline" className="text-[10px] font-mono px-2 py-0.5 bg-background border-border/65">
                             {info.dtypes[col]}
                           </Badge>
                         </div>
                         {issues.length > 0 && (
-                          <div className="text-sm text-orange-600 dark:text-orange-400 mt-2 flex flex-wrap gap-2">
+                          <div className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex flex-wrap gap-1.5 font-mono">
                             {issues.map(issue => (
-                              <span key={issue} className="flex items-center gap-1 bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 rounded text-xs font-medium">
-                                <AlertTriangle className="h-3 w-3" /> {issue}
+                              <span key={issue} className="flex items-center gap-1 bg-orange-500/10 dark:bg-orange-500/20 px-2 py-0.5 rounded border border-orange-500/25 font-semibold">
+                                <AlertTriangle className="h-3 w-3 shrink-0" /> {issue.toLowerCase()}
                               </span>
                             ))}
                           </div>
@@ -175,9 +175,9 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                       </div>
                       <div className="flex items-center gap-6 text-sm">
                         <div className="flex flex-col items-end">
-                          <span className="text-muted-foreground text-xs uppercase tracking-wider">Missing</span>
-                          <span className={`font-medium ${missing.count > 0 ? 'text-destructive' : 'text-green-600'}`}>
-                            {missing.count} ({missing.percentage}%)
+                          <span className="text-muted-foreground text-[10px] font-mono uppercase tracking-wider">Missing</span>
+                          <span className={`font-mono text-xs font-semibold mt-0.5 ${missing.count > 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-500/25'}`}>
+                            {missing.count > 0 ? `${missing.count} (${missing.percentage}%)` : "none"}
                           </span>
                         </div>
                       </div>

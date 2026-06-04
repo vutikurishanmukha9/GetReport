@@ -160,34 +160,34 @@ export const ProcessPipeline = ({
     return (
         <motion.div
             className="w-full mb-8"
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
         >
-            <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-card/40 backdrop-blur-sm border border-border shadow-premium rounded-2xl overflow-hidden flex flex-col">
                 
                 {/* Header Section */}
-                <div className="px-6 pt-5 pb-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
+                <div className="px-6 pt-5 pb-4 border-b border-border/60 flex items-center justify-between bg-muted/20">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shadow-premium">
                             {isComplete ? (
-                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500 animate-pulse" />
                             ) : (
-                                <Loader2 className="w-4 h-4 animate-spin text-cyan-500" />
+                                <Loader2 className="w-4 h-4 animate-spin" />
                             )}
                         </div>
                         <div>
-                            <h3 className="text-sm font-semibold tracking-tight">Processing your dataset</h3>
+                            <h3 className="text-sm font-display font-bold tracking-tight text-foreground">Processing your dataset</h3>
                             <p className="text-xs text-muted-foreground mt-0.5">
                                 AI is analyzing and generating insights
                             </p>
                         </div>
                     </div>
                     <div className="flex text-right">
-                        <span className="text-2xl font-semibold tracking-tight tabular-nums animate-in fade-in slide-in-from-bottom-2">
+                        <span className="text-2xl font-display font-semibold tracking-tight tabular-nums text-foreground">
                             {displayProgress}
-                            <span className="text-sm text-muted-foreground ml-0.5">%</span>
+                            <span className="text-sm text-muted-foreground ml-0.5 font-mono">%</span>
                         </span>
                     </div>
                 </div>
@@ -203,12 +203,12 @@ export const ProcessPipeline = ({
                 </div>
 
                 {/* Live Status Subtext Line */}
-                <div className="border-t border-border/50 bg-muted/10 px-6 py-3.5 flex items-center gap-3">
+                <div className="border-t border-border/60 bg-muted/10 px-6 py-3.5 flex items-center gap-3 font-sans">
                     {/* Pulsing indicator */}
                     {!isComplete && (
-                        <span className="relative flex h-2.5 w-2.5 shrink-0">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+                        <span className="relative flex h-2 w-2 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/70 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                         </span>
                     )}
                     {isComplete && (
@@ -217,17 +217,17 @@ export const ProcessPipeline = ({
                     
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-1 sm:gap-4">
                         <div className="flex items-center gap-2 text-sm">
-                            <span className="font-medium text-foreground">
+                            <span className="font-display font-bold text-foreground">
                                 {isComplete ? "Completed" : "Currently running:"}
                             </span>
-                            <span className="text-muted-foreground truncate max-w-[200px] sm:max-w-md">
-                                {message || `Processing ${activeStage.label.toLowerCase()}...`}
+                            <span className="text-muted-foreground font-mono text-xs truncate max-w-[200px] sm:max-w-md">
+                                {message || `processing ${activeStage.label.toLowerCase()}...`}
                             </span>
                         </div>
                         
                         {!isComplete && (
-                            <span className="text-xs font-medium text-muted-foreground/70 shrink-0">
-                                Please wait...
+                            <span className="text-xs font-mono text-muted-foreground/60 shrink-0">
+                                please wait...
                             </span>
                         )}
                     </div>
@@ -254,7 +254,7 @@ function SaaSStepper({ stages }: { stages: PipelineStage[] }) {
                             <div className="flex-1 shrink-0 px-3">
                                 <div className="h-[2px] w-full rounded-full bg-muted/40 relative overflow-hidden">
                                     <motion.div
-                                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 to-cyan-400"
+                                        className="absolute inset-y-0 left-0 bg-primary"
                                         initial={{ width: "0%" }}
                                         animate={{
                                             width: getConnectorFill(stage.status, stages[i + 1]?.status),
@@ -264,7 +264,7 @@ function SaaSStepper({ stages }: { stages: PipelineStage[] }) {
                                     {/* Shimmer pulse for active running line */}
                                     {stage.status === "active" && stages[i + 1]?.status !== "active" && (
                                         <motion.div
-                                            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                                            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent"
                                             animate={{ x: ["-100%", "300%"] }}
                                             transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
                                         />
@@ -279,8 +279,9 @@ function SaaSStepper({ stages }: { stages: PipelineStage[] }) {
     );
 }
 
+// ─── StepNode Component ──────────────────────────────────────────────────────
+
 function StepNode({ stage }: { stage: PipelineStage }) {
-    const Icon = stage.icon;
     const isCompleted = stage.status === "completed";
     const isActive = stage.status === "active";
     const isError = stage.status === "error";
@@ -307,8 +308,8 @@ function StepNode({ stage }: { stage: PipelineStage }) {
                             animate={{ scale: 1, opacity: 1 }}
                             className="relative flex items-center justify-center"
                         >
-                            <div className="absolute inset-0 rounded-full bg-cyan-400/20 blur-sm glow-effect" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] relative z-10" />
+                            <div className="absolute inset-0 rounded-full bg-primary/20 blur-sm" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.8)] relative z-10" />
                         </motion.div>
                     )}
                     {isError && (
@@ -332,8 +333,8 @@ function StepNode({ stage }: { stage: PipelineStage }) {
 
             {/* Label & Icon */}
             <div className={`flex items-center gap-1.5 transition-colors duration-300
-                ${isCompleted ? "text-emerald-600 dark:text-emerald-400" :
-                  isActive ? "text-foreground font-semibold" :
+                ${isCompleted ? "text-emerald-600 dark:text-emerald-400 font-medium" :
+                  isActive ? "text-foreground font-display font-bold" :
                   isError ? "text-destructive font-semibold" :
                   "text-muted-foreground/60 font-medium"}
             `}>
@@ -362,14 +363,14 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
                             {/* Vertical Status Indicator */}
                             <div className="relative flex items-center justify-center w-6 h-6 shrink-0 bg-card rounded-full">
                                 {isCompleted && (
-                                    <div className="text-emerald-500 bg-emerald-500/10 rounded-full p-0.5">
+                                    <div className="text-emerald-500 bg-emerald-500/10 rounded-full p-0.5 animate-in fade-in duration-200">
                                         <CheckCircle2 className="w-4 h-4" />
                                     </div>
                                 )}
                                 {isActive && (
                                     <div className="relative flex items-center justify-center">
-                                        <div className="absolute inset-0 rounded-full bg-cyan-400/20 blur-sm glow-effect" />
-                                        <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] relative z-10" />
+                                        <div className="absolute inset-0 rounded-full bg-primary/20 blur-sm" />
+                                        <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.8)] relative z-10" />
                                     </div>
                                 )}
                                 {isError && (
@@ -382,7 +383,7 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
 
                             <span className={`text-sm tracking-tight transition-colors duration-300
                                 ${isCompleted ? "text-emerald-600 dark:text-emerald-400" :
-                                isActive ? "text-foreground font-semibold" :
+                                isActive ? "text-foreground font-display font-bold" :
                                 isError ? "text-destructive font-semibold" :
                                 "text-muted-foreground/60 font-medium"}
                             `}>
@@ -394,7 +395,7 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
                         {!isLast && (
                             <div className="ml-[11px] h-6 w-[2px] relative -mt-2 -mb-2 z-0">
                                 <motion.div
-                                    className="absolute inset-x-0 top-0 bg-gradient-to-b from-emerald-400 to-cyan-400"
+                                    className="absolute inset-x-0 top-0 bg-primary"
                                     initial={{ height: "0%" }}
                                     animate={{ height: getConnectorFill(stage.status, stages[i + 1]?.status) }}
                                     transition={{ duration: 0.6, ease: "easeInOut" }}
