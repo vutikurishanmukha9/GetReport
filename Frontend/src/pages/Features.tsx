@@ -295,7 +295,7 @@ export const Features = () => {
       <div className="container mx-auto px-4 py-24 text-center space-y-6">
         <h2 className="text-3xl font-display font-bold text-foreground uppercase tracking-tight">Ready to audit?</h2>
         <div className="pt-2">
-          <Link to="/">
+          <Link to="/workspace">
             <Button size="lg" className="h-11 rounded-xl shadow-premium hover:-translate-y-0.5 active:scale-95 transition-all">
               <span>Audit a Dataset</span>
               <ArrowRight className="ml-1.5 h-4 w-4" />

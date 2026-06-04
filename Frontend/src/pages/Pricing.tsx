@@ -76,7 +76,7 @@ export const Pricing = () => {
             </CardContent>
 
             <CardFooter className="pt-6">
-              <Link to="/" className="w-full">
+              <Link to="/workspace" className="w-full">
                 <Button className="w-full h-11 text-sm font-semibold shadow-premium rounded-xl hover:-translate-y-0.5 active:scale-95 transition-all">
                   Get Started For Free
                 </Button>
@@ -130,7 +130,7 @@ export const Pricing = () => {
           <p className="text-xs text-muted-foreground">
             No credit card registration required. Ephermeral calculations. Free forever.
           </p>
-          <Link to="/">
+          <Link to="/workspace">
             <Button size="sm" variant="outline" className="rounded-xl border-border bg-card hover:bg-muted/10 transition-all hover:-translate-y-0.5">
               Start Audit Now
             </Button>

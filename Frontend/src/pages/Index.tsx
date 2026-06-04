@@ -1,116 +1,16 @@
-import { useState } from "react";
-import { FileUpload } from "@/components/FileUpload";
-import { DataPreview } from "@/components/DataPreview";
-import { ReportGeneration } from "@/components/ReportGeneration";
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { Footer } from "@/components/Footer";
-import type { ApiResponse } from "@/types/api";
-import { ChatInterface } from "@/components/ChatInterface";
-import { ProcessPipeline } from "@/components/ProcessPipeline";
-import { useTaskStatus } from "@/hooks/useTaskStatus";
-
-export type AppStep = "upload" | "preview" | "generating" | "complete";
 
 const Index = () => {
-  const [step, setStep] = useState<AppStep>("upload");
-  const [apiData, setApiData] = useState<ApiResponse | null>(null);
-  const [taskId, setTaskId] = useState<string | null>(null);
-
-  // Pipeline status tracking for generating/complete phases
-  const {
-    status: pipelineStatus,
-    progress: pipelineProgress,
-    message: pipelineMessage,
-  } = useTaskStatus(
-    step === "generating" && taskId ? taskId : undefined
-  );
-
-  const handleFileUploaded = (data: ApiResponse, taskId: string) => {
-    setApiData(data);
-    setTaskId(taskId);
-    setStep("preview");
-  };
-
-  const handleGenerateReport = () => {
-    setStep("generating");
-  };
-
-  const handleReportComplete = () => {
-    setStep("complete");
-  };
-
-  const handleReset = () => {
-    setStep("upload");
-    setApiData(null);
-    setTaskId(null);
-  };
-
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header onReset={handleReset} showReset={step !== "upload"} />
-
+    <div className="min-h-screen flex flex-col bg-background animate-in fade-in duration-500">
+      <Header onReset={() => {}} showReset={false} />
       <main className="flex-1">
-        {step === "upload" && (
-          <>
-            <HeroSection />
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 lg:py-16">
-              <FileUpload onFileUploaded={handleFileUploaded} />
-            </div>
-            <FeaturesSection />
-          </>
-        )}
-
-        {step === "preview" && apiData && (
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12">
-            <DataPreview
-              info={apiData.info}
-              cleaningReport={apiData.cleaning_report}
-              analysis={apiData.analysis}
-              onGenerateReport={handleGenerateReport}
-              onBack={handleReset}
-            />
-          </div>
-        )}
-
-        {(step === "generating" || step === "complete") && apiData && (
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12 space-y-12">
-            {/* Process Pipeline — visible during report generation */}
-            {step === "generating" && taskId && (
-              <div className="max-w-4xl mx-auto">
-                <ProcessPipeline
-                  taskStatus={pipelineStatus}
-                  message={pipelineMessage}
-                  progress={pipelineProgress}
-                  isActive={true}
-                  minCompletedStage={4}
-                />
-              </div>
-            )}
-
-            <ReportGeneration
-              step={step}
-              taskId={taskId}
-              filename={apiData.filename}
-              info={apiData.info}
-              analysis={apiData.analysis}
-              charts={apiData.charts}
-              insights={apiData.insights}
-              onComplete={handleReportComplete}
-              onReset={handleReset}
-            />
-
-            {/* Show Chat Interface ONLY when analysis is complete */}
-            {step === "complete" && taskId && (
-              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-                <ChatInterface taskId={taskId} />
-              </div>
-            )}
-          </div>
-        )}
+        <HeroSection />
+        <FeaturesSection />
       </main>
-
       <Footer />
     </div>
   );

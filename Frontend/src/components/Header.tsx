@@ -53,7 +53,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
             >
               how it works
             </Link>
-            {showReset && (
+            {showReset ? (
               <>
                 <div className="h-4 w-px bg-border/60 mx-1" />
                 <Button 
@@ -65,6 +65,18 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   <RotateCcw className="h-3.5 w-3.5" />
                   Start Over
                 </Button>
+              </>
+            ) : (
+              <>
+                <div className="h-4 w-px bg-border/60 mx-1" />
+                <Link to="/workspace">
+                  <Button 
+                    size="sm" 
+                    className="rounded-full shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-xs px-4"
+                  >
+                    Launch Workspace
+                  </Button>
+                </Link>
               </>
             )}
           </nav>
@@ -90,6 +102,13 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
               <SheetContent side="right" className="w-[280px] sm:w-[320px] rounded-l-3xl border-l bg-background/95 backdrop-blur-lg">
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <nav className="flex flex-col gap-4 mt-8">
+                  <Link
+                    to="/workspace"
+                    className="text-lg font-display font-semibold text-primary hover:text-primary transition-colors py-2 border-b"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Launch Workspace
+                  </Link>
                   <Link
                     to="/features"
                     className="text-lg font-display font-medium hover:text-primary transition-colors py-2 border-b"

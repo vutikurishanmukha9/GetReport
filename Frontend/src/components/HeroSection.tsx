@@ -1,4 +1,6 @@
-import { BarChart3, FileSpreadsheet } from "lucide-react";
+import { BarChart3, FileSpreadsheet, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 export const HeroSection = () => {
   return (
@@ -29,6 +31,21 @@ export const HeroSection = () => {
               Upload your CSV or Excel files. Review quality issues inside the interactive ledger,
               and receive a comprehensive PDF report with statistical charts and RAG insights.
             </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-4 pt-2">
+              <Link to="/workspace">
+                <Button size="lg" className="h-12 px-6 rounded-xl shadow-premium hover:-translate-y-0.5 active:scale-95 transition-all font-semibold font-display text-sm">
+                  Start Free Audit
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link to="/how-it-works">
+                <Button size="lg" variant="outline" className="h-12 px-6 rounded-xl border-border bg-card hover:bg-muted/10 shadow-premium hover:-translate-y-0.5 active:scale-95 transition-all font-display text-sm">
+                  How it Works
+                </Button>
+              </Link>
+            </div>
 
             {/* Stats row */}
             <div className="grid grid-cols-3 gap-4 max-w-md pt-2">
