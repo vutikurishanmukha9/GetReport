@@ -1,4 +1,4 @@
-import { BarChart3, Brain, FileText, Layout, Wand2, ShieldCheck, Gauge, HelpCircle, Zap, Target, ArrowRight, Sparkles } from "lucide-react";
+import { BarChart3, Brain, FileText, Layout, Wand2, ShieldCheck, ShieldAlert, Gauge, HelpCircle, Zap, Target, ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -197,6 +197,66 @@ export const Features = () => {
               <div className="border border-border rounded bg-white p-1.5 flex items-center gap-1.5 shadow-sm text-[9px] font-mono">
                 <FileText className="h-3 w-3 text-red-600" />
                 <span>executive_summary.pdf</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Card 8: Active Issue Ledger (col-span-1, row-span-2) */}
+          <Card className="md:col-span-1 md:row-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+            <div className="space-y-4">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
+                  <span>Active Issue Ledger</span>
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  Real-time tracking of data quality violations. Flag anomalies by severity, review auto-suggested cures, and audit actions.
+                </p>
+              </div>
+            </div>
+
+            {/* Visual Micro Mockup - Vertical List */}
+            <div className="mt-8 space-y-3 font-mono text-[9px] flex-1 flex flex-col justify-end">
+              <div className="text-[8px] text-muted-foreground font-bold tracking-wider uppercase border-b border-border pb-1.5 mb-1">
+                Audit Trail & Issues
+              </div>
+              
+              <div className="p-2 bg-white rounded-lg border border-border space-y-1.5 shadow-xs">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-foreground">Completeness</span>
+                  <Badge className="bg-red-50 text-red-750 border border-red-250 h-4 px-1.5 text-[7px] font-bold">HIGH</Badge>
+                </div>
+                <p className="text-muted-foreground leading-normal text-[8px]">"email" has 18.5% nulls.</p>
+                <div className="text-primary font-medium text-[8px] pt-0.5 border-t border-dashed border-border flex justify-between">
+                  <span>Action: Impute Mode</span>
+                  <span className="text-muted-foreground/80">Pending</span>
+                </div>
+              </div>
+
+              <div className="p-2 bg-white rounded-lg border border-border space-y-1.5 shadow-xs">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-foreground">Consistency</span>
+                  <Badge className="bg-amber-50 text-amber-700 border border-amber-250 h-4 px-1.5 text-[7px] font-bold">MED</Badge>
+                </div>
+                <p className="text-muted-foreground leading-normal text-[8px]">"age" has outliers (3.2x IQR).</p>
+                <div className="text-emerald-700 font-medium text-[8px] pt-0.5 border-t border-dashed border-border flex justify-between">
+                  <span>Action: Clip Outliers</span>
+                  <span className="text-emerald-600 font-semibold">✓ Auto-Cured</span>
+                </div>
+              </div>
+
+              <div className="p-2 bg-white rounded-lg border border-border space-y-1.5 shadow-xs">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-foreground">Validity</span>
+                  <Badge className="bg-blue-50 text-blue-750 border border-blue-250 h-4 px-1.5 text-[7px] font-bold">LOW</Badge>
+                </div>
+                <p className="text-muted-foreground leading-normal text-[8px]">"zip" contains invalid formats.</p>
+                <div className="text-primary font-medium text-[8px] pt-0.5 border-t border-dashed border-border flex justify-between">
+                  <span>Action: Standardize</span>
+                  <span className="text-muted-foreground/80">Pending</span>
+                </div>
               </div>
             </div>
           </Card>
