@@ -259,7 +259,7 @@ export const Features = () => {
           </Card>
 
           {/* Card 8: Active Issue Ledger (col-span-1, row-span-2) */}
-          <Card className="md:col-span-1 md:row-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+          <Card className="md:col-span-1 md:row-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col gap-6 group relative overflow-hidden">
             <div className="space-y-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                 <ShieldAlert className="h-5 w-5" />
@@ -275,7 +275,7 @@ export const Features = () => {
             </div>
 
             {/* Visual Micro Mockup - Vertical List */}
-            <div className="mt-8 space-y-3 font-mono text-[9px] flex-1 flex flex-col justify-end">
+            <div className="space-y-3 font-mono text-[9px]">
               <div className="text-[8px] text-muted-foreground font-bold tracking-wider uppercase border-b border-border pb-1.5 mb-1">
                 Audit Trail & Issues
               </div>
@@ -313,6 +313,18 @@ export const Features = () => {
                 <div className="text-primary font-medium text-[8px] pt-0.5 border-t border-dashed border-border flex justify-between">
                   <span>Action: Standardize</span>
                   <span className="text-muted-foreground/80">Pending</span>
+                </div>
+              </div>
+
+              <div className="p-2 bg-white rounded-lg border border-border space-y-1.5 shadow-xs">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-foreground">Uniqueness</span>
+                  <Badge className="bg-amber-50 text-amber-700 border border-amber-250 h-4 px-1.5 text-[7px] font-bold">MED</Badge>
+                </div>
+                <p className="text-muted-foreground leading-normal text-[8px]">"id" contains duplicate keys.</p>
+                <div className="text-emerald-700 font-medium text-[8px] pt-0.5 border-t border-dashed border-border flex justify-between">
+                  <span>Action: Deduplicate</span>
+                  <span className="text-emerald-600 font-semibold">✓ Auto-Cured</span>
                 </div>
               </div>
             </div>
