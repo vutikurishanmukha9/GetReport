@@ -46,9 +46,9 @@ export const Features = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           
           {/* Card 1: Column Confidence Scores (col-span-2) */}
-          <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group overflow-hidden relative">
+          <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col md:flex-row gap-6 md:items-center justify-between group overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none" />
-            <div className="space-y-4">
+            <div className="space-y-4 flex-1">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                 <Gauge className="h-5 w-5" />
               </div>
@@ -57,28 +57,28 @@ export const Features = () => {
                   <span>Column Confidence Scores</span>
                   <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[9px] font-mono rounded-full">NEW</Badge>
                 </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   Every column undergoes multi-dimensional testing—Completeness, Consistency, Validity, and Stability. Rated from A to F so you know exactly what is clean.
                 </p>
               </div>
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 border border-border bg-white rounded-xl p-3.5 font-mono text-[10px] space-y-2 max-w-md shadow-xs">
+            <div className="w-full md:w-[320px] lg:w-[380px] border border-border bg-white rounded-xl p-4 font-mono text-[10px] space-y-2 shadow-xs shrink-0 self-stretch flex flex-col justify-center">
               <div className="flex justify-between items-center border-b border-border pb-2">
-                <span className="font-bold text-foreground">Variable trust ledger</span>
+                <span className="font-bold text-foreground uppercase tracking-wider text-[8px] text-muted-foreground">Variable trust ledger</span>
                 <span className="text-muted-foreground">confidence %</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 h-5 px-2 rounded-full text-[8px] font-bold">A</Badge> customer_id</span>
+                <span className="flex items-center gap-1.5"><Badge className="bg-emerald-50 text-emerald-700 border border-emerald-250 h-5 px-2 rounded-full text-[8px] font-bold">A</Badge> customer_id</span>
                 <span className="text-emerald-600 font-semibold">100.0%</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><Badge className="bg-blue-50 text-blue-700 border border-blue-200 h-5 px-2 rounded-full text-[8px] font-bold">B</Badge> total_purchase</span>
+                <span className="flex items-center gap-1.5"><Badge className="bg-blue-50 text-blue-700 border border-blue-250 h-5 px-2 rounded-full text-[8px] font-bold">B</Badge> total_purchase</span>
                 <span className="text-blue-600 font-semibold">89.4%</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><Badge className="bg-red-50 text-red-750 border border-red-200 h-5 px-2 rounded-full text-[8px] font-bold">F</Badge> referral_code</span>
+                <span className="flex items-center gap-1.5"><Badge className="bg-red-50 text-red-750 border border-red-250 h-5 px-2 rounded-full text-[8px] font-bold">F</Badge> referral_code</span>
                 <span className="text-red-600 font-semibold">18.5%</span>
               </div>
             </div>
@@ -102,10 +102,14 @@ export const Features = () => {
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 border border-border bg-white rounded-xl p-3 font-mono text-[9px] space-y-1 shadow-xs">
-              <div className="text-[8px] text-muted-foreground font-bold tracking-wider uppercase">Pipeline Logs</div>
-              <div className="text-amber-700 font-semibold">▶ SKIP: Time-Series Integrity check</div>
-              <div className="text-muted-foreground/80 pl-2">↳ Cause: Column "date" does not exist</div>
+            <div className="mt-8 border border-border bg-white rounded-xl p-3.5 font-mono text-[9px] space-y-2 shadow-xs flex-1 flex flex-col justify-center">
+              <div className="text-[8px] text-muted-foreground font-bold tracking-wider uppercase border-b border-border pb-1.5 mb-1">Pipeline Logs</div>
+              <div className="space-y-1.5">
+                <div className="text-emerald-700 font-semibold flex items-center gap-1"><span>▶</span> RUN: Outlier Detection</div>
+                <div className="text-muted-foreground/80 pl-2">↳ Result: 12 anomalies flagged</div>
+                <div className="text-amber-750 font-semibold flex items-center gap-1"><span>▶</span> SKIP: Time-Series Integrity</div>
+                <div className="text-muted-foreground/80 pl-2">↳ Cause: Column "date" missing</div>
+              </div>
             </div>
           </Card>
 
@@ -127,31 +131,54 @@ export const Features = () => {
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 flex gap-2 font-mono text-[9px]">
-              <span className="px-2 py-1 bg-white rounded-full border border-border text-muted-foreground shadow-xs">email ➔ ID</span>
-              <span className="px-2 py-1 bg-primary/5 rounded-full border border-primary/20 text-primary shadow-xs">gpa ➔ NUMERIC</span>
+            <div className="mt-8 border border-border bg-white rounded-xl p-3.5 font-mono text-[9px] space-y-2 shadow-xs flex-1 flex flex-col justify-center">
+              <div className="text-[8px] text-muted-foreground font-bold tracking-wider uppercase border-b border-border pb-1.5 mb-1">Schema Detection</div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-foreground font-semibold">email</span>
+                  <span className="px-1.5 py-0.5 bg-muted text-muted-foreground rounded border border-border text-[8px] font-bold">ID / STRING</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-foreground font-semibold">gpa</span>
+                  <span className="px-1.5 py-0.5 bg-primary/5 text-primary rounded border border-primary/20 text-[8px] font-bold">MEASURE / FLOAT</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-foreground font-semibold">timestamp</span>
+                  <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200 text-[8px] font-bold">DIMENSION / DATE</span>
+                </div>
+              </div>
             </div>
           </Card>
 
           {/* Card 4: Intelligent Hygiene (col-span-2) */}
-          <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group overflow-hidden relative">
-            <div className="space-y-4">
+          <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col md:flex-row gap-6 md:items-center justify-between group overflow-hidden relative">
+            <div className="space-y-4 flex-1">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                 <Wand2 className="h-5 w-5" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-display font-bold text-foreground">Intelligent Quality Healing</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   Lightning-fast Polars engine cleans your dataset asynchronously. Resolves nulls, drops duplicates, and standardizes type representations.
                 </p>
               </div>
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 border border-border bg-white rounded-xl p-3.5 font-mono text-[10px] space-y-1.5 max-w-md shadow-xs">
-              <div className="text-[8px] text-muted-foreground font-bold uppercase">Operations report</div>
-              <div className="text-foreground">✓ Dropped <span className="text-emerald-700 font-semibold">142</span> duplicate rows</div>
-              <div className="text-foreground">✓ Replaced <span className="text-emerald-700 font-semibold">12</span> numerical NaNs with Mean</div>
+            <div className="w-full md:w-[320px] lg:w-[380px] border border-border bg-white rounded-xl p-4 font-mono text-[10px] space-y-2 shadow-xs shrink-0 self-stretch flex flex-col justify-center">
+              <div className="text-[8px] text-muted-foreground font-bold uppercase tracking-wider border-b border-border pb-1.5 mb-1">Operations report</div>
+              <div className="text-foreground flex items-center gap-1.5">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Dropped <span className="text-emerald-700 font-semibold">142</span> duplicate rows</span>
+              </div>
+              <div className="text-foreground flex items-center gap-1.5">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Replaced <span className="text-emerald-700 font-semibold">12</span> numerical NaNs with Mean</span>
+              </div>
+              <div className="text-foreground flex items-center gap-1.5">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span>Coerced <span className="text-emerald-700 font-semibold">3</span> datetime column formats</span>
+              </div>
             </div>
           </Card>
 
@@ -170,11 +197,25 @@ export const Features = () => {
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 flex items-end justify-center h-16 gap-1.5 border-b border-border pb-2">
-              <div className="w-4 bg-primary/30 h-1/3 rounded-t-sm" />
-              <div className="w-4 bg-primary/50 h-2/3 rounded-t-sm" />
-              <div className="w-4 bg-primary h-full rounded-t-sm" />
-              <div className="w-4 bg-primary/70 h-1/2 rounded-t-sm" />
+            <div className="mt-8 border border-border bg-white rounded-xl p-3.5 shadow-xs space-y-2 flex-1 flex flex-col justify-center">
+              <div className="flex justify-between items-center border-b border-border pb-1.5 text-[8px] font-mono text-muted-foreground font-bold uppercase tracking-wider">
+                <span>Correlation Matrix</span>
+                <span className="text-primary font-semibold">r = 0.89</span>
+              </div>
+              <div className="flex items-end justify-center h-16 gap-2 pt-2">
+                <div className="w-5 bg-primary/20 h-1/3 rounded-t-sm relative group flex items-center justify-center">
+                  <span className="absolute -top-4 text-[7px] font-mono text-muted-foreground">0.3</span>
+                </div>
+                <div className="w-5 bg-primary/40 h-2/3 rounded-t-sm relative group flex items-center justify-center">
+                  <span className="absolute -top-4 text-[7px] font-mono text-muted-foreground">0.6</span>
+                </div>
+                <div className="w-5 bg-primary h-full rounded-t-sm relative group flex items-center justify-center">
+                  <span className="absolute -top-4 text-[7px] font-mono text-primary font-bold">1.0</span>
+                </div>
+                <div className="w-5 bg-primary/70 h-1/2 rounded-t-sm relative group flex items-center justify-center">
+                  <span className="absolute -top-4 text-[7px] font-mono text-muted-foreground">0.5</span>
+                </div>
+              </div>
             </div>
           </Card>
 
@@ -193,10 +234,26 @@ export const Features = () => {
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 flex justify-center">
-              <div className="border border-border rounded bg-white p-1.5 flex items-center gap-1.5 shadow-sm text-[9px] font-mono">
-                <FileText className="h-3 w-3 text-red-600" />
-                <span>executive_summary.pdf</span>
+            <div className="mt-8 border border-border bg-white rounded-xl p-3.5 shadow-xs space-y-2 flex-1 flex flex-col justify-center">
+              <div className="flex justify-between items-center border-b border-border pb-1.5 text-[8px] font-mono text-muted-foreground font-bold uppercase tracking-wider">
+                <span>Generated Exports</span>
+                <span className="text-emerald-600">PDF Ready</span>
+              </div>
+              <div className="space-y-1.5 font-mono text-[9px]">
+                <div className="flex items-center justify-between p-1.5 bg-muted/30 border border-border/60 rounded">
+                  <span className="flex items-center gap-1.5">
+                    <FileText className="h-3 w-3 text-red-600 shrink-0" />
+                    <span className="text-foreground">executive_summary.pdf</span>
+                  </span>
+                  <span className="text-[7px] text-muted-foreground">1.2 MB</span>
+                </div>
+                <div className="flex items-center justify-between p-1.5 bg-muted/30 border border-border/60 rounded">
+                  <span className="flex items-center gap-1.5">
+                    <FileText className="h-3 w-3 text-red-600 shrink-0" />
+                    <span className="text-foreground">data_distribution.pdf</span>
+                  </span>
+                  <span className="text-[7px] text-muted-foreground">840 KB</span>
+                </div>
               </div>
             </div>
           </Card>
@@ -262,26 +319,26 @@ export const Features = () => {
           </Card>
 
           {/* Card 7: Context-Aware AI (col-span-2) */}
-          <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group overflow-hidden relative">
-            <div className="space-y-4">
+          <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col md:flex-row gap-6 md:items-center justify-between group overflow-hidden relative">
+            <div className="space-y-4 flex-1">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                 <Brain className="h-5 w-5" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-display font-bold text-foreground">RAG Insights Partner</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   Secure RAG system. Chat with your dataset ephemerally. Extract summaries, anomalies, and cleaning options without leaking raw records.
                 </p>
               </div>
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 border border-border bg-white rounded-xl p-3 max-w-md space-y-2 text-[10px] font-sans shadow-xs">
+            <div className="w-full md:w-[320px] lg:w-[380px] border border-border bg-white rounded-xl p-4 space-y-2.5 text-[10px] font-sans shadow-xs shrink-0 self-stretch flex flex-col justify-center">
               <div className="flex gap-2">
                 <Badge className="bg-primary text-primary-foreground h-5 px-2 rounded-full text-[8px] shrink-0 font-mono">User</Badge>
                 <p className="text-foreground/80 leading-snug">What does the purchasing distribution imply?</p>
               </div>
-              <div className="flex gap-2 border-t border-border pt-2">
+              <div className="flex gap-2 border-t border-border pt-2.5">
                 <Badge className="bg-muted text-muted-foreground border h-5 px-2 rounded-full text-[8px] shrink-0 font-mono">AI</Badge>
                 <p className="text-muted-foreground/90 leading-snug">
                   The distribution is right-skewed [1], meaning a few high-value customers contribute 80% of revenue…
