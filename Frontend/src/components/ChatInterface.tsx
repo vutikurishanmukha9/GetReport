@@ -131,9 +131,9 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl overflow-hidden">
+    <Card className="w-full max-w-4xl mx-auto border border-border bg-card shadow-premium rounded-2xl overflow-hidden">
       {/* Chat Title bar */}
-      <CardHeader className="border-b border-border/55 bg-muted/10 pb-4">
+      <CardHeader className="border-b border-border bg-muted/10 pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
@@ -142,7 +142,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
             <div>
               <CardTitle className="text-base font-display font-bold text-foreground tracking-tight flex items-center gap-1.5">
                 <span>AI Data Companion</span>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded bg-primary/10 text-primary font-mono font-bold uppercase tracking-wider">Active Context</Badge>
+                <Badge variant="secondary" className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono font-bold uppercase tracking-wider">Active Context</Badge>
               </CardTitle>
               <CardDescription className="text-xs">Ask questions and extract insights directly from the compiled dataset</CardDescription>
             </div>
@@ -169,10 +169,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
               >
                 {/* Avatar Icon */}
                 <Avatar className={cn(
-                  "h-8 w-8 shrink-0 mt-0.5 border shadow-sm",
-                  isBot 
-                    ? "bg-background border-border text-primary" 
-                    : "bg-primary text-primary-foreground border-transparent"
+                  "h-8 w-8 shrink-0 mt-0.5 border border-border bg-white text-primary shadow-sm"
                 )}>
                   <AvatarFallback className="flex items-center justify-center bg-transparent">
                     {isBot ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
@@ -185,7 +182,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                     className={cn(
                       "p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm",
                       isBot
-                        ? "bg-muted dark:bg-card border border-border/80 text-foreground rounded-tl-sm font-sans"
+                        ? "bg-muted border border-border text-foreground rounded-tl-sm font-sans"
                         : "bg-primary text-primary-foreground rounded-tr-sm font-sans"
                     )}
                   >
@@ -221,12 +218,12 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
           {/* Loader typing block */}
           {isLoading && (
             <div className="flex gap-3 mr-auto max-w-[85%] animate-pulse">
-              <Avatar className="h-8 w-8 mt-0.5 shrink-0 bg-background border border-border text-primary">
+              <Avatar className="h-8 w-8 mt-0.5 shrink-0 bg-white border border-border text-primary shadow-sm">
                 <AvatarFallback className="flex items-center justify-center bg-transparent">
                   <Bot className="h-4 w-4" />
                 </AvatarFallback>
               </Avatar>
-              <div className="bg-muted dark:bg-card border border-border/80 p-3.5 rounded-2xl rounded-tl-sm flex items-center gap-2">
+              <div className="bg-muted border border-border p-3.5 rounded-2xl rounded-tl-sm flex items-center gap-2">
                 <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary" />
                 <span className="text-xs font-mono text-muted-foreground">Synthesizing response…</span>
               </div>
@@ -236,8 +233,8 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
         </div>
 
         {/* Input Textbox bar */}
-        <div className="p-4 border-t border-border/55 bg-muted/10">
-          <div className="flex items-center gap-2 bg-background border border-border/80 focus-within:border-primary/40 focus-within:ring-1 focus-within:ring-primary/40 rounded-xl p-1.5 transition-all duration-200">
+        <div className="p-4 border-t border-border bg-muted/10">
+          <div className="flex items-center gap-2 bg-background border border-border focus-within:border-primary/45 focus-within:ring-1 focus-within:ring-primary/45 rounded-xl p-1.5 transition-all duration-200">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -292,7 +289,7 @@ const SourcesExpander = ({
       </button>
 
       {expanded && (
-        <div className="mt-2 space-y-2 pl-3 border-l border-border/60 animate-in slide-in-from-top-1 duration-200">
+        <div className="mt-2 space-y-2 pl-3 border-l border-border animate-in slide-in-from-top-1 duration-200">
           {sources.map((src, i) => {
             const isHighlighted = highlightedIdx === i;
             return (
@@ -302,8 +299,8 @@ const SourcesExpander = ({
                 className={cn(
                   "p-2.5 rounded-lg border text-[11px] font-mono leading-relaxed transition-all duration-200 cursor-pointer select-none",
                   isHighlighted 
-                    ? "bg-primary/5 border-primary/40 text-foreground ring-1 ring-primary/20 scale-[1.01]" 
-                    : "bg-muted/80 dark:bg-card/85 border-border/60 text-muted-foreground hover:text-foreground hover:border-border"
+                    ? "bg-primary/5 border-primary text-foreground ring-1 ring-primary/20 scale-[1.01]" 
+                    : "bg-muted/30 border-border text-muted-foreground hover:text-foreground hover:border-border"
                 )}
               >
                 <div className="flex items-center gap-1.5 font-bold text-[9px] uppercase tracking-wider text-primary mb-1">

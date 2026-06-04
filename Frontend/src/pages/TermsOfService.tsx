@@ -30,12 +30,12 @@ const TermsOfService = () => {
                         </div>
                         <div className="flex items-start gap-2">
                             <XCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
-                            <span>Don't upload illegal or harmful content</span>
+                            <span>Don’t upload illegal or harmful content</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
+                <div className="prose prose-slate max-w-none space-y-8">
                     <section>
                         <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                             <FileText className="h-5 w-5" /> 1. Acceptance of Terms
@@ -80,7 +80,7 @@ const TermsOfService = () => {
                     <section>
                         <h2 className="text-2xl font-semibold mb-4">4. Service Availability</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            We strive to provide reliable service but do not guarantee 100% uptime. The service is provided "as is" and we reserve the right to modify, suspend, or discontinue features at any time. We will provide reasonable notice for significant changes.
+                            We strive to provide reliable service but do not guarantee 100% uptime. The service is provided “as is” and we reserve the right to modify, suspend, or discontinue features at any time. We will provide reasonable notice for significant changes.
                         </p>
                     </section>
 

@@ -40,17 +40,17 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Severity badge colors
 const severityColors = {
-    critical: 'bg-red-500/10 text-red-600 border-red-500/20 dark:bg-red-950/20 dark:text-red-400',
-    high: 'bg-orange-500/10 text-orange-600 border-orange-500/20 dark:bg-orange-950/20 dark:text-orange-400',
-    medium: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-950/20 dark:text-amber-400',
-    low: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-950/20 dark:text-emerald-400',
+    critical: 'bg-red-50 text-red-700 border-red-200',
+    high: 'bg-orange-50 text-orange-700 border-orange-200',
+    medium: 'bg-amber-50 text-amber-700 border-amber-200',
+    low: 'bg-emerald-50 text-emerald-700 border-emerald-200',
 };
 
 const statusColors = {
-    pending: 'bg-muted/80 text-muted-foreground border-border/50',
-    approved: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-950/20 dark:text-emerald-400',
-    rejected: 'bg-red-500/10 text-red-600 border-red-500/20 dark:bg-red-950/20 dark:text-red-400',
-    modified: 'bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary-foreground',
+    pending: 'bg-muted text-muted-foreground border-border/80',
+    approved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    rejected: 'bg-red-50 text-red-700 border-red-200',
+    modified: 'bg-primary/5 text-primary border-primary/20',
 };
 
 const issueTypeLabels: Record<string, string> = {
@@ -166,9 +166,9 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
     if (issues.length === 0) {
         return (
-            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-8 text-center animate-in fade-in duration-300">
-                <Check className="w-12 h-12 mx-auto text-emerald-500 mb-3" />
-                <h3 className="text-lg font-display font-bold text-emerald-800 dark:text-emerald-400">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center animate-in fade-in duration-300">
+                <Check className="w-12 h-12 mx-auto text-emerald-600 mb-3" />
+                <h3 className="text-lg font-display font-bold text-emerald-800">
                     No Issues Detected
                 </h3>
                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-sm mx-auto">
@@ -185,9 +185,9 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     }
 
     return (
-        <div className="bg-card/45 backdrop-blur-sm border border-border shadow-premium rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-400">
+        <div className="bg-card border border-border shadow-premium rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-400">
             {/* Header */}
-            <div className="border-b border-border/60 px-6 py-5 bg-muted/20">
+            <div className="border-b border-border px-6 py-5 bg-muted/10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h3 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
@@ -199,11 +199,11 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         </p>
                     </div>
                     <div className="flex items-center gap-2 self-start sm:self-center font-mono text-xs">
-                        <span className="bg-muted px-3 py-1 rounded-md border border-border/60 text-muted-foreground">
+                        <span className="bg-muted px-3 py-1 rounded-md border border-border text-muted-foreground">
                           {summary.total} issues
                         </span>
                         {locked && (
-                            <span className="bg-emerald-500/15 text-emerald-600 border border-emerald-500/25 px-3 py-1 rounded-md flex items-center gap-1.5 font-bold">
+                            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-md flex items-center gap-1.5 font-bold">
                                 <Lock className="w-3.5 h-3.5" /> locked
                             </span>
                         )}
@@ -212,14 +212,14 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             </div>
 
             {/* Summary Bar */}
-            <div className="bg-muted/10 border-b border-border/60 px-6 py-3">
+            <div className="bg-muted/5 border-b border-border px-6 py-3">
                 <div className="flex flex-wrap gap-4 items-center justify-between">
                     <div className="flex gap-4 text-xs font-mono">
                         <span className="flex items-center gap-1.5 text-muted-foreground">
-                            <span className="w-2 h-2 bg-muted-foreground/40 rounded-full"></span>
+                            <span className="w-2 h-2 bg-muted-foreground/45 rounded-full"></span>
                             pending: {summary.pending}
                         </span>
-                        <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-450">
+                        <span className="flex items-center gap-1.5 text-emerald-750">
                             <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
                             approved: {summary.approved}
                         </span>
@@ -234,14 +234,14 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                             <button
                                 onClick={handleApproveAll}
                                 disabled={loading !== null || !hasPending}
-                                className="px-3 py-1.5 border border-border/60 bg-card hover:bg-muted/50 rounded-lg text-xs font-mono font-medium hover:text-foreground disabled:opacity-50 flex items-center gap-1 transition-colors active:scale-95"
+                                className="px-3 py-1.5 border border-border bg-white hover:bg-muted/50 rounded-lg text-xs font-mono font-medium hover:text-foreground disabled:opacity-50 flex items-center gap-1 transition-colors active:scale-95"
                             >
                                 <CheckCheck className="w-4 h-4 text-emerald-600" /> approve all
                             </button>
                             <button
                                 onClick={handleRejectAll}
                                 disabled={loading !== null || !hasPending}
-                                className="px-3 py-1.5 border border-border/60 bg-card hover:bg-muted/50 rounded-lg text-xs font-mono font-medium hover:text-foreground disabled:opacity-50 flex items-center gap-1 transition-colors active:scale-95"
+                                className="px-3 py-1.5 border border-border bg-white hover:bg-muted/50 rounded-lg text-xs font-mono font-medium hover:text-foreground disabled:opacity-50 flex items-center gap-1 transition-colors active:scale-95"
                             >
                                 <XCircle className="w-4 h-4 text-destructive" /> reject all
                             </button>
@@ -252,7 +252,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
             {/* Error Message */}
             {error && (
-                <div className="bg-red-500/10 border-b border-red-500/20 px-6 py-3 text-sm font-mono text-destructive">
+                <div className="bg-red-50 border-b border-red-200 px-6 py-3 text-sm font-mono text-destructive">
                     {error}
                 </div>
             )}
@@ -260,7 +260,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             {/* Issues Table */}
             <div className="max-h-[420px] overflow-y-auto">
                 <table className="w-full">
-                    <thead className="bg-muted/30 border-b border-border/60 sticky top-0 z-10 backdrop-blur-md">
+                    <thead className="bg-muted/30 border-b border-border sticky top-0 z-10">
                         <tr className="text-left text-[10px] font-mono font-semibold text-muted-foreground uppercase tracking-wider">
                             <th className="px-6 py-3">Issue Details</th>
                             <th className="px-4 py-3">Column</th>
@@ -271,11 +271,11 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                             <th className="px-4 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-border/60">
+                    <tbody className="divide-y divide-border">
                         {issues.map((issue) => (
                             <tr
                                 key={issue.id}
-                                className={`hover:bg-muted/25 transition-colors ${issue.status === 'rejected' ? 'opacity-55' : ''
+                                className={`hover:bg-muted/10 transition-colors ${issue.status === 'rejected' ? 'opacity-55' : ''
                                     }`}
                             >
                                 <td className="px-6 py-4">
@@ -292,12 +292,12 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     </p>
                                 </td>
                                 <td className="px-4 py-4">
-                                    <code className="text-xs bg-muted/60 text-foreground border border-border/40 px-2 py-1 rounded-md font-mono">
+                                    <code className="text-xs bg-muted/30 text-foreground border border-border px-2 py-1 rounded-md font-mono">
                                         {issue.column || 'all_rows'}
                                     </code>
                                 </td>
                                 <td className="px-4 py-4">
-                                    <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded border ${severityColors[issue.severity]}`}>
+                                    <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${severityColors[issue.severity]}`}>
                                         {issue.severity}
                                     </span>
                                 </td>
@@ -309,7 +309,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     {issue.suggested_fix.toLowerCase()}
                                 </td>
                                 <td className="px-4 py-4">
-                                    <span className={`text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded border ${statusColors[issue.status]}`}>
+                                    <span className={`text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${statusColors[issue.status]}`}>
                                         {issue.status}
                                     </span>
                                 </td>
@@ -319,7 +319,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                             <button
                                                 onClick={() => handleApprove(issue.id)}
                                                 disabled={loading !== null}
-                                                className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded border border-emerald-500/15 hover:bg-emerald-500/20 disabled:opacity-50 transition-all duration-150 active:scale-90"
+                                                className="p-1.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 transition-all duration-150 active:scale-90"
                                                 title="Approve"
                                             >
                                                 <Check className="w-3.5 h-3.5" />
@@ -327,7 +327,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                             <button
                                                 onClick={() => handleReject(issue.id)}
                                                 disabled={loading !== null}
-                                                className="p-1.5 bg-red-500/10 text-red-600 rounded border border-red-500/15 hover:bg-red-500/20 disabled:opacity-50 transition-all duration-150 active:scale-90"
+                                                className="p-1.5 bg-red-50 text-red-700 rounded-full border border-red-200 hover:bg-red-100 disabled:opacity-50 transition-all duration-150 active:scale-90"
                                                 title="Reject"
                                             >
                                                 <X className="w-3.5 h-3.5" />
@@ -347,7 +347,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             </div>
 
             {/* Footer Actions */}
-            <div className="bg-muted/20 border-t border-border/60 px-6 py-4">
+            <div className="bg-muted/5 border-t border-border px-6 py-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <p className="text-xs sm:text-sm text-muted-foreground leading-normal font-sans">
                         {hasPending ? (
@@ -357,7 +357,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                             </>
                         ) : (
                             <>
-                                <Check className="w-4 h-4 inline mr-1.5 text-emerald-500 align-text-bottom" />
+                                <Check className="w-4 h-4 inline mr-1.5 text-emerald-600 align-text-bottom" />
                                 All issues successfully reviewed.
                             </>
                         )}

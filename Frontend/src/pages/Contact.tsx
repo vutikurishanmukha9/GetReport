@@ -19,7 +19,7 @@ const Contact = () => {
                 <div className="text-center mb-12">
                     <h1 className="text-4xl font-bold mb-4">Get in Touch</h1>
                     <p className="text-xl text-muted-foreground">
-                        Have questions about GetReport? We'd love to hear from you.
+                        Have questions about GetReport? We’d love to hear from you.
                     </p>
                 </div>
 
@@ -50,7 +50,7 @@ const Contact = () => {
                             </CardHeader>
                             <CardContent>
                                 <p className="text-muted-foreground text-sm">
-                                    We typically respond within 24 hours on business days. For urgent issues, mention "URGENT" in your subject line.
+                                    We typically respond within 24 hours on business days. For urgent issues, mention “URGENT” in your subject line.
                                 </p>
                             </CardContent>
                         </Card>
@@ -78,16 +78,16 @@ const Contact = () => {
                         <Card>
                             <CardHeader>
                                 <CardTitle>Send us a Message</CardTitle>
-                                <CardDescription>Fill out the form below and we'll get back to you as soon as possible.</CardDescription>
+                                <CardDescription>Fill out the form below and we’ll get back to you as soon as possible.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {submitted ? (
                                     <div className="text-center py-12">
-                                        <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center mx-auto mb-4">
-                                            <Mail className="h-8 w-8 text-green-600 dark:text-green-400" />
+                                        <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                                            <Mail className="h-8 w-8 text-green-600" />
                                         </div>
                                         <h3 className="text-xl font-semibold mb-2">Message Sent!</h3>
-                                        <p className="text-muted-foreground">Thank you for reaching out. We'll respond within 24 hours.</p>
+                                        <p className="text-muted-foreground">Thank you for reaching out. We’ll respond within 24 hours.</p>
                                         <Button variant="outline" className="mt-6" onClick={() => setSubmitted(false)}>
                                             Send Another Message
                                         </Button>
@@ -114,7 +114,7 @@ const Contact = () => {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium">Message</label>
-                                            <Textarea placeholder="Tell us more about your question or feedback..." className="min-h-[120px]" required />
+                                            <Textarea placeholder="Tell us more about your question or feedback…" className="min-h-[120px]" required />
                                         </div>
                                         <Button type="submit" className="w-full sm:w-auto">Send Message</Button>
                                     </form>

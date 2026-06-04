@@ -131,7 +131,7 @@ export const FeaturesSection = () => {
                 </p>
               </div>
               
-              <div className="flex flex-col gap-1.5 font-mono text-[10px] text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-500/20">
+              <div className="flex flex-col gap-1.5 font-mono text-[10px] text-emerald-600 bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-500/20">
                 <div className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3 shrink-0" /> Signature signature checked
                 </div>

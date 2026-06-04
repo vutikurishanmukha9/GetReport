@@ -3,7 +3,7 @@ import {
   CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight, 
   AlertTriangle, ArrowRight, BarChart3, PieChart, Activity, 
   FileSpreadsheet, TrendingUp, ChevronDown, ChevronUp, ShieldCheck, 
-  BookOpen, Table2 
+  BookOpen, Table2, Grid
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -169,11 +169,11 @@ export const ReportGeneration = ({
 
     const getGradeColorClass = (g: string) => {
       switch (g.toUpperCase()) {
-        case 'A': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-        case 'B': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-        case 'C': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
-        case 'D': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
-        case 'F': return 'bg-red-500/10 text-red-500 dark:text-red-450 border-red-500/20';
+        case 'A': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        case 'B': return 'bg-blue-50 text-blue-700 border-blue-200';
+        case 'C': return 'bg-amber-50 text-amber-700 border-amber-200';
+        case 'D': return 'bg-orange-50 text-orange-700 border-orange-200';
+        case 'F': return 'bg-red-50 text-red-750 border-red-200';
         default: return 'bg-muted text-muted-foreground border-border';
       }
     };
@@ -251,14 +251,14 @@ export const ReportGeneration = ({
           </Card>
 
           {/* Card Right: Column-level Ledger Index */}
-          <Card className="md:col-span-7 border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl p-6 flex flex-col justify-between">
+          <Card className="md:col-span-7 border border-border bg-card shadow-premium rounded-2xl p-6 flex flex-col justify-between">
             <div className="space-y-4">
-              <div className="flex justify-between items-center border-b border-border/60 pb-3">
+              <div className="flex justify-between items-center border-b border-border pb-3">
                 <div>
                   <h3 className="text-lg font-display font-bold text-foreground">Column Trust Ledger</h3>
                   <p className="text-xs text-muted-foreground">Confidence scores categorized across structural properties</p>
                 </div>
-                <Badge variant="outline" className="font-mono text-xs font-medium">
+                <Badge variant="outline" className="font-mono text-xs font-medium rounded-full bg-muted/20 border-border">
                   {confidence.columns.length} variables
                 </Badge>
               </div>
@@ -272,7 +272,7 @@ export const ReportGeneration = ({
                   return (
                     <div 
                       key={c.column} 
-                      className={`border rounded-xl transition-all duration-200 ${isExpanded ? 'border-primary/30 bg-primary/[0.02]' : 'border-border/60 bg-muted/10 hover:border-border hover:bg-muted/20'}`}
+                      className={`border rounded-xl transition-all duration-200 ${isExpanded ? 'border-primary bg-primary/5' : 'border-border bg-white hover:bg-muted/10'}`}
                     >
                       {/* Column Summary Line */}
                       <div 
@@ -293,7 +293,7 @@ export const ReportGeneration = ({
                             {c.overall.toFixed(0)}%
                           </span>
                           {hasIssues && (
-                            <Badge variant="secondary" className="bg-amber-500/15 text-amber-600 border border-amber-500/20 hover:bg-amber-500/20 h-5 px-1 rounded text-[9px] font-mono">
+                            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border border-amber-200 h-5 px-2 rounded-full text-[9px] font-mono">
                               {c.issues.length} alert{c.issues.length > 1 ? 's' : ''}
                             </Badge>
                           )}
@@ -307,7 +307,7 @@ export const ReportGeneration = ({
 
                       {/* Column Expandable Metrics Drawer */}
                       {isExpanded && (
-                        <div className="p-3 border-t border-border/40 space-y-3 font-mono text-[11px] animate-in slide-in-from-top-1 duration-200">
+                        <div className="p-3 border-t border-border/60 space-y-3 font-mono text-[11px] animate-in slide-in-from-top-1 duration-200">
                           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                             <div className="flex justify-between items-center py-0.5">
                               <span className="text-muted-foreground">Completeness:</span>
@@ -329,12 +329,12 @@ export const ReportGeneration = ({
 
                           {/* Issues warnings inside column drawer */}
                           {hasIssues && (
-                            <div className="mt-2 bg-amber-500/5 dark:bg-amber-500/[0.02] border border-amber-500/25 rounded-lg p-2 space-y-1 text-[10px] text-amber-700 dark:text-amber-400">
+                            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5 space-y-1 text-[10px] text-amber-805">
                               <div className="flex items-center gap-1 font-semibold uppercase tracking-wider mb-1">
                                 <AlertTriangle className="h-3 w-3" />
                                 <span>Quality Flags:</span>
                               </div>
-                              <ul className="list-disc pl-3.5 space-y-0.5">
+                              <ul className="list-disc pl-3.5 space-y-0.5 font-sans">
                                 {c.issues.map((issueStr, index) => (
                                   <li key={index}>{issueStr}</li>
                                 ))}
@@ -351,11 +351,11 @@ export const ReportGeneration = ({
 
             {/* Critical Dataset Issues Alerts */}
             {confidence.critical_issues && confidence.critical_issues.length > 0 && (
-              <div className="mt-4 p-3 bg-red-500/5 border border-red-500/20 rounded-xl flex items-start gap-2.5">
+              <div className="mt-4 p-3 bg-red-55 border border-red-200 rounded-xl flex items-start gap-2.5">
                 <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                <div className="space-y-1 font-mono text-[10px] text-red-600 dark:text-red-400">
+                <div className="space-y-1 font-mono text-[10px] text-red-750">
                   <span className="font-bold uppercase tracking-wider block">CRITICAL DATA CHECKS INCOMPLETE</span>
-                  <ul className="list-disc pl-3.5 space-y-0.5">
+                  <ul className="list-disc pl-3.5 space-y-0.5 font-sans">
                     {confidence.critical_issues.map((ci: string, idx: number) => (
                       <li key={idx}>{ci}</li>
                     ))}
@@ -368,8 +368,8 @@ export const ReportGeneration = ({
 
         {/* ─── Visual Insights Matplotlib Gallery (New) ─── */}
         {chartTabsList.length > 0 && (
-          <Card className="border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl overflow-hidden">
-            <CardHeader className="border-b border-border/55 pb-3">
+          <Card className="border border-border bg-card shadow-premium rounded-2xl overflow-hidden">
+            <CardHeader className="border-b border-border pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <CardTitle className="text-lg font-display font-bold text-foreground flex items-center gap-2">
@@ -614,7 +614,6 @@ export const ReportGeneration = ({
             </CardContent>
           </Card>
         )}
-
         {/* ─── Statistical Deep Dive (Editorial Style) ─── */}
         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
           <div className="flex items-center gap-2 border-b border-border pb-2.5">
@@ -625,8 +624,8 @@ export const ReportGeneration = ({
           <div className="grid gap-5 md:grid-cols-2">
             {/* Skewness & Kurtosis */}
             {analysis.advanced_stats && Object.keys(analysis.advanced_stats).length > 0 && (
-              <Card className="border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl">
-                <CardHeader className="border-b border-border/55 pb-3">
+              <Card className="border border-border bg-card shadow-premium rounded-2xl">
+                <CardHeader className="border-b border-border pb-3">
                   <CardTitle className="text-base font-display font-bold text-foreground">Distribution Shape</CardTitle>
                   <CardDescription className="text-[11px] font-mono text-muted-foreground">Skewness & Kurtosis (Shape Auditing)</CardDescription>
                 </CardHeader>
@@ -637,16 +636,16 @@ export const ReportGeneration = ({
                     if (!isSkewed && !isHeavy) return null;
 
                     return (
-                      <div key={col} className="flex justify-between items-center py-2.5 border-b border-border/40 last:border-0 font-mono text-xs">
+                      <div key={col} className="flex justify-between items-center py-2.5 border-b border-border last:border-0 font-mono text-xs">
                         <span className="font-medium text-foreground truncate max-w-[150px]">{col}</span>
                         <div className="flex gap-2">
                           {isSkewed && (
-                            <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border border-amber-200 rounded-full">
                               skew: {stats.skewness.toFixed(2)}
                             </Badge>
                           )}
                           {isHeavy && (
-                            <Badge variant="secondary" className="bg-primary/10 text-primary border border-primary/20">
+                            <Badge variant="secondary" className="bg-primary/5 text-primary border border-primary/20 rounded-full">
                               kurt: {stats.kurtosis.toFixed(2)}
                             </Badge>
                           )}
@@ -663,15 +662,15 @@ export const ReportGeneration = ({
 
             {/* Multicollinearity */}
             {analysis.multicollinearity && (
-              <Card className="border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl">
-                <CardHeader className="border-b border-border/55 pb-3">
+              <Card className="border border-border bg-card shadow-premium rounded-2xl">
+                <CardHeader className="border-b border-border pb-3">
                   <CardTitle className="text-base font-display font-bold text-foreground">Multicollinearity (VIF Proxy)</CardTitle>
                   <CardDescription className="text-[11px] font-mono text-muted-foreground">Highly Correlated Features (Redundancies)</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2 max-h-[300px] overflow-y-auto text-sm pt-4">
                   {analysis.multicollinearity.length > 0 ? (
                     analysis.multicollinearity.map((item, i) => (
-                      <div key={i} className="flex flex-col py-2.5 border-b border-border/40 last:border-0">
+                      <div key={i} className="flex flex-col py-2.5 border-b border-border last:border-0">
                         <div className="flex justify-between font-mono text-xs text-foreground font-semibold">
                           <span className="truncate max-w-[120px]">{item.features[0]}</span>
                           <ArrowRight className="h-3.5 w-3.5 text-muted-foreground mx-2 self-center shrink-0" />
@@ -679,7 +678,7 @@ export const ReportGeneration = ({
                         </div>
                         <div className="flex justify-between mt-1.5 text-[10px] font-mono text-muted-foreground">
                           <span>Correlation: <strong>{item.correlation.toFixed(2)}</strong></span>
-                          <Badge variant="destructive" className="h-4.5 text-[8px] px-1 rounded bg-red-500/10 text-red-500 border border-red-500/20 font-bold uppercase">high redundancy</Badge>
+                          <Badge variant="destructive" className="h-4.5 text-[8px] px-2 rounded-full bg-red-50 text-red-750 border border-red-205 font-bold uppercase">high redundancy</Badge>
                         </div>
                       </div>
                     ))
@@ -692,11 +691,11 @@ export const ReportGeneration = ({
 
             {/* Time-Series Analysis */}
             {analysis.time_series_analysis?.has_time_series && (
-              <Card className="md:col-span-2 border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl">
-                <CardHeader className="border-b border-border/55 pb-3">
+              <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl">
+                <CardHeader className="border-b border-border pb-3">
                   <CardTitle className="text-base font-display font-bold text-foreground flex justify-between items-center">
                     <span>Time-Series Trends & Seasonality</span>
-                    <Badge variant="outline" className="text-[10px] font-mono font-medium">
+                    <Badge variant="outline" className="text-[10px] font-mono font-medium rounded-full bg-muted/20 border-border">
                       time column: {analysis.time_series_analysis.time_column}
                     </Badge>
                   </CardTitle>
@@ -707,7 +706,7 @@ export const ReportGeneration = ({
                 <CardContent className="pt-5">
                   <div className="grid gap-4 md:grid-cols-2">
                     {analysis.time_series_analysis.analyses && Object.entries(analysis.time_series_analysis.analyses).map(([col, data]: [string, any]) => (
-                      <div key={col} className="p-3.5 bg-muted/20 border border-border/45 rounded-xl font-mono text-xs">
+                      <div key={col} className="p-3.5 bg-muted/10 border border-border rounded-xl font-mono text-xs">
                         <p className="font-display font-bold text-xs mb-2.5 text-foreground truncate">{col}</p>
                         <div className="space-y-2">
                           {/* Trend */}
@@ -716,7 +715,7 @@ export const ReportGeneration = ({
                               <span className="text-muted-foreground">Trend:</span>
                               <Badge
                                 variant={data.trend.direction === "upward" ? "default" : data.trend.direction === "downward" ? "destructive" : "secondary"}
-                                className="text-[9px] px-1 h-5 rounded"
+                                className="text-[9px] px-2 h-5 rounded-full"
                               >
                                 {data.trend.direction} ({data.trend.strength})
                               </Badge>
@@ -731,7 +730,7 @@ export const ReportGeneration = ({
                           {data.seasonality?.detected ? (
                             <div className="flex justify-between items-center">
                               <span className="text-muted-foreground">Seasonality:</span>
-                              <Badge variant="outline" className="text-[9px] px-1 h-5 rounded">
+                              <Badge variant="outline" className="text-[9px] px-2 h-5 rounded-full">
                                 {data.seasonality.primary_pattern}
                               </Badge>
                             </div>
@@ -751,11 +750,11 @@ export const ReportGeneration = ({
 
             {/* Legacy Time-Series (backward compatibility) */}
             {analysis.time_series_analysis?.is_sorted !== undefined && !analysis.time_series_analysis.has_time_series && (
-              <Card className="md:col-span-2 border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl">
-                <CardHeader className="border-b border-border/55 pb-3">
+              <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl">
+                <CardHeader className="border-b border-border pb-3">
                   <CardTitle className="text-base font-display font-bold text-foreground flex justify-between items-center">
                     <span>Time-Series Integrity Checks</span>
-                    <Badge variant={analysis.time_series_analysis.is_sorted ? "outline" : "destructive"} className="text-xs font-mono font-medium">
+                    <Badge variant={analysis.time_series_analysis.is_sorted ? "outline" : "destructive"} className="text-xs font-mono font-medium rounded-full">
                       {analysis.time_series_analysis.is_sorted ? "chronological" : "not sorted"}
                     </Badge>
                   </CardTitle>
@@ -767,16 +766,16 @@ export const ReportGeneration = ({
                   <div className="space-y-3 text-sm">
                     {analysis.time_series_analysis.drift_detected && analysis.time_series_analysis.drift_detected.length > 0 ? (
                       <div className="space-y-2.5">
-                        <p className="font-display font-bold text-amber-600 dark:text-amber-500 text-xs uppercase tracking-wider flex items-center gap-1">
+                        <p className="font-display font-bold text-amber-700 text-xs uppercase tracking-wider flex items-center gap-1">
                           <AlertTriangle className="h-3.5 w-3.5" />
                           <span>Conceptual Drift Shift &gt; 30%:</span>
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
                           {analysis.time_series_analysis.drift_detected.map((d: any, i: number) => (
-                            <div key={i} className="bg-amber-500/5 p-3 rounded-xl border border-amber-500/20 flex justify-between items-center">
+                            <div key={i} className="bg-amber-50 p-3 rounded-xl border border-amber-200 flex justify-between items-center">
                               <span className="font-bold text-foreground truncate max-w-[120px]">{d.column}</span>
                               <div className="text-right shrink-0">
-                                <span className="block text-amber-600 font-bold">swap: {d.shift_pct}%</span>
+                                <span className="block text-amber-750 font-bold">swap: {d.shift_pct}%</span>
                                 <span className="text-[10px] text-muted-foreground">{d.mean_p1} → {d.mean_p2}</span>
                               </div>
                             </div>
@@ -784,7 +783,7 @@ export const ReportGeneration = ({
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-mono text-xs py-2">
+                      <div className="flex items-center gap-2 text-emerald-700 font-mono text-xs py-2">
                         <CheckCircle2 className="h-4 w-4 shrink-0" />
                         <span>No significant mean drift detected between chronological segments of the dataset.</span>
                       </div>
@@ -796,7 +795,6 @@ export const ReportGeneration = ({
           </div>
         </div>
 
-        {/* ─── Success Badge & Action buttons ─── */}
         <div className="flex flex-col items-center text-center space-y-6 pt-4 border-t border-border/40">
           <div className="space-y-2">
             <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight flex items-center justify-center gap-2">
@@ -831,7 +829,7 @@ export const ReportGeneration = ({
           </div>
 
           {!downloadUrl && !isGenerating && (
-            <div className="p-3 rounded-xl bg-amber-500/5 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-mono flex items-center justify-center gap-2 max-w-md">
+            <div className="p-3 rounded-xl bg-amber-500/5 text-amber-600 border border-amber-500/20 text-[10px] font-mono flex items-center justify-center gap-2 max-w-md">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
               <span>If visual render buffers have timed out, refresh the pipeline to rebuild.</span>
             </div>

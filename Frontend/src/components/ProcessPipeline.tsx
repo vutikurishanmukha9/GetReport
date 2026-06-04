@@ -165,21 +165,21 @@ export const ProcessPipeline = ({
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
         >
-            <div className="bg-card/40 backdrop-blur-sm border border-border shadow-premium rounded-2xl overflow-hidden flex flex-col">
+            <div className="bg-card border border-border shadow-premium rounded-2xl overflow-hidden flex flex-col">
                 
                 {/* Header Section */}
-                <div className="px-6 pt-5 pb-4 border-b border-border/60 flex items-center justify-between bg-muted/20">
+                <div className="px-6 pt-5 pb-4 border-b border-border flex items-center justify-between bg-muted/10">
                     <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shadow-premium">
                             {isComplete ? (
-                                <CheckCircle2 className="w-4 h-4 text-emerald-500 animate-pulse" />
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-pulse" />
                             ) : (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                             )}
                         </div>
                         <div>
                             <h3 className="text-sm font-display font-bold tracking-tight text-foreground">Processing your dataset</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">
+                            <p className="text-xs text-muted-foreground mt-0.5 font-sans">
                                 AI is analyzing and generating insights
                             </p>
                         </div>
@@ -191,7 +191,7 @@ export const ProcessPipeline = ({
                         </span>
                     </div>
                 </div>
-
+ 
                 {/* Pipeline Stepper (Desktop) */}
                 <div className="px-6 py-6 overflow-x-auto hidden md:block hide-scrollbar">
                     <SaaSStepper stages={stages} />
@@ -201,9 +201,9 @@ export const ProcessPipeline = ({
                 <div className="px-6 py-6 block md:hidden">
                     <VerticalStepper stages={stages} />
                 </div>
-
+ 
                 {/* Live Status Subtext Line */}
-                <div className="border-t border-border/60 bg-muted/10 px-6 py-3.5 flex items-center gap-3 font-sans">
+                <div className="border-t border-border bg-muted/5 px-6 py-3.5 flex items-center gap-3 font-sans">
                     {/* Pulsing indicator */}
                     {!isComplete && (
                         <span className="relative flex h-2 w-2 shrink-0">
@@ -212,7 +212,7 @@ export const ProcessPipeline = ({
                         </span>
                     )}
                     {isComplete && (
-                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     )}
                     
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-1 sm:gap-4">
@@ -220,19 +220,19 @@ export const ProcessPipeline = ({
                             <span className="font-display font-bold text-foreground">
                                 {isComplete ? "Completed" : "Currently running:"}
                             </span>
-                            <span className="text-muted-foreground font-mono text-xs truncate max-w-[200px] sm:max-w-md">
-                                {message || `processing ${activeStage.label.toLowerCase()}...`}
+                            <span className="text-muted-foreground font-mono text-xs truncate max-w-[200px] sm:max-w-[300px]">
+                                {message || `processing ${activeStage.label.toLowerCase()}…`}
                             </span>
                         </div>
                         
                         {!isComplete && (
                             <span className="text-xs font-mono text-muted-foreground/60 shrink-0">
-                                please wait...
+                                please wait…
                             </span>
                         )}
                     </div>
                 </div>
-
+ 
             </div>
         </motion.div>
     );
@@ -309,7 +309,7 @@ function StepNode({ stage }: { stage: PipelineStage }) {
                             className="relative flex items-center justify-center"
                         >
                             <div className="absolute inset-0 rounded-full bg-primary/20 blur-sm" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.8)] relative z-10" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(79,70,229,0.5)] relative z-10" />
                         </motion.div>
                     )}
                     {isError && (
@@ -333,7 +333,7 @@ function StepNode({ stage }: { stage: PipelineStage }) {
 
             {/* Label & Icon */}
             <div className={`flex items-center gap-1.5 transition-colors duration-300
-                ${isCompleted ? "text-emerald-600 dark:text-emerald-400 font-medium" :
+                ${isCompleted ? "text-emerald-700 font-medium" :
                   isActive ? "text-foreground font-display font-bold" :
                   isError ? "text-destructive font-semibold" :
                   "text-muted-foreground/60 font-medium"}
@@ -370,7 +370,7 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
                                 {isActive && (
                                     <div className="relative flex items-center justify-center">
                                         <div className="absolute inset-0 rounded-full bg-primary/20 blur-sm" />
-                                        <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.8)] relative z-10" />
+                                        <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(79,70,229,0.5)] relative z-10" />
                                     </div>
                                 )}
                                 {isError && (
@@ -381,8 +381,8 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
                                 )}
                             </div>
 
-                            <span className={`text-sm tracking-tight transition-colors duration-300
-                                ${isCompleted ? "text-emerald-600 dark:text-emerald-400" :
+                             <span className={`text-sm tracking-tight transition-colors duration-300
+                                ${isCompleted ? "text-emerald-700 font-medium" :
                                 isActive ? "text-foreground font-display font-bold" :
                                 isError ? "text-destructive font-semibold" :
                                 "text-muted-foreground/60 font-medium"}

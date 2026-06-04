@@ -62,17 +62,17 @@ const Examples = () => {
 
                 {/* Features highlight */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto mb-16">
-                    <div className="p-4 border rounded-lg flex items-center gap-3">
+                    <div className="p-4 border border-border/80 bg-card rounded-xl shadow-premium flex items-center gap-3">
                         <Gauge className="h-8 w-8 text-primary" />
                         <div>
-                            <h4 className="font-semibold">Confidence Grades</h4>
+                            <h4 className="font-semibold text-foreground">Confidence Grades</h4>
                             <p className="text-sm text-muted-foreground">A-F scores for every column</p>
                         </div>
                     </div>
-                    <div className="p-4 border rounded-lg flex items-center gap-3">
+                    <div className="p-4 border border-border/80 bg-card rounded-xl shadow-premium flex items-center gap-3">
                         <Brain className="h-8 w-8 text-primary" />
                         <div>
-                            <h4 className="font-semibold">Why I Did X</h4>
+                            <h4 className="font-semibold text-foreground">Why I Did X</h4>
                             <p className="text-sm text-muted-foreground">Full decision transparency</p>
                         </div>
                     </div>
@@ -80,23 +80,23 @@ const Examples = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
                     {examples.map((example, index) => (
-                        <Card key={index} className="hover:shadow-md transition-shadow group">
-                            <CardHeader>
-                                <div className="h-32 bg-muted rounded-md mb-4 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
-                                    <example.icon className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <Card key={index} className="hover:shadow-lg transition-all duration-200 group rounded-2xl border border-border/80 bg-card shadow-premium">
+                            <CardHeader className="pb-3">
+                                <div className="h-32 bg-muted/65 rounded-xl mb-4 flex items-center justify-center group-hover:bg-primary/5 transition-colors border border-border/40">
+                                    <example.icon className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-all duration-200 group-hover:scale-105" />
                                 </div>
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                    <span className="text-[10px] font-mono font-bold bg-primary/10 text-primary px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                                         {example.domain}
                                     </span>
                                 </div>
-                                <CardTitle>{example.title}</CardTitle>
-                                <CardDescription>{example.description}</CardDescription>
+                                <CardTitle className="font-display font-bold text-lg text-foreground uppercase tracking-tight">{example.title}</CardTitle>
+                                <CardDescription className="text-xs text-muted-foreground">{example.description}</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-wrap gap-1">
+                            <CardContent className="pt-0">
+                                <div className="flex flex-wrap gap-1.5">
                                     {example.features.map((feature, i) => (
-                                        <span key={i} className="text-xs bg-muted px-2 py-1 rounded">
+                                        <span key={i} className="text-[10px] font-mono bg-muted/60 text-muted-foreground px-2 py-0.5 rounded border border-transparent hover:border-border transition-all">
                                             {feature}
                                         </span>
                                     ))}

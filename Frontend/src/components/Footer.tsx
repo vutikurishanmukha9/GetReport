@@ -1,59 +1,60 @@
-/* Hallmark · component: footer · genre: modern-minimal · theme: Quiet
- * macrostructure: Statement knobs: width=38ch, wordmark=bottom-left, rule=hairline
- * contrast: pass
- */
-
 import { FileSpreadsheet } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const Footer = () => {
   return (
-    <footer className="border-t border-border/70 bg-muted/20 py-12 sm:py-16 mt-auto">
+    <footer className="border-t border-border bg-card py-16 mt-auto">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
-        <div className="space-y-12 text-left">
-          
-          {/* Main bold Statement (Ft5) */}
-          <div className="max-w-xl">
-            <h3 className="text-xl sm:text-2xl font-display font-bold tracking-tight text-foreground leading-snug">
-              Turn raw datasets into professional, publication-ready reports in seconds.
-            </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-3 leading-relaxed">
-              GetReport processes your data securely. Uploaded files are evaluated for constraints locally and deleted automatically after processing.
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 pb-12">
+          {/* Brand Col */}
+          <div className="space-y-4 md:col-span-1">
+            <div className="flex items-center gap-2 text-foreground font-semibold">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-premium">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+              </div>
+              <span className="font-display font-bold text-base tracking-tight">GetReport</span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Turn raw datasets into professional, publication-ready reports in seconds with in-memory security.
             </p>
           </div>
 
-          {/* Hairline separator */}
-          <div className="h-px bg-border/60" />
-
-          {/* Bottom metadata and clean inline link row */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 font-mono text-[11px] sm:text-xs">
-            
-            {/* Wordmark bottom left */}
-            <div className="flex items-center gap-2 text-foreground font-semibold">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-premium">
-                <FileSpreadsheet className="h-3 w-3" />
-              </div>
-              <span className="font-display font-bold text-sm">GetReport</span>
-            </div>
-
-            {/* Flat links row aligned with bottom */}
-            <div className="flex flex-wrap gap-x-6 gap-y-3 text-muted-foreground">
-              <Link to="/features" className="hover:text-foreground hover:underline transition-colors duration-150">features</Link>
-              <Link to="/how-it-works" className="hover:text-foreground hover:underline transition-colors duration-150">how it works</Link>
-              <Link to="/pricing" className="hover:text-foreground hover:underline transition-colors duration-150">pricing</Link>
-              <Link to="/documentation" className="hover:text-foreground hover:underline transition-colors duration-150">docs</Link>
-              <Link to="/contact" className="hover:text-foreground hover:underline transition-colors duration-150">contact</Link>
-              <Link to="/privacy-policy" className="hover:text-foreground hover:underline transition-colors duration-150">privacy</Link>
-              <Link to="/terms-of-service" className="hover:text-foreground hover:underline transition-colors duration-150">terms</Link>
-            </div>
-
-            {/* Copyright */}
-            <span className="text-muted-foreground self-start sm:self-center font-mono">
-              © {new Date().getFullYear()} GetReport.
-            </span>
-
+          {/* Links Cols */}
+          <div>
+            <h4 className="text-xs font-display font-bold text-foreground uppercase tracking-wider mb-4">Product</h4>
+            <ul className="space-y-2.5 text-xs text-muted-foreground font-sans">
+              <li><Link to="/features" className="hover:text-foreground hover:underline transition-colors">features</Link></li>
+              <li><Link to="/how-it-works" className="hover:text-foreground hover:underline transition-colors">how it works</Link></li>
+              <li><Link to="/pricing" className="hover:text-foreground hover:underline transition-colors">pricing</Link></li>
+            </ul>
           </div>
 
+          <div>
+            <h4 className="text-xs font-display font-bold text-foreground uppercase tracking-wider mb-4">Resources</h4>
+            <ul className="space-y-2.5 text-xs text-muted-foreground font-sans">
+              <li><Link to="/documentation" className="hover:text-foreground hover:underline transition-colors">documentation</Link></li>
+              <li><Link to="/api" className="hover:text-foreground hover:underline transition-colors">api reference</Link></li>
+              <li><Link to="/examples" className="hover:text-foreground hover:underline transition-colors">examples</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-xs font-display font-bold text-foreground uppercase tracking-wider mb-4">Company</h4>
+            <ul className="space-y-2.5 text-xs text-muted-foreground font-sans">
+              <li><Link to="/contact" className="hover:text-foreground hover:underline transition-colors">contact sales</Link></li>
+              <li><Link to="/privacy-policy" className="hover:text-foreground hover:underline transition-colors">privacy policy</Link></li>
+              <li><Link to="/terms-of-service" className="hover:text-foreground hover:underline transition-colors">terms of service</Link></li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Hairline separator */}
+        <div className="h-px bg-border/60" />
+
+        {/* Bottom copyright */}
+        <div className="pt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 font-mono text-[10px] text-muted-foreground">
+          <span>© {new Date().getFullYear()} GetReport Inc. Ephemeral in-memory calculation engine.</span>
+          <span>All rights reserved.</span>
         </div>
       </div>
     </footer>

@@ -57,7 +57,7 @@ export const Pricing = () => {
                 {[
                   "Unlimited Dataset Uploads (CSV/XLSX)",
                   "Column Confidence Scores (A-F Grades)",
-                  "\"Why I Did X\" Decision Transparency logs",
+                  "“Why I Did X” Decision Transparency logs",
                   "Semantic Domain Detection & mapping",
                   "Pearson correlations & VIF multicollinearity",
                   "AI-Powered RAG Insights & Chat companion",
@@ -66,7 +66,7 @@ export const Pricing = () => {
                   "Matplotlib high-DPI visual charts",
                 ].map((feature) => (
                   <li key={feature} className="flex items-start gap-3 text-muted-foreground font-sans">
-                    <div className="h-4.5 w-4.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold">
+                    <div className="h-4.5 w-4.5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold">
                       ✓
                     </div>
                     <span>{feature}</span>
@@ -93,7 +93,7 @@ export const Pricing = () => {
           </div>
 
           <div className="grid gap-4">
-            <Card className="border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-xl p-5 space-y-2">
+            <Card className="border border-border bg-card shadow-premium rounded-xl p-5 space-y-2">
               <h3 className="font-display font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
                 <HelpCircle className="h-4 w-4 text-primary shrink-0" />
                 <span>Is it really free?</span>
@@ -103,7 +103,7 @@ export const Pricing = () => {
               </p>
             </Card>
 
-            <Card className="border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-xl p-5 space-y-2">
+            <Card className="border border-border bg-card shadow-premium rounded-xl p-5 space-y-2">
               <h3 className="font-display font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
                 <HelpCircle className="h-4 w-4 text-primary shrink-0" />
                 <span>What happens to my uploaded data?</span>
@@ -113,7 +113,7 @@ export const Pricing = () => {
               </p>
             </Card>
 
-            <Card className="border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-xl p-5 space-y-2">
+            <Card className="border border-border bg-card shadow-premium rounded-xl p-5 space-y-2">
               <h3 className="font-display font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
                 <HelpCircle className="h-4 w-4 text-primary shrink-0" />
                 <span>Are there file limit caps?</span>

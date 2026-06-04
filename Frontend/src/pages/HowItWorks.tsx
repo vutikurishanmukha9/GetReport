@@ -66,17 +66,17 @@ export const HowItWorks = () => {
         <div className="max-w-3xl mx-auto relative pl-6 sm:pl-8 border-l border-border/70 space-y-12">
           
           {steps.map((step) => (
-            <div key={step.id} className="relative group">
+            <div key={step.id} className="relative group pl-2 sm:pl-4">
               {/* Connected Circle Bullet */}
-              <div className="absolute -left-[39px] sm:-left-[47px] top-1.5 h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-background border border-border group-hover:border-primary flex items-center justify-center transition-colors duration-200 z-10">
-                <step.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+              <div className="absolute -left-[39px] sm:-left-[47px] top-6 h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-background border border-border group-hover:border-primary flex items-center justify-center transition-colors duration-200 z-10 shadow-sm">
+                <step.icon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
               </div>
 
-              {/* Step content */}
-              <div className="space-y-3">
+              {/* Step content card */}
+              <div className="border border-border/80 bg-card p-6 rounded-2xl shadow-premium space-y-3 hover:-translate-y-0.5 transition-all duration-200">
                 <div className="flex items-center gap-3">
-                  <span className="text-xl sm:text-2xl font-mono font-bold text-muted-foreground/30">{step.id}</span>
-                  <h3 className="text-lg sm:text-xl font-display font-bold text-foreground uppercase tracking-tight">{step.title}</h3>
+                  <span className="text-lg sm:text-xl font-mono font-bold text-primary/45">{step.id}</span>
+                  <h3 className="text-base sm:text-lg font-display font-bold text-foreground uppercase tracking-tight">{step.title}</h3>
                 </div>
 
                 <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl font-sans">

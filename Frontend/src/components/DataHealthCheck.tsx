@@ -58,13 +58,13 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
             {/* ─── Global Warnings ─── */}
             {report.issues.filter(i => i.column === "Multiple").map((issue, idx) => (
-                <div key={idx} className="bg-destructive/5 dark:bg-destructive/10 border border-destructive/20 p-4 mb-6 rounded-xl flex items-start gap-3">
+                <div key={idx} className="bg-destructive/5 border border-destructive/20 p-4 mb-6 rounded-xl flex items-start gap-3">
                     <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                     <div>
                         <h4 className="text-sm font-bold text-destructive uppercase tracking-wide">
                             {issue.type === 'partial_duplicates' ? "Ambiguous Data Detected" : "Warning"}
                         </h4>
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <p className="text-sm text-muted-foreground mt-1 font-sans">
                             {issue.type === 'partial_duplicates'
                                 ? `Found ${issue.count} rows that look identical but have different IDs (Partial Duplicates).`
                                 : issue.suggestion}
@@ -76,37 +76,32 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {report.columns.map((col) => {
                     const issue = report.issues.find(i => i.column === col.name);
-                    // Special case: partial_duplicates has column="Multiple", but we want to show it somewhere.
-                    // Actually, partial_duplicates is a dataset-level issue, not column-specific.
-                    // We should render it separately or attach to "Multiple"?
-                    // Current logic iterates columns. Let's create a global warnings section.
-
                     const hasIssue = col.missing_count > 0 || (issue && ['outliers', 'high_cardinality', 'class_imbalance'].includes(issue.type));
 
                     if (!hasIssue) return null;
 
                     return (
-                        <Card key={col.name} className="border border-border/80 bg-card hover:border-border transition-all duration-200 rounded-xl shadow-sm">
+                        <Card key={col.name} className="border border-border bg-card hover:shadow-md transition-all duration-200 rounded-xl shadow-premium">
                             <CardHeader className="pb-3">
                                 <div className="flex justify-between items-start">
-                                    <CardTitle className="text-lg font-medium truncate" title={col.name}>
+                                    <CardTitle className="text-lg font-medium truncate font-display font-semibold" title={col.name}>
                                         {col.name}
                                     </CardTitle>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger>
-                                                <Badge variant="outline" className="text-xs">
+                                                <Badge variant="outline" className="text-[10px] font-mono rounded-full bg-muted/20 border-border">
                                                     {col.inferred_type}
                                                 </Badge>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                <p>Inferred Type: {col.inferred_type}</p>
+                                                <p className="text-xs font-mono">Inferred Type: {col.inferred_type}</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                 </div>
-                                <CardDescription className="flex items-center gap-1 text-yellow-600">
-                                    <AlertTriangle className="h-3 w-3" />
+                                <CardDescription className="flex items-center gap-1 text-amber-700 font-mono text-xs font-semibold">
+                                    <AlertTriangle className="h-3.5 w-3.5" />
                                     {issue?.type === 'outliers'
                                         ? `${issue.count} outliers detected`
                                         : issue?.type === 'high_cardinality'
@@ -119,8 +114,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             </CardHeader>
 
                             <CardContent className="pb-3">
-                                <div className="space-y-1 text-sm text-muted-foreground">
-                                    <p>Auto-suggestion: <b>{issue?.suggestion || "Ignore"}</b></p>
+                                <div className="space-y-1 text-xs text-muted-foreground font-mono">
+                                    <p>Auto-suggestion: <span className="font-semibold text-foreground">{issue?.suggestion || "Ignore"}</span></p>
                                 </div>
                                 {col.distribution && <SparklineHistogram data={col.distribution} />}
                             </CardContent>
@@ -130,7 +125,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                     value={getActionForColumn(col.name)}
                                     onValueChange={(val) => handleActionChange(col.name, val)}
                                 >
-                                    <SelectTrigger className="w-full">
+                                    <SelectTrigger className="w-full bg-white border-border rounded-lg text-xs">
                                         <SelectValue placeholder="Select action…" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -169,26 +164,26 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             </div>
 
             {report.issues.length === 0 && (
-                <div className="text-center p-8 border-2 border-dashed rounded-lg bg-muted/50">
-                    <Check className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium">Your data looks clean!</h3>
-                    <p className="text-muted-foreground">No critical issues found.</p>
+                <div className="text-center p-8 border border-dashed border-border rounded-xl bg-white shadow-premium">
+                    <Check className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-display font-bold text-foreground">Your data looks clean!</h3>
+                    <p className="text-sm text-muted-foreground mt-1">No critical issues found.</p>
                 </div>
             )}
 
 
             {/* ─── DATA PREVIEW (Added heavily requested feature) ─── */}
             {report.preview && report.preview.length > 0 && (
-                <div className="border rounded-md shadow-sm overflow-hidden">
-                    <div className="bg-muted/50 px-4 py-3 border-b">
-                        <h3 className="text-sm font-medium">Data Preview (First 5 Rows)</h3>
+                <div className="border border-border bg-card shadow-premium rounded-2xl overflow-hidden">
+                    <div className="bg-muted/10 px-4 py-3 border-b border-border">
+                        <h3 className="text-sm font-display font-semibold text-foreground">Data Preview (First 5 Rows)</h3>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-muted/20 text-muted-foreground font-medium">
+                        <table className="w-full text-sm text-left border-collapse">
+                            <thead className="bg-muted/30 text-foreground font-semibold">
                                 <tr>
                                     {Object.keys(report.preview[0]).map((header) => (
-                                        <th key={header} className="px-4 py-2 border-b whitespace-nowrap">
+                                        <th key={header} className="px-4 py-2.5 border-b border-r border-border whitespace-nowrap font-mono text-xs last:border-r-0">
                                             {header}
                                         </th>
                                     ))}
@@ -196,9 +191,9 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             </thead>
                             <tbody>
                                 {report.preview.map((row, idx) => (
-                                    <tr key={idx} className="border-b last:border-0 hover:bg-muted/10">
+                                    <tr key={idx} className="border-b border-border last:border-0 hover:bg-muted/10">
                                         {Object.values(row).map((cell: any, cIdx) => (
-                                            <td key={cIdx} className="px-4 py-2 whitespace-nowrap max-w-[200px] truncate" title={String(cell)}>
+                                            <td key={cIdx} className="px-4 py-2 border-r border-border font-mono text-xs whitespace-nowrap max-w-[200px] truncate last:border-r-0" title={String(cell)}>
                                                 {cell === null ? <span className="text-muted-foreground italic">null</span> : String(cell)}
                                             </td>
                                         ))}
@@ -216,7 +211,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     size="lg"
                     onClick={handleSubmit}
                     disabled={isProcessing}
-                    className="w-full sm:w-auto min-w-[200px]"
+                    className="w-full sm:w-auto min-w-[200px] rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95"
                 >
                     {isProcessing ? (
                         "Processing…"

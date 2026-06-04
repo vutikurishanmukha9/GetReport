@@ -42,7 +42,7 @@ const Documentation = () => {
                         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                             <BookOpen className="h-6 w-6 text-primary" /> Getting Started
                         </h2>
-                        <div className="prose prose-slate dark:prose-invert max-w-none">
+                        <div className="prose prose-slate max-w-none">
                             <p>
                                 GetReport transforms raw spreadsheets into professional, auditable reports.
                                 Every analysis decision is explained. Every column is graded. Every action is transparent.
@@ -153,8 +153,8 @@ const Documentation = () => {
                             <AccordionItem value="item-4">
                                 <AccordionTrigger>Why was a specific analysis skipped?</AccordionTrigger>
                                 <AccordionContent>
-                                    Check the "Analysis Decisions" section in your PDF report. Each skipped analysis includes
-                                    a reason (e.g., "Time-series skipped: no datetime columns detected" or "Correlation skipped: fewer than 2 numeric columns").
+                                    Check the “Analysis Decisions” section in your PDF report. Each skipped analysis includes
+                                    a reason (e.g., “Time-series skipped: no datetime columns detected” or “Correlation skipped: fewer than 2 numeric columns”).
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>

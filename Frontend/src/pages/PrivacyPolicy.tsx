@@ -31,7 +31,7 @@ const PrivacyPolicy = () => {
                     </div>
                 </div>
 
-                <div className="prose prose-slate dark:prose-invert max-w-none space-y-8">
+                <div className="prose prose-slate max-w-none space-y-8">
                     <section>
                         <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                             <Database className="h-5 w-5" /> 1. Data Collection
@@ -71,7 +71,7 @@ const PrivacyPolicy = () => {
                     <section>
                         <h2 className="text-2xl font-semibold mb-4">5. Your Rights</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            You have the right to: (a) know what data we have about you, (b) request deletion of your data, (c) opt out of any analytics, and (d) export your generated reports. Since we don't store your raw data after processing, there's nothing to delete our system is privacy-by-design.
+                            You have the right to: (a) know what data we have about you, (b) request deletion of your data, (c) opt out of any analytics, and (d) export your generated reports. Since we don’t store your raw data after processing, there’s nothing to delete; our system is privacy-by-design.
                         </p>
                     </section>
 

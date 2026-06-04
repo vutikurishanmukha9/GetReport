@@ -46,7 +46,7 @@ export const Features = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           
           {/* Card 1: Column Confidence Scores (col-span-2) */}
-          <Card className="md:col-span-2 border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group overflow-hidden relative">
+          <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none" />
             <div className="space-y-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
@@ -55,7 +55,7 @@ export const Features = () => {
               <div className="space-y-2">
                 <h3 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
                   <span>Column Confidence Scores</span>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[9px] font-mono">NEW</Badge>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[9px] font-mono rounded-full">NEW</Badge>
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
                   Every column undergoes multi-dimensional testing—Completeness, Consistency, Validity, and Stability. Rated from A to F so you know exactly what is clean.
@@ -64,28 +64,28 @@ export const Features = () => {
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 border border-border/50 bg-muted/30 rounded-xl p-3.5 font-mono text-[10px] space-y-2 max-w-md">
-              <div className="flex justify-between items-center border-b border-border/30 pb-2">
+            <div className="mt-8 border border-border bg-white rounded-xl p-3.5 font-mono text-[10px] space-y-2 max-w-md shadow-xs">
+              <div className="flex justify-between items-center border-b border-border pb-2">
                 <span className="font-bold text-foreground">Variable trust ledger</span>
                 <span className="text-muted-foreground">confidence %</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 h-5 px-1 rounded text-[8px] font-bold">A</Badge> customer_id</span>
-                <span className="text-emerald-500 font-semibold">100.0%</span>
+                <span className="flex items-center gap-1.5"><Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 h-5 px-2 rounded-full text-[8px] font-bold">A</Badge> customer_id</span>
+                <span className="text-emerald-600 font-semibold">100.0%</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 h-5 px-1 rounded text-[8px] font-bold">B</Badge> total_purchase</span>
-                <span className="text-blue-500 font-semibold">89.4%</span>
+                <span className="flex items-center gap-1.5"><Badge className="bg-blue-50 text-blue-700 border border-blue-200 h-5 px-2 rounded-full text-[8px] font-bold">B</Badge> total_purchase</span>
+                <span className="text-blue-600 font-semibold">89.4%</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1.5"><Badge className="bg-red-500/15 text-red-650 dark:text-red-400 h-5 px-1 rounded text-[8px] font-bold">F</Badge> referral_code</span>
-                <span className="text-red-500 font-semibold">18.5%</span>
+                <span className="flex items-center gap-1.5"><Badge className="bg-red-50 text-red-750 border border-red-200 h-5 px-2 rounded-full text-[8px] font-bold">F</Badge> referral_code</span>
+                <span className="text-red-600 font-semibold">18.5%</span>
               </div>
             </div>
           </Card>
 
           {/* Card 2: Why I Did X Explanations (col-span-1) */}
-          <Card className="md:col-span-1 border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group relative">
+          <Card className="md:col-span-1 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group relative">
             <div className="space-y-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                 <HelpCircle className="h-5 w-5" />
@@ -93,7 +93,7 @@ export const Features = () => {
               <div className="space-y-2">
                 <h3 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
                   <span>Explainable Auditing</span>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[9px] font-mono">NEW</Badge>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[9px] font-mono rounded-full">NEW</Badge>
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   Total transparency for every step in the pipeline. Understand exactly why an analysis ran or was skipped.
@@ -102,15 +102,15 @@ export const Features = () => {
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 border border-border/50 bg-muted/30 rounded-xl p-3 font-mono text-[9px] space-y-1">
+            <div className="mt-8 border border-border bg-white rounded-xl p-3 font-mono text-[9px] space-y-1 shadow-xs">
               <div className="text-[8px] text-muted-foreground font-bold tracking-wider uppercase">Pipeline Logs</div>
-              <div className="text-amber-500">▶ SKIP: Time-Series Integrity check</div>
+              <div className="text-amber-700 font-semibold">▶ SKIP: Time-Series Integrity check</div>
               <div className="text-muted-foreground/80 pl-2">↳ Cause: Column "date" does not exist</div>
             </div>
           </Card>
 
           {/* Card 3: Semantic Intelligence (col-span-1) */}
-          <Card className="md:col-span-1 border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group relative">
+          <Card className="md:col-span-1 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group relative">
             <div className="space-y-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                 <Target className="h-5 w-5" />
@@ -118,23 +118,23 @@ export const Features = () => {
               <div className="space-y-2">
                 <h3 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
                   <span>Semantic Role AI</span>
-                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[9px] font-mono">NEW</Badge>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[9px] font-mono rounded-full">NEW</Badge>
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                  Automatic schema detection. Classifies variables as categorical targets, timestamps, continuous metrics, or indicators.
+                  Automatic schema detection. Classifies variables as targets, timestamps, metrics, or tags.
                 </p>
               </div>
             </div>
 
             {/* Visual Micro Mockup */}
             <div className="mt-8 flex gap-2 font-mono text-[9px]">
-              <span className="px-1.5 py-0.5 bg-muted rounded border border-border/60 text-muted-foreground">email ➔ ID</span>
-              <span className="px-1.5 py-0.5 bg-primary/5 rounded border border-primary/20 text-primary">gpa ➔ NUMERIC</span>
+              <span className="px-2 py-1 bg-white rounded-full border border-border text-muted-foreground shadow-xs">email ➔ ID</span>
+              <span className="px-2 py-1 bg-primary/5 rounded-full border border-primary/20 text-primary shadow-xs">gpa ➔ NUMERIC</span>
             </div>
           </Card>
 
           {/* Card 4: Intelligent Hygiene (col-span-2) */}
-          <Card className="md:col-span-2 border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group overflow-hidden relative">
+          <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group overflow-hidden relative">
             <div className="space-y-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                 <Wand2 className="h-5 w-5" />
@@ -148,15 +148,15 @@ export const Features = () => {
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 border border-border/50 bg-muted/30 rounded-xl p-3.5 font-mono text-[10px] space-y-1.5 max-w-md">
+            <div className="mt-8 border border-border bg-white rounded-xl p-3.5 font-mono text-[10px] space-y-1.5 max-w-md shadow-xs">
               <div className="text-[8px] text-muted-foreground font-bold uppercase">Operations report</div>
-              <div className="text-foreground">✓ Dropped <span className="text-emerald-500 font-semibold">142</span> duplicate rows</div>
-              <div className="text-foreground">✓ Replaced <span className="text-emerald-500 font-semibold">12</span> numerical NaNs with Mean</div>
+              <div className="text-foreground">✓ Dropped <span className="text-emerald-700 font-semibold">142</span> duplicate rows</div>
+              <div className="text-foreground">✓ Replaced <span className="text-emerald-700 font-semibold">12</span> numerical NaNs with Mean</div>
             </div>
           </Card>
 
           {/* Card 5: Auto-Visualization (col-span-1) */}
-          <Card className="md:col-span-1 border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group relative">
+          <Card className="md:col-span-1 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group relative">
             <div className="space-y-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                 <BarChart3 className="h-5 w-5" />
@@ -164,13 +164,13 @@ export const Features = () => {
               <div className="space-y-2">
                 <h3 className="text-lg font-display font-bold text-foreground">Auto-Visualizer</h3>
                 <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                  Frictionless Matplotlib rendering. Produces correlation heatmaps, histogram spreads, and bivariate scatter trends automatically.
+                  Frictionless Matplotlib rendering. Produces correlation heatmaps, histograms, and scatter plots.
                 </p>
               </div>
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 flex items-end justify-center h-16 gap-1.5 border-b border-border/60 pb-2">
+            <div className="mt-8 flex items-end justify-center h-16 gap-1.5 border-b border-border pb-2">
               <div className="w-4 bg-primary/30 h-1/3 rounded-t-sm" />
               <div className="w-4 bg-primary/50 h-2/3 rounded-t-sm" />
               <div className="w-4 bg-primary h-full rounded-t-sm" />
@@ -179,7 +179,7 @@ export const Features = () => {
           </Card>
 
           {/* Card 6: Board-Ready Reports (col-span-1) */}
-          <Card className="md:col-span-1 border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group relative">
+          <Card className="md:col-span-1 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group relative">
             <div className="space-y-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                 <FileText className="h-5 w-5" />
@@ -194,15 +194,15 @@ export const Features = () => {
 
             {/* Visual Micro Mockup */}
             <div className="mt-8 flex justify-center">
-              <div className="border border-border/70 rounded bg-muted/30 p-1.5 flex items-center gap-1.5 shadow-sm text-[9px] font-mono">
-                <FileText className="h-3 w-3 text-red-500" />
+              <div className="border border-border rounded bg-white p-1.5 flex items-center gap-1.5 shadow-sm text-[9px] font-mono">
+                <FileText className="h-3 w-3 text-red-600" />
                 <span>executive_summary.pdf</span>
               </div>
             </div>
           </Card>
 
           {/* Card 7: Context-Aware AI (col-span-2) */}
-          <Card className="md:col-span-2 border border-border bg-card/45 backdrop-blur-sm shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group overflow-hidden relative">
+          <Card className="md:col-span-2 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col justify-between group overflow-hidden relative">
             <div className="space-y-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
                 <Brain className="h-5 w-5" />
@@ -216,13 +216,13 @@ export const Features = () => {
             </div>
 
             {/* Visual Micro Mockup */}
-            <div className="mt-8 border border-border/50 bg-muted/30 rounded-xl p-3 max-w-md space-y-2 text-[10px] font-sans">
+            <div className="mt-8 border border-border bg-white rounded-xl p-3 max-w-md space-y-2 text-[10px] font-sans shadow-xs">
               <div className="flex gap-2">
-                <Badge className="bg-primary text-primary-foreground h-5 px-1 rounded text-[8px] shrink-0 font-mono">User</Badge>
+                <Badge className="bg-primary text-primary-foreground h-5 px-2 rounded-full text-[8px] shrink-0 font-mono">User</Badge>
                 <p className="text-foreground/80 leading-snug">What does the purchasing distribution imply?</p>
               </div>
-              <div className="flex gap-2 border-t border-border/30 pt-2">
-                <Badge className="bg-muted text-muted-foreground border h-5 px-1 rounded text-[8px] shrink-0 font-mono">AI</Badge>
+              <div className="flex gap-2 border-t border-border pt-2">
+                <Badge className="bg-muted text-muted-foreground border h-5 px-2 rounded-full text-[8px] shrink-0 font-mono">AI</Badge>
                 <p className="text-muted-foreground/90 leading-snug">
                   The distribution is right-skewed [1], meaning a few high-value customers contribute 80% of revenue…
                 </p>
@@ -249,14 +249,14 @@ export const Features = () => {
               </h3>
               <ul className="space-y-4">
                 <li className="flex gap-3">
-                  <div className="h-5 w-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 text-xs font-bold">✓</div>
+                  <div className="h-5 w-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 text-xs font-bold">✓</div>
                   <div>
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground">PII Masking By Design</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">Sensitive strings, email handles, and phone coordinates are automatically parsed and masked before model analysis.</p>
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <div className="h-5 w-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 text-xs font-bold">✓</div>
+                  <div className="h-5 w-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 text-xs font-bold">✓</div>
                   <div>
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground">Zero Retention Limits</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">Datasets are processed directly inside ephemeral, volatile memory buffers and destroyed immediately upon pipeline exit.</p>
@@ -272,14 +272,14 @@ export const Features = () => {
               </h3>
               <ul className="space-y-4">
                 <li className="flex gap-3">
-                  <div className="h-5 w-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 text-xs font-bold">✓</div>
+                  <div className="h-5 w-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 text-xs font-bold">✓</div>
                   <div>
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground">Polars Query Optimization</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">Processes datasets with 200k+ rows in sub-second times using multi-threaded Rust query structures.</p>
                   </div>
                 </li>
                 <li className="flex gap-3">
-                  <div className="h-5 w-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 text-xs font-bold">✓</div>
+                  <div className="h-5 w-5 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 text-xs font-bold">✓</div>
                   <div>
                     <h4 className="text-xs sm:text-sm font-semibold text-foreground">Asynchronous Task Workers</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">Celery tasks execute heavy stats computations in isolated containers, maintaining UI responsiveness via WebSockets.</p>

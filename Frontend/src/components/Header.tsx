@@ -13,7 +13,7 @@ import {
   SheetTrigger,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { ThemeToggle } from "@/components/ThemeToggle";
+
 
 interface HeaderProps {
   onReset: () => void;
@@ -53,24 +53,24 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
             >
               how it works
             </Link>
-            <div className="h-4 w-px bg-border/60 mx-1" />
-            <ThemeToggle />
             {showReset && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onReset} 
-                className="gap-2 rounded-full shadow-premium border-border/80 transition-all duration-150 hover:-translate-y-0.5 active:scale-95"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Start Over
-              </Button>
+              <>
+                <div className="h-4 w-px bg-border/60 mx-1" />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onReset} 
+                  className="gap-2 rounded-full shadow-premium border-border/80 transition-all duration-150 hover:-translate-y-0.5 active:scale-95"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Start Over
+                </Button>
+              </>
             )}
           </nav>
  
           {/* Mobile Menu */}
           <div className="flex md:hidden items-center gap-2">
-            <ThemeToggle />
             {showReset && (
               <Button 
                 variant="ghost" 
