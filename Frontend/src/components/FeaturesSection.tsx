@@ -1,114 +1,176 @@
+/* Hallmark · component: features · genre: modern-minimal · theme: Quiet
+ * macrostructure: Bento Grid knobs: tiles=5, spans=mosaic, border=hairline
+ * contrast: pass
+ */
+
 import { 
   Wand2, 
   BarChart3, 
   FileText, 
-  Sparkles, 
-  Shield, 
-  Clock 
+  ShieldCheck, 
+  MessageSquareCode,
+  TrendingUp,
+  CheckCircle2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { motion, type Variants } from "framer-motion";
-
-const features = [
-  {
-    icon: Wand2,
-    title: "Auto Data Cleaning",
-    description: "Automatically handles missing values, duplicates, and data type corrections.",
-  },
-  {
-    icon: BarChart3,
-    title: "Smart Charts",
-    description: "Generates the right visualizations based on your data structure automatically.",
-  },
-  {
-    icon: Sparkles,
-    title: "AI Insights",
-    description: "Plain English explanations of patterns, trends, and key findings in your data.",
-  },
-  {
-    icon: FileText,
-    title: "PDF Export",
-    description: "Download a professional, ready-to-share report with one click.",
-  },
-  {
-    icon: Shield,
-    title: "Secure Processing",
-    description: "Your data is processed securely and never stored permanently.",
-  },
-  {
-    icon: Clock,
-    title: "Instant Results",
-    description: "Get your complete analytical report in seconds, not hours.",
-  },
-];
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
-  },
-};
 
 export const FeaturesSection = () => {
   return (
-    <section id="features" className="py-12 sm:py-16 md:py-20 lg:py-24 bg-muted/30">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div 
-          className="text-center mb-10 sm:mb-12 md:mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.5 }}
-        >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
-            Everything Happens Automatically
+    <section id="features" className="py-16 sm:py-20 md:py-24 bg-muted/20 border-t">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
+        
+        {/* Left-aligned clean Section Header (no eyebrows, no left-right two-col headers) */}
+        <div className="max-w-2xl text-left mb-12 sm:mb-16 space-y-3">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+            Built for visual data transparency
           </h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-            No configuration needed. Just upload your data and get a complete report.
+          <p className="text-base sm:text-lg text-muted-foreground">
+            GetReport automates complex profiling pipelines without sacrificing auditable user oversight.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div 
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-        >
-          {features.map((feature, index) => (
-            <motion.div key={index} variants={cardVariants}>
-              <Card className="group hover:shadow-lg transition-all duration-300 h-full">
-                <CardContent className="p-5 sm:p-6">
-                  <motion.div 
-                    className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-primary/10 text-primary mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ type: "spring", stiffness: 400 }}
-                  >
-                    <feature.icon className="h-5 w-5 sm:h-6 sm:w-6" />
-                  </motion.div>
-                  <h3 className="text-base sm:text-lg font-semibold mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm sm:text-base text-muted-foreground">
-                    {feature.description}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
+        {/* Bento Grid (F1 Bento Layout) - 5 Tiles in mixed spans */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          
+          {/* Tile 1: Auto Data Cleaning (lg:col-span-2 lg:row-span-2) */}
+          <Card className="lg:col-span-2 lg:row-span-2 border bg-card flex flex-col justify-between transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+            <CardContent className="p-6 sm:p-8 flex flex-col h-full justify-between gap-6">
+              <div className="space-y-3 text-left">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                  <Wand2 className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold">Interactive Data Cleaning</h3>
+                <p className="text-sm sm:text-base text-muted-foreground max-w-md">
+                  Inspect identified anomalies, duplicates, and type mismatches in real-time. Approve or reject suggested transformations within the active Issue Ledger.
+                </p>
+              </div>
+
+              {/* Pure CSS Mockup of the Issue Ledger */}
+              <div className="border bg-muted/20 rounded-xl p-4 font-mono text-[11px] sm:text-xs text-muted-foreground space-y-2">
+                <div className="flex items-center justify-between text-xs text-foreground font-semibold border-b pb-2">
+                  <span>Detected Anomaly</span>
+                  <span>Cleaning Action</span>
+                  <span>Status</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-dashed pb-1.5 pt-1.5">
+                  <span className="truncate max-w-[120px]">age (null values)</span>
+                  <span className="text-primary">fill_mean</span>
+                  <span className="text-emerald-600 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded">Approved</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-dashed pb-1.5 pt-1.5">
+                  <span className="truncate max-w-[120px]">revenue (negative values)</span>
+                  <span className="text-primary">drop_row</span>
+                  <span className="text-amber-600 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded">Pending</span>
+                </div>
+                <div className="flex items-center justify-between pt-1.5">
+                  <span className="truncate max-w-[120px]">join_date (string)</span>
+                  <span className="text-primary">to_datetime</span>
+                  <span className="text-emerald-600 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded">Approved</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tile 2: Smart Chart Visualization (lg:col-span-1) */}
+          <Card className="border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+            <CardContent className="p-6 flex flex-col justify-between h-full gap-4">
+              <div className="space-y-2 text-left">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <h3 className="text-base sm:text-lg font-bold">Automatic Charts</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Infers semantic relationships to generate high-resolution distribution graphs and correlations.
+                </p>
+              </div>
+              
+              {/* CSS Mini-Chart Illustration */}
+              <div className="flex items-end gap-1.5 h-16 pt-2 px-2 border-b">
+                <div className="w-full bg-primary/10 rounded-t h-6" />
+                <div className="w-full bg-primary/20 rounded-t h-10" />
+                <div className="w-full bg-primary/40 rounded-t h-16" />
+                <div className="w-full bg-primary/60 rounded-t h-12" />
+                <div className="w-full bg-primary/80 rounded-t h-8" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tile 3: RAG Insights (lg:col-span-1) */}
+          <Card className="border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+            <CardContent className="p-6 flex flex-col justify-between h-full gap-4">
+              <div className="space-y-2 text-left">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                  <MessageSquareCode className="h-5 w-5" />
+                </div>
+                <h3 className="text-base sm:text-lg font-bold">RAG Insights Chat</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Ask natural language questions about your datasets directly using our vector-indexed chat.
+                </p>
+              </div>
+
+              {/* RAG Chat mockup */}
+              <div className="bg-muted/30 rounded-lg p-2.5 text-[10px] space-y-1 border">
+                <div className="text-muted-foreground font-semibold">Q: Find the outlier.</div>
+                <div className="text-primary font-mono bg-background p-1.5 rounded shadow-xs leading-normal">
+                  Row #42 shows a 12x higher revenue ($150k) than the cluster mean.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tile 4: Secure Ingestion (lg:col-span-1) */}
+          <Card className="border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+            <CardContent className="p-6 flex flex-col justify-between h-full gap-4">
+              <div className="space-y-2 text-left">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <h3 className="text-base sm:text-lg font-bold">Secure Processing</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Uses strict magic-number signature checks and query sanitization limits to secure ingestion.
+                </p>
+              </div>
+              
+              <div className="flex flex-col gap-1.5 font-mono text-[10px] text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-500/20">
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 shrink-0" /> Signature signature checked
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 shrink-0" /> Payload size verified (&lt;50MB)
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tile 5: Dual-Engine PDF Pipeline (lg:col-span-2) */}
+          <Card className="lg:col-span-2 border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+            <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between">
+              <div className="space-y-2 text-left max-w-sm">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <h3 className="text-base sm:text-lg font-bold">Dual-Engine PDF Output</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Generate lightweight reports locally with ReportLab, or compile high-fidelity CSS-cached print sheets with WeasyPrint in production.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-wider shrink-0 w-full sm:w-auto">
+                <div className="flex-1 sm:flex-initial text-center border p-3 rounded-lg bg-muted/20">
+                  <span className="block font-bold text-foreground">ReportLab</span>
+                  <span className="text-[9px] text-muted-foreground">Local Engine</span>
+                </div>
+                <span className="text-muted-foreground">→</span>
+                <div className="flex-1 sm:flex-initial text-center border border-primary/20 p-3 rounded-lg bg-primary/5">
+                  <span className="block font-bold text-primary">WeasyPrint</span>
+                  <span className="text-[9px] text-muted-foreground">Prod Engine</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+        </div>
+
       </div>
     </section>
   );
