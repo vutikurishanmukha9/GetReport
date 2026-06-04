@@ -74,6 +74,30 @@ const ApiDocs = () => {
 
                             <div>
                                 <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-mono">POST</span>
+                                    /jobs/{'{task_id}'}/chat
+                                </h3>
+                                <p className="text-muted-foreground mb-4">Ask questions about the dataset or report using RAG context.</p>
+                                <CodeBlock
+                                    code={`curl -X POST https://getreport.onrender.com/api/jobs/123-abc-456/chat \\
+  -H "Content-Type: application/json" \\
+  -d '{"question": "What is the average sales value?"}'`}
+                                />
+                            </div>
+
+                            <div>
+                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                                    <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-mono">WS</span>
+                                    /ws/status/{'{task_id}'}
+                                </h3>
+                                <p className="text-muted-foreground mb-4">Subscribe to real-time task status updates via WebSockets.</p>
+                                <CodeBlock
+                                    code={`# Connect to WS endpoint with optional api_key query param\nwscat -c "wss://getreport.onrender.com/api/ws/status/123-abc-456?api_key=your_api_key"`}
+                                />
+                            </div>
+
+                            <div>
+                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                                     <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-mono">GET</span>
                                     /jobs/{'{task_id}'}/report
                                 </h3>

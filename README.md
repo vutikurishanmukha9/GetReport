@@ -4,10 +4,10 @@
 **Turn Your Data Into Professional Reports in Seconds.**
 
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0%2B-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev/)
-[![Celery](https://img.shields.io/badge/Celery-5.3-37814A?logo=celery)](https://docs.celeryq.dev/)
-[![WeasyPrint](https://img.shields.io/badge/PDF_Engine-WeasyPrint-FF6600)](https://weasyprint.org/)
+[![Celery](https://img.shields.io/badge/Celery-5.3.6%2B-37814A?logo=celery)](https://docs.celeryq.dev/)
+[![WeasyPrint](https://img.shields.io/badge/PDF_Engine-WeasyPrint%2061.2%2B-FF6600)](https://weasyprint.org/)
 
 ---
 
@@ -30,10 +30,10 @@ Data analysis traditionally requires:
 
 ## Key Features
 
-### Security First Design (New)
-- **Magic Number Validation**: strictly verifies file signatures (ZIP/OLE2) to prevent extension spoofing.
+### Security First Design
+- **Magic Number Validation**: Strictly verifies file signatures (ZIP/OLE2) to prevent extension spoofing.
 - **Content Inspection**: Rejects binary files masquerading as CSVs.
-- **Input Sanitization**: Guards against prompt injection in RAG workflows.
+- **Input Sanitization**: Guards against prompt injection in RAG workflows (max query length limit).
 
 ### Dual-Engine PDF Generation
 - **Local Dev**: Uses `ReportLab` for fast, lightweight PDF generation without system dependencies.
@@ -42,11 +42,13 @@ Data analysis traditionally requires:
 
 ### Trust Foundation (Tier 1)
 - **Column Confidence Scores**: Grades every column on Completeness, Consistency, Validity, and Stability.
+- **Interactive Issue Ledger**: Review data quality alerts, approve or reject automated cleaning actions, modify values, and track changes.
 - **Decision Transparency**: Logs why specific tests (Correlation, Time-Series, Anova) were run or skipped.
 - **Semantic Intelligence**: Auto-detects domains (Sales, HR, Finance, Healthcare) to tailor insights.
 
 ### Advanced Intelligence (Tier 2)
 - **Hybrid RAG Engine**: Combines **Dense Vector Search** with **Sparse Keyword Scoring** for precise context retrieval.
+- **Interactive RAG Chat**: Ask questions directly about the dataset and its generated analysis using the context-aware chat interface.
 - **Smart Text Splitting**: Preserves semantic meaning by splitting text by paragraphs/sentences instead of arbitrary chunks.
 - **ML-Ready Recommendations**: Suggests optimal encodings and scalers for future machine learning workflows.
 
@@ -54,6 +56,7 @@ Data analysis traditionally requires:
 - **Modular Architecture**: Clean, maintainable `app/services/analysis/` package structure.
 - **Polars Lazy Execution**: Single-pass computation for summary statistics and outlier detection (~10x faster).
 - **Time-Series Detection**: Automatic trend and seasonality analysis when date columns present.
+- **Real-Time Job Updates**: WebSocket connection supporting Redis PubSub (or polling fallback) for real-time progress updates.
 
 ---
 
@@ -84,27 +87,51 @@ Data analysis traditionally requires:
 ## Project Structure
 ```
 GetReport/
-├── Frontend/               # React application
-│   ├── src/components/     # UI components
-│   └── src/pages/          # Route pages
+├── Frontend/               # React frontend (Vite + TypeScript)
+│   ├── src/
+│   │   ├── components/     # UI components (FileUpload, DataPreview, ChatInterface, IssueLedger, etc.)
+│   │   ├── pages/          # Page layouts (Index, Features, ApiDocs, Documentation, etc.)
+│   │   └── services/       # API integration layer
 ├── Backend/
 │   ├── app/
-│   │   ├── api/            # FastAPI endpoints
-│   │   ├── core/           # Config, Security, Validation
-│   │   │   ├── config.py
-│   │   │   ├── file_validation.py # Security hardening
+│   │   ├── api/            # FastAPI router configuration
+│   │   │   ├── endpoints.py # Core router aggregator and orchestrator
+│   │   │   └── routes/      # Focused, single-responsibility route handlers
+│   │   │       ├── upload.py # File ingestion and signature validation
+│   │   │       ├── status.py # Polling & WebSockets status updates
+│   │   │       ├── report.py # PDF download endpoints
+│   │   │       ├── chat.py   # RAG-powered Q&A endpoint
+│   │   │       └── issues.py # Issue Ledger CRUD and state management
+│   │   ├── core/           # Security, authentication, and system configs
+│   │   │   ├── config.py    # Pydantic Settings management
+│   │   │   ├── auth.py      # Header & query API key verification
+│   │   │   ├── limiter.py   # API rate limiting
+│   │   │   ├── file_validation.py # Magic number and mime verification
+│   │   │   ├── security_headers.py # HTTP security hardening headers
+│   │   │   └── celery_app.py # Celery broker configuration
 │   │   ├── services/       # Core business logic
-│   │   │   ├── analysis/             # Modular Analysis Engine
-│   │   │   │   ├── core.py           # Orchestrator
-│   │   │   │   ├── statistics.py     # Lazy Polars stats
-│   │   │   │   ├── outliers.py       # Optimized outlier detection
-│   │   │   ├── report_weasyprint.py  # PDF Engine + CSS Cache
-│   │   │   ├── storage.py            # Local/S3 Storage Adapter
-│   │   │   ├── rag_service.py        # Hybrid Search RAG
-│   │   │   └── tasks.py              # Celery tasks
-│   │   └── db/             # Database models
-│   └── Dockerfile          # Production build
-└── render.yaml             # Render deployment blueprint
+│   │   │   ├── analysis/     # Modular Statistical Analysis Engine
+│   │   │   │   ├── core.py       # Analysis pipeline orchestrator
+│   │   │   │   ├── statistics.py # Lazy Polars statistical calculations
+│   │   │   │   ├── outliers.py   # Z-score and IQR-based outlier detection
+│   │   │   │   ├── classification.py # Data type classification logic
+│   │   │   │   ├── missing.py    # Missingness pattern analysis
+│   │   │   │   └── time_series.py # Trend and seasonality analysis
+│   │   │   ├── data_processing.py # Automated cleaning rule application
+│   │   │   ├── confidence_scoring.py # Multi-metric data grading (A-F)
+│   │   │   ├── issue_ledger.py # Ledger generation and management
+│   │   │   ├── report_generator.py # PDF report orchestration
+│   │   │   ├── report_weasyprint.py # Production HTML-to-PDF engine
+│   │   │   ├── storage.py    # S3 / Database / Local storage adapter
+│   │   │   └── rag_service.py # Hybrid Vector + Sparse search RAG service
+│   │   ├── db.py           # Sync/Async wrappers for SQLite and PostgreSQL
+│   │   ├── db/             # Declarative database schemas
+│   │   │   ├── base.py
+│   │   │   └── models.py
+│   │   └── tasks.py        # Asynchronous Celery task definitions
+│   └── Dockerfile          # Multi-stage production container build
+├── render.yaml             # Render deployment blueprint (Infrastructure as Code)
+└── README.md               # Main project documentation
 ```
 
 ---
@@ -138,24 +165,27 @@ Access the application at `http://localhost:8080`
 
 ## Deployment (Production)
 
-The project is optimized for deployment on **Render.com** (or any Docker-based cloud).
+The project is optimized for deployment on **Render.com** (or any Docker-based cloud environment).
 
 ### Deployment Artifacts
 - **render.yaml**: Blueprint for fully automated deployment (API, Worker, Redis, Frontend).
 - **Dockerfile**: Multi-stage build installing WeasyPrint system dependencies (Pango, Cairo) and SSL certs.
-- **deployment_guide.md**: Detailed step-by-step instructions.
 
 ### Environment Variables
-| Variable | Default (Local) | Production |
-|----------|-----------------|------------|
-| `PDF_ENGINE` | `reportlab` | `weasyprint` |
-| `DATABASE_URL` | (empty) -> uses `tasks.db` | `postgres://user:pass@host/db?sslmode=require` |
-| `REDIS_URL` | `redis://localhost:6379/0` | `redis://redishost:6379/0` |
-| `STORAGE_TYPE` | `local` | `s3` |
-| `AWS_ACCESS_KEY_ID` | (optional) | (required for S3) |
-| `AWS_SECRET_ACCESS_KEY` | (optional) | (required for S3) |
-| `AWS_BUCKET_NAME` | (optional) | (required for S3) |
-| `OPENAI_API_KEY`| (required for AI) | (required for AI) |
+| Variable | Default (Local) | Production | Description |
+|----------|-----------------|------------|-------------|
+| `PDF_ENGINE` | `reportlab` | `weasyprint` | PDF Rendering engine choice (`reportlab` avoids system dependencies in local dev). |
+| `DATABASE_URL` | (empty) -> uses SQLite | `postgres://...` | DB connection string. Local dev defaults to SQLite (`Backend/data/tasks.db`). |
+| `REDIS_URL` | `redis://localhost:6379/0` | `redis://...` | Connection URL for Celery message broker/backend. |
+| `STORAGE_TYPE` | `local` | `db` | Storage provider: `local` (disk), `db` (database blob storage - useful for multi-worker setups), or `s3`. |
+| `AWS_ACCESS_KEY_ID` | (optional) | (required for S3) | AWS access key for S3 file storage option. |
+| `AWS_SECRET_ACCESS_KEY` | (optional) | (required for S3) | AWS secret key for S3 file storage option. |
+| `AWS_BUCKET_NAME` | (optional) | (required for S3) | S3 Bucket name for file uploads and outputs. |
+| `OPENAI_API_KEY`| (required for AI) | (required for AI) | OpenAI API Key for GPT-4o analytics features. |
+| `OPENROUTER_API_KEY` | (optional) | (optional) | Alternative LLM provider key to use OpenRouter. |
+| `API_KEY` | (empty) | (optional) | Restricts client API access. If set, requires `X-API-Key` request header. |
+| `CORS_ORIGINS` | `http://localhost:5173,...` | (restrict in prod) | Comma-separated list of allowed origins. |
+| `RATE_LIMIT_ENABLED` | `True` | `True` | Set to `False` to disable API rate-limiting. |
 
 ---
 
