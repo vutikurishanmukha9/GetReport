@@ -32,7 +32,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('confidence_scores') %}
 <div class="section page-break">
-    <div class="section-header section-header--green">📊 Executive Summary</div>
+    <div class="section-header section-header--green">Executive Summary</div>
     <div class="section-body">
         {% set cs = analysis.confidence_scores %}
         <div class="stats-row">
@@ -72,7 +72,7 @@
 {# DATASET OVERVIEW                                                           #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <div class="section">
-    <div class="section-header">📋 Dataset Overview</div>
+    <div class="section-header">Dataset Overview</div>
     <div class="section-body">
         <table>
             <thead>
@@ -97,7 +97,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('confidence_scores') and analysis.confidence_scores.get('columns') %}
 <div class="section">
-    <div class="section-header section-header--teal">🎯 Column Confidence Scores</div>
+    <div class="section-header section-header--teal">Column Confidence Scores</div>
     <div class="section-body">
         <table>
             <thead>
@@ -128,7 +128,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('semantic_analysis') %}
 <div class="section">
-    <div class="section-header section-header--blue">🔬 Semantic Intelligence</div>
+    <div class="section-header section-header--blue">Semantic Intelligence</div>
     <div class="section-body">
         {% set sem = analysis.semantic_analysis %}
         {% if sem.get('domain') %}
@@ -172,7 +172,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('analysis_decisions') %}
 <div class="section">
-    <div class="section-header section-header--slate">🧠 Analysis Decisions</div>
+    <div class="section-header section-header--slate">Analysis Decisions</div>
     <div class="section-body">
         {% set dec = analysis.analysis_decisions %}
         {% if dec.get('summary') %}
@@ -240,7 +240,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('cleaning_report') %}
 <div class="section">
-    <div class="section-header section-header--green">🧹 Data Cleaning Summary</div>
+    <div class="section-header section-header--green">Data Cleaning Summary</div>
     <div class="section-body">
         {% set cr = analysis.cleaning_report %}
         {% if cr.get('steps_applied') %}
@@ -268,7 +268,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('cleaning_report') and analysis.cleaning_report.get('before_after') %}
 <div class="section">
-    <div class="section-header section-header--blue">📈 Data Quality Improvement</div>
+    <div class="section-header section-header--blue">Data Quality Improvement</div>
     <div class="section-body">
         {% set ba = analysis.cleaning_report.before_after %}
         <table>
@@ -304,7 +304,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('summary') %}
 <div class="section page-break">
-    <div class="section-header">📐 Summary Statistics</div>
+    <div class="section-header">Summary Statistics</div>
     <div class="section-body">
         <table>
             <thead>
@@ -340,7 +340,7 @@
 {% endfor %}
 {% if skewed | length > 0 %}
 <div class="section">
-    <div class="section-header section-header--amber">📉 Non-Normal Distributions</div>
+    <div class="section-header section-header--amber">Non-Normal Distributions</div>
     <div class="section-body">
         <p class="text-small text-muted mb-8">Columns with |skewness| > 1.0 — may benefit from transformation.</p>
         <table>
@@ -374,7 +374,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('strong_correlations') and analysis.strong_correlations | length > 0 %}
 <div class="section">
-    <div class="section-header section-header--blue">🔗 Strong Correlations</div>
+    <div class="section-header section-header--blue">Strong Correlations</div>
     <div class="section-body">
         <table>
             <thead>
@@ -415,7 +415,7 @@
 {% endfor %}
 {% if mc_pairs | length > 0 %}
 <div class="section">
-    <div class="section-header section-header--red">⚠️ Multicollinearity Warning</div>
+    <div class="section-header section-header--red">Multicollinearity Warning</div>
     <div class="section-body">
         <div class="insight-card insight-card--warning">
             <div class="insight-card__title">Highly Correlated Feature Pairs (|r| > 0.85)</div>
@@ -445,7 +445,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('time_series_analysis') and analysis.time_series_analysis.get('has_time_series') %}
 <div class="section">
-    <div class="section-header section-header--teal">📅 Time Series Analysis</div>
+    <div class="section-header section-header--teal">Time Series Analysis</div>
     <div class="section-body">
         {% for col_name, ts in analysis.time_series_analysis.get('analyses', {}).items() %}
         <div class="insight-card no-break mb-8">
@@ -465,7 +465,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('insights') %}
 <div class="section page-break">
-    <div class="section-header section-header--green">🤖 AI-Powered Insights</div>
+    <div class="section-header section-header--green">AI-Powered Insights</div>
     <div class="section-body">
         {% set ins = analysis.insights %}
         {% if ins is string %}
@@ -489,7 +489,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('outliers') and analysis.outliers | length > 0 %}
 <div class="section">
-    <div class="section-header section-header--amber">🔍 Outlier Detection</div>
+    <div class="section-header section-header--amber">Outlier Detection</div>
     <div class="section-body">
         <table>
             <thead>
@@ -516,7 +516,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('categorical_distribution') and analysis.categorical_distribution | length > 0 %}
 <div class="section">
-    <div class="section-header">📊 Categorical Distribution</div>
+    <div class="section-header">Categorical Distribution</div>
     <div class="section-body">
         {% for col_name, dist in analysis.categorical_distribution.items() %}
         <div class="no-break mb-8">
@@ -546,7 +546,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('missing_patterns') and analysis.missing_patterns.get('columns') %}
 <div class="section">
-    <div class="section-header section-header--amber">🕳️ Missing Value Patterns</div>
+    <div class="section-header section-header--amber">Missing Value Patterns</div>
     <div class="section-body">
         <table>
             <thead>
@@ -574,7 +574,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('feature_engineering') %}
 <div class="section page-break">
-    <div class="section-header section-header--teal">🛠️ Feature Engineering Recommendations</div>
+    <div class="section-header section-header--teal">Feature Engineering Recommendations</div>
     <div class="section-body">
         {% set fe = analysis.feature_engineering %}
         {% if fe.get('encoding_recommendations') and fe.encoding_recommendations | length > 0 %}
@@ -622,7 +622,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('smart_schema') %}
 <div class="section">
-    <div class="section-header section-header--slate">🗂️ Smart Schema Analysis</div>
+    <div class="section-header section-header--slate">Smart Schema Analysis</div>
     <div class="section-body">
         {% set ss = analysis.smart_schema %}
         {% if ss.get('type_corrections') and ss.type_corrections | length > 0 %}
@@ -671,7 +671,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('recommendations') %}
 <div class="section page-break">
-    <div class="section-header section-header--green">💡 Recommendations</div>
+    <div class="section-header section-header--green">Recommendations</div>
     <div class="section-body">
         {% set all_recs = analysis.recommendations.get('domain_specific', []) + analysis.recommendations.get('data_quality', []) + analysis.recommendations.get('analysis', []) + analysis.recommendations.get('visualization', []) %}
         {% for rec in all_recs %}
@@ -695,7 +695,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('ranked_insights') and analysis.ranked_insights | length > 0 %}
 <div class="section">
-    <div class="section-header section-header--blue">🏆 Ranked Insights</div>
+    <div class="section-header section-header--blue">Ranked Insights</div>
     <div class="section-body">
         {% for ins in analysis.ranked_insights[:10] %}
         <div class="insight-card no-break mb-8 {% if ins.get('severity') == 'high' %}insight-card--danger{% elif ins.get('severity') == 'medium' %}insight-card--warning{% else %}insight-card--success{% endif %}">
@@ -718,7 +718,7 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if charts and charts | length > 0 %}
 <div class="section page-break">
-    <div class="section-header">📈 Visualizations</div>
+    <div class="section-header">Visualizations</div>
     <div class="section-body">
         {% if charts.get('correlation_heatmap') %}
         <div class="chart-card no-break">
