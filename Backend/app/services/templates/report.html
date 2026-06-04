@@ -383,11 +383,11 @@
             <tbody>
                 {% for pair in analysis.strong_correlations %}
                 <tr>
-                    <td class="text-bold">{{ pair.get('col_a', pair[0] if pair is sequence else '—') }}</td>
-                    <td class="text-bold">{{ pair.get('col_b', pair[1] if pair is sequence else '—') }}</td>
-                    <td>{{ "%.3f" | format(pair.get('value', pair[2] if pair is sequence else 0)) }}</td>
+                    <td class="text-bold">{{ pair.get('column_a', pair.get('col_a', '—')) }}</td>
+                    <td class="text-bold">{{ pair.get('column_b', pair.get('col_b', '—')) }}</td>
+                    <td>{{ "%.3f" | format(pair.get('r_value', pair.get('value', 0))) }}</td>
                     <td>
-                        {% set val = pair.get('value', pair[2] if pair is sequence else 0) %}
+                        {% set val = pair.get('r_value', pair.get('value', 0)) %}
                         {% if val > 0 %}
                         <span class="badge badge--positive">Positive</span>
                         {% else %}
@@ -408,7 +408,7 @@
 {% if analysis.get('strong_correlations') and analysis.strong_correlations | length > 0 %}
 {% set mc_pairs = [] %}
 {% for pair in analysis.strong_correlations %}
-    {% set val = pair.get('value', pair[2] if pair is sequence else 0) | abs %}
+    {% set val = pair.get('r_value', pair.get('value', 0)) | abs %}
     {% if val > 0.85 %}
         {% set _ = mc_pairs.append(pair) %}
     {% endif %}
@@ -428,9 +428,9 @@
             <tbody>
                 {% for pair in mc_pairs %}
                 <tr>
-                    <td>{{ pair.get('col_a', pair[0] if pair is sequence else '—') }}</td>
-                    <td>{{ pair.get('col_b', pair[1] if pair is sequence else '—') }}</td>
-                    <td class="priority-high">{{ "%.3f" | format((pair.get('value', pair[2] if pair is sequence else 0)) | abs) }}</td>
+                    <td>{{ pair.get('column_a', pair.get('col_a', '—')) }}</td>
+                    <td>{{ pair.get('column_b', pair.get('col_b', '—')) }}</td>
+                    <td class="priority-high">{{ "%.3f" | format((pair.get('r_value', pair.get('value', 0))) | abs) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
