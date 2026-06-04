@@ -443,16 +443,16 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {# TIME SERIES                                                                #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
-{% if analysis.get('time_series_analysis') and analysis.time_series_analysis | length > 0 %}
+{% if analysis.get('time_series_analysis') and analysis.time_series_analysis.get('has_time_series') %}
 <div class="section">
     <div class="section-header section-header--teal">📅 Time Series Analysis</div>
     <div class="section-body">
-        {% for col_name, ts in analysis.time_series_analysis.items() %}
+        {% for col_name, ts in analysis.time_series_analysis.get('analyses', {}).items() %}
         <div class="insight-card no-break mb-8">
             <div class="insight-card__title">{{ col_name }}</div>
             <div class="insight-card__text">
-                {% if ts.get('trend') %}Trend: <strong>{{ ts.trend.get('direction', '—') }}</strong> (slope: {{ "%.4f" | format(ts.trend.get('slope', 0)) }}){% endif %}
-                {% if ts.get('seasonality') %} · Seasonality: <strong>{{ ts.seasonality.get('detected', false) }}</strong>{% endif %}
+                {% if ts.get('trend') %}Trend: <strong>{{ ts.get('trend').get('direction', '—') }}</strong> (slope: {{ "%.4f" | format(ts.get('trend').get('slope', 0)) }}){% endif %}
+                {% if ts.get('seasonality') %} · Seasonality: <strong>{{ ts.get('seasonality').get('detected', false) }}</strong>{% endif %}
             </div>
         </div>
         {% endfor %}
