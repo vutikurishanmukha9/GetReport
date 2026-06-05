@@ -447,7 +447,7 @@
 <div class="section">
     <div class="section-header section-header--teal">Time Series Analysis</div>
     <div class="section-body">
-        {% for col_name, ts in analysis.time_series_analysis.get('analyses', {}).items() %}
+        {% for col_name, ts in (analysis.time_series_analysis.get('analyses') or {}).items() %}
         <div class="insight-card no-break mb-8">
             <div class="insight-card__title">{{ col_name }}</div>
             <div class="insight-card__text">
@@ -526,7 +526,7 @@
                     <tr><th>Value</th><th>Count</th><th>%</th></tr>
                 </thead>
                 <tbody>
-                    {% for cat_name, cat_data in dist.get('categories', {}).items() %}
+                    {% for cat_name, cat_data in (dist.get('categories') or {}).items() %}
                     <tr>
                         <td>{{ cat_name }}</td>
                         <td>{{ cat_data.get('count', 0) }}</td>
@@ -553,7 +553,7 @@
                 <tr><th>Column</th><th>Missing Count</th><th>Missing %</th><th>Pattern</th></tr>
             </thead>
             <tbody>
-                {% for col_name, mp in analysis.missing_patterns.columns.items() %}
+                {% for col_name, mp in (analysis.missing_patterns.get('columns') or {}).items() %}
                 {% if mp.get('missing_pct', 0) > 0 %}
                 <tr>
                     <td class="text-bold">{{ col_name }}</td>
@@ -673,7 +673,7 @@
 <div class="section">
     <div class="section-header section-header--green">Recommendations</div>
     <div class="section-body">
-        {% set all_recs = analysis.recommendations.get('domain_specific', []) + analysis.recommendations.get('data_quality', []) + analysis.recommendations.get('analysis', []) + analysis.recommendations.get('visualization', []) %}
+        {% set all_recs = (analysis.recommendations.get('domain_specific') or []) + (analysis.recommendations.get('data_quality') or []) + (analysis.recommendations.get('analysis') or []) + (analysis.recommendations.get('visualization') or []) %}
         {% for rec in all_recs %}
         <div class="recommendation no-break">
             <div class="recommendation__header">
