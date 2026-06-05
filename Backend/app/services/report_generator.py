@@ -36,18 +36,29 @@ def generate_pdf_report(
     Routes to the correct engine based on ``settings.PDF_ENGINE``:
       - ``"reportlab"``  → pixel-level ReportLab (default, no system deps)
       - ``"weasyprint"`` → Jinja2 HTML/CSS → WeasyPrint PDF
+    With a dynamic fallback to ReportLab if WeasyPrint dependencies are missing.
 
     Returns:
         Tuple of (BytesIO buffer containing the PDF, ReportMetadata).
     """
     engine = settings.PDF_ENGINE.lower().strip()
-    logger.info("═══ PDF Engine: %s ═══", engine)
-
+    
     if engine == "weasyprint":
-        from app.services.report_weasyprint import generate_pdf_weasyprint
-        return generate_pdf_weasyprint(analysis_results, charts, filename)
-    else:
-        return _generate_pdf_reportlab(analysis_results, charts, filename)
+        try:
+            from weasyprint import HTML
+            from app.services.report_weasyprint import generate_pdf_weasyprint
+            logger.info("═══ PDF Engine: WeasyPrint (HTML/CSS) ═══")
+            return generate_pdf_weasyprint(analysis_results, charts, filename)
+        except (ImportError, Exception) as e:
+            logger.warning(
+                "WeasyPrint failed to load (missing system dependencies?): %s. "
+                "Automatically falling back to ReportLab engine.",
+                e,
+            )
+            # Fall through to reportlab
+            
+    logger.info("═══ PDF Engine: ReportLab (Pixel-level) ═══")
+    return _generate_pdf_reportlab(analysis_results, charts, filename)
 
 
 # ─── ReportLab Engine (Original) ─────────────────────────────────────────────
