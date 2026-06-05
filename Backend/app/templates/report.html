@@ -58,7 +58,7 @@
             {% endif %}
         </div>
 
-        {% if cs.get('high_confidence_count') is defined %}
+        {% if cs.get('high_confidence_count') is not none %}
         <p class="text-small text-muted mt-8">
             <strong>{{ cs.high_confidence_count }}</strong> high-confidence columns ·
             <strong>{{ cs.low_confidence_count }}</strong> low-confidence columns
@@ -334,8 +334,8 @@
 {% if analysis.get('summary') %}
 {% set skewed = [] %}
 {% for col, stats in analysis.summary.items() %}
-    {% if stats.get('skewness') is defined and (stats.skewness > 0.75 or stats.skewness < -0.75) %}
-        {% set _ = skewed.append({'col': col, 'skewness': stats.skewness, 'kurtosis': stats.get('kurtosis', 0)}) %}
+    {% if stats.get('skewness') is not none and (stats.get('skewness') > 0.75 or stats.get('skewness') < -0.75) %}
+        {% set _ = skewed.append({'col': col, 'skewness': stats.get('skewness'), 'kurtosis': stats.get('kurtosis') or 0}) %}
     {% endif %}
 {% endfor %}
 {% if skewed | length > 0 %}

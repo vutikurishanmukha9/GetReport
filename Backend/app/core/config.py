@@ -1,3 +1,21 @@
+import os
+import sys
+
+# On Windows, ensure WeasyPrint can find the GTK3 system DLLs
+if sys.platform == "win32" and "WEASYPRINT_DLL_DIRECTORIES" not in os.environ:
+    for path in [
+        r"C:\Program Files\GTK3-Runtime Win64\bin",
+        r"C:\msys64\mingw64\bin",
+    ]:
+        if os.path.exists(path):
+            os.environ["WEASYPRINT_DLL_DIRECTORIES"] = path
+            if hasattr(os, "add_dll_directory"):
+                try:
+                    os.add_dll_directory(path)
+                except Exception:
+                    pass
+            break
+
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
