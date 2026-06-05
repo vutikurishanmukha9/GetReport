@@ -8,6 +8,14 @@ sys.path.append(os.path.join(os.getcwd(), "Backend"))
 
 # Mocking settings to ensure we use Local Storage for test
 from app.core.config import settings
+import pytest
+
+@pytest.fixture(autouse=True)
+def restore_storage_settings():
+    orig_storage_type = settings.STORAGE_TYPE
+    yield
+    settings.STORAGE_TYPE = orig_storage_type
+
 settings.STORAGE_TYPE = "local"
 
 from app.services.task_manager import title_task_manager, TaskStatus

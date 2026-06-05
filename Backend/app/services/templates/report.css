@@ -40,6 +40,8 @@ body {
     line-height: 1.55;
     color: #1e293b;
     background: #fff;
+    orphans: 2;
+    widows: 2;
 }
 
 /* ─── Title Page ─────────────────────────────────────────────────────────── */
@@ -97,7 +99,7 @@ body {
 /* ─── Section Headers ────────────────────────────────────────────────────── */
 .section {
     page-break-inside: avoid;
-    margin-bottom: 18px;
+    margin-bottom: 12px;
 }
 
 .section-header {
@@ -139,7 +141,7 @@ body {
     border: 1px solid #e2e8f0;
     border-top: none;
     border-radius: 0 0 6px 6px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     background: #ffffff;
 }
 

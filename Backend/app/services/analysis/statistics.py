@@ -37,12 +37,14 @@ def compute_summary(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
         # Format result
         result = {}
         for col in numeric_cols:
+            median_val = stats_row.get(f"{col}__50%") or 0.0
             result[col] = {
                 "mean": stats_row.get(f"{col}__mean") or 0.0,
                 "std": stats_row.get(f"{col}__std") or 0.0,
                 "min": stats_row.get(f"{col}__min") or 0.0,
                 "max": stats_row.get(f"{col}__max") or 0.0,
-                "50%": stats_row.get(f"{col}__50%") or 0.0,
+                "50%": median_val,
+                "median": median_val,
                 "25%": stats_row.get(f"{col}__25%") or 0.0,
                 "75%": stats_row.get(f"{col}__75%") or 0.0,
                 "skewness": stats_row.get(f"{col}__skewness") or 0.0,

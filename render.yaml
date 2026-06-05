@@ -31,7 +31,7 @@ services:
       - key: CORS_ORIGINS
         value: https://getreport-frontend.onrender.com,https://getreport.vercel.app,http://localhost:5173
       - key: SKEWNESS_THRESHOLD
-        value: "1.0"
+        value: "0.75"
       - key: STORAGE_TYPE
         value: db
       - key: MAX_CONTENT_LENGTH

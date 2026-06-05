@@ -258,6 +258,18 @@ def _truncate_to_budget(text: str, max_tokens: int) -> str:
         return text
     return text[:max_chars] + "\n[...truncated for token budget...]"
 
+def _filtered_dtypes(analysis_data: dict[str, Any]) -> str:
+    """Return dtypes JSON with identifier/excluded columns removed."""
+    import json
+    dtypes = analysis_data.get("metadata", {}).get("dtypes", {})
+    excluded = set(analysis_data.get("metadata", {}).get("excluded_columns", []))
+    # Also check semantic analysis for identifier columns
+    sem = analysis_data.get("semantic_analysis", {})
+    if sem and sem.get("identifier_columns"):
+        excluded.update(sem["identifier_columns"])
+    filtered = {k: v for k, v in dtypes.items() if k not in excluded}
+    return json.dumps(filtered, default=str)
+
 def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
     """
     Construct the system and user prompts from the full analysis output.
@@ -275,7 +287,8 @@ def _build_prompt(analysis_data: dict[str, Any]) -> tuple[str, str]:
 
     # Priority-ordered sections (most important first)
     section_builders = [
-        ("COLUMN DATA TYPES", lambda: json.dumps(analysis_data.get("metadata", {}).get("dtypes", {}), default=str)),
+        ("COLUMN DATA TYPES", lambda: _filtered_dtypes(analysis_data)),
+
         ("DESCRIPTIVE STATISTICS (Numeric)", lambda: json.dumps(analysis_data.get("summary", {}), default=str)),
         ("STRONG CORRELATIONS (|r| >= 0.7)", lambda: json.dumps(analysis_data.get("strong_correlations", []), default=str)),
         ("OUTLIERS (IQR Method)", lambda: json.dumps(analysis_data.get("outliers", {}), default=str)),

@@ -24,6 +24,7 @@ class MockUploadFile:
         self.position += size
         return data
 
+@pytest.mark.anyio
 async def test_validation():
     print("Testing File Validation...")
     

@@ -14,14 +14,16 @@ from hypothesis import strategies as st
 
 from app.services.analysis import (
     analyze_dataset,
-    IQR_LOWER_MULTIPLIER,
-    IQR_UPPER_MULTIPLIER,
-    CORRELATION_STRONG_THRESHOLD,
-    SKEWNESS_THRESHOLD,
-    ID_UNIQUENESS_THRESHOLD,
     EmptyDatasetError,
     InsufficientDataError,
 )
+from app.core.config import settings as app_settings
+
+IQR_LOWER_MULTIPLIER = app_settings.IQR_LOWER_MULTIPLIER
+IQR_UPPER_MULTIPLIER = app_settings.IQR_UPPER_MULTIPLIER
+CORRELATION_STRONG_THRESHOLD = app_settings.CORRELATION_STRONG_THRESHOLD
+SKEWNESS_THRESHOLD = app_settings.SKEWNESS_THRESHOLD
+ID_UNIQUENESS_THRESHOLD = app_settings.ID_UNIQUENESS_THRESHOLD
 
 
 # ─── Strategies ──────────────────────────────────────────────────────────────
@@ -89,10 +91,12 @@ class TestAnalyzeDatasetProperties:
         result = analyze_dataset(df)
 
         if "summary" in result and result["summary"]:
+            excluded = set(result.get("metadata", {}).get("excluded_columns", []))
             for col in trimmed.keys():
-                assert col in result["summary"], (
-                    f"Column '{col}' missing from summary"
-                )
+                if col not in excluded:
+                    assert col in result["summary"], (
+                        f"Column '{col}' missing from summary"
+                    )
 
     @given(data=numeric_columns(min_cols=2, max_cols=4))
     @settings(max_examples=15, deadline=10000, suppress_health_check=[HealthCheck.too_slow])

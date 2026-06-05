@@ -8,6 +8,15 @@ sys.path.append(os.path.join(os.getcwd(), "Backend"))
 
 from app.core.config import settings
 from app.services.rag_service import EnhancedRAGService
+import pytest
+
+@pytest.fixture(autouse=True)
+def restore_settings():
+    orig_db_url = settings.DATABASE_URL
+    orig_openai_key = settings.OPENAI_API_KEY
+    yield
+    settings.DATABASE_URL = orig_db_url
+    settings.OPENAI_API_KEY = orig_openai_key
 
 # Mock Config to simulate Prod vs Local
 def test_rag_factory_logic():

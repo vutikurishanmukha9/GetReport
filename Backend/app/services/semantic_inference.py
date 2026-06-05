@@ -93,6 +93,12 @@ DOMAIN_KEYWORDS: dict[str, list[str]] = {
         "weight", "dimension", "volume", "size",
         "eta", "arrival", "departure", "transit",
     ],
+    "supply_chain": [
+        "supply", "procurement", "vendor", "lead_time", "reorder",
+        "supply_chain", "bom", "fulfillment", "supplier",
+        "purchase_order", "po_number", "inbound", "outbound",
+        "replenishment",
+    ],
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -210,6 +216,16 @@ DOMAIN_ANALYSIS_PAIRS: dict[str, list[tuple[str, str, str]]] = {
         ("date", "balance", "Balance trend over time"),
         ("type", "amount", "Transaction type analysis"),
     ],
+    "logistics": [
+        ("origin", "destination", "Shipping routes analysis"),
+        ("carrier", "transit", "Carrier performance on transit times"),
+        ("warehouse", "inventory", "Warehouse inventory distribution"),
+    ],
+    "supply_chain": [
+        ("vendor", "cost", "Vendor cost analysis"),
+        ("lead_time", "quantity", "Lead time impact on order volumes"),
+        ("warehouse", "inventory", "Warehouse inventory distribution"),
+    ],
 }
 
 
@@ -322,15 +338,27 @@ def detect_domain(df: pl.DataFrame) -> DomainDetection:
     Returns:
         DomainDetection with primary domain, confidence, and matched keywords.
     """
-    all_columns = " ".join(df.columns).lower()
+    # Normalize each column name individually (e.g. camelCase -> snake_case, spaces -> underscores)
+    normalized_cols = []
+    for c in df.columns:
+        s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', c)
+        s2 = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+        normalized = re.sub(r'[^a-z0-9]+', '_', s2)
+        normalized_cols.append(normalized)
     
     domain_scores: dict[str, tuple[int, list[str]]] = {}
     
     for domain, keywords in DOMAIN_KEYWORDS.items():
         matches = []
         for kw in keywords:
-            if kw.lower() in all_columns:
-                matches.append(kw)
+            kw_lower = kw.lower()
+            pattern = re.compile(r'\b' + re.escape(kw_lower))
+            for col_name in normalized_cols:
+                col_spaced = col_name.replace('_', ' ')
+                if pattern.search(col_spaced):
+                    if kw_lower not in matches:
+                        matches.append(kw_lower)
+                    break
         domain_scores[domain] = (len(matches), matches)
     
     # Sort by match count

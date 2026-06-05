@@ -280,3 +280,27 @@ async def get_comparison_report(
         raise HTTPException(400, "Comparison report not available")
     
     return report
+
+class GenerateReportRequest(BaseModel):
+    filename: str
+    analysis: Dict[str, Any]
+    charts: Dict[str, Any]
+
+@router.post("/generate-report")
+async def generate_report_direct(body: GenerateReportRequest):
+    """
+    Exposes a direct on-the-fly PDF generation endpoint (typically for tests/isolated verification).
+    """
+    from app.services.report_generator import generate_pdf_report
+    try:
+        pdf_buffer, meta = await run_in_threadpool(
+            generate_pdf_report, body.analysis, body.charts, body.filename
+        )
+        return Response(
+            content=pdf_buffer.getvalue(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={body.filename}"}
+        )
+    except Exception as e:
+        logger.error(f"Direct PDF Generation failed: {str(e)}")
+        raise HTTPException(500, f"Failed to generate PDF report: {str(e)}")

@@ -315,7 +315,7 @@
                 <tr>
                     <td class="text-bold">{{ col_name }}</td>
                     <td>{{ "%.2f" | format(stats.mean) if stats.mean is defined else '—' }}</td>
-                    <td>{{ "%.2f" | format(stats.median) if stats.median is defined else '—' }}</td>
+                    <td>{{ "%.2f" | format(stats['50%']) if stats['50%'] is defined else '—' }}</td>
                     <td>{{ "%.2f" | format(stats.std) if stats.std is defined else '—' }}</td>
                     <td>{{ "%.2f" | format(stats.min) if stats.min is defined else '—' }}</td>
                     <td>{{ "%.2f" | format(stats.max) if stats.max is defined else '—' }}</td>
@@ -334,7 +334,7 @@
 {% if analysis.get('summary') %}
 {% set skewed = [] %}
 {% for col, stats in analysis.summary.items() %}
-    {% if stats.get('skewness') is defined and (stats.skewness > 1.0 or stats.skewness < -1.0) %}
+    {% if stats.get('skewness') is defined and (stats.skewness > 0.75 or stats.skewness < -0.75) %}
         {% set _ = skewed.append({'col': col, 'skewness': stats.skewness, 'kurtosis': stats.get('kurtosis', 0)}) %}
     {% endif %}
 {% endfor %}
@@ -342,7 +342,7 @@
 <div class="section">
     <div class="section-header section-header--amber">Non-Normal Distributions</div>
     <div class="section-body">
-        <p class="text-small text-muted mb-8">Columns with |skewness| > 1.0 — may benefit from transformation.</p>
+        <p class="text-small text-muted mb-8">Columns with |skewness| > 0.75 — may benefit from transformation.</p>
         <table>
             <thead>
                 <tr><th>Column</th><th>Skewness</th><th>Kurtosis</th><th>Direction</th></tr>
@@ -573,7 +573,7 @@
 {# FEATURE ENGINEERING                                                        #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('feature_engineering') %}
-<div class="section page-break">
+<div class="section">
     <div class="section-header section-header--teal">Feature Engineering Recommendations</div>
     <div class="section-body">
         {% set fe = analysis.feature_engineering %}
@@ -670,7 +670,7 @@
 {# RECOMMENDATIONS                                                            #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('recommendations') %}
-<div class="section page-break">
+<div class="section">
     <div class="section-header section-header--green">Recommendations</div>
     <div class="section-body">
         {% set all_recs = analysis.recommendations.get('domain_specific', []) + analysis.recommendations.get('data_quality', []) + analysis.recommendations.get('analysis', []) + analysis.recommendations.get('visualization', []) %}
@@ -717,13 +717,13 @@
 {# VISUALIZATIONS                                                             #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if charts and charts | length > 0 %}
-<div class="section page-break">
+<div class="section">
     <div class="section-header">Visualizations</div>
     <div class="section-body">
-        {% if charts.get('correlation_heatmap') %}
+        {% if charts.get('correlation_heatmap') and charts.correlation_heatmap.get('image') %}
         <div class="chart-card no-break">
-            <img src="data:image/png;base64,{{ charts.correlation_heatmap }}" alt="Correlation Heatmap">
-            <div class="chart-card__caption">Correlation Heatmap</div>
+            <img src="data:image/png;base64,{{ charts.correlation_heatmap.image }}" alt="Correlation Heatmap">
+            <div class="chart-card__caption">Correlation Matrix — Numeric Columns</div>
         </div>
         {% endif %}
         {% if charts.get('scatter_plot') and charts.scatter_plot.get('image') %}

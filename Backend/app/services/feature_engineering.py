@@ -30,6 +30,7 @@ class EncodingRecommendation:
     recommended_encoding: str  # one_hot, label, target, binary, hash
     reason: str
     n_unique: int
+    current_type: str = "categorical"
     considerations: list[str] = field(default_factory=list)
 
 
@@ -384,6 +385,7 @@ class FeatureEngineeringResult:
             "encoding_recommendations": [
                 {
                     "column": e.column,
+                    "current_type": e.current_type,
                     "encoding": e.recommended_encoding,
                     "reason": e.reason,
                     "n_unique": e.n_unique,

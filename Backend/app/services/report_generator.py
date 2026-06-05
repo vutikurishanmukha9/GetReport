@@ -63,7 +63,7 @@ def _generate_pdf_reportlab(
     from reportlab.platypus.flowables import Flowable
 
     from app.services.report_styles import (
-        _build_styles,
+        get_custom_styles,
         _page_callback,
         _validate_inputs,
     )
@@ -108,7 +108,7 @@ def _generate_pdf_reportlab(
         topMargin=0.5 * inch,
         bottomMargin=0.5 * inch,
     )
-    styles = _build_styles()
+    styles = get_custom_styles()
     story: list[Flowable] = []
 
     # ── 3. Build sections in order ──────────────────────────────────────────
