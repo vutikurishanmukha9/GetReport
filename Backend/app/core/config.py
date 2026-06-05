@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     DB_DIR: str = "data"  # Directory for SQLite files (relative to Backend/)
 
     # ─── PDF Engine ──────────────────────────────────────────────────────
-    PDF_ENGINE: str = "weasyprint"  # "weasyprint" (default) or "reportlab"
+    PDF_ENGINE: str = "reportlab"  # "weasyprint" or "reportlab" (default for local dev)
     
     class Config:
         env_file = ".env"
