@@ -720,6 +720,7 @@
 <div class="section">
     <div class="section-header">Visualizations</div>
     <div class="section-body">
+        <div class="chart-grid">
         {% if charts.get('correlation_heatmap') and charts.correlation_heatmap.get('image') %}
         <div class="chart-card no-break">
             <img src="data:image/png;base64,{{ charts.correlation_heatmap.image }}" alt="Correlation Heatmap">
@@ -762,6 +763,7 @@
         </div>
         {% endif %}
         {% endfor %}
+        </div>
     </div>
 </div>
 {% endif %}

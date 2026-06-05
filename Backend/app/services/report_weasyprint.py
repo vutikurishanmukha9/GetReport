@@ -176,10 +176,10 @@ def _track_sections(
 def _display_domain_name(domain: str) -> str:
     labels = {
         "logistics": "Supply Chain / Logistics",
+        "supply_chain": "Supply Chain / Logistics",
         "sales_ecommerce": "Sales / E-Commerce",
         "hr_employee": "HR / Employee",
         "iot_sensor": "IoT / Sensor",
-        "supply_chain": "Supply Chain / Procurement",
     }
     return labels.get(domain, str(domain).replace("_", " ").title())
 

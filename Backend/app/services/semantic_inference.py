@@ -92,6 +92,8 @@ DOMAIN_KEYWORDS: dict[str, list[str]] = {
         "carrier", "courier", "logistics", "transport",
         "weight", "dimension", "volume", "size",
         "eta", "arrival", "departure", "transit",
+        "shipped", "boxes", "order_status", "delivered", "cancelled",
+        "spid", "pid", "gid",
     ],
     "supply_chain": [
         "supply", "procurement", "vendor", "lead_time", "reorder",
@@ -448,6 +450,19 @@ def map_column_role(df: pl.DataFrame, column: str) -> ColumnRole:
         except Exception as e:
             logger.debug(f"Value heuristics failed for {column}: {e}")
     
+    # Demote/reclassify identifiers that have low uniqueness ratio (e.g. grouping fields like gid, spid, pid)
+    if best_role == "identifier":
+        try:
+            series = df[column].drop_nulls()
+            if series.len() > 0:
+                uniqueness = series.n_unique() / series.len()
+                if uniqueness < 0.90:
+                    best_role = "dimension"
+                    best_confidence = 0.8
+                    all_matches = ["low_uniqueness_id"]
+        except Exception as e:
+            logger.debug(f"Identifier post-check failed for {column}: {e}")
+            
     return ColumnRole(
         column=column,
         role=best_role,

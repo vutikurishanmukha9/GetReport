@@ -98,7 +98,7 @@ body {
 
 /* ─── Section Headers ────────────────────────────────────────────────────── */
 .section {
-    page-break-inside: avoid;
+    page-break-inside: auto;
     margin-bottom: 12px;
 }
 
@@ -111,6 +111,8 @@ body {
     font-weight: 700;
     letter-spacing: 0.3px;
     margin-bottom: 0;
+    page-break-after: avoid;
+    break-after: avoid-page;
 }
 
 .section-header--green {
@@ -155,6 +157,7 @@ table {
     border-radius: 6px;
     overflow: hidden;
     border: 1px solid #e2e8f0;
+    page-break-inside: avoid;
 }
 
 thead th {

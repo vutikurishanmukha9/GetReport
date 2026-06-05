@@ -37,6 +37,7 @@ def _display_domain_name(domain: str) -> str:
     """Format domain IDs for report readers."""
     labels = {
         "logistics": "Supply Chain / Logistics",
+        "supply_chain": "Supply Chain / Logistics",
         "sales_ecommerce": "Sales / E-Commerce",
         "hr_employee": "HR / Employee",
         "iot_sensor": "IoT / Sensor",
