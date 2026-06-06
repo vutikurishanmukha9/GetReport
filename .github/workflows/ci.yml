@@ -35,9 +35,10 @@ jobs:
           uv pip install --system -r requirements.txt -r requirements-dev.txt
 
       - name: Run tests
-        run: pytest tests/ -v --tb=short -q
+        run: python -m pytest tests/ -v --tb=short -q
         env:
           PYTHONDONTWRITEBYTECODE: 1
+          PYTHONPATH: .
 
   # ─── Frontend: Lint, Type Check, Test & Build ──────────────────────────────────
   frontend:
