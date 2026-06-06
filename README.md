@@ -34,6 +34,7 @@ Data analysis traditionally requires:
 - **Magic Number Validation**: Strictly verifies file signatures (ZIP/OLE2) to prevent extension spoofing.
 - **Content Inspection**: Rejects binary files masquerading as CSVs.
 - **Input Sanitization**: Guards against prompt injection in RAG workflows (max query length limit).
+- **Zip Bomb Mitigation**: Pre-validates compressed file parameters (ratio, file count, and decompressed XML size) to prevent OOM/DoS attacks during Excel file ingestion.
 
 ### Dual-Engine PDF Generation
 - **Local Dev**: Uses `ReportLab` for fast, lightweight PDF generation without system dependencies.
@@ -54,7 +55,8 @@ Data analysis traditionally requires:
 
 ### High-Performance Analysis
 - **Modular Architecture**: Clean, maintainable `app/services/analysis/` package structure.
-- **Polars Lazy Execution**: Single-pass computation for summary statistics and outlier detection (~10x faster).
+- **Polars Lazy Execution**: Single-pass computation for summary statistics (~10x faster).
+- **Winsorization (Outlier Capping)**: Replaces outlier values beyond IQR thresholds with boundary limits to preserve dataset size without artificial variance/mean skew.
 - **Time-Series Detection**: Automatic trend and seasonality analysis when date columns present.
 - **Real-Time Job Updates**: WebSocket connection supporting Redis PubSub (or polling fallback) for real-time progress updates.
 
@@ -186,6 +188,9 @@ The project is optimized for deployment on **Render.com** (or any Docker-based c
 | `API_KEY` | (empty) | (optional) | Restricts client API access. If set, requires `X-API-Key` request header. |
 | `CORS_ORIGINS` | `http://localhost:5173,...` | (restrict in prod) | Comma-separated list of allowed origins. |
 | `RATE_LIMIT_ENABLED` | `True` | `True` | Set to `False` to disable API rate-limiting. |
+| `DB_POOL_MIN_SIZE` | `1` | `1` | Minimum database connections in pool. |
+| `DB_POOL_MAX_SIZE` | `10` | `10` | Maximum database connections in pool to avoid PostgreSQL connection exhaustion. |
+| `MAX_EXCEL_DECOMPRESSED_SIZE_MB` | `200` | `200` | Max decompressed XML size for uploaded Excel zip archives to mitigate Zip Bomb attacks. |
 
 ---
 
