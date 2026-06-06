@@ -20,9 +20,11 @@ settings.STORAGE_TYPE = "local"
 
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.services.storage import get_storage_provider
+from app.db import init_db
 
 def test_optimization():
     print("Testing Database Optimization (Storage Provider Integration)...")
+    init_db()
     
     # 1. Create Job
     task_id = title_task_manager.create_job("test_data.csv")
