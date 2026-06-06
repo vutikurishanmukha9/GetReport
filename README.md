@@ -30,16 +30,12 @@ Data analysis traditionally requires:
 
 ## Key Features
 
-### Security First Design
-- **Magic Number Validation**: Strictly verifies file signatures (ZIP/OLE2) to prevent extension spoofing.
-- **Content Inspection**: Rejects binary files masquerading as CSVs.
-- **Input Sanitization**: Guards against prompt injection in RAG workflows (max query length limit).
-- **Zip Bomb Mitigation**: Pre-validates compressed file parameters (ratio, file count, and decompressed XML size) to prevent OOM/DoS attacks during Excel file ingestion.
-
-### Dual-Engine PDF Generation
-- **Local Dev**: Uses `ReportLab` for fast, lightweight PDF generation without system dependencies.
-- **Production**: Uses `WeasyPrint` with **CSS Caching** for high-performance, styled reports.
-- **Seamless Switch**: Controlled via `PDF_ENGINE` environment variable.
+### High-Performance Analysis
+- **Modular Architecture**: Clean, maintainable `app/services/analysis/` package structure.
+- **Polars Lazy Execution**: Single-pass computation for summary statistics (~10x faster).
+- **Winsorization (Outlier Capping)**: Replaces outlier values beyond IQR thresholds with boundary limits to preserve dataset size without artificial variance/mean skew.
+- **Time-Series Detection**: Automatic trend and seasonality analysis when date columns present.
+- **Real-Time Job Updates**: WebSocket connection supporting Redis PubSub (or polling fallback) for real-time progress updates.
 
 ### Trust Foundation (Tier 1)
 - **Column Confidence Scores**: Grades every column on Completeness, Consistency, Validity, and Stability.
@@ -53,12 +49,16 @@ Data analysis traditionally requires:
 - **Smart Text Splitting**: Preserves semantic meaning by splitting text by paragraphs/sentences instead of arbitrary chunks.
 - **ML-Ready Recommendations**: Suggests optimal encodings and scalers for future machine learning workflows.
 
-### High-Performance Analysis
-- **Modular Architecture**: Clean, maintainable `app/services/analysis/` package structure.
-- **Polars Lazy Execution**: Single-pass computation for summary statistics (~10x faster).
-- **Winsorization (Outlier Capping)**: Replaces outlier values beyond IQR thresholds with boundary limits to preserve dataset size without artificial variance/mean skew.
-- **Time-Series Detection**: Automatic trend and seasonality analysis when date columns present.
-- **Real-Time Job Updates**: WebSocket connection supporting Redis PubSub (or polling fallback) for real-time progress updates.
+### Dual-Engine PDF Generation
+- **Local Dev**: Uses `ReportLab` for fast, lightweight PDF generation without system dependencies.
+- **Production**: Uses `WeasyPrint` with **CSS Caching** for high-performance, styled reports.
+- **Seamless Switch**: Controlled via `PDF_ENGINE` environment variable.
+
+### Security First Design
+- **Magic Number Validation**: Strictly verifies file signatures (ZIP/OLE2) to prevent extension spoofing.
+- **Content Inspection**: Rejects binary files masquerading as CSVs.
+- **Input Sanitization**: Guards against prompt injection in RAG workflows (max query length limit).
+- **Zip Bomb Mitigation**: Pre-validates compressed file parameters (ratio, file count, and decompressed XML size) to prevent OOM/DoS attacks during Excel file ingestion.
 
 ---
 
