@@ -56,6 +56,9 @@ class Settings(BaseSettings):
 
     # ─── Database ─────────────────────────────────────────────────────────
     DB_DIR: str = "data"  # Directory for SQLite files (relative to Backend/)
+    DB_POOL_MIN_SIZE: int = 1
+    DB_POOL_MAX_SIZE: int = 10
+    MAX_EXCEL_DECOMPRESSED_SIZE_MB: int = 200
 
     # ─── PDF Engine ──────────────────────────────────────────────────────
     PDF_ENGINE: str = "reportlab"  # "weasyprint" or "reportlab" (default for local dev)

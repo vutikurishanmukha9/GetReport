@@ -16,6 +16,7 @@ async def lifespan(app: FastAPI):
     # Startup
     try:
         init_db()  # Run Sync Schema Init
+        close_db() # Immediately close the sync pool to prevent connection leaking in web workers!
         await init_async_db() # Init Async Pool
     except Exception as e:
         import logging

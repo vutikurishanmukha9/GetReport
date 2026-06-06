@@ -172,8 +172,8 @@ async def init_async_db():
             # Enforce public schema to find 'jobs'
             async_pg_pool = await asyncpg.create_pool(
                 dsn=settings.DATABASE_URL, 
-                min_size=1, 
-                max_size=20
+                min_size=settings.DB_POOL_MIN_SIZE, 
+                max_size=settings.DB_POOL_MAX_SIZE
             )
             logger.info("Async PostgreSQL Pool initialized (search_path=public).")
 
@@ -181,8 +181,13 @@ def close_db():
     """Sync Cleanup"""
     global pg_pool
     if pg_pool:
-        pg_pool.closeall()
-        logger.info("Sync PostgreSQL Pool closed.")
+        try:
+            pg_pool.closeall()
+            logger.info("Sync PostgreSQL Pool closed.")
+        except Exception as e:
+            logger.warning(f"Error closing sync PostgreSQL Pool: {e}")
+        finally:
+            pg_pool = None
 
 async def close_async_db():
     """Async Cleanup"""
@@ -213,7 +218,8 @@ def _init_postgres_sync():
         if not pg_pool:
             # Enforce public schema for Sync pool too via options
             pg_pool = psycopg2.pool.ThreadedConnectionPool(
-                minconn=1, maxconn=20,
+                minconn=settings.DB_POOL_MIN_SIZE,
+                maxconn=settings.DB_POOL_MAX_SIZE,
                 dsn=settings.DATABASE_URL,
                 cursor_factory=RealDictCursor
             )

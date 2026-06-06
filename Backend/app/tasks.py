@@ -2,6 +2,7 @@ import os
 import logging
 from typing import Dict, Any, Optional, List
 from io import BytesIO
+import json
 
 from celery import chain, group
 from app.core.celery_app import celery_app
@@ -135,11 +136,21 @@ def analyze_data_task(self, context: Dict[str, Any], analysis_config_dict: Optio
         original_df = load_dataframe(original_path)
         comparison_report = comparison_service.compare(original_df, df)
         
+        # Pass references, not data, to prevent Redis "fat payload" issue
+        analysis_bytes = json.dumps(analysis_result).encode("utf-8")
+        analysis_ref = storage.save_upload(BytesIO(analysis_bytes), f"analysis_{task_id}.json")
+        
+        comparison_bytes = json.dumps(comparison_report.to_dict()).encode("utf-8")
+        comparison_ref = storage.save_upload(BytesIO(comparison_bytes), f"comparison_{task_id}.json")
+        
+        issue_bytes = json.dumps(issue_ledger.to_dict()).encode("utf-8")
+        issue_ref = storage.save_upload(BytesIO(issue_bytes), f"issue_ledger_{task_id}.json")
+        
         context.update({
-            "analysis_result": analysis_result,
+            "analysis_result_ref": analysis_ref,
             "dataset_info": dataset_info,
-            "comparison_report": comparison_report.to_dict(),
-            "issue_ledger": issue_ledger.to_dict(),
+            "comparison_report_ref": comparison_ref,
+            "issue_ledger_ref": issue_ref,
         })
         return context
     except Exception as e:
@@ -165,7 +176,13 @@ def generate_insights_task(self, context: Dict[str, Any]):
     try:
         task_id = context["task_id"]
         logger.info(f"Generating insights for {task_id}...")
-        insights_result = generate_insights_sync(context["analysis_result"])
+        # Load analysis_result from storage reference
+        analysis_ref = context["analysis_result_ref"]
+        analysis_path = storage.get_absolute_path(analysis_ref)
+        with open(analysis_path, "r", encoding="utf-8") as f:
+            analysis_result = json.load(f)
+            
+        insights_result = generate_insights_sync(analysis_result)
         return {"insights": insights_result.to_dict()}
     except Exception as e:
          logger.error(f"Insights failed: {e}")
@@ -184,21 +201,37 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
             
         filename = context["filename"]
         
+        # Load large data objects from references
+        analysis_ref = context["analysis_result_ref"]
+        analysis_path = storage.get_absolute_path(analysis_ref)
+        with open(analysis_path, "r", encoding="utf-8") as f:
+            analysis_result = json.load(f)
+
+        comparison_ref = context["comparison_report_ref"]
+        comparison_path = storage.get_absolute_path(comparison_ref)
+        with open(comparison_path, "r", encoding="utf-8") as f:
+            comparison_report = json.load(f)
+
+        issue_ref = context["issue_ledger_ref"]
+        issue_path = storage.get_absolute_path(issue_ref)
+        with open(issue_path, "r", encoding="utf-8") as f:
+            issue_ledger = json.load(f)
+        
         # RAG Ingest
-        _trigger_rag_ingest(task_id, filename, context)
+        _trigger_rag_ingest(task_id, filename, context, analysis_result)
         
         title_task_manager.update_progress(task_id, 95, "Rendering PDF...")
         
         # Prepare Data for PDF
-        analysis_data = context["analysis_result"].copy()
+        analysis_data = analysis_result.copy()
         if context.get("insights"):
             analysis_data["insights"] = context["insights"]
         if context.get("cleaning_report"):
             analysis_data["cleaning_report"] = context["cleaning_report"]
-        if context.get("comparison_report"):
-            analysis_data["comparison_report"] = context["comparison_report"]
-        if context.get("issue_ledger"):
-            analysis_data["issue_ledger"] = context["issue_ledger"]
+        if comparison_report:
+            analysis_data["comparison_report"] = comparison_report
+        if issue_ledger:
+            analysis_data["issue_ledger"] = issue_ledger
             
         pdf_buffer, _ = generate_pdf_report(
             analysis_data,
@@ -218,12 +251,12 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
             "filename": filename,
             "info": context["dataset_info"],
             "cleaning_report": context["cleaning_report"],
-            "analysis": context["analysis_result"],
+            "analysis": analysis_result,
             "charts": context.get("charts", {}),
             "insights": context.get("insights", {}),
             "transformation_dag": context["transformation_dag"],
-            "comparison_report": context["comparison_report"],
-            "issue_ledger": context.get("issue_ledger", {}),
+            "comparison_report": comparison_report,
+            "issue_ledger": issue_ledger,
             "report_path": pdf_path
         }
         
@@ -233,6 +266,9 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
         try:
              storage.delete(context["cleaned_file_ref"])
              storage.delete(context["file_ref"])
+             storage.delete(context["analysis_result_ref"])
+             storage.delete(context["comparison_report_ref"])
+             storage.delete(context["issue_ledger_ref"])
         except: pass
         
         return final_result
@@ -242,10 +278,10 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
         title_task_manager.fail_job(context["task_id"], f"Report Generation failed: {str(e)}")
         raise
 
-def _trigger_rag_ingest(task_id, filename, context):
+def _trigger_rag_ingest(task_id, filename, context, analysis_result):
     try:
         # Prepare text
-        analysis = context["analysis_result"]
+        analysis = analysis_result
         insights = context.get("insights", {}).get("response", "")
         cleaning = context["cleaning_report"]
         info = context["dataset_info"]
@@ -265,7 +301,6 @@ def _trigger_rag_ingest(task_id, filename, context):
         rag_ingest_task.delay(task_id, rag_text)
     except Exception as e:
         logger.warning(f"Failed to trigger RAG ingest: {e}")
-
 @celery_app.task(bind=True, name="app.tasks.resume_analysis")
 def resume_analysis_task(self, task_id: str, rules: Dict[str, Any], analysis_config_dict: Optional[Dict[str, Any]] = None):
     """

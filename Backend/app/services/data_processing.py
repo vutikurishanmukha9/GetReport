@@ -9,7 +9,9 @@ from io import BytesIO
 
 import polars as pl
 import numpy as np
+import zipfile
 from fastapi import UploadFile, HTTPException
+from app.core.config import settings
 
 # ─── Logger ──────────────────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)
@@ -104,6 +106,53 @@ def _validate_upload(file: UploadFile, content_length: int) -> str:
 
     return extension
 
+def _validate_zip_bomb(file_path: str, max_uncompressed_size_mb: int | None = None, max_ratio: float = 100.0) -> None:
+    """
+    Validate that a zip file (like .xlsx) is not a zip bomb.
+    Checks compression ratio and total uncompressed size.
+    """
+    if max_uncompressed_size_mb is None:
+        max_uncompressed_size_mb = settings.MAX_EXCEL_DECOMPRESSED_SIZE_MB
+        
+    if not zipfile.is_zipfile(file_path):
+        return
+        
+    total_uncompressed_size = 0
+    total_compressed_size = 0
+    
+    try:
+        with zipfile.ZipFile(file_path, 'r') as zf:
+            infolist = zf.infolist()
+            # Check for extreme number of files
+            if len(infolist) > 5000:
+                raise ParseError("Too many files in archive (potential zip bomb).")
+                
+            for info in infolist:
+                # Prevent directory traversal attacks inside zip extraction
+                if "../" in info.filename or info.filename.startswith("/"):
+                    raise ParseError("Malicious filename detected in archive.")
+                
+                total_uncompressed_size += info.file_size
+                total_compressed_size += info.compress_size
+                    
+        # Check total uncompressed size limits
+        max_size_bytes = max_uncompressed_size_mb * 1024 * 1024
+        if total_uncompressed_size > max_size_bytes:
+            raise ParseError(f"Decompressed size ({total_uncompressed_size / (1024*1024):.1f}MB) exceeds safe limit of {max_uncompressed_size_mb}MB.")
+            
+        # Check compression ratio
+        if total_compressed_size > 0:
+            ratio = total_uncompressed_size / total_compressed_size
+            if ratio > max_ratio and total_uncompressed_size > 10 * 1024 * 1024: # Only enforce ratio if size is > 10MB
+                raise ParseError(f"High compression ratio ({ratio:.1f}x) detected (potential zip bomb).")
+                
+    except zipfile.BadZipFile:
+        pass
+    except Exception as e:
+        if isinstance(e, ParseError):
+            raise
+        raise ParseError(f"Error checking zip archive safety: {str(e)}")
+
 # ─── File Loader (Polars) ────────────────────────────────────────────────────
 def load_dataframe(file_path: str) -> pl.DataFrame:
     """
@@ -111,6 +160,11 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
     Optimized for performance and memory.
     """
     logger.info("═══ load_dataframe (Polars) started — '%s' ═══", file_path)
+    
+    # Pre-validate zip files (Excel) against Zip Bombs
+    lower_path = file_path.lower()
+    if lower_path.endswith((".xls", ".xlsx")):
+        _validate_zip_bomb(file_path, max_uncompressed_size_mb=settings.MAX_EXCEL_DECOMPRESSED_SIZE_MB)
     
     try:
         lower_path = file_path.lower()
@@ -415,22 +469,23 @@ def clean_data(
                         )
 
             elif action == "replace_outliers_median":
-                if df[target_col].dtype in [pl.Int64, pl.Float64]:
+                if df[target_col].dtype in [pl.Int64, pl.Float64, pl.Int32, pl.Float32]:
                     q1 = df[target_col].quantile(0.25)
                     q3 = df[target_col].quantile(0.75)
                     if q1 is not None and q3 is not None:
                         iqr = q3 - q1
                         lower_bound = q1 - 1.5 * iqr
                         upper_bound = q3 + 1.5 * iqr
-                        median_val = df[target_col].median()
                         
                         # Calculate outlier count for impact
                         outlier_mask = (df[target_col] < lower_bound) | (df[target_col] > upper_bound)
                         outliers_replaced = df.filter(outlier_mask).height
                         
                         df = df.with_columns(
-                            pl.when(outlier_mask)
-                            .then(median_val)
+                            pl.when(pl.col(target_col) > upper_bound)
+                            .then(pl.lit(upper_bound, dtype=df[target_col].dtype))
+                            .when(pl.col(target_col) < lower_bound)
+                            .then(pl.lit(lower_bound, dtype=df[target_col].dtype))
                             .otherwise(pl.col(target_col))
                             .alias(target_col)
                         )
@@ -440,10 +495,9 @@ def clean_data(
                             df_after=df,
                             target_column=target_col,
                             parameters={
-                                "method": "iqr",
+                                "method": "winsorization_iqr",
                                 "lower_bound": lower_bound,
                                 "upper_bound": upper_bound,
-                                "replacement": median_val,
                                 "outliers_replaced": outliers_replaced,
                             },
                             duration_ms=(time.perf_counter() - step_start) * 1000,

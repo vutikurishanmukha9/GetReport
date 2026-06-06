@@ -34,14 +34,26 @@ async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Prom
     });
 
     if (!response.ok) {
-        // Try to parse error message from JSON
         let errorMessage = `HTTP Error ${response.status}`;
-        try {
-            const errorData = await response.json();
-            errorMessage = errorData.detail || errorData.message || errorMessage;
-        } catch (e) {
-            // Ignore JSON parse error, use status text
-            errorMessage = response.statusText || errorMessage;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.detail || errorData.message || errorMessage;
+            } catch (e) {
+                errorMessage = response.statusText || errorMessage;
+            }
+        } else {
+            try {
+                const text = await response.text();
+                if (text && text.length < 200) {
+                    errorMessage = text;
+                } else {
+                    errorMessage = response.statusText || errorMessage;
+                }
+            } catch (e) {
+                errorMessage = response.statusText || errorMessage;
+            }
         }
         throw new Error(errorMessage);
     }
@@ -71,11 +83,21 @@ export const api = {
 
         if (!response.ok) {
             let errorMessage = `Upload failed: ${response.statusText}`;
-            try {
-                const data = await response.json();
-                errorMessage = data.detail || errorMessage;
-            } catch (e) {}
-             throw new Error(errorMessage);
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                try {
+                    const data = await response.json();
+                    errorMessage = data.detail || errorMessage;
+                } catch (e) {}
+            } else {
+                try {
+                    const text = await response.text();
+                    if (text && text.length < 200) {
+                        errorMessage = text;
+                    }
+                } catch (e) {}
+            }
+            throw new Error(errorMessage);
         }
         return response.json();
     },
