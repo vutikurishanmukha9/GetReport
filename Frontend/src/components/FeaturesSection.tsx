@@ -45,6 +45,51 @@ export const FeaturesSection = () => {
                 </p>
               </div>
 
+              {/* Data Health Dashboard Mockup to fill the gap */}
+              <div className="grid grid-cols-2 gap-4 mb-4 mt-auto">
+                <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 flex flex-col items-center justify-center transition-all hover:shadow-sm">
+                  <div className="relative flex items-center justify-center w-16 h-16 mb-2">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                      <path
+                        className="text-emerald-200"
+                        strokeWidth="3"
+                        stroke="currentColor"
+                        fill="none"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                      <path
+                        className="text-emerald-500"
+                        strokeDasharray="92, 100"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        stroke="currentColor"
+                        fill="none"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center flex-col">
+                      <span className="text-sm font-bold text-emerald-700">92%</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-800/70 uppercase tracking-wider">Health Score</span>
+                </div>
+                
+                <div className="bg-card border rounded-xl p-4 flex flex-col justify-center space-y-3 shadow-xs">
+                  <div className="flex justify-between items-center text-xs font-mono">
+                    <span className="text-muted-foreground flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/>Completeness</span>
+                    <span className="text-foreground font-semibold">100%</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs font-mono">
+                    <span className="text-muted-foreground flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/>Uniqueness</span>
+                    <span className="text-foreground font-semibold">100%</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs font-mono">
+                    <span className="text-muted-foreground flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"/>Validity</span>
+                    <span className="text-foreground font-semibold">89%</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Pure CSS Mockup of the Issue Ledger */}
               <div className="border bg-muted/20 rounded-xl p-4 font-mono text-[11px] sm:text-xs text-muted-foreground space-y-2">
                 <div className="flex items-center justify-between text-xs text-foreground font-semibold border-b pb-2">

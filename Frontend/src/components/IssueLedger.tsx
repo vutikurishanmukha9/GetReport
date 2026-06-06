@@ -145,20 +145,59 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
     if (issues.length === 0) {
         return (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center animate-in fade-in duration-300">
-                <Check className="w-12 h-12 mx-auto text-emerald-600 mb-3" />
-                <h3 className="text-lg font-display font-bold text-emerald-800">
-                    No Issues Detected
-                </h3>
-                <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-sm mx-auto">
-                    Your dataset is clean and structured. No corrective rules are necessary.
-                </p>
-                <button
-                    onClick={onProceed}
-                    className="mt-5 px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95"
-                >
-                    Proceed to Analysis
-                </button>
+            <div className="bg-card border border-border shadow-premium rounded-2xl p-8 max-w-2xl mx-auto animate-in fade-in duration-300">
+                <div className="flex flex-col items-center text-center">
+                    <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4 border border-emerald-200">
+                        <Check className="w-8 h-8 text-emerald-600" />
+                    </div>
+                    <h3 className="text-2xl font-display font-bold text-foreground">
+                        Data Quality: Excellent
+                    </h3>
+                    <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+                        We have thoroughly scanned your dataset and found no structural anomalies, missing values, or formatting issues. Your data is perfectly clean and ready for analysis.
+                    </p>
+                </div>
+                
+                <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-muted/20 border border-border rounded-xl p-4 flex items-start gap-3">
+                        <CheckCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+                        <div className="text-left">
+                            <h4 className="text-sm font-semibold text-foreground">Completeness</h4>
+                            <p className="text-xs text-muted-foreground mt-1">No missing or null values detected across all columns.</p>
+                        </div>
+                    </div>
+                    <div className="bg-muted/20 border border-border rounded-xl p-4 flex items-start gap-3">
+                        <CheckCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+                        <div className="text-left">
+                            <h4 className="text-sm font-semibold text-foreground">Consistency</h4>
+                            <p className="text-xs text-muted-foreground mt-1">Data types are uniform and formats are consistent.</p>
+                        </div>
+                    </div>
+                    <div className="bg-muted/20 border border-border rounded-xl p-4 flex items-start gap-3">
+                        <CheckCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+                        <div className="text-left">
+                            <h4 className="text-sm font-semibold text-foreground">Uniqueness</h4>
+                            <p className="text-xs text-muted-foreground mt-1">No duplicate rows or redundant identifiers found.</p>
+                        </div>
+                    </div>
+                    <div className="bg-muted/20 border border-border rounded-xl p-4 flex items-start gap-3">
+                        <CheckCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+                        <div className="text-left">
+                            <h4 className="text-sm font-semibold text-foreground">Validity</h4>
+                            <p className="text-xs text-muted-foreground mt-1">No extreme outliers or invalid entries identified.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 flex justify-center">
+                    <button
+                        onClick={onProceed}
+                        className="px-8 py-3 bg-primary text-primary-foreground font-medium rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
+                    >
+                        <Lock className="w-4 h-4" />
+                        Proceed to Analysis
+                    </button>
+                </div>
             </div>
         );
     }

@@ -164,10 +164,31 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             </div>
 
             {report.issues.length === 0 && (
-                <div className="text-center p-8 border border-dashed border-border rounded-xl bg-white shadow-premium">
-                    <Check className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-display font-bold text-foreground">Your data looks clean!</h3>
-                    <p className="text-sm text-muted-foreground mt-1">No critical issues found.</p>
+                <div className="bg-card border border-border shadow-premium rounded-2xl p-8 max-w-2xl mx-auto text-center mt-6">
+                    <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5 border border-emerald-200">
+                        <Check className="h-8 w-8 text-emerald-600" />
+                    </div>
+                    <h3 className="text-2xl font-display font-bold text-foreground">Data Quality: Excellent</h3>
+                    <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+                        We have successfully run our pre-analysis checks and found no critical issues, missing values, or problematic distributions. Your dataset is clean and ready for deep analysis.
+                    </p>
+                    
+                    <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                        <div className="bg-muted/30 border border-border rounded-xl p-4 flex items-start gap-3">
+                            <div className="bg-emerald-100 p-1.5 rounded-md mt-0.5"><Check className="h-4 w-4 text-emerald-600" /></div>
+                            <div>
+                                <h4 className="text-sm font-semibold text-foreground">Format Integrity</h4>
+                                <p className="text-xs text-muted-foreground mt-1">All columns contain valid types.</p>
+                            </div>
+                        </div>
+                        <div className="bg-muted/30 border border-border rounded-xl p-4 flex items-start gap-3">
+                            <div className="bg-emerald-100 p-1.5 rounded-md mt-0.5"><Check className="h-4 w-4 text-emerald-600" /></div>
+                            <div>
+                                <h4 className="text-sm font-semibold text-foreground">Data Completeness</h4>
+                                <p className="text-xs text-muted-foreground mt-1">No missing cells detected.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
