@@ -39,6 +39,7 @@ Data analysis traditionally requires:
 
 ### Trust Foundation (Tier 1)
 - **Column Confidence Scores**: Grades every column on Completeness, Consistency, Validity, and Stability.
+- **Machine Learning Readiness Score**: Computes a comprehensive dataset readiness score (0-100%) evaluating column-level completeness, constant or near-zero variance features, format consistency, outliers, and class imbalance with explicit expert recommendations.
 - **Interactive Issue Ledger**: Review data quality alerts, approve or reject automated cleaning actions, modify values, and track changes.
 - **Decision Transparency**: Logs why specific tests (Correlation, Time-Series, Anova) were run or skipped.
 - **Semantic Intelligence**: Auto-detects domains (Sales, HR, Finance, Healthcare) to tailor insights.
@@ -78,7 +79,7 @@ Data analysis traditionally requires:
 |-----------|------------|
 | Framework | FastAPI (Python 3.12+) |
 | Task Queue | Celery + Redis |
-| Data Processing | Polars (Lazy Execution), NumPy |
+| Data Processing | Polars (Lazy Execution), NumPy, SciPy |
 | PDF Engine | WeasyPrint (with CSS Cache) / ReportLab |
 | Database | SQLite (Local) / PostgreSQL (Prod) |
 | Storage | Local Disk / AWS S3 (Configurable) |

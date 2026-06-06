@@ -214,6 +214,28 @@ export const FeaturesSection = () => {
             </CardContent>
           </Card>
 
+          {/* Tile 6: ML Readiness Assessment (lg:col-span-3) */}
+          <Card className="lg:col-span-3 border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+            <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between">
+              <div className="space-y-2 text-left max-w-xl">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <h3 className="text-base sm:text-lg font-bold">Machine Learning Readiness Assessment</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Determine if your data is ready for model training. Evaluates overall dataset health, flags extreme imbalance, constant features, high nullness rates, and suggests target-specific preprocessing actions.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 font-mono text-[10px] w-full sm:w-auto shrink-0">
+                <div className="flex-1 sm:flex-initial text-center border p-3 rounded-lg bg-emerald-500/10 border-emerald-500/20 text-emerald-700">
+                  <span className="block font-bold text-xs">85% Score</span>
+                  <span className="text-[8px] uppercase tracking-wider">Needs Cleaning</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
         </div>
 
       </div>

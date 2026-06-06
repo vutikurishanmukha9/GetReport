@@ -359,6 +359,36 @@ export const Features = () => {
             </div>
           </Card>
 
+          {/* Card 9: ML Readiness Assessment (col-span-3) */}
+          <Card className="md:col-span-3 border border-border bg-card shadow-premium rounded-2xl p-8 hover:-translate-y-0.5 hover:border-primary/25 transition-all duration-300 flex flex-col md:flex-row gap-6 md:items-center justify-between group overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none" />
+            <div className="space-y-4 flex-1">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
+                <Target className="h-5 w-5" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+                  <span>ML Readiness Assessment</span>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[9px] font-mono rounded-full">NEW</Badge>
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Evaluate if your dataset is ready for Machine Learning. Checks completeness, constant variance, type consistency, and class imbalance with custom action items.
+                </p>
+              </div>
+            </div>
+
+            {/* Visual Micro Mockup */}
+            <div className="w-full md:w-[320px] lg:w-[380px] border border-border bg-white rounded-xl p-4 font-mono text-[10px] space-y-2 shadow-xs shrink-0 self-stretch flex flex-col justify-center">
+              <div className="flex justify-between items-center border-b border-border pb-2">
+                <span className="font-bold text-foreground uppercase tracking-wider text-[8px] text-muted-foreground">ML Readiness Score</span>
+                <span className="text-foreground font-bold">85%</span>
+              </div>
+              <div className="p-2 bg-amber-50/50 border border-amber-200 rounded text-amber-800 text-[8.5px]">
+                <strong>Status: Needs Cleaning.</strong> Impute missing values or drop low-variance features before modeling.
+              </div>
+            </div>
+          </Card>
+
         </div>
       </div>
 
