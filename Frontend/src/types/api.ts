@@ -69,6 +69,14 @@ export interface ColumnConfidence {
   issues: string[];
 }
 
+export interface MLReadiness {
+  score: number;
+  status: "Ready" | "Needs Cleaning" | "Not Ready";
+  reasons: string[];
+  recommendation: string;
+  column_context: string;
+}
+
 export interface ConfidenceScores {
   columns: ColumnConfidence[];
   dataset_confidence: number;
@@ -76,6 +84,7 @@ export interface ConfidenceScores {
   high_confidence_count: number;
   low_confidence_count: number;
   critical_issues: string[];
+  ml_readiness?: MLReadiness;
 }
 
 export interface AnalysisResult {
@@ -94,6 +103,7 @@ export interface AnalysisResult {
     drift_detected: Array<{ column: string; shift_pct: number; mean_p1: number; mean_p2: number }>;
   };
   confidence_scores?: ConfidenceScores;
+  ml_readiness?: MLReadiness;
   timing_ms: number;
   insights?: string | InsightResult; // Optional: Can be string or object depending on merge
 }

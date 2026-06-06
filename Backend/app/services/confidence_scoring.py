@@ -69,6 +69,7 @@ class ConfidenceReport:
     high_confidence_count: int
     low_confidence_count: int
     critical_issues: list[str]
+    ml_readiness: dict[str, Any] = field(default_factory=dict)
     
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -77,8 +78,10 @@ class ConfidenceReport:
             "dataset_grade": self._get_dataset_grade(),
             "high_confidence_count": self.high_confidence_count,
             "low_confidence_count": self.low_confidence_count,
-            "critical_issues": self.critical_issues
+            "critical_issues": self.critical_issues,
+            "ml_readiness": self.ml_readiness
         }
+
     
     def _get_dataset_grade(self) -> str:
         if self.dataset_confidence >= 90:
@@ -350,10 +353,16 @@ def calculate_confidence_scores(df: pl.DataFrame) -> ConfidenceReport:
                 f"dataset score={dataset_confidence:.1f}%, "
                 f"{len(critical_issues)} critical issues")
     
-    return ConfidenceReport(
+    report = ConfidenceReport(
         columns=column_scores,
         dataset_confidence=dataset_confidence,
         high_confidence_count=high_confidence,
         low_confidence_count=low_confidence,
         critical_issues=critical_issues
     )
+    
+    from app.services.analysis.ml_readiness import calculate_ml_readiness
+    report.ml_readiness = calculate_ml_readiness(report, df)
+    
+    return report
+

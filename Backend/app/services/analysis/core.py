@@ -152,5 +152,16 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
             len(pipeline_outcome.failed),
             [s.name for s in pipeline_outcome.failed],
         )
-    
+        
+    # Populate the root ml_readiness key from confidence_scores (or calculate if missing)
+    if "confidence_scores" in result and result["confidence_scores"] is not None:
+        result["ml_readiness"] = result["confidence_scores"].get("ml_readiness", {})
+    else:
+        from app.services.confidence_scoring import calculate_confidence_scores
+        from app.services.analysis.ml_readiness import calculate_ml_readiness
+        report = calculate_confidence_scores(df)
+        result["ml_readiness"] = calculate_ml_readiness(report, df)
+        
     return result
+
+

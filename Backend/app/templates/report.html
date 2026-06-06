@@ -64,6 +64,33 @@
             <strong>{{ cs.low_confidence_count }}</strong> low-confidence columns
         </p>
         {% endif %}
+
+        {% if cs.get('ml_readiness') %}
+        {% set ml = cs['ml_readiness'] %}
+        <div class="ml-readiness-card">
+            <div class="ml-readiness-badge ml-readiness-badge--{{ ml['status'] | lower | replace(' ', '-') }}">
+                <div class="ml-readiness-badge__value">{{ "%.0f" | format(ml['score']) }}%</div>
+                <div class="ml-readiness-badge__label">Ready</div>
+            </div>
+            <div class="ml-readiness-content">
+                <div class="ml-readiness-title">Machine Learning Readiness: {{ ml['status'] }}</div>
+                <div class="ml-readiness-meta">{{ ml['column_context'] }}</div>
+                <div class="ml-readiness-recommendation">
+                    <strong>Recommendation:</strong> {{ ml['recommendation'] }}
+                </div>
+                {% if ml['reasons'] %}
+                <div class="ml-readiness-issues">
+                    <div class="ml-readiness-issues__title">Detected Issues</div>
+                    <ul class="ml-readiness-issues__list">
+                        {% for reason in ml['reasons'] %}
+                        <li>{{ reason }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endif %}

@@ -13,6 +13,8 @@ import type { AnalysisResult, Charts, InsightResult, DatasetInfo } from "@/types
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
+import { MLReadinessCard } from "./MLReadinessCard";
+
 
 interface ReportGenerationProps {
   step: AppStep;
@@ -142,6 +144,7 @@ export const ReportGeneration = ({
       high_confidence_count: info.columns.length,
       low_confidence_count: 0,
       critical_issues: [] as string[],
+      ml_readiness: undefined,
       columns: info.columns.map(col => {
         const missing = info.missing_values[col] || { count: 0, percentage: 0 };
         const completeness = 100 - missing.percentage;
@@ -365,6 +368,9 @@ export const ReportGeneration = ({
             )}
           </Card>
         </div>
+
+        {/* ML Readiness Assessment */}
+        <MLReadinessCard mlReadiness={confidence.ml_readiness} />
 
         {/* ─── Visual Insights Matplotlib Gallery (New) ─── */}
         {chartTabsList.length > 0 && (

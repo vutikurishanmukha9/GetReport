@@ -377,3 +377,99 @@ tbody tr:last-child td {
 .grade-b { background: linear-gradient(135deg, #2563eb, #3b82f6); }
 .grade-c { background: linear-gradient(135deg, #d97706, #f59e0b); }
 .grade-d { background: linear-gradient(135deg, #dc2626, #ef4444); }
+
+/* ─── ML Readiness Card ─────────────────────────────────────────────────── */
+.ml-readiness-card {
+    page-break-inside: avoid;
+    margin-top: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+}
+
+.ml-readiness-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 56px;
+    border-radius: 6px;
+    color: white;
+    text-align: center;
+    float: left;
+    margin-right: 14px;
+}
+
+.ml-readiness-badge__value {
+    font-size: 14pt;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.ml-readiness-badge__label {
+    font-size: 6pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+}
+
+.ml-readiness-badge--ready {
+    background: linear-gradient(135deg, #059669, #10b981);
+}
+
+.ml-readiness-badge--needs-cleaning {
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+}
+
+.ml-readiness-badge--not-ready {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+}
+
+.ml-readiness-content {
+    overflow: hidden;
+}
+
+.ml-readiness-title {
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 2px;
+}
+
+.ml-readiness-meta {
+    font-size: 7.5pt;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.ml-readiness-recommendation {
+    font-size: 8.5pt;
+    color: #334155;
+    margin-bottom: 8px;
+    line-height: 1.45;
+}
+
+.ml-readiness-issues {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 8px;
+    margin-top: 8px;
+}
+
+.ml-readiness-issues__title {
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.ml-readiness-issues__list {
+    margin: 0;
+    padding-left: 14px;
+    font-size: 8pt;
+    color: #475569;
+}
+
