@@ -4,3 +4,4 @@ pytest-asyncio>=0.23.5
 black>=24.2.0
 isort>=5.13.2
 mypy>=1.8.0
+hypothesis>=6.151.6
