@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="report.css">
     <style>
         /* Inline critical @import for Google Fonts (WeasyPrint supports it) */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     </style>
 </head>
 <body>
@@ -16,15 +16,37 @@
 {# TITLE PAGE                                                                 #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <div class="title-page">
-    <div class="title-page__brand">⬢ GETREPORT</div>
-    <h1 class="title-page__name">Data Intelligence<br>Report</h1>
-    <p class="title-page__subtitle">{{ filename }}</p>
-    <div class="title-page__divider"></div>
-    <p class="title-page__meta">
-        Generated on <strong>{{ generated_at }}</strong><br>
-        {{ metadata.total_rows | default(0) }} rows · {{ metadata.total_columns | default(0) }} columns ·
-        {{ metadata.numeric_columns | default(0) }} numeric · {{ metadata.categorical_columns | default(0) }} categorical
-    </p>
+    <div class="title-page__wrapper">
+        <div class="title-page__brand">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-top: -2px;">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            &nbsp;GETREPORT
+        </div>
+        <h1 class="title-page__name">Data Intelligence<br>Report</h1>
+        <p class="title-page__subtitle">{{ filename }}</p>
+        <div class="title-page__divider"></div>
+    </div>
+    <div class="title-page__details">
+        <div class="title-page__detail-item">
+            <span class="detail-label">Generated On</span>
+            <span class="detail-value">{{ generated_at }}</span>
+        </div>
+        <div class="title-page__detail-item">
+            <span class="detail-label">Dataset Rows</span>
+            <span class="detail-value">{{ metadata.total_rows | default(0) | int }}</span>
+        </div>
+        <div class="title-page__detail-item">
+            <span class="detail-label">Dataset Columns</span>
+            <span class="detail-value">{{ metadata.total_columns | default(0) | int }}</span>
+        </div>
+        <div class="title-page__detail-item">
+            <span class="detail-label">Variable Types</span>
+            <span class="detail-value">{{ metadata.numeric_columns | default(0) | int }} Num / {{ metadata.categorical_columns | default(0) | int }} Cat</span>
+        </div>
+    </div>
 </div>
 
 {# ═══════════════════════════════════════════════════════════════════════════ #}
@@ -32,7 +54,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('confidence_scores') %}
 <div class="section page-break">
-    <div class="section-header section-header--green">Executive Summary</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Executive Summary</h2>
+        <div class="section-accent-line section-accent-line--green"></div>
+    </div>
     <div class="section-body">
         {% set cs = analysis.confidence_scores %}
         <div class="stats-row">
@@ -99,20 +124,23 @@
 {# DATASET OVERVIEW                                                           #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <div class="section">
-    <div class="section-header">Dataset Overview</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Dataset Overview</h2>
+        <div class="section-accent-line"></div>
+    </div>
     <div class="section-body">
         <table>
             <thead>
-                <tr><th>Property</th><th>Value</th></tr>
+                <tr><th>Property</th><th class="num-col">Value</th></tr>
             </thead>
             <tbody>
-                <tr><td>Total Rows</td><td>{{ metadata.total_rows | default('—') }}</td></tr>
-                <tr><td>Total Columns</td><td>{{ metadata.total_columns | default('—') }}</td></tr>
-                <tr><td>Numeric Columns</td><td>{{ metadata.numeric_columns | default('—') }}</td></tr>
-                <tr><td>Categorical Columns</td><td>{{ metadata.categorical_columns | default('—') }}</td></tr>
-                <tr><td>Analytical Numeric</td><td>{{ metadata.get('analytical_numeric_columns', '—') }}</td></tr>
+                <tr><td>Total Rows</td><td class="num-col">{{ metadata.total_rows | default('—') }}</td></tr>
+                <tr><td>Total Columns</td><td class="num-col">{{ metadata.total_columns | default('—') }}</td></tr>
+                <tr><td>Numeric Columns</td><td class="num-col">{{ metadata.numeric_columns | default('—') }}</td></tr>
+                <tr><td>Categorical Columns</td><td class="num-col">{{ metadata.categorical_columns | default('—') }}</td></tr>
+                <tr><td>Analytical Numeric</td><td class="num-col">{{ metadata.get('analytical_numeric_columns', '—') }}</td></tr>
                 {% if metadata.get('excluded_columns') %}
-                <tr><td>Excluded Columns</td><td>{{ metadata.excluded_columns | join(', ') }}</td></tr>
+                <tr><td>Excluded Columns</td><td class="num-col">{{ metadata.excluded_columns | join(', ') }}</td></tr>
                 {% endif %}
             </tbody>
         </table>
@@ -124,17 +152,20 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('confidence_scores') and analysis.confidence_scores.get('columns') %}
 <div class="section">
-    <div class="section-header section-header--teal">Column Confidence Scores</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Column Confidence Scores</h2>
+        <div class="section-accent-line section-accent-line--teal"></div>
+    </div>
     <div class="section-body">
         <table>
             <thead>
-                <tr><th>Column</th><th>Score</th><th>Grade</th><th>Factors</th></tr>
+                <tr><th>Column</th><th class="num-col">Score</th><th>Grade</th><th>Factors</th></tr>
             </thead>
             <tbody>
                 {% for col_data in analysis.confidence_scores.columns %}
                 <tr>
                     <td class="text-bold">{{ col_data.get('column', '—') }}</td>
-                    <td>{{ "%.0f" | format(col_data.get('overall', 0)) }}%</td>
+                    <td class="num-col">{{ "%.0f" | format(col_data.get('overall', 0)) }}%</td>
                     <td><span class="badge badge--{{ (col_data.grade | default('c')) | lower }}">{{ col_data.grade | default('—') }}</span></td>
                     <td class="text-small text-muted">
                         Completeness {{ "%.0f" | format(col_data.get('completeness', 0)) }}%,
@@ -155,7 +186,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('semantic_analysis') %}
 <div class="section">
-    <div class="section-header section-header--blue">Semantic Intelligence</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Semantic Intelligence</h2>
+        <div class="section-accent-line section-accent-line--blue"></div>
+    </div>
     <div class="section-body">
         {% set sem = analysis.semantic_analysis %}
         {% if sem.get('domain') %}
@@ -199,7 +233,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('analysis_decisions') %}
 <div class="section">
-    <div class="section-header section-header--slate">Analysis Decisions</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Analysis Decisions</h2>
+        <div class="section-accent-line section-accent-line--slate"></div>
+    </div>
     <div class="section-body">
         {% set dec = analysis.analysis_decisions %}
         {% if dec.get('summary') %}
@@ -236,7 +273,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('issue_ledger') and analysis.issue_ledger.get('issues') %}
 <div class="section">
-    <div class="section-header section-header--amber">Issue Ledger</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Issue Ledger</h2>
+        <div class="section-accent-line section-accent-line--amber"></div>
+    </div>
     <div class="section-body">
         {% set ledger = analysis.issue_ledger %}
         {% if ledger.get('summary') %}
@@ -267,7 +307,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('cleaning_report') %}
 <div class="section">
-    <div class="section-header section-header--green">Data Cleaning Summary</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Data Cleaning Summary</h2>
+        <div class="section-accent-line section-accent-line--green"></div>
+    </div>
     <div class="section-body">
         {% set cr = analysis.cleaning_report %}
         {% if cr.get('steps_applied') %}
@@ -295,20 +338,23 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('cleaning_report') and analysis.cleaning_report.get('before_after') %}
 <div class="section">
-    <div class="section-header section-header--blue">Data Quality Improvement</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Data Quality Improvement</h2>
+        <div class="section-accent-line section-accent-line--blue"></div>
+    </div>
     <div class="section-body">
         {% set ba = analysis.cleaning_report.before_after %}
         <table>
             <thead>
-                <tr><th>Metric</th><th>Before</th><th>After</th><th>Change</th></tr>
+                <tr><th>Metric</th><th class="num-col">Before</th><th class="num-col">After</th><th class="num-col">Change</th></tr>
             </thead>
             <tbody>
                 {% for metric in ba %}
                 <tr>
                     <td class="text-bold">{{ metric.get('metric', '—') }}</td>
-                    <td>{{ metric.get('before', '—') }}</td>
-                    <td>{{ metric.get('after', '—') }}</td>
-                    <td>
+                    <td class="num-col">{{ metric.get('before', '—') }}</td>
+                    <td class="num-col">{{ metric.get('after', '—') }}</td>
+                    <td class="num-col">
                         {% set delta = metric.get('delta', 0) %}
                         {% if delta > 0 %}
                         <span class="priority-low">▲ {{ delta }}</span>
@@ -331,22 +377,25 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('summary') %}
 <div class="section page-break">
-    <div class="section-header">Summary Statistics</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Summary Statistics</h2>
+        <div class="section-accent-line"></div>
+    </div>
     <div class="section-body">
         <table>
             <thead>
-                <tr><th>Column</th><th>Mean</th><th>Median</th><th>Std Dev</th><th>Min</th><th>Max</th><th>Null %</th></tr>
+                <tr><th>Column</th><th class="num-col">Mean</th><th class="num-col">Median</th><th class="num-col">Std Dev</th><th class="num-col">Min</th><th class="num-col">Max</th><th class="num-col">Null %</th></tr>
             </thead>
             <tbody>
                 {% for col_name, stats in analysis.summary.items() %}
                 <tr>
                     <td class="text-bold">{{ col_name }}</td>
-                    <td>{{ "%.2f" | format(stats.mean) if stats.mean is defined else '—' }}</td>
-                    <td>{{ "%.2f" | format(stats['50%']) if stats['50%'] is defined else '—' }}</td>
-                    <td>{{ "%.2f" | format(stats.std) if stats.std is defined else '—' }}</td>
-                    <td>{{ "%.2f" | format(stats.min) if stats.min is defined else '—' }}</td>
-                    <td>{{ "%.2f" | format(stats.max) if stats.max is defined else '—' }}</td>
-                    <td>{{ "%.1f" | format(stats.missing_pct) if stats.missing_pct is defined else '0.0' }}%</td>
+                    <td class="num-col">{{ "%.2f" | format(stats.mean) if stats.mean is defined else '—' }}</td>
+                    <td class="num-col">{{ "%.2f" | format(stats['50%']) if stats['50%'] is defined else '—' }}</td>
+                    <td class="num-col">{{ "%.2f" | format(stats.std) if stats.std is defined else '—' }}</td>
+                    <td class="num-col">{{ "%.2f" | format(stats.min) if stats.min is defined else '—' }}</td>
+                    <td class="num-col">{{ "%.2f" | format(stats.max) if stats.max is defined else '—' }}</td>
+                    <td class="num-col">{{ "%.1f" | format(stats.missing_pct) if stats.missing_pct is defined else '0.0' }}%</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -367,19 +416,22 @@
 {% endfor %}
 {% if skewed | length > 0 %}
 <div class="section">
-    <div class="section-header section-header--amber">Non-Normal Distributions</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Non-Normal Distributions</h2>
+        <div class="section-accent-line section-accent-line--amber"></div>
+    </div>
     <div class="section-body">
         <p class="text-small text-muted mb-8">Columns with |skewness| > 0.75 — may benefit from transformation.</p>
         <table>
             <thead>
-                <tr><th>Column</th><th>Skewness</th><th>Kurtosis</th><th>Direction</th></tr>
+                <tr><th>Column</th><th class="num-col">Skewness</th><th class="num-col">Kurtosis</th><th>Direction</th></tr>
             </thead>
             <tbody>
                 {% for item in skewed %}
                 <tr>
                     <td class="text-bold">{{ item.col }}</td>
-                    <td>{{ "%.3f" | format(item.skewness) }}</td>
-                    <td>{{ "%.3f" | format(item.kurtosis) }}</td>
+                    <td class="num-col">{{ "%.3f" | format(item.skewness) }}</td>
+                    <td class="num-col">{{ "%.3f" | format(item.kurtosis) }}</td>
                     <td>
                         {% if item.skewness > 0 %}
                         <span class="badge badge--info">Right-skewed</span>
@@ -401,18 +453,21 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('strong_correlations') and analysis.strong_correlations | length > 0 %}
 <div class="section">
-    <div class="section-header section-header--blue">Strong Correlations</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Strong Correlations</h2>
+        <div class="section-accent-line section-accent-line--blue"></div>
+    </div>
     <div class="section-body">
         <table>
             <thead>
-                <tr><th>Column A</th><th>Column B</th><th>Correlation</th><th>Type</th></tr>
+                <tr><th>Column A</th><th>Column B</th><th class="num-col">Correlation</th><th>Type</th></tr>
             </thead>
             <tbody>
                 {% for pair in analysis.strong_correlations %}
                 <tr>
                     <td class="text-bold">{{ pair.get('column_a', pair.get('col_a', '—')) }}</td>
                     <td class="text-bold">{{ pair.get('column_b', pair.get('col_b', '—')) }}</td>
-                    <td>{{ "%.3f" | format(pair.get('r_value', pair.get('value', 0))) }}</td>
+                    <td class="num-col">{{ "%.3f" | format(pair.get('r_value', pair.get('value', 0))) }}</td>
                     <td>
                         {% set val = pair.get('r_value', pair.get('value', 0)) %}
                         {% if val > 0 %}
@@ -442,7 +497,10 @@
 {% endfor %}
 {% if mc_pairs | length > 0 %}
 <div class="section">
-    <div class="section-header section-header--red">Multicollinearity Warning</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Multicollinearity Warning</h2>
+        <div class="section-accent-line section-accent-line--red"></div>
+    </div>
     <div class="section-body">
         <div class="insight-card insight-card--warning">
             <div class="insight-card__title">Highly Correlated Feature Pairs (|r| > 0.85)</div>
@@ -450,14 +508,14 @@
         </div>
         <table class="mt-8">
             <thead>
-                <tr><th>Column A</th><th>Column B</th><th>|Correlation|</th></tr>
+                <tr><th>Column A</th><th>Column B</th><th class="num-col">|Correlation|</th></tr>
             </thead>
             <tbody>
                 {% for pair in mc_pairs %}
                 <tr>
                     <td>{{ pair.get('column_a', pair.get('col_a', '—')) }}</td>
                     <td>{{ pair.get('column_b', pair.get('col_b', '—')) }}</td>
-                    <td class="priority-high">{{ "%.3f" | format((pair.get('r_value', pair.get('value', 0))) | abs) }}</td>
+                    <td class="num-col priority-high">{{ "%.3f" | format((pair.get('r_value', pair.get('value', 0))) | abs) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -472,7 +530,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('time_series_analysis') and analysis.time_series_analysis.get('has_time_series') %}
 <div class="section">
-    <div class="section-header section-header--teal">Time Series Analysis</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Time Series Analysis</h2>
+        <div class="section-accent-line section-accent-line--teal"></div>
+    </div>
     <div class="section-body">
         {% for col_name, ts in (analysis.time_series_analysis.get('analyses') or {}).items() %}
         <div class="insight-card no-break mb-8">
@@ -492,7 +553,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('insights') %}
 <div class="section page-break">
-    <div class="section-header section-header--green">AI-Powered Insights</div>
+    <div class="section-title-container">
+        <h2 class="section-title">AI-Powered Insights</h2>
+        <div class="section-accent-line section-accent-line--green"></div>
+    </div>
     <div class="section-body">
         {% set ins = analysis.insights %}
         {% if ins is string %}
@@ -516,20 +580,23 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('outliers') and analysis.outliers | length > 0 %}
 <div class="section">
-    <div class="section-header section-header--amber">Outlier Detection</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Outlier Detection</h2>
+        <div class="section-accent-line section-accent-line--amber"></div>
+    </div>
     <div class="section-body">
         <table>
             <thead>
-                <tr><th>Column</th><th>Count</th><th>% of Data</th><th>Lower Bound</th><th>Upper Bound</th></tr>
+                <tr><th>Column</th><th class="num-col">Count</th><th class="num-col">% of Data</th><th class="num-col">Lower Bound</th><th class="num-col">Upper Bound</th></tr>
             </thead>
             <tbody>
                 {% for col_name, info in analysis.outliers.items() %}
                 <tr>
                     <td class="text-bold">{{ col_name }}</td>
-                    <td>{{ info.get('count', 0) }}</td>
-                    <td>{{ "%.1f" | format(info.get('percentage', 0)) }}%</td>
-                    <td>{{ "%.2f" | format(info.get('lower_bound', 0)) }}</td>
-                    <td>{{ "%.2f" | format(info.get('upper_bound', 0)) }}</td>
+                    <td class="num-col">{{ info.get('count', 0) }}</td>
+                    <td class="num-col">{{ "%.1f" | format(info.get('percentage', 0)) }}%</td>
+                    <td class="num-col">{{ "%.2f" | format(info.get('lower_bound', 0)) }}</td>
+                    <td class="num-col">{{ "%.2f" | format(info.get('upper_bound', 0)) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -543,21 +610,24 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('categorical_distribution') and analysis.categorical_distribution | length > 0 %}
 <div class="section">
-    <div class="section-header">Categorical Distribution</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Categorical Distribution</h2>
+        <div class="section-accent-line"></div>
+    </div>
     <div class="section-body">
         {% for col_name, dist in analysis.categorical_distribution.items() %}
         <div class="no-break mb-8">
             <p class="text-bold">{{ col_name }} <span class="text-muted text-small">({{ dist.get('total_unique', '?') }} unique · {{ dist.get('missing_pct', 0) }}% missing)</span></p>
             <table>
                 <thead>
-                    <tr><th>Value</th><th>Count</th><th>%</th></tr>
+                    <tr><th>Value</th><th class="num-col">Count</th><th class="num-col">%</th></tr>
                 </thead>
                 <tbody>
                     {% for cat_name, cat_data in (dist.get('categories') or {}).items() %}
                     <tr>
                         <td>{{ cat_name }}</td>
-                        <td>{{ cat_data.get('count', 0) }}</td>
-                        <td>{{ cat_data.get('percentage', 0) }}%</td>
+                        <td class="num-col">{{ cat_data.get('count', 0) }}</td>
+                        <td class="num-col">{{ cat_data.get('percentage', 0) }}%</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -573,19 +643,22 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('missing_patterns') and analysis.missing_patterns.get('columns') %}
 <div class="section">
-    <div class="section-header section-header--amber">Missing Value Patterns</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Missing Value Patterns</h2>
+        <div class="section-accent-line section-accent-line--amber"></div>
+    </div>
     <div class="section-body">
         <table>
             <thead>
-                <tr><th>Column</th><th>Missing Count</th><th>Missing %</th><th>Pattern</th></tr>
+                <tr><th>Column</th><th class="num-col">Missing Count</th><th class="num-col">Missing %</th><th>Pattern</th></tr>
             </thead>
             <tbody>
                 {% for col_name, mp in (analysis.missing_patterns.get('columns') or {}).items() %}
                 {% if mp.get('missing_pct', 0) > 0 %}
                 <tr>
                     <td class="text-bold">{{ col_name }}</td>
-                    <td>{{ mp.get('missing_count', 0) }}</td>
-                    <td>{{ "%.1f" | format(mp.get('missing_pct', 0)) }}%</td>
+                    <td class="num-col">{{ mp.get('missing_count', 0) }}</td>
+                    <td class="num-col">{{ "%.1f" | format(mp.get('missing_pct', 0)) }}%</td>
                     <td><span class="badge badge--neutral">{{ mp.get('pattern', 'random') }}</span></td>
                 </tr>
                 {% endif %}
@@ -601,7 +674,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('feature_engineering') %}
 <div class="section">
-    <div class="section-header section-header--teal">Feature Engineering Recommendations</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Feature Engineering Recommendations</h2>
+        <div class="section-accent-line section-accent-line--teal"></div>
+    </div>
     <div class="section-body">
         {% set fe = analysis.feature_engineering %}
         {% if fe.get('encoding_recommendations') and fe.encoding_recommendations | length > 0 %}
@@ -649,14 +725,17 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('smart_schema') %}
 <div class="section">
-    <div class="section-header section-header--slate">Smart Schema Analysis</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Smart Schema Analysis</h2>
+        <div class="section-accent-line section-accent-line--slate"></div>
+    </div>
     <div class="section-body">
         {% set ss = analysis.smart_schema %}
         {% if ss.get('type_corrections') and ss.type_corrections | length > 0 %}
         <p class="text-bold mb-8">Type Corrections Detected</p>
         <table>
             <thead>
-                <tr><th>Column</th><th>Current Type</th><th>Suggested Type</th><th>Confidence</th></tr>
+                <tr><th>Column</th><th>Current Type</th><th>Suggested Type</th><th class="num-col">Confidence</th></tr>
             </thead>
             <tbody>
                 {% for tc in ss.type_corrections %}
@@ -664,7 +743,7 @@
                     <td class="text-bold">{{ tc.get('column', '—') }}</td>
                     <td>{{ tc.get('current', '—') }}</td>
                     <td><span class="badge badge--info">{{ tc.get('suggested', '—') }}</span></td>
-                    <td>{{ "%.0f" | format((tc.get('confidence', 0)) * 100) }}%</td>
+                    <td class="num-col">{{ "%.0f" | format((tc.get('confidence', 0)) * 100) }}%</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -675,7 +754,7 @@
         <p class="text-bold mt-12 mb-8">Detected Relationships</p>
         <table>
             <thead>
-                <tr><th>Type</th><th>From</th><th>To</th><th>Confidence</th></tr>
+                <tr><th>Type</th><th>From</th><th>To</th><th class="num-col">Confidence</th></tr>
             </thead>
             <tbody>
                 {% for rel in ss.relationships %}
@@ -683,7 +762,7 @@
                     <td><span class="badge badge--info">{{ rel.get('type', '—') }}</span></td>
                     <td>{{ rel.get('from', '—') }}</td>
                     <td>{{ rel.get('to', '—') }}</td>
-                    <td>{{ "%.0f" | format((rel.get('confidence', 0)) * 100) }}%</td>
+                    <td class="num-col">{{ "%.0f" | format((rel.get('confidence', 0)) * 100) }}%</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -698,7 +777,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('recommendations') %}
 <div class="section">
-    <div class="section-header section-header--green">Recommendations</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Recommendations</h2>
+        <div class="section-accent-line section-accent-line--green"></div>
+    </div>
     <div class="section-body">
         {% set all_recs = (analysis.recommendations.get('domain_specific') or []) + (analysis.recommendations.get('data_quality') or []) + (analysis.recommendations.get('analysis') or []) + (analysis.recommendations.get('visualization') or []) %}
         {% for rec in all_recs %}
@@ -722,7 +804,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if analysis.get('ranked_insights') and analysis.ranked_insights | length > 0 %}
 <div class="section">
-    <div class="section-header section-header--blue">Ranked Insights</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Ranked Insights</h2>
+        <div class="section-accent-line section-accent-line--blue"></div>
+    </div>
     <div class="section-body">
         {% for ins in analysis.ranked_insights[:10] %}
         <div class="insight-card no-break mb-8 {% if ins.get('severity') == 'high' %}insight-card--danger{% elif ins.get('severity') == 'medium' %}insight-card--warning{% else %}insight-card--success{% endif %}">
@@ -745,7 +830,10 @@
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if charts and charts | length > 0 %}
 <div class="section">
-    <div class="section-header">Visualizations</div>
+    <div class="section-title-container">
+        <h2 class="section-title">Visualizations</h2>
+        <div class="section-accent-line"></div>
+    </div>
     <div class="section-body">
         <div class="chart-grid">
         {% if charts.get('correlation_heatmap') and charts.correlation_heatmap.get('image') %}
