@@ -169,24 +169,21 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   if (inspectionData && !isProcessing) {
     const issueLedgerData = inspectionData.issue_ledger;
 
-    // Refresh function to re-fetch the inspection data with updated issues
+    // Refresh function to re-fetch the issue ledger with updated statuses
     const refreshIssues = async () => {
       if (!taskId) return;
       try {
-        const status = await api.getTaskStatus(taskId);
-        if (status.result) {
-          const resultData = typeof status.result === 'string'
-            ? JSON.parse(status.result)
-            : status.result;
-          setInspectionData(resultData as InspectionResult);
-        }
+        // Fetch the updated issue ledger directly from the issues endpoint
+        const updatedLedger = await api.getIssues(taskId);
+        // Merge the updated ledger into the current inspectionData
+        setInspectionData(prev => prev ? { ...prev, issue_ledger: updatedLedger } : prev);
       } catch (e) {
         console.error("Failed to refresh issues:", e);
       }
     };
 
     return (
-      <div className="space-y-8 max-w-5xl mx-auto">
+      <div className="space-y-8 max-w-7xl mx-auto">
         {/* Issue Ledger Section */}
         {issueLedgerData && issueLedgerData.issues && issueLedgerData.issues.length > 0 && (
           <IssueLedger

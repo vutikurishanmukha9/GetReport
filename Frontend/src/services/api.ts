@@ -130,6 +130,60 @@ export const api = {
     },
 
     /**
+     * Get issues ledger for a job.
+     */
+    getIssues: async (taskId: string): Promise<any> => {
+        return fetchClient<any>(`/jobs/${taskId}/issues`);
+    },
+
+    /**
+     * Approve a single issue.
+     */
+    approveIssue: async (taskId: string, issueId: string): Promise<any> => {
+        return fetchClient<any>(`/jobs/${taskId}/issues/${issueId}/approve`, {
+            method: "POST",
+            body: JSON.stringify({}),
+        });
+    },
+
+    /**
+     * Reject a single issue.
+     */
+    rejectIssue: async (taskId: string, issueId: string): Promise<any> => {
+        return fetchClient<any>(`/jobs/${taskId}/issues/${issueId}/reject`, {
+            method: "POST",
+            body: JSON.stringify({}),
+        });
+    },
+
+    /**
+     * Approve all pending issues.
+     */
+    approveAllIssues: async (taskId: string): Promise<any> => {
+        return fetchClient<any>(`/jobs/${taskId}/issues/approve-all`, {
+            method: "POST",
+        });
+    },
+
+    /**
+     * Reject all pending issues.
+     */
+    rejectAllIssues: async (taskId: string): Promise<any> => {
+        return fetchClient<any>(`/jobs/${taskId}/issues/reject-all`, {
+            method: "POST",
+        });
+    },
+
+    /**
+     * Lock the issue ledger.
+     */
+    lockIssues: async (taskId: string): Promise<any> => {
+        return fetchClient<any>(`/jobs/${taskId}/issues/lock`, {
+            method: "POST",
+        });
+    },
+
+    /**
      * Get the WebSocket URL for real-time status updates.
      */
     getWebSocketUrl: (taskId: string): string => {

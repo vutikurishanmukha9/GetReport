@@ -110,7 +110,7 @@ export const HowItWorks = () => {
           </div>
 
           {/* Connected Block diagram pipeline */}
-          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-4 items-center">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-4 items-center">
             
             {/* Stage 1 */}
             <Card className="border border-border/80 bg-card p-5 text-center shadow-premium rounded-xl flex flex-col justify-between h-40">

@@ -43,7 +43,7 @@ async def get_task_status(
         raise HTTPException(status_code=404, detail="Task not found")
 
     result_data = None
-    if job.status == TaskStatus.COMPLETED and job.result:
+    if job.status in (TaskStatus.COMPLETED, TaskStatus.WAITING_FOR_USER) and job.result:
         result_data = job.result
 
     return StatusResponse(

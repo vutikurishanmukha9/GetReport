@@ -24,7 +24,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-4 left-0 right-0 z-50 w-full max-w-5xl mx-auto px-4 sm:px-6">
+    <header className="fixed top-4 left-0 right-0 z-50 w-full max-w-7xl mx-auto px-4 sm:px-6">
       <div className="border border-border/80 bg-background/70 backdrop-blur-md shadow-xs rounded-full px-4 sm:px-6 transition-all duration-200">
         <div className="flex h-14 items-center justify-between">
           {/* Logo */}

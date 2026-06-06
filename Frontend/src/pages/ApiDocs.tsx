@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 const ApiDocs = () => {
     return (
         <div className="min-h-screen bg-background animate-in fade-in duration-500">
-            <div className="container mx-auto px-4 py-16 max-w-5xl">
+            <div className="container mx-auto px-4 py-16 max-w-7xl">
                 <div className="text-center mb-16">
                     <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
                         <Terminal className="h-8 w-8 text-primary" />

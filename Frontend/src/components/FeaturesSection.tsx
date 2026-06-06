@@ -17,7 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export const FeaturesSection = () => {
   return (
     <section id="features" className="py-16 sm:py-20 md:py-24 bg-muted/20 border-t">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         
         {/* Left-aligned clean Section Header (no eyebrows, no left-right two-col headers) */}
         <div className="max-w-2xl text-left mb-12 sm:mb-16 space-y-3">

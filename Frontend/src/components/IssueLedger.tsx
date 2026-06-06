@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Check, X, AlertTriangle, AlertCircle, Info, Lock, CheckCheck, XCircle } from 'lucide-react';
+import { api } from '@/services/api';
 
 // Types
 interface Issue {
@@ -36,7 +37,7 @@ interface IssueLedgerProps {
     onProceed: () => void;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// API client is imported from services/api.ts
 
 // Severity badge colors
 const severityColors = {
@@ -78,12 +79,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
         setLoading(issueId);
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/jobs/${taskId}/issues/${issueId}/approve`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}),
-            });
-            if (!res.ok) throw new Error('Failed to approve issue');
+            await api.approveIssue(taskId, issueId);
             onRefresh();
         } catch (e) {
             setError((e as Error).message);
@@ -96,12 +92,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
         setLoading(issueId);
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/jobs/${taskId}/issues/${issueId}/reject`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}),
-            });
-            if (!res.ok) throw new Error('Failed to reject issue');
+            await api.rejectIssue(taskId, issueId);
             onRefresh();
         } catch (e) {
             setError((e as Error).message);
@@ -114,10 +105,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
         setLoading('all');
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/jobs/${taskId}/issues/approve-all`, {
-                method: 'POST',
-            });
-            if (!res.ok) throw new Error('Failed to approve all issues');
+            await api.approveAllIssues(taskId);
             onRefresh();
         } catch (e) {
             setError((e as Error).message);
@@ -130,10 +118,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
         setLoading('all');
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/jobs/${taskId}/issues/reject-all`, {
-                method: 'POST',
-            });
-            if (!res.ok) throw new Error('Failed to reject all issues');
+            await api.rejectAllIssues(taskId);
             onRefresh();
         } catch (e) {
             setError((e as Error).message);
@@ -146,13 +131,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
         setLoading('lock');
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/jobs/${taskId}/issues/lock`, {
-                method: 'POST',
-            });
-            if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.detail || 'Failed to lock issues');
-            }
+            await api.lockIssues(taskId);
             onProceed();
         } catch (e) {
             setError((e as Error).message);

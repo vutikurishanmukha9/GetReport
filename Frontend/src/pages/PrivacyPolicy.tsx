@@ -3,7 +3,7 @@ import { Shield, Database, Lock, Eye, Trash2, Server } from "lucide-react";
 const PrivacyPolicy = () => {
     return (
         <div className="min-h-screen bg-background animate-in fade-in duration-500">
-            <div className="container mx-auto px-4 py-16 max-w-4xl">
+            <div className="container mx-auto px-4 py-16 max-w-6xl">
                 <div className="mb-12 border-b pb-8">
                     <div className="flex items-center gap-4 mb-4">
                         <Shield className="h-8 w-8 text-primary" />

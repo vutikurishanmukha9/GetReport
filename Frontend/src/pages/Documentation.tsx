@@ -16,7 +16,7 @@ const Documentation = () => {
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 py-12 max-w-4xl">
+            <div className="container mx-auto px-4 py-12 max-w-6xl">
                 {/* Popular Topics Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
                     <Link to="#" className="p-6 border rounded-xl hover:bg-muted/50 transition-colors group">

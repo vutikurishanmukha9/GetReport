@@ -51,7 +51,7 @@ export const Workspace = () => {
 
       <main className="flex-1 pt-20">
         {step === "upload" && (
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 max-w-4xl space-y-8 animate-in fade-in duration-300">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 max-w-6xl space-y-8 animate-in fade-in duration-300">
             <div className="text-center space-y-3">
               <h1 className="text-3xl sm:text-4xl font-display font-bold text-foreground tracking-tight uppercase">
                 Data Ingestion Workspace
@@ -80,7 +80,7 @@ export const Workspace = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12 space-y-12">
             {/* Process Pipeline — visible during report generation */}
             {step === "generating" && taskId && (
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-6xl mx-auto">
                 <ProcessPipeline
                   taskStatus={pipelineStatus}
                   message={pipelineMessage}
