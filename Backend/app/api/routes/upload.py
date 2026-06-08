@@ -46,18 +46,29 @@ async def upload_file(
         # Content Validation (Phase 4 Security Hardening)
         await validate_file_signature(file)
          
-        # Enforce file size limit (streaming — avoids loading entire file to RAM)
+        # Enforce file size limit in O(1) time using pointer seek
         max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
-        size = 0
-        CHUNK_SIZE = 64 * 1024  # 64KB chunks
-        while True:
-            chunk = await file.read(CHUNK_SIZE)
-            if not chunk:
-                break
-            size += len(chunk)
-            if size > max_bytes:
-                raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
-        await file.seek(0)  # Reset for downstream read
+        try:
+            await file.seek(0, 2)  # Seek to end
+            size = await file.tell()
+            await file.seek(0)  # Reset to start
+        except Exception as seek_err:
+            # Fallback if async seek(0, 2)/tell() is unsupported by the FastAPI/Starlette wrapper version
+            logger.warning(f"Async seek/tell size check failed ({seek_err}), falling back to streaming read.")
+            size = 0
+            CHUNK_SIZE = 64 * 1024
+            while True:
+                chunk = await file.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > max_bytes:
+                    raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
+            await file.seek(0)
+
+        if size > max_bytes:
+            raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
+
              
         # Sanitize Filename (Security Fix)
         base_name = os.path.basename(file.filename)

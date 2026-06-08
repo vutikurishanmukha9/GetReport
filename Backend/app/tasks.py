@@ -282,7 +282,7 @@ def _trigger_rag_ingest(task_id, filename, context, analysis_result):
     try:
         # Prepare text
         analysis = analysis_result
-        insights = context.get("insights", {}).get("response", "")
+        insights = context.get("insights", {}).get("insights_text", "")
         cleaning = context["cleaning_report"]
         info = context["dataset_info"]
         

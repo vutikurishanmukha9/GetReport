@@ -274,7 +274,15 @@ def _init_postgres_sync():
                 print("[DB-INIT] Vector extension verified/enabled.")
             except Exception as e:
                 conn.rollback()
-                print(f"[DB-INIT] Vector extension init failed: {e}")
+                print(f"[DB-INIT] Vector extension init failed: {e}. Attempting standard fallback (no pgvector)...")
+                try:
+                    cursor = conn.cursor()
+                    _create_fallback_rag_table(cursor)
+                    conn.commit()
+                    print("[DB-INIT] Fallback standard RAG tables created successfully.")
+                except Exception as fallback_err:
+                    conn.rollback()
+                    print(f"[DB-INIT] CRITICAL: Fallback table creation failed: {fallback_err}")
 
         finally:
             pg_pool.putconn(conn)
@@ -371,6 +379,23 @@ def _enable_vector_extension(cursor):
     try:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING hnsw (embedding vector_cosine_ops)")
     except: pass
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_task_id ON document_chunks(task_id)")
+    try:
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_content_fts ON document_chunks USING gin (to_tsvector('english', content))")
+    except: pass
+
+def _create_fallback_rag_table(cursor):
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS document_chunks (
+            id SERIAL PRIMARY KEY,
+            task_id TEXT NOT NULL,
+            content TEXT,
+            chunk_index INTEGER,
+            metadata JSONB,
+            embedding TEXT, -- Fallback to string-serialized array
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_task_id ON document_chunks(task_id)")
     try:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_content_fts ON document_chunks USING gin (to_tsvector('english', content))")

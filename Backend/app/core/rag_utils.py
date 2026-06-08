@@ -171,38 +171,33 @@ class PostgresVectorStore:
         
         vector_str = f"[{','.join(map(str, query_embedding))}]"
         
-        async with get_async_db_connection() as conn:
-            # We use our wrapper execute, but we need to handle $n replacement if using ?
-            # Wait, here we write raw SQL. Our wrapper expects ?.
-            # BUT asyncpg natively uses $n.
-            # If we utilize `conn.execute` (our wrapper), we must use `?`.
-            # OR we bypass wrapper and use `await conn.conn.fetch` if we want raw power.
-            # Let's use our wrapper for consistency of connection management, 
-            # but our wrapper expects `?`.
-            
-            # Query: embedding <=> ?
-            rows = await conn.conn.fetch(
-                """
-                SELECT content, metadata, embedding <=> $1 as distance
-                FROM document_chunks
-                WHERE task_id = $2
-                ORDER BY distance ASC
-                LIMIT $3
-                """,
-                vector_str, self.task_id, k
-            )
-            
-            results = []
-            for row in rows:
-                content = row["content"]
-                metadata = row["metadata"]
-                if isinstance(metadata, str):
-                    metadata = json.loads(metadata)
-                distance = row["distance"]
-                score = 1 - float(distance)
-                results.append(({"content": content, "metadata": metadata}, score))
+        try:
+            async with get_async_db_connection() as conn:
+                rows = await conn.conn.fetch(
+                    """
+                    SELECT content, metadata, embedding <=> $1 as distance
+                    FROM document_chunks
+                    WHERE task_id = $2
+                    ORDER BY distance ASC
+                    LIMIT $3
+                    """,
+                    vector_str, self.task_id, k
+                )
                 
-            return results
+                results = []
+                for row in rows:
+                    content = row["content"]
+                    metadata = row["metadata"]
+                    if isinstance(metadata, str):
+                        metadata = json.loads(metadata)
+                    distance = row["distance"]
+                    score = 1 - float(distance)
+                    results.append(({"content": content, "metadata": metadata}, score))
+                    
+                return results
+        except Exception as e:
+            logger.info("pgvector similarity search failed, falling back to in-memory cosine similarity: %s", e)
+            return await self._similarity_search_in_memory_async(query_embedding, k)
 
     async def hybrid_search_async(self, query_text: str, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
         """
@@ -213,74 +208,78 @@ class PostgresVectorStore:
         
         vector_str = f"[{','.join(map(str, query_embedding))}]"
         
-        async with get_async_db_connection() as conn:
-            # RRF (Reciprocal Rank Fusion) SQL query
-            rows = await conn.conn.fetch(
-                """
-                WITH vector_search AS (
+        try:
+            async with get_async_db_connection() as conn:
+                # RRF (Reciprocal Rank Fusion) SQL query
+                rows = await conn.conn.fetch(
+                    """
+                    WITH vector_search AS (
+                        SELECT 
+                            id, 
+                            content, 
+                            metadata, 
+                            embedding <=> $1 AS vector_distance,
+                            RANK() OVER (ORDER BY embedding <=> $1) as vector_rank
+                        FROM document_chunks
+                        WHERE task_id = $2
+                        ORDER BY vector_distance ASC
+                        LIMIT 20
+                    ),
+                    keyword_search AS (
+                        SELECT 
+                            id, 
+                            content, 
+                            metadata, 
+                            ts_rank(to_tsvector('english', content), websearch_to_tsquery('english', $3)) AS keyword_score,
+                            RANK() OVER (ORDER BY ts_rank(to_tsvector('english', content), websearch_to_tsquery('english', $3)) DESC) as keyword_rank
+                        FROM document_chunks
+                        WHERE task_id = $2 AND to_tsvector('english', content) @@ websearch_to_tsquery('english', $3)
+                        ORDER BY keyword_score DESC
+                        LIMIT 20
+                    )
                     SELECT 
-                        id, 
-                        content, 
-                        metadata, 
-                        embedding <=> $1 AS vector_distance,
-                        RANK() OVER (ORDER BY embedding <=> $1) as vector_rank
-                    FROM document_chunks
-                    WHERE task_id = $2
-                    ORDER BY vector_distance ASC
-                    LIMIT 20
-                ),
-                keyword_search AS (
-                    SELECT 
-                        id, 
-                        content, 
-                        metadata, 
-                        ts_rank(to_tsvector('english', content), websearch_to_tsquery('english', $3)) AS keyword_score,
-                        RANK() OVER (ORDER BY ts_rank(to_tsvector('english', content), websearch_to_tsquery('english', $3)) DESC) as keyword_rank
-                    FROM document_chunks
-                    WHERE task_id = $2 AND to_tsvector('english', content) @@ websearch_to_tsquery('english', $3)
-                    ORDER BY keyword_score DESC
-                    LIMIT 20
+                        COALESCE(v.id, k.id) as id,
+                        COALESCE(v.content, k.content) as content,
+                        COALESCE(v.metadata, k.metadata) as metadata,
+                        COALESCE(v.vector_distance, 1.0) as vector_distance,
+                        COALESCE(k.keyword_score, 0.0) as keyword_score,
+                        -- RRF Score: 1.0 / (k + rank), using k=60 as standard
+                        (COALESCE(1.0 / (60 + v.vector_rank), 0.0) + 
+                         COALESCE(1.0 / (60 + k.keyword_rank), 0.0)) as rrf_score
+                    FROM vector_search v
+                    FULL OUTER JOIN keyword_search k ON v.id = k.id
+                    ORDER BY rrf_score DESC
+                    LIMIT $4
+                    """,
+                    vector_str, self.task_id, query_text, k
                 )
-                SELECT 
-                    COALESCE(v.id, k.id) as id,
-                    COALESCE(v.content, k.content) as content,
-                    COALESCE(v.metadata, k.metadata) as metadata,
-                    COALESCE(v.vector_distance, 1.0) as vector_distance,
-                    COALESCE(k.keyword_score, 0.0) as keyword_score,
-                    -- RRF Score: 1.0 / (k + rank), using k=60 as standard
-                    (COALESCE(1.0 / (60 + v.vector_rank), 0.0) + 
-                     COALESCE(1.0 / (60 + k.keyword_rank), 0.0)) as rrf_score
-                FROM vector_search v
-                FULL OUTER JOIN keyword_search k ON v.id = k.id
-                ORDER BY rrf_score DESC
-                LIMIT $4
-                """,
-                vector_str, self.task_id, query_text, k
-            )
-            
-            results = []
-            for row in rows:
-                content = row["content"]
-                metadata = row["metadata"]
-                if isinstance(metadata, str):
-                    metadata = json.loads(metadata)
                 
-                # We return RRF score as the metric. 
-                # (RRF score is small, usually 0.01 - 0.033).
-                rrf_score = float(row["rrf_score"])
-                
-                # If the score is purely vector baseline (e.g. no keyword match),
-                # we still want to give it a passing score based on its semantic distance.
-                vector_dist = float(row["vector_distance"])
-                semantic_score = 1.0 - vector_dist
-                
-                # Normalize score so the frontend still sees 0.7+ for good matches.
-                # If RRF is strong (> 0.015), it heavily boosts the semantic score.
-                normalized_score = min(0.99, semantic_score + (rrf_score * 5))
-                
-                results.append(({"content": content, "metadata": metadata}, normalized_score))
-                
-            return results
+                results = []
+                for row in rows:
+                    content = row["content"]
+                    metadata = row["metadata"]
+                    if isinstance(metadata, str):
+                        metadata = json.loads(metadata)
+                    
+                    # We return RRF score as the metric. 
+                    # (RRF score is small, usually 0.01 - 0.033).
+                    rrf_score = float(row["rrf_score"])
+                    
+                    # If the score is purely vector baseline (e.g. no keyword match),
+                    # we still want to give it a passing score based on its semantic distance.
+                    vector_dist = float(row["vector_distance"])
+                    semantic_score = 1.0 - vector_dist
+                    
+                    # Normalize score so the frontend still sees 0.7+ for good matches.
+                    # If RRF is strong (> 0.015), it heavily boosts the semantic score.
+                    normalized_score = min(0.99, semantic_score + (rrf_score * 5))
+                    
+                    results.append(({"content": content, "metadata": metadata}, normalized_score))
+                    
+                return results
+        except Exception as e:
+            logger.info("Hybrid search failed, falling back to in-memory similarity search: %s", e)
+            return await self._similarity_search_in_memory_async(query_embedding, k)
 
     def add_texts(self, texts: List[str], embeddings: List[List[float]], metadatas: Optional[List[Dict[str, Any]]] = None):
         """Sync Method (Legacy/Celery)"""
@@ -310,35 +309,137 @@ class PostgresVectorStore:
         
         vector_str = f"[{','.join(map(str, query_embedding))}]"
         
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT content, metadata, embedding <=> %s as distance
+                    FROM document_chunks
+                    WHERE task_id = %s
+                    ORDER BY distance ASC
+                    LIMIT %s
+                    """,
+                    (vector_str, self.task_id, k)
+                )
+                rows = cursor.fetchall()
+                
+                results = []
+                for row in rows:
+                    if isinstance(row, dict) or hasattr(row, "keys"):
+                        content = row["content"]
+                        metadata = row["metadata"]
+                        distance = row["distance"]
+                    else:
+                        content = row[0]
+                        metadata = row[1]
+                        distance = row[2]
+
+                    if isinstance(metadata, str):
+                        metadata = json.loads(metadata)
+                    
+                    score = 1 - float(distance)
+                    results.append(({"content": content, "metadata": metadata}, score))
+                    
+                return results
+        except Exception as e:
+            logger.info("Sync pgvector similarity search failed, falling back to in-memory cosine similarity: %s", e)
+            return self._similarity_search_in_memory(query_embedding, k)
+
+    async def _similarity_search_in_memory_async(self, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+        from app.db import get_async_db_connection
+        async with get_async_db_connection() as conn:
+            rows = await conn.conn.fetch(
+                """
+                SELECT content, metadata, embedding
+                FROM document_chunks
+                WHERE task_id = $1
+                """,
+                self.task_id
+            )
+            return self._calculate_similarity_in_memory(rows, query_embedding, k)
+
+    def _similarity_search_in_memory(self, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+        from app.db import get_db_connection
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT content, metadata, embedding <=> %s as distance
+                SELECT content, metadata, embedding
                 FROM document_chunks
                 WHERE task_id = %s
-                ORDER BY distance ASC
-                LIMIT %s
                 """,
-                (vector_str, self.task_id, k)
+                (self.task_id,)
             )
             rows = cursor.fetchall()
-            
-            results = []
-            for row in rows:
-                if isinstance(row, dict) or hasattr(row, "keys"):
-                    content = row["content"]
-                    metadata = row["metadata"]
-                    distance = row["distance"]
-                else:
-                    content = row[0]
-                    metadata = row[1]
-                    distance = row[2]
+            return self._calculate_similarity_in_memory(rows, query_embedding, k)
 
-                if isinstance(metadata, str):
-                    metadata = json.loads(metadata)
+    def _calculate_similarity_in_memory(self, rows: List[Any], query_embedding: List[float], k: int) -> List[Tuple[Dict[str, Any], float]]:
+        if not rows:
+            return []
+            
+        docs = []
+        embeddings = []
+        
+        for row in rows:
+            # Handle row format differences (asyncpg Record vs psycopg2 RealDictRow / tuple)
+            if isinstance(row, dict) or hasattr(row, "keys"):
+                content = row["content"]
+                metadata = row["metadata"]
+                emb_val = row["embedding"]
+            else:
+                content = row[0]
+                metadata = row[1]
+                emb_val = row[2]
                 
-                score = 1 - float(distance)
-                results.append(({"content": content, "metadata": metadata}, score))
+            if isinstance(metadata, str):
+                try: metadata = json.loads(metadata)
+                except: pass
                 
-            return results
+            if not emb_val:
+                continue
+                
+            # Parse embedding list from string/vector representation
+            try:
+                if isinstance(emb_val, str):
+                    clean_val = emb_val.strip("[]{}")
+                    emb_list = [float(x) for x in clean_val.split(",") if x.strip()]
+                elif isinstance(emb_val, list):
+                    emb_list = [float(x) for x in emb_val]
+                else:
+                    continue
+            except Exception as parse_err:
+                logger.warning(f"Failed to parse embedding in fallback: {parse_err}")
+                continue
+                
+            if len(emb_list) != len(query_embedding):
+                continue
+                
+            docs.append({"content": content, "metadata": metadata})
+            embeddings.append(emb_list)
+            
+        if not docs:
+            return []
+            
+        emb_matrix = np.array(embeddings, dtype=np.float32)
+        query_vec = np.array(query_embedding, dtype=np.float32)
+        
+        norm_query = np.linalg.norm(query_vec)
+        norm_matrix = np.linalg.norm(emb_matrix, axis=1)
+        
+        if norm_query == 0:
+            return []
+            
+        # Cosine similarity
+        dot_products = np.dot(emb_matrix, query_vec)
+        norm_matrix[norm_matrix == 0] = 1e-8
+        similarities = dot_products / (norm_matrix * norm_query)
+        
+        # Get top k indices
+        top_k_indices = np.argsort(similarities)[::-1][:k]
+        
+        results = []
+        for idx in top_k_indices:
+            results.append((docs[idx], float(similarities[idx])))
+            
+        return results

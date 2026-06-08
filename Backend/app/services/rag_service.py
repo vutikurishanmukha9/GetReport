@@ -1,7 +1,11 @@
 import logging
 import asyncio
+import os
+import json
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime, timedelta
+from pathlib import Path
+import numpy as np
 
 from openai import AsyncOpenAI, OpenAI, BadRequestError, NotFoundError
 from app.core.config import settings
@@ -10,14 +14,19 @@ from app.services.llm_insight import OPENROUTER_MODELS, OPENAI_MODEL
 
 logger = logging.getLogger(__name__)
 
+# Absolute base directory for absolute path resolution (Issue 3)
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
 class SecurityGuard:
     """
-    Input Sanitization.
+    Input Sanitization and Security boundaries.
     """
     @staticmethod
     def sanitize_input(text: str) -> str:
         if not text:
             return ""
+        # Enforce max query length limit as prompt injection guard (Issue 5)
+        text = text[:2000]
         # Remove control characters (except newlines/tabs)
         text = "".join(ch for ch in text if ch == "\n" or ch == "\t" or ch >= " ")
         return text.strip()
@@ -29,7 +38,7 @@ class RAGConfig:
     # Retrieval
     DEFAULT_K: int = 4
     MAX_K: int = 10
-    SIMILARITY_THRESHOLD: float = 0.7
+    SIMILARITY_THRESHOLD: float = 0.4
     # Generation — model is set dynamically based on provider
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENROUTER_MODEL: str = "meta-llama/llama-4-scout"  # Free tier
@@ -47,10 +56,16 @@ class VectorStoreCache:
         self.max_size = max_size
         self.ttl_seconds = ttl_seconds
         self._cache: Dict[str, Tuple[SimpleVectorStore, datetime]] = {}
-        self._lock = asyncio.Lock()
+        self._lock = None # Defer asyncio.Lock initialization to first access (Issue 2)
     
+    @property
+    def lock(self) -> asyncio.Lock:
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
+
     async def get(self, key: str) -> Optional[SimpleVectorStore]:
-        async with self._lock:
+        async with self.lock:
             if key in self._cache:
                 store, timestamp = self._cache[key]
                 if datetime.now() - timestamp < timedelta(seconds=self.ttl_seconds):
@@ -60,7 +75,7 @@ class VectorStoreCache:
             return None
     
     async def set(self, key: str, store: SimpleVectorStore):
-        async with self._lock:
+        async with self.lock:
             if len(self._cache) >= self.max_size:
                 # Evict oldest
                 oldest_key = min(self._cache.keys(), key=lambda k: self._cache[k][1])
@@ -68,12 +83,15 @@ class VectorStoreCache:
             self._cache[key] = (store, datetime.now())
 
     async def invalidate(self, key: str):
-         async with self._lock:
+         async with self.lock:
             if key in self._cache:
                 del self._cache[key]
 
 class RAGMetrics:
-    """Track RAG service metrics (simplified)"""
+    """
+    Track RAG service metrics (simplified).
+    Note: metrics are per-process and reset on restart (Issue 7).
+    """
     def __init__(self):
         self.total_queries = 0
         self.failed_queries = 0
@@ -99,7 +117,7 @@ class EnhancedRAGService:
             ttl_seconds=self.config.CACHE_TTL_SECONDS
         )
         self.metrics = RAGMetrics()
-        self.semaphore = asyncio.Semaphore(self.config.MAX_CONCURRENT_REQUESTS)
+        self._semaphore = None # Defer asyncio.Semaphore initialization (Issue 1)
         
         # LLM Provider selection: OpenRouter (primary) → OpenAI (fallback)
         self.api_key = settings.OPENROUTER_API_KEY or settings.OPENAI_API_KEY
@@ -113,51 +131,84 @@ class EnhancedRAGService:
             self._base_url = None  # default OpenAI
             self._provider_name = "OpenAI"
         
-        if self.enabled:
-            client_kwargs = {"api_key": self.api_key}
-            if self._base_url:
-                client_kwargs["base_url"] = self._base_url
-            self.client = AsyncOpenAI(**client_kwargs)
-            self.sync_client = OpenAI(**client_kwargs)
-            logger.info("RAG Service initialized (%s)", self._provider_name)
-        else:
-            self.client = None
-            self.sync_client = None
-            logger.warning("RAG Service DISABLED (No API Key)")
+        self._client = None
+        self._sync_client = None
+        logger.info("RAG Service initialized lazily (%s)", self._provider_name)
 
         # Embeddings ALWAYS use OpenAI directly (OpenRouter doesn't support embeddings)
         if settings.OPENAI_API_KEY:
-            self._embed_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-            self._embed_sync_client = OpenAI(api_key=settings.OPENAI_API_KEY)
             self._embeddings_enabled = True
-            logger.info("RAG Embeddings: using OpenAI directly")
+            self.embedding_model = "text-embedding-3-small"
         elif settings.OPENROUTER_API_KEY:
-            # Try using OpenRouter for embeddings (may not work for all models)
-            self._embed_client = self.client
-            self._embed_sync_client = self.sync_client
             self._embeddings_enabled = True
-            logger.warning("RAG Embeddings: attempting via OpenRouter (may fail)")
+            self.embedding_model = "openai/text-embedding-3-small"
         else:
-            self._embed_client = None
-            self._embed_sync_client = None
             self._embeddings_enabled = False
+            self.embedding_model = "text-embedding-3-small"
+            
+        self._embed_client = None
+        self._embed_sync_client = None
 
         self.text_splitter = TextSplitter(
             chunk_size=self.config.CHUNK_SIZE,
             chunk_overlap=self.config.CHUNK_OVERLAP
         )
 
+    # Lazy Properties for Client & Lock Initialization (Issue 1)
+    @property
+    def client(self) -> AsyncOpenAI:
+        if self._client is None and self.enabled:
+            client_kwargs = {"api_key": self.api_key}
+            if self._base_url:
+                client_kwargs["base_url"] = self._base_url
+            self._client = AsyncOpenAI(**client_kwargs)
+        return self._client
+
+    @property
+    def sync_client(self) -> OpenAI:
+        if self._sync_client is None and self.enabled:
+            client_kwargs = {"api_key": self.api_key}
+            if self._base_url:
+                client_kwargs["base_url"] = self._base_url
+            self._sync_client = OpenAI(**client_kwargs)
+        return self._sync_client
+
+    @property
+    def embed_client(self) -> Optional[AsyncOpenAI]:
+        if self._embed_client is None and self._embeddings_enabled:
+            if settings.OPENAI_API_KEY:
+                self._embed_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+            elif settings.OPENROUTER_API_KEY:
+                self._embed_client = self.client
+        return self._embed_client
+
+    @property
+    def embed_sync_client(self) -> Optional[OpenAI]:
+        if self._embed_sync_client is None and self._embeddings_enabled:
+            if settings.OPENAI_API_KEY:
+                self._embed_sync_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            elif settings.OPENROUTER_API_KEY:
+                self._embed_sync_client = self.sync_client
+        return self._embed_sync_client
+
+    @property
+    def semaphore(self) -> asyncio.Semaphore:
+        # Note: In a pure single-threaded asyncio context, this lazy creation is race-condition free.
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.config.MAX_CONCURRENT_REQUESTS)
+        return self._semaphore
+
     async def _get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings — tries up to 2 times with a short timeout each."""
-        if not self._embed_client:
+        if not self.embed_client:
             raise RuntimeError("RAG Embeddings Disabled (no API key)")
         
         last_err = None
         for attempt in range(2):
             try:
-                response = await self._embed_client.embeddings.create(
+                response = await self.embed_client.embeddings.create(
                     input=texts,
-                    model="text-embedding-3-small",
+                    model=self.embedding_model,
                     timeout=8.0
                 )
                 return [d.embedding for d in response.data]
@@ -170,17 +221,51 @@ class EnhancedRAGService:
 
     def _get_embeddings_sync(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings using Sync OpenAI Client (for Celery)"""
-        if not self._embed_sync_client:
+        if not self.embed_sync_client:
             raise RuntimeError("RAG Embeddings Disabled (no OpenAI key)")
         try:
-            response = self._embed_sync_client.embeddings.create(
+            response = self.embed_sync_client.embeddings.create(
                 input=texts,
-                model="text-embedding-3-small"
+                model=self.embedding_model
             )
             return [d.embedding for d in response.data]
         except Exception as e:
             logger.error(f"Embedding generation failed: {e}")
             raise
+
+    def _save_local_vector_store(self, task_id: str, store: SimpleVectorStore):
+        try:
+            # Absolute path reference based on project directory (Issue 3)
+            temp_cache_dir = os.path.join(BASE_DIR, "temp_cache")
+            os.makedirs(temp_cache_dir, exist_ok=True)
+            cache_path = os.path.join(temp_cache_dir, f"{task_id}_vector_store.json")
+            
+            store_data = {
+                "documents": store.documents,
+                "embeddings_matrix": store._embeddings_matrix.tolist() if store._embeddings_matrix is not None else []
+            }
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(store_data, f)
+            logger.info(f"Saved local vector store to disk cache: {cache_path}")
+        except Exception as e:
+            logger.error(f"Failed to save local vector store to disk: {e}")
+
+    def _load_local_vector_store(self, task_id: str) -> Optional[SimpleVectorStore]:
+        try:
+            # Absolute path reference based on project directory (Issue 3)
+            cache_path = os.path.join(BASE_DIR, "temp_cache", f"{task_id}_vector_store.json")
+            if os.path.exists(cache_path):
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    store_data = json.load(f)
+                store = SimpleVectorStore()
+                store.documents = store_data["documents"]
+                if store_data.get("embeddings_matrix"):
+                    store._embeddings_matrix = np.array(store_data["embeddings_matrix"], dtype=np.float32)
+                logger.info(f"Loaded local vector store from disk cache: {cache_path}")
+                return store
+        except Exception as e:
+            logger.error(f"Failed to load local vector store from disk: {e}")
+        return None
 
     async def ingest_report(self, task_id: str, text_content: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Ingest report text into vector store (Async)"""
@@ -212,6 +297,7 @@ class EnhancedRAGService:
                 metadatas = [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
                 store.add_texts(chunks, embeddings, metadatas)
                 await self.cache.set(task_id, store)
+                self._save_local_vector_store(task_id, store)
             
             return {"success": True, "num_chunks": len(chunks)}
         except Exception as e:
@@ -243,8 +329,11 @@ class EnhancedRAGService:
                  store.add_texts(chunks, embeddings, [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))])
                  logger.info(f"Report {task_id} ingested into Postgres Vector Store (Sync)")
             else:
-                 logger.warning("Local In-Memory RAG not supported in Blocking Mode (Celery). Use DATABASE_URL for RAG.")
-                 return {"success": False, "error": "Local RAG not supported in Worker Process"}
+                 store = SimpleVectorStore()
+                 metadatas = [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
+                 store.add_texts(chunks, embeddings, metadatas)
+                 self._save_local_vector_store(task_id, store)
+                 logger.info(f"Report {task_id} ingested into Local File Vector Store (Sync)")
             
             return {"success": True, "num_chunks": len(chunks)}
         except Exception as e:
@@ -254,6 +343,11 @@ class EnhancedRAGService:
     async def chat_with_report(self, task_id: str, question: str, k: int = 4, include_sources: bool = True, job_result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Chat with the report context"""
         async with self.semaphore:
+            # Clean/sanitize and validate the question early (Issue 6)
+            sanitized_q = SecurityGuard.sanitize_input(question)
+            if not sanitized_q:
+                return {"success": False, "answer": "Please enter a valid question.", "sources": []}
+
             if not self.enabled:
                 return {"success": False, "answer": "Chat is currently unavailable. Please configure an API key.", "sources": []}
             
@@ -266,16 +360,20 @@ class EnhancedRAGService:
                 else:
                     store = await self.cache.get(task_id)
                     if not store:
-                        return {"success": False, "answer": "Report data has expired. Please re-upload your file.", "sources": []}
+                        store = self._load_local_vector_store(task_id)
+                        if store:
+                            await self.cache.set(task_id, store)
+                        else:
+                            return {"success": False, "answer": "Report data has expired. Please re-upload your file.", "sources": []}
 
                 # 2. Embed Question
-                q_embed = (await self._get_embeddings([question]))[0]
+                q_embed = (await self._get_embeddings([sanitized_q]))[0]
 
                 # 3. Retrieve — Hybrid Search (Vector + Keyword) with fallback to vector-only
                 if settings.DATABASE_URL:
                     try:
                         # Try Hybrid Search first (Vector + Full-Text Keyword via RRF)
-                        results = await store.hybrid_search_async(question, q_embed, k=k)
+                        results = await store.hybrid_search_async(sanitized_q, q_embed, k=k)
                         logger.info("RAG Hybrid Search returned %d results", len(results))
                     except Exception as hybrid_err:
                         # If hybrid search fails (e.g., missing GIN index), fall back to pure vector
@@ -320,17 +418,18 @@ class EnhancedRAGService:
                     if insights:
                         structured_context.append("\n--- KEY FINDINGS & INSIGHTS ---")
                         # Insights might be a dict or string
-                        import json
                         if isinstance(insights, dict):
                             # Try to extract common fields if present, otherwise dump
                             summary = insights.get('executive_summary', '')
                             if summary: structured_context.append(f"Executive Summary: {summary}")
                             key_findings = insights.get('key_findings', [])
-                            if isinstance(key_findings, list):
+                            if isinstance(key_findings, list) and key_findings:
                                 for idx, f in enumerate(key_findings):
                                     structured_context.append(f"Finding {idx+1}: {f}")
+                            elif 'insights_text' in insights:
+                                structured_context.append(insights['insights_text'])
                             else:
-                                structured_context.append(f"Findings: {key_findings}")
+                                structured_context.append(json.dumps(insights, indent=2))
                         else:
                             structured_context.append(str(insights)[:2000]) # Cap length
 
@@ -367,7 +466,7 @@ CONTEXT:
                             model=model_name,
                             messages=[
                                 {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": question}
+                                {"role": "user", "content": sanitized_q}
                             ],
                             temperature=self.config.TEMPERATURE,
                             max_tokens=self.config.MAX_TOKENS,
@@ -403,12 +502,28 @@ CONTEXT:
                 self.metrics.record_query(False)
                 return {"success": False, "answer": f"Sorry, I couldn't process your question. Error: {str(e)}", "sources": []}
 
-_rag_service_instance = None
+# Defer instance creation and event-loop binding to runtime access (Issue 1 & 2)
+class LazyRAGServiceProxy:
+    """
+    Lazy proxy wrapper for EnhancedRAGService to defer event loop binding.
+    Delegates all attribute and method calls to the underlying service instance.
+    """
+    def __init__(self):
+        self._instance = None
 
-def get_rag_service():
-    global _rag_service_instance
-    if _rag_service_instance is None:
-        _rag_service_instance = EnhancedRAGService()
-    return _rag_service_instance
+    @property
+    def _service(self) -> EnhancedRAGService:
+        if self._instance is None:
+            self._instance = EnhancedRAGService()
+        return self._instance
 
-rag_service = get_rag_service()
+    def __getattr__(self, name):
+        return getattr(self._service, name)
+
+    def __repr__(self) -> str:
+        return f"<LazyRAGServiceProxy (underlying={self._instance})>"
+
+    def __dir__(self) -> List[str]:
+        return list(set(super().__dir__() + dir(self._service)))
+
+rag_service: EnhancedRAGService = LazyRAGServiceProxy()  # type: ignore
