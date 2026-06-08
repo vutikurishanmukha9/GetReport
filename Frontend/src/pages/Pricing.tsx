@@ -8,22 +8,23 @@ export const Pricing = () => {
   return (
     <div className="min-h-screen bg-background animate-in fade-in duration-500 pb-20">
       
-      {/* Title Header */}
-      <div className="border-b border-border/60 bg-background py-20">
+      {/* Header */}
+      <div className="border-b border-border/60 bg-background py-12 md:py-20">
         <div className="container mx-auto px-4 text-center space-y-4">
           <Badge variant="outline" className="font-mono text-xs uppercase tracking-wider text-primary">
-            Early Adopter Program
+            Pricing Plans
           </Badge>
-          <h1 className="text-4xl sm:text-5xl font-display font-extrabold text-foreground tracking-tight uppercase">
-            Simple, Transparent Value.
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold tracking-tight text-foreground uppercase">
+            Simple, transparent pricing
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Gain full access to our Polars engine, Why-I-Did-X transparency logs, and high-DPI reports.
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto font-sans">
+            Start processing datasets immediately. No hidden fees. Upgrade when your volume requires it.
           </p>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-16">
+      {/* Pricing Cards */}
+      <div className="container mx-auto px-4 py-10 md:py-16">
         
         {/* Spotlight Card */}
         <div className="max-w-xl mx-auto">

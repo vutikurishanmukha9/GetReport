@@ -48,7 +48,7 @@ export const HeroSection = () => {
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4 max-w-md pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-md pt-2">
               <div className="flex flex-col p-4 rounded-xl border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20">
                 <span className="text-lg sm:text-xl font-display font-semibold tracking-tight text-foreground">&lt; 1 Min</span>
                 <span className="text-xs text-muted-foreground font-medium mt-1 font-mono uppercase tracking-wider text-[9px]">generation</span>

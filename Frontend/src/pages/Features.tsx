@@ -10,7 +10,7 @@ export const Features = () => {
       
       {/* Editorial Hero Banner */}
       <div className="border-b border-border/60 bg-background">
-        <div className="container mx-auto px-4 py-20 text-center space-y-6">
+        <div className="container mx-auto px-4 py-12 md:py-20 text-center space-y-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono">
             <Zap className="h-3.5 w-3.5" />
             <span>Operational Excellence</span>
@@ -36,7 +36,7 @@ export const Features = () => {
       </div>
 
       {/* Bento Grid Section */}
-      <div className="container mx-auto px-4 py-20">
+      <div className="container mx-auto px-4 py-12 md:py-20">
         <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
           <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">Core Capabilities</h2>
           <p className="text-xs sm:text-sm text-muted-foreground">Every component is engineered for clarity, transparency, and sub-second operations.</p>
@@ -393,7 +393,7 @@ export const Features = () => {
       </div>
 
       {/* Technical Specifications */}
-      <div className="bg-muted/30 border-y border-border/60 py-20">
+      <div className="bg-muted/30 border-y border-border/60 py-12 md:py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 space-y-2">
             <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">Architecture Specs</h2>
@@ -451,7 +451,7 @@ export const Features = () => {
       </div>
 
       {/* CTA Footer */}
-      <div className="container mx-auto px-4 py-24 text-center space-y-6">
+      <div className="container mx-auto px-4 py-16 md:py-24 text-center space-y-6">
         <h2 className="text-3xl font-display font-bold text-foreground uppercase tracking-tight">Ready to audit?</h2>
         <div className="pt-2">
           <Link to="/workspace">

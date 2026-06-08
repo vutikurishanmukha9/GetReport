@@ -46,7 +46,7 @@ export const FeaturesSection = () => {
               </div>
 
               {/* Data Health Dashboard Mockup to fill the gap */}
-              <div className="grid grid-cols-2 gap-4 mb-4 mt-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 mt-auto">
                 <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 flex flex-col items-center justify-center transition-all hover:shadow-sm">
                   <div className="relative flex items-center justify-center w-16 h-16 mb-2">
                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">

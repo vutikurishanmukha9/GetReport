@@ -36,9 +36,9 @@ const ApiDocs = () => {
                             <h2 className="text-2xl font-bold mb-4">Endpoints</h2>
 
                             <div>
-                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-mono">POST</span>
-                                    /upload
+                                <h3 className="text-lg font-semibold mb-2 flex flex-wrap items-center gap-2">
+                                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-mono shrink-0">POST</span>
+                                    <span className="break-all">/upload</span>
                                 </h3>
                                 <p className="text-muted-foreground mb-4">Upload a file (CSV/Excel) to start a processing job.</p>
                                 <CodeBlock
@@ -49,9 +49,9 @@ const ApiDocs = () => {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-mono">GET</span>
-                                    /status/{'{task_id}'}
+                                <h3 className="text-lg font-semibold mb-2 flex flex-wrap items-center gap-2">
+                                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-mono shrink-0">GET</span>
+                                    <span className="break-all">/status/{'{task_id}'}</span>
                                 </h3>
                                 <p className="text-muted-foreground mb-4">Check the status of a job and retrieve results.</p>
                                 <CodeBlock
@@ -60,9 +60,9 @@ const ApiDocs = () => {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-mono">POST</span>
-                                    /jobs/{'{task_id}'}/analyze
+                                <h3 className="text-lg font-semibold mb-2 flex flex-wrap items-center gap-2">
+                                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-mono shrink-0">POST</span>
+                                    <span className="break-all">/jobs/{'{task_id}'}/analyze</span>
                                 </h3>
                                 <p className="text-muted-foreground mb-4">Submit cleaning rules and start the full analysis.</p>
                                 <CodeBlock
@@ -73,9 +73,9 @@ const ApiDocs = () => {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-mono">POST</span>
-                                    /jobs/{'{task_id}'}/chat
+                                <h3 className="text-lg font-semibold mb-2 flex flex-wrap items-center gap-2">
+                                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-mono shrink-0">POST</span>
+                                    <span className="break-all">/jobs/{'{task_id}'}/chat</span>
                                 </h3>
                                 <p className="text-muted-foreground mb-4">Ask questions about the dataset or report using RAG context.</p>
                                 <CodeBlock
@@ -86,9 +86,9 @@ const ApiDocs = () => {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                                    <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-mono">WS</span>
-                                    /ws/status/{'{task_id}'}
+                                <h3 className="text-lg font-semibold mb-2 flex flex-wrap items-center gap-2">
+                                    <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-mono shrink-0">WS</span>
+                                    <span className="break-all">/ws/status/{'{task_id}'}</span>
                                 </h3>
                                 <p className="text-muted-foreground mb-4">Subscribe to real-time task status updates via WebSockets.</p>
                                 <CodeBlock
@@ -97,9 +97,9 @@ const ApiDocs = () => {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-mono">GET</span>
-                                    /jobs/{'{task_id}'}/report
+                                <h3 className="text-lg font-semibold mb-2 flex flex-wrap items-center gap-2">
+                                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-mono shrink-0">GET</span>
+                                    <span className="break-all">/jobs/{'{task_id}'}/report</span>
                                 </h3>
                                 <p className="text-muted-foreground mb-4">Download the generated PDF report.</p>
                                 <CodeBlock
@@ -112,8 +112,8 @@ const ApiDocs = () => {
                         {/* Error Codes */}
                         <section id="errors" className="space-y-6">
                             <h2 className="text-2xl font-bold mb-4">Error Codes</h2>
-                            <div className="border rounded-lg overflow-hidden">
-                                <table className="w-full text-sm text-left">
+                            <div className="border rounded-lg overflow-x-auto">
+                                <table className="w-full text-sm text-left whitespace-nowrap md:whitespace-normal">
                                     <thead className="bg-muted">
                                         <tr>
                                             <th className="p-4 font-semibold">Code</th>

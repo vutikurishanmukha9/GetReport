@@ -276,8 +276,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             )}
 
             {/* Issues Table */}
-            <div className="max-h-[420px] overflow-y-auto">
-                <table className="w-full">
+            <div className="max-h-[420px] overflow-auto">
+                <table className="w-full whitespace-nowrap md:whitespace-normal">
                     <thead className="bg-muted/30 border-b border-border sticky top-0 z-10">
                         <tr className="text-left text-[10px] font-mono font-semibold text-muted-foreground uppercase tracking-wider">
                             <th className="px-6 py-3">Issue Details</th>

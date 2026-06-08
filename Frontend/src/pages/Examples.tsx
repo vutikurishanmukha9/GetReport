@@ -51,7 +51,7 @@ const examples = [
 const Examples = () => {
     return (
         <div className="min-h-screen bg-background animate-in fade-in duration-500">
-            <div className="container mx-auto px-4 py-16">
+            <div className="container mx-auto px-4 py-10 md:py-16">
                 <div className="text-center mb-16">
                     <h1 className="text-4xl font-bold mb-4">Example Reports</h1>
                     <p className="text-xl text-muted-foreground max-w-2xl mx-auto">

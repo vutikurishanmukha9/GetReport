@@ -47,7 +47,7 @@ export const HowItWorks = () => {
     <div className="min-h-screen bg-background animate-in fade-in duration-500 pb-20">
       
       {/* Editorial Title Header */}
-      <div className="border-b border-border/60 bg-background py-20">
+      <div className="border-b border-border/60 bg-background py-12 md:py-20">
         <div className="container mx-auto px-4 text-center space-y-4">
           <Badge variant="outline" className="font-mono text-xs uppercase tracking-wider text-primary">
             Audit Methodology
@@ -62,7 +62,7 @@ export const HowItWorks = () => {
       </div>
 
       {/* Timeline List Section */}
-      <div className="container mx-auto px-4 py-20">
+      <div className="container mx-auto px-4 py-12 md:py-20">
         <div className="max-w-3xl mx-auto relative pl-6 sm:pl-8 border-l border-border/70 space-y-12">
           
           {steps.map((step) => (
@@ -102,7 +102,7 @@ export const HowItWorks = () => {
       </div>
 
       {/* Under the Hood Pipeline block Diagram */}
-      <div className="border-t border-border/60 bg-muted/35 py-20">
+      <div className="border-t border-border/60 bg-muted/35 py-12 md:py-20">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
             <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">Under the Hood</h2>
@@ -161,7 +161,7 @@ export const HowItWorks = () => {
       </div>
 
       {/* CTA Footer */}
-      <div className="container mx-auto px-4 pt-24 text-center space-y-6">
+      <div className="container mx-auto px-4 pt-16 md:pt-24 text-center space-y-6">
         <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground uppercase tracking-tight">Execute your audit</h2>
         <div className="pt-2">
           <Link to="/workspace">
