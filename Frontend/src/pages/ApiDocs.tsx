@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 const ApiDocs = () => {
     return (
         <div className="min-h-screen bg-background animate-in fade-in duration-500">
-            <div className="container mx-auto px-4 py-16 max-w-7xl">
+            <div className="container mx-auto px-4 py-10 md:py-16 max-w-7xl">
                 <div className="text-center mb-16">
                     <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
                         <Terminal className="h-8 w-8 text-primary" />
@@ -17,7 +17,7 @@ const ApiDocs = () => {
                 </div>
 
                 <div className="grid gap-12 lg:grid-cols-[1fr_300px]">
-                    <div className="space-y-12">
+                    <div className="space-y-12 min-w-0">
                         {/* Authentication */}
                         <section id="auth">
                             <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
@@ -26,7 +26,7 @@ const ApiDocs = () => {
                             <p className="text-muted-foreground mb-4">
                                 Currently, the API is open for public use without authentication for standard workloads. Rate limits apply based on IP address.
                             </p>
-                            <div className="bg-muted p-4 rounded-lg font-mono text-sm">
+                            <div className="bg-muted p-4 rounded-lg font-mono text-sm break-all">
                                 Base URL: <span className="text-primary">https://getreport.onrender.com/api</span>
                             </div>
                         </section>
@@ -169,7 +169,7 @@ const ApiDocs = () => {
                     </div>
 
                     {/* Sidebar */}
-                    <div className="space-y-6">
+                    <div className="space-y-6 min-w-0">
                         <div className="p-6 rounded-xl border bg-card">
                             <h4 className="font-semibold mb-4">On this page</h4>
                             <ul className="space-y-2 text-sm text-muted-foreground">
