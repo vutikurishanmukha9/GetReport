@@ -164,6 +164,10 @@ class EnhancedRAGService:
             self._client = AsyncOpenAI(**client_kwargs)
         return self._client
 
+    @client.setter
+    def client(self, value):
+        self._client = value
+
     @property
     def sync_client(self) -> OpenAI:
         if self._sync_client is None and self.enabled:
@@ -172,6 +176,10 @@ class EnhancedRAGService:
                 client_kwargs["base_url"] = self._base_url
             self._sync_client = OpenAI(**client_kwargs)
         return self._sync_client
+
+    @sync_client.setter
+    def sync_client(self, value):
+        self._sync_client = value
 
     @property
     def embed_client(self) -> Optional[AsyncOpenAI]:
@@ -182,6 +190,10 @@ class EnhancedRAGService:
                 self._embed_client = self.client
         return self._embed_client
 
+    @embed_client.setter
+    def embed_client(self, value):
+        self._embed_client = value
+
     @property
     def embed_sync_client(self) -> Optional[OpenAI]:
         if self._embed_sync_client is None and self._embeddings_enabled:
@@ -190,6 +202,10 @@ class EnhancedRAGService:
             elif settings.OPENROUTER_API_KEY:
                 self._embed_sync_client = self.sync_client
         return self._embed_sync_client
+
+    @embed_sync_client.setter
+    def embed_sync_client(self, value):
+        self._embed_sync_client = value
 
     @property
     def semaphore(self) -> asyncio.Semaphore:

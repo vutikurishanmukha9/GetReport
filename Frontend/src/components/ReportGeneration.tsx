@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, memo } from "react";
 import { 
   CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight, 
   AlertTriangle, ArrowRight, BarChart3, PieChart, Activity, 
@@ -8,12 +8,33 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { AppStep } from "@/pages/Index";
+import type { AppStep } from "@/pages/Workspace";
 import type { AnalysisResult, Charts, InsightResult, DatasetInfo } from "@/types/api";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { MLReadinessCard } from "./MLReadinessCard";
+
+// Safe, memoized image container to prevent expensive base64 re-renders
+const SafeChartImage = memo(({ base64Src, alt, className }: { base64Src: string; alt: string; className?: string }) => {
+  const src = useMemo(() => {
+    if (!base64Src) return "";
+    return base64Src.startsWith("data:") ? base64Src : `data:image/png;base64,${base64Src}`;
+  }, [base64Src]);
+
+  if (!src) return null;
+
+  return (
+    <img 
+      src={src} 
+      alt={alt} 
+      className={className} 
+      loading="lazy"
+    />
+  );
+});
+
+SafeChartImage.displayName = "SafeChartImage";
 
 
 interface ReportGenerationProps {
@@ -132,7 +153,7 @@ export const ReportGeneration = ({
       link.click();
       document.body.removeChild(link);
     } else {
-      toast({ title: "Not Ready", description: "Report is still generating.", variant: "secondary" });
+      toast({ title: "Not Ready", description: "Report is still generating." });
     }
   };
 
@@ -416,12 +437,12 @@ export const ReportGeneration = ({
               {activeChartTab === "correlation" && charts.correlation_heatmap && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                    <img 
-                      src={`data:image/png;base64,${
+                    <SafeChartImage 
+                      base64Src={
                         typeof charts.correlation_heatmap === "object" 
                           ? charts.correlation_heatmap.image 
                           : charts.correlation_heatmap
-                      }`} 
+                      } 
                       alt="Correlation Heatmap" 
                       className="max-h-[380px] w-auto object-contain rounded-lg"
                     />
@@ -458,8 +479,8 @@ export const ReportGeneration = ({
                   </div>
 
                   <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                    <img 
-                      src={`data:image/png;base64,${charts.distributions[activeDistIndex]?.image}`} 
+                    <SafeChartImage 
+                      base64Src={charts.distributions[activeDistIndex]?.image} 
                       alt={`Distribution for ${charts.distributions[activeDistIndex]?.column}`} 
                       className="max-h-[320px] w-auto object-contain rounded-lg"
                     />
@@ -514,8 +535,8 @@ export const ReportGeneration = ({
                   {activeBarIndex === -1 && charts.donut_chart ? (
                     <div className="space-y-6">
                       <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                        <img 
-                          src={`data:image/png;base64,${charts.donut_chart.image}`} 
+                        <SafeChartImage 
+                          base64Src={charts.donut_chart.image} 
                           alt={`Composition of ${charts.donut_chart.column}`} 
                           className="max-h-[320px] w-auto object-contain rounded-lg"
                         />
@@ -530,8 +551,8 @@ export const ReportGeneration = ({
                   ) : charts.bar_charts && charts.bar_charts[activeBarIndex] ? (
                     <div className="space-y-6">
                       <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                        <img 
-                          src={`data:image/png;base64,${charts.bar_charts[activeBarIndex].image}`} 
+                        <SafeChartImage 
+                          base64Src={charts.bar_charts[activeBarIndex].image} 
                           alt={`Category breakdown of ${charts.bar_charts[activeBarIndex].column}`} 
                           className="max-h-[320px] w-auto object-contain rounded-lg"
                         />
@@ -583,8 +604,8 @@ export const ReportGeneration = ({
                   {activeBoxIndex === -1 && charts.scatter_plot ? (
                     <div className="space-y-6">
                       <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                        <img 
-                          src={`data:image/png;base64,${charts.scatter_plot.image}`} 
+                        <SafeChartImage 
+                          base64Src={charts.scatter_plot.image} 
                           alt="Bivariate Scatter Plot" 
                           className="max-h-[320px] w-auto object-contain rounded-lg"
                         />
@@ -599,8 +620,8 @@ export const ReportGeneration = ({
                   ) : charts.boxplots && charts.boxplots[activeBoxIndex] ? (
                     <div className="space-y-6">
                       <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                        <img 
-                          src={`data:image/png;base64,${charts.boxplots[activeBoxIndex].image}`} 
+                        <SafeChartImage 
+                          base64Src={charts.boxplots[activeBoxIndex].image} 
                           alt={`Boxplot for ${charts.boxplots[activeBoxIndex].column}`} 
                           className="max-h-[320px] w-auto object-contain rounded-lg"
                         />

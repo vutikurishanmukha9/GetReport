@@ -98,9 +98,12 @@ export interface AnalysisResult {
   advanced_stats?: Record<string, { skewness: number; kurtosis: number }>;
   multicollinearity?: Array<{ features: [string, string]; correlation: number; severity: "high" | "medium" }>;
   time_series_analysis?: {
-    primary_time_col: string;
-    is_sorted: boolean;
-    drift_detected: Array<{ column: string; shift_pct: number; mean_p1: number; mean_p2: number }>;
+    primary_time_col?: string;
+    is_sorted?: boolean;
+    drift_detected?: Array<{ column: string; shift_pct: number; mean_p1: number; mean_p2: number }>;
+    has_time_series?: boolean;
+    time_column?: string;
+    analyses?: Record<string, any>;
   };
   confidence_scores?: ConfidenceScores;
   ml_readiness?: MLReadiness;

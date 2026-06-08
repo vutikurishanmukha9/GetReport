@@ -69,7 +69,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       toast({ title: "Processing Failed", description: taskError || "An error occurred.", variant: "destructive" });
     }
 
-  }, [taskId, expectedPhase, taskStatus, taskResult, taskError]);
+  }, [taskId, expectedPhase, taskStatus, taskResult, taskError, onFileUploaded]);
 
   const validateFile = (file: File): boolean => {
     // ... (keep existing validation)

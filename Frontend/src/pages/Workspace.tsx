@@ -1,13 +1,18 @@
-import { useState } from "react";
+import { useState, lazy, Suspense, useCallback } from "react";
 import { FileUpload } from "@/components/FileUpload";
 import { DataPreview } from "@/components/DataPreview";
-import { ReportGeneration } from "@/components/ReportGeneration";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import type { ApiResponse } from "@/types/api";
 import { ChatInterface } from "@/components/ChatInterface";
 import { ProcessPipeline } from "@/components/ProcessPipeline";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
+import { Loader2 } from "lucide-react";
+
+// Lazy-load heavy ReportGeneration component carrying matplotlib/base64 gallery
+const ReportGeneration = lazy(() => 
+  import("@/components/ReportGeneration").then(module => ({ default: module.ReportGeneration }))
+);
 
 export type AppStep = "upload" | "preview" | "generating" | "complete";
 
@@ -25,25 +30,25 @@ export const Workspace = () => {
     step === "generating" && taskId ? taskId : undefined
   );
 
-  const handleFileUploaded = (data: ApiResponse, taskId: string) => {
+  const handleFileUploaded = useCallback((data: ApiResponse, taskId: string) => {
     setApiData(data);
     setTaskId(taskId);
     setStep("preview");
-  };
+  }, []);
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = useCallback(() => {
     setStep("generating");
-  };
+  }, []);
 
-  const handleReportComplete = () => {
+  const handleReportComplete = useCallback(() => {
     setStep("complete");
-  };
+  }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setStep("upload");
     setApiData(null);
     setTaskId(null);
-  };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -91,17 +96,24 @@ export const Workspace = () => {
               </div>
             )}
 
-            <ReportGeneration
-              step={step}
-              taskId={taskId}
-              filename={apiData.filename}
-              info={apiData.info}
-              analysis={apiData.analysis}
-              charts={apiData.charts}
-              insights={apiData.insights}
-              onComplete={handleReportComplete}
-              onReset={handleReset}
-            />
+            <Suspense fallback={
+              <div className="flex flex-col items-center justify-center p-12 space-y-4">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Loading report module...</span>
+              </div>
+            }>
+              <ReportGeneration
+                step={step}
+                taskId={taskId}
+                filename={apiData.filename}
+                info={apiData.info}
+                analysis={apiData.analysis}
+                charts={apiData.charts}
+                insights={apiData.insights}
+                onComplete={handleReportComplete}
+                onReset={handleReset}
+              />
+            </Suspense>
 
             {/* Show Chat Interface ONLY when analysis is complete */}
             {step === "complete" && taskId && (

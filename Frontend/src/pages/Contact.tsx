@@ -6,11 +6,26 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useState } from "react";
 
 const Contact = () => {
-    const [submitted, setSubmitted] = useState(false);
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [email, setEmail] = useState("");
+    const [subject, setSubject] = useState("");
+    const [message, setMessage] = useState("");
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        setSubmitted(true);
+        const mailtoSubject = encodeURIComponent(subject || "GetReport Inquiry");
+        const mailtoBody = encodeURIComponent(
+            `Name: ${firstName} ${lastName}\nEmail: ${email}\n\nMessage:\n${message}`
+        );
+        window.location.href = `mailto:vutikurishanmukha@gmail.com?subject=${mailtoSubject}&body=${mailtoBody}`;
+        
+        // Reset form fields
+        setFirstName("");
+        setLastName("");
+        setEmail("");
+        setSubject("");
+        setMessage("");
     };
 
     return (
@@ -81,44 +96,58 @@ const Contact = () => {
                                 <CardDescription>Fill out the form below and we’ll get back to you as soon as possible.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {submitted ? (
-                                    <div className="text-center py-12">
-                                        <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                                            <Mail className="h-8 w-8 text-green-600" />
+                                <form className="space-y-4" onSubmit={handleSubmit}>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">First Name</label>
+                                            <Input 
+                                                value={firstName}
+                                                onChange={(e) => setFirstName(e.target.value)}
+                                                placeholder="John" 
+                                                required 
+                                            />
                                         </div>
-                                        <h3 className="text-xl font-semibold mb-2">Message Sent!</h3>
-                                        <p className="text-muted-foreground">Thank you for reaching out. We’ll respond within 24 hours.</p>
-                                        <Button variant="outline" className="mt-6" onClick={() => setSubmitted(false)}>
-                                            Send Another Message
-                                        </Button>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">Last Name</label>
+                                            <Input 
+                                                value={lastName}
+                                                onChange={(e) => setLastName(e.target.value)}
+                                                placeholder="Doe" 
+                                                required 
+                                            />
+                                        </div>
                                     </div>
-                                ) : (
-                                    <form className="space-y-4" onSubmit={handleSubmit}>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium">First Name</label>
-                                                <Input placeholder="John" required />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium">Last Name</label>
-                                                <Input placeholder="Doe" required />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium">Email</label>
-                                            <Input type="email" placeholder="john@example.com" required />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium">Subject</label>
-                                            <Input placeholder="How can we help?" required />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium">Message</label>
-                                            <Textarea placeholder="Tell us more about your question or feedback…" className="min-h-[120px]" required />
-                                        </div>
-                                        <Button type="submit" className="w-full sm:w-auto">Send Message</Button>
-                                    </form>
-                                )}
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Email</label>
+                                        <Input 
+                                            type="email" 
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="john@example.com" 
+                                            required 
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Subject</label>
+                                        <Input 
+                                            value={subject}
+                                            onChange={(e) => setSubject(e.target.value)}
+                                            placeholder="How can we help?" 
+                                            required 
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Message</label>
+                                        <Textarea 
+                                            value={message}
+                                            onChange={(e) => setMessage(e.target.value)}
+                                            placeholder="Tell us more about your question or feedback…" 
+                                            className="min-h-[120px]" 
+                                            required 
+                                        />
+                                    </div>
+                                    <Button type="submit" className="w-full sm:w-auto">Send Message</Button>
+                                </form>
                             </CardContent>
                         </Card>
                     </div>

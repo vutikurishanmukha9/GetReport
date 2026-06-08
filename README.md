@@ -46,7 +46,8 @@ Data analysis traditionally requires:
 
 ### Advanced Intelligence (Tier 2)
 - **Hybrid RAG Engine**: Combines **Dense Vector Search** with **Sparse Keyword Scoring** for precise context retrieval.
-- **Interactive RAG Chat**: Ask questions directly about the dataset and its generated analysis using the context-aware chat interface.
+- **Resilient Database Fallbacks**: Detects `pgvector` extension support on startup. On databases lacking `pgvector`, it transparently falls back to storing embeddings as standard `TEXT` strings and executing vectorized cosine similarity calculations in Python using NumPy.
+- **Interactive RAG Chat**: Ask questions directly about the dataset and its generated analysis using the context-aware chat interface, equipped with early blank-query guards and input length limits.
 - **Smart Text Splitting**: Preserves semantic meaning by splitting text by paragraphs/sentences instead of arbitrary chunks.
 - **ML-Ready Recommendations**: Suggests optimal encodings and scalers for future machine learning workflows.
 
@@ -205,10 +206,12 @@ The project is optimized for deployment on **Render.com** (or any Docker-based c
 2. **Analysis Phase**: Approved rules are applied, full statistical analysis runs, and PDF is generated.
 
 ### Performance Optimizations
-- **Streaming Uploads**: Large files handled via temp files to prevent RAM exhaustion
-- **Polars Engine**: High-performance DataFrame operations (faster than Pandas)
-- **Asynchronous Processing**: Heavy compute (Analysis, PDF Gen) offloaded to Celery workers to keep API responsive
-- **Automatic Cleanup**: Old temp files and reports cleaned after 24 hours
+- **Streaming Uploads**: Large files handled via temp files, optimized with an **O(1) pointer-seek check** to validate size instantly.
+- **Polars Engine**: High-performance DataFrame operations (faster than Pandas).
+- **Asynchronous Processing**: Heavy compute (Analysis, PDF Gen) offloaded to Celery workers to keep API responsive.
+- **Non-Blocking WebSockets**: Uses fully asynchronous `redis.asyncio` pub/sub loops to push real-time status updates without starving uvicorn's event loop.
+- **Frontend Code Splitting**: Utilizes route-based lazy loading and manual Rollup manual-chunk partitioning to keep the initial page bundle extremely lightweight.
+- **Automatic Cleanup**: Old temp files and reports cleaned after 24 hours.
 
 ## Performance & Scalability Limits
 

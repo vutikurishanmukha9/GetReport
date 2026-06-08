@@ -26,6 +26,12 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const taskIdRef = useRef<string | null>(null);
+  const statusRef = useRef<UseTaskStatusResult['status']>('CONNECTING');
+
+  const setTaskStatus = useCallback((newStatus: UseTaskStatusResult['status']) => {
+    statusRef.current = newStatus;
+    setStatus(newStatus);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -53,8 +59,8 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       reconnectTimeoutRef.current = null;
     }
     setIsConnected(false);
-    setStatus('DISCONNECTED');
-  }, []);
+    setTaskStatus('DISCONNECTED');
+  }, [setTaskStatus]);
 
   const connect = useCallback((taskId: string) => {
     // Prevent duplicate connections
@@ -64,7 +70,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
 
     disconnect();
     taskIdRef.current = taskId;
-    setStatus('CONNECTING');
+    setTaskStatus('CONNECTING');
 
     const url = api.getWebSocketUrl(taskId);
     console.log(`Connecting to WebSocket: ${url}`);
@@ -75,7 +81,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     ws.onopen = () => {
       console.log("WebSocket Connected");
       setIsConnected(true);
-      setStatus('PROCESSING'); // Assume processing initially or wait for message
+      setTaskStatus('PROCESSING'); // Assume processing initially or wait for message
       // Reset retry logic if any
     };
 
@@ -84,7 +90,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
         const data = JSON.parse(event.data);
         // Expected format: { task_id, status, progress, message, result?, error? }
 
-        if (data.status) setStatus(data.status.toUpperCase() as TaskStatus);
+        if (data.status) setTaskStatus(data.status.toUpperCase() as TaskStatus);
         if (data.progress !== undefined) setProgress(data.progress);
         if (data.message) setMessage(data.message);
         if (data.result) setResult(data.result);
@@ -112,7 +118,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       // Reconnect logic?
       // If checking status of a long-running job, we should retry.
       // But if the job explicitly completed/failed (closed by us), don't retry.
-      if (taskIdRef.current === taskId && status !== 'COMPLETED' && status !== 'FAILED') {
+      if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
         // Retry in 3s
         reconnectTimeoutRef.current = setTimeout(() => {
           console.log("Reconnecting...");
@@ -121,7 +127,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       }
     };
 
-  }, [status, disconnect]);
+  }, [disconnect, setTaskStatus]);
 
   return {
     status,

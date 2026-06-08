@@ -48,12 +48,15 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
   }, [messages, isLoading]);
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    const trimmedInput = input.trim();
+    if (!trimmedInput || isLoading) return;
+
+    const query = trimmedInput.slice(0, 2000);
 
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: query,
       timestamp: new Date(),
     };
 
@@ -62,7 +65,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
     setIsLoading(true);
 
     try {
-      const response = await api.chatWithJob(taskId, userMsg.content);
+      const response = await api.chatWithJob(taskId, query);
 
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -242,6 +245,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
               placeholder="Ask about trends, anomaly causes, schema corrections…"
               className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-xs sm:text-sm placeholder:text-muted-foreground/60 h-9"
               disabled={isLoading}
+              maxLength={2000}
             />
             <Button 
               onClick={handleSend} 
