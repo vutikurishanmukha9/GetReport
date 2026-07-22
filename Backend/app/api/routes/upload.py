@@ -6,6 +6,8 @@ from pydantic import BaseModel
 import logging
 import os
 import re
+import hashlib
+import uuid
 
 from app.core.limiter import limiter, UPLOAD_LIMIT
 from app.core.config import settings
