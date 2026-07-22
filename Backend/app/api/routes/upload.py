@@ -180,4 +180,5 @@ async def upload_files_batch(
         task_ids=task_ids,
         tasks=task_details,
         message=f"Uploaded {len(files)} files successfully under Batch '{batch_id}'. Inspection tasks started."
+    )
 
