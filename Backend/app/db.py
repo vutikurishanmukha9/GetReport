@@ -350,15 +350,29 @@ def _create_core_tables_explicit(cursor):
     )
     """)
     
-    # Safe column migrations using SAVEPOINTs (MUST run BEFORE creating indexes on new columns)
-    for col_name, col_def in [("result_path", "TEXT"), ("version", "INTEGER DEFAULT 0"), ("batch_id", "TEXT"), ("file_hash", "TEXT")]:
+    # Safe column migrations: Check if column exists first, then ADD if missing.
+    # This avoids SAVEPOINT/RealDictCursor interaction issues and works on all PG versions.
+    migrations = [
+        ("result_path", "TEXT"),
+        ("version", "INTEGER DEFAULT 0"),
+        ("batch_id", "TEXT"),
+        ("file_hash", "TEXT"),
+    ]
+    for col_name, col_def in migrations:
         try:
-            cursor.execute(f"SAVEPOINT sp_alter_{col_name}")
-            cursor.execute(f"ALTER TABLE jobs ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
-            cursor.execute(f"RELEASE SAVEPOINT sp_alter_{col_name}")
-        except Exception:
-            cursor.execute(f"ROLLBACK TO SAVEPOINT sp_alter_{col_name}")
-            cursor.execute(f"RELEASE SAVEPOINT sp_alter_{col_name}")
+            cursor.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name = 'jobs' AND column_name = %s",
+                (col_name,)
+            )
+            exists = cursor.fetchone()
+            if not exists:
+                cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col_name} {col_def}")
+                print(f"[DB-INIT] Added column '{col_name}' to jobs table.")
+            else:
+                print(f"[DB-INIT] Column '{col_name}' already exists, skipping.")
+        except Exception as col_err:
+            print(f"[DB-INIT] Warning: Could not add column '{col_name}': {col_err}")
 
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)")

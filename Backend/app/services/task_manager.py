@@ -106,7 +106,7 @@ class TaskManager:
 
     async def create_job_async(self, filename: str, batch_id: Optional[str] = None, file_hash: Optional[str] = None) -> str:
         task_id = str(uuid.uuid4())
-        initial_status = TaskStatus.PENDING
+        initial_status = TaskStatus.PENDING.value
         initial_message = "Job created"
         
         # Schema: task_id, status, filename, message, progress, batch_id, file_hash, version
@@ -240,7 +240,7 @@ class TaskManager:
     def create_job(self, filename: str, batch_id: Optional[str] = None, file_hash: Optional[str] = None) -> str:
         """Sync version for testing or legacy calls"""
         task_id = str(uuid.uuid4())
-        initial_status = TaskStatus.PENDING
+        initial_status = TaskStatus.PENDING.value
         initial_message = "Job created"
         
         args = (task_id, initial_status, filename, initial_message, 0, batch_id, file_hash, 1)
