@@ -350,22 +350,20 @@ def _create_core_tables_explicit(cursor):
     )
     """)
     
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_batch_id ON jobs(batch_id)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_file_hash ON jobs(file_hash)")
-    
-    # Safe column migrations using SAVEPOINTs.
-    # In PostgreSQL, a failed ALTER TABLE aborts the ENTIRE transaction.
-    # SAVEPOINTs allow us to roll back just the failed statement.
+    # Safe column migrations using SAVEPOINTs (MUST run BEFORE creating indexes on new columns)
     for col_name, col_def in [("result_path", "TEXT"), ("version", "INTEGER DEFAULT 0"), ("batch_id", "TEXT"), ("file_hash", "TEXT")]:
         try:
             cursor.execute(f"SAVEPOINT sp_alter_{col_name}")
-            cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col_name} {col_def}")
+            cursor.execute(f"ALTER TABLE jobs ADD COLUMN IF NOT EXISTS {col_name} {col_def}")
             cursor.execute(f"RELEASE SAVEPOINT sp_alter_{col_name}")
         except Exception:
             cursor.execute(f"ROLLBACK TO SAVEPOINT sp_alter_{col_name}")
             cursor.execute(f"RELEASE SAVEPOINT sp_alter_{col_name}")
+
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_batch_id ON jobs(batch_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_file_hash ON jobs(file_hash)")
 
 def _enable_vector_extension(cursor):
     cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
