@@ -7,6 +7,7 @@ Each function builds one section of the report story.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from reportlab.lib import colors
@@ -414,19 +415,32 @@ def _build_insights_section(
         return []
 
     story: list[Flowable] = []
-    insights_text = analysis_results["insights"]
+    raw_insights = analysis_results["insights"]
+    if isinstance(raw_insights, dict):
+        insights_text = raw_insights.get("insights_text", raw_insights.get("response", ""))
+    else:
+        insights_text = str(raw_insights)
+
+    # Convert any raw ** to <b> and separate numbered points onto newlines
+    cleaned_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', insights_text)
+    cleaned_text = re.sub(r'(\s+)(?=\d+[\.\)]\s+)', r'\n\n', cleaned_text).replace('**', '')
+
     story.append(Paragraph("AI-Generated Insights", styles["SectionHeading"]))
     story.append(Spacer(1, 0.1 * inch))
 
-    insight_para = Paragraph(insights_text.replace("\n", "<br/>"), styles["InsightText"])
-    insight_table = Table([[insight_para]], colWidths=[6.0 * inch])
-    insight_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), Brand.INSIGHT_BG),
-        ("LEFTPADDING", (0, 0), (-1, -1), 14), ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-        ("TOPPADDING", (0, 0), (-1, -1), 12), ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
-        ("BOX", (0, 0), (-1, -1), 1, Brand.ACCENT_LIGHT),
-    ]))
-    story.append(insight_table)
+    blocks = [b.strip() for b in cleaned_text.split("\n\n") if b.strip()]
+    for block in blocks:
+        insight_para = Paragraph(block.replace("\n", "<br/>"), styles["InsightText"])
+        insight_table = Table([[insight_para]], colWidths=[6.0 * inch])
+        insight_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), Brand.INSIGHT_BG),
+            ("LEFTPADDING", (0, 0), (-1, -1), 14), ("RIGHTPADDING", (0, 0), (-1, -1), 14),
+            ("TOPPADDING", (0, 0), (-1, -1), 10), ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+            ("BOX", (0, 0), (-1, -1), 1, Brand.ACCENT_LIGHT),
+        ]))
+        story.append(insight_table)
+        story.append(Spacer(1, 0.08 * inch))
+
     story.extend(_divider())
     meta.sections_included.append("AI Insights")
     return story

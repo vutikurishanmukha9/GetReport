@@ -572,16 +572,24 @@
     </div>
     <div class="section-body">
         {% set ins = analysis.insights %}
-        {% if ins is string %}
-        <div class="insight-card">
-            <div class="insight-card__text">{{ ins }}</div>
-        </div>
+        {% if ins is string or ins is mapping and ins.get('insights_text') %}
+            {% set text_val = ins if ins is string else ins.get('insights_text') %}
+            {% set blocks = text_val.replace('**', '').split('\n\n') %}
+            {% for block in blocks %}
+                {% if block | strip | length > 0 %}
+                <div class="insight-card mb-8">
+                    <div class="insight-card__text" style="white-space: pre-line;">{{ block | safe }}</div>
+                </div>
+                {% endif %}
+            {% endfor %}
         {% elif ins is mapping %}
             {% for key, value in ins.items() %}
+            {% if key not in ['model_used', 'prompt_tokens', 'completion_tokens', 'total_tokens', 'response_time_ms', 'retries_attempted', 'success'] %}
             <div class="insight-card mb-8">
                 <div class="insight-card__title">{{ key | replace('_', ' ') | title }}</div>
-                <div class="insight-card__text">{{ value if value is string else value | tojson }}</div>
+                <div class="insight-card__text" style="white-space: pre-line;">{{ (value if value is string else value | tojson) | replace('**', '') | safe }}</div>
             </div>
+            {% endif %}
             {% endfor %}
         {% endif %}
     </div>

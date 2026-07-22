@@ -441,32 +441,47 @@ async def _call_openai_with_retry(
     )
 
 
+# ─── Response Cleaning & Formatting ─────────────────────────────────────────
+def _clean_and_format_insights_text(text: str) -> str:
+    """
+    Clean raw LLM text output:
+    1. Replace markdown asterisks **bold** with <b>bold</b> so raw '**' never appears in output.
+    2. Format inline numbered points (e.g. '1. ', '2. ') onto separate newlines for proper alignment.
+    """
+    if not text:
+        return ""
+    
+    # 1. Convert markdown **bold** to <b>bold</b>
+    cleaned = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    
+    # 2. Convert inline markdown *italic*
+    cleaned = re.sub(r'(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)', r'<i>\1</i>', cleaned)
+    
+    # 3. Ensure numbered points like ' 1. ', ' 2. ', ' 3. ' start on new paragraphs
+    cleaned = re.sub(r'(\s+)(?=\d+[\.\)]\s+)', r'\n\n', cleaned)
+    
+    # 4. Strip any remaining ** asterisks
+    cleaned = cleaned.replace('**', '')
+    
+    return cleaned.strip()
+
+
 # ─── Response Validation ─────────────────────────────────────────────────────
 def _extract_and_validate_response(response: Any) -> str:
     """
     Pull the text content out of the OpenAI response and validate it.
-
-    Original logic preserved:
-        - response.choices[0].message.content
-
-    Enhanced:
-        - Checks that choices list is not empty
-        - Checks that the content is not None or blank
-        - Returns the stripped text
-
-    Raises:
-        InsightGenerationError: If the response contains no usable content.
     """
     if not response.choices or len(response.choices) == 0:
         raise InsightGenerationError("OpenAI returned a response with no choices.")
 
-    content = response.choices[0].message.content  # original logic
+    content = response.choices[0].message.content
 
     if not content or content.strip() == "":
         raise InsightGenerationError("OpenAI returned an empty response body.")
 
-    logger.debug("Response content validated — %d characters.", len(content.strip()))
-    return content.strip()
+    content = _clean_and_format_insights_text(content)
+    logger.debug("Response content validated & formatted — %d characters.", len(content))
+    return content
 
 
 # ─── Main Entry Point ────────────────────────────────────────────────────────
