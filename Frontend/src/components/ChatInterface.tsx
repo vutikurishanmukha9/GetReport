@@ -14,6 +14,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   sources?: string[]; // Optional sources for citations
+  suggested_followups?: string[];
   timestamp: Date;
 }
 
@@ -29,6 +30,11 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
       role: "assistant",
       content: "Hello! I’ve completed the data audit and created the full PDF report. Ask me anything about trends, quality flags, or correlation patterns you see in the dataset [1].",
       sources: ["Data Quality Engine: Column scores calculated, VIF check completed, and outliers detected."],
+      suggested_followups: [
+        "What are the top quality issues in this dataset?",
+        "Which variables share the strongest positive correlation?",
+        "What data cleaning actions were applied?"
+      ],
       timestamp: new Date(),
     },
   ]);
@@ -47,8 +53,8 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
     }
   }, [messages, isLoading]);
 
-  const handleSend = async () => {
-    const trimmedInput = input.trim();
+  const handleSendQuery = async (queryText: string) => {
+    const trimmedInput = queryText.trim();
     if (!trimmedInput || isLoading) return;
 
     const query = trimmedInput.slice(0, 2000);
@@ -72,6 +78,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
         role: "assistant",
         content: response.answer, 
         sources: response.sources,
+        suggested_followups: response.suggested_followups,
         timestamp: new Date(),
       };
 
@@ -87,6 +94,8 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
       setIsLoading(false);
     }
   };
+
+  const handleSend = () => handleSendQuery(input);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -204,6 +213,28 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                         setHighlightedSourceIdx(idx);
                       }}
                     />
+                  )}
+
+                  {/* Interactive Suggested Follow-Up Prompt Chips (Bot only) */}
+                  {isBot && msg.suggested_followups && msg.suggested_followups.length > 0 && (
+                    <div className="pt-1.5 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-1">
+                        <Sparkles className="h-3 w-3 text-primary" />
+                        <span>Suggested Follow-Ups</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {msg.suggested_followups.map((qText, qIdx) => (
+                          <button
+                            key={qIdx}
+                            onClick={() => handleSendQuery(qText)}
+                            disabled={isLoading}
+                            className="text-left text-[11px] font-sans bg-background hover:bg-primary/10 border border-border hover:border-primary/40 text-foreground/90 hover:text-primary rounded-xl px-3 py-1.5 transition-all duration-150 shadow-xs active:scale-95 disabled:opacity-50"
+                          >
+                            {qText}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
 
                   {/* Timestamp */}

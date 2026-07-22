@@ -109,8 +109,8 @@ export const api = {
     /**
      * Chat with the processed report (RAG).
      */
-    chatWithJob: async (taskId: string, question: string): Promise<{ answer: string; sources: string[] }> => {
-        return fetchClient<{ answer: string; sources: string[] }>(`/jobs/${taskId}/chat`, {
+    chatWithJob: async (taskId: string, question: string): Promise<{ answer: string; sources: string[]; suggested_followups?: string[] }> => {
+        return fetchClient<{ answer: string; sources: string[]; suggested_followups?: string[] }>(`/jobs/${taskId}/chat`, {
             method: "POST",
             body: JSON.stringify({ question }),
         });

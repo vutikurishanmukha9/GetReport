@@ -280,25 +280,44 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
 
 def _trigger_rag_ingest(task_id, filename, context, analysis_result):
     try:
-        # Prepare text
-        analysis = analysis_result
-        insights = context.get("insights", {}).get("insights_text", "")
-        cleaning = context["cleaning_report"]
-        info = context["dataset_info"]
+        analysis = analysis_result or {}
+        raw_insights = context.get("insights", {})
+        if isinstance(raw_insights, dict):
+            insights_text = raw_insights.get("insights_text", "")
+        else:
+            insights_text = str(raw_insights)
         
-        rag_text = f"""
-        Analysis Report for {filename}
-        --- Metadata ---
-        Rows: {info.get('rows')}
-        Columns: {info.get('columns')}
-        --- Summary Statistics ---
-        {str(analysis.get('summary', {}))}
-        --- Insights ---
-        {insights}
-        --- Cleaning Actions ---
-        {cleaning}
-        """
+        cleaning = context.get("cleaning_report", {})
+        info = context.get("dataset_info", {})
+        
+        sections = [
+            f"=== DATASET EXECUTIVE OVERVIEW FOR {filename} ===",
+            f"Filename: {filename}",
+            f"Total Rows: {info.get('rows', 'N/A')}",
+            f"Total Columns: {info.get('columns', [])}",
+            "",
+            "=== SUMMARY STATISTICS & METRIC DISTRIBUTIONS ===",
+            json.dumps(analysis.get('summary', {}), indent=2),
+            "",
+            "=== AI-GENERATED STRATEGIC INSIGHTS ===",
+            insights_text.replace('**', ''),
+            "",
+            "=== DATA QUALITY CHECKS & CONFIDENCE SCORES ===",
+            json.dumps(analysis.get('confidence_scores', {}), indent=2),
+            "",
+            "=== CORRELATION ANALYSIS & FEATURE REDUNDANCIES ===",
+            json.dumps(analysis.get('correlation', {}), indent=2),
+            "",
+            "=== OUTLIERS & ANOMALIES DETECTED ===",
+            json.dumps(analysis.get('outliers', {}), indent=2),
+            "",
+            "=== DATA CLEANING ACTIONS & TRANSFORMATION LOG ===",
+            json.dumps(cleaning, indent=2) if isinstance(cleaning, dict) else str(cleaning)
+        ]
+        
+        rag_text = "\n".join(sections)
         rag_ingest_task.delay(task_id, rag_text)
+        logger.info(f"Triggered enhanced RAG ingestion for task {task_id}")
     except Exception as e:
         logger.warning(f"Failed to trigger RAG ingest: {e}")
 @celery_app.task(bind=True, name="app.tasks.resume_analysis")
