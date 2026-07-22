@@ -49,7 +49,12 @@ class LocalStorageProvider(StorageProvider):
         ext = Path(filename).suffix
         unique_name = f"{uuid.uuid4()}{ext}"
         target_path = self.base_dir / unique_name
-        
+
+        try:
+            file_obj.seek(0)
+        except Exception:
+            pass
+
         with open(target_path, "wb") as buffer:
             shutil.copyfileobj(file_obj, buffer)
             

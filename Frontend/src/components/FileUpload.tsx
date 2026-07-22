@@ -115,7 +115,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
     } catch (error: any) {
       console.error("Error initiating upload:", error);
-      let errorMessage = "Could not start upload.";
+      let errorMessage = error.message || "Could not start upload.";
       if (error.response?.data?.detail) errorMessage = error.response.data.detail;
       toast({ title: "Upload Failed", description: errorMessage, variant: "destructive" });
       setIsProcessing(false);
