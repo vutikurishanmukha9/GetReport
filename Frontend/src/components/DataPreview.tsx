@@ -108,7 +108,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
               <CardTitle className="text-lg font-display font-bold text-foreground">First 10 Rows</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full">
+              <div className="w-full overflow-x-auto">
                 <div className="min-w-[600px]">
                   <Table className="border-collapse">
                     <TableHeader className="bg-muted/40">
@@ -136,7 +136,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                     </TableBody>
                   </Table>
                 </div>
-              </ScrollArea>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
