@@ -458,7 +458,20 @@
         <div class="section-accent-line section-accent-line--blue"></div>
     </div>
     <div class="section-body">
-        <table>
+        {% set top_pos = (analysis.strong_correlations | selectattr('direction', 'defined') | selectattr('direction', 'equalto', 'positive') | list) %}
+        {% set top_neg = (analysis.strong_correlations | selectattr('direction', 'defined') | selectattr('direction', 'equalto', 'negative') | list) %}
+        <div class="insight-card mb-8">
+            <div class="insight-card__title">Automated Correlation Intelligence</div>
+            <div class="insight-card__text">
+                {% if top_pos and top_pos | length > 0 %}
+                <p class="mb-8"><strong>Strongest Positive Relationship:</strong> <em>{{ top_pos[0].get('column_a', top_pos[0].get('col_a', '')) }}</em> and <em>{{ top_pos[0].get('column_b', top_pos[0].get('col_b', '')) }}</em> move together in the same direction (r = +{{ "%.2f" | format(top_pos[0].get('r_value', top_pos[0].get('value', 0)) | abs) }}). As values of {{ top_pos[0].get('column_a', top_pos[0].get('col_a', '')) }} increase, {{ top_pos[0].get('column_b', top_pos[0].get('col_b', '')) }} tends to increase proportionally.</p>
+                {% endif %}
+                {% if top_neg and top_neg | length > 0 %}
+                <p><strong>Strongest Inverse Relationship:</strong> <em>{{ top_neg[0].get('column_a', top_neg[0].get('col_a', '')) }}</em> and <em>{{ top_neg[0].get('column_b', top_neg[0].get('col_b', '')) }}</em> move in opposite directions (r = {{ "%.2f" | format(top_neg[0].get('r_value', top_neg[0].get('value', 0))) }}). Higher values of {{ top_neg[0].get('column_a', top_neg[0].get('col_a', '')) }} are associated with lower values of {{ top_neg[0].get('column_b', top_neg[0].get('col_b', '')) }}.</p>
+                {% endif %}
+            </div>
+        </div>
+        <table class="mt-8">
             <thead>
                 <tr><th>Column A</th><th>Column B</th><th class="num-col">Correlation</th><th>Type</th></tr>
             </thead>
@@ -743,7 +756,8 @@
                     <td class="text-bold">{{ tc.get('column', '—') }}</td>
                     <td>{{ tc.get('current', '—') }}</td>
                     <td><span class="badge badge--info">{{ tc.get('suggested', '—') }}</span></td>
-                    <td class="num-col">{{ "%.0f" | format((tc.get('confidence', 0)) * 100) }}%</td>
+                    {% set conf = tc.get('confidence', 0) %}
+                    <td class="num-col">{{ "%.0f" | format(conf if conf > 1 else conf * 100) }}%</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -762,7 +776,8 @@
                     <td><span class="badge badge--info">{{ rel.get('type', '—') }}</span></td>
                     <td>{{ rel.get('from', '—') }}</td>
                     <td>{{ rel.get('to', '—') }}</td>
-                    <td class="num-col">{{ "%.0f" | format((rel.get('confidence', 0)) * 100) }}%</td>
+                    {% set rconf = rel.get('confidence', 0) %}
+                    <td class="num-col">{{ "%.0f" | format(rconf if rconf > 1 else rconf * 100) }}%</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -840,12 +855,18 @@
         <div class="chart-card no-break">
             <img src="data:image/png;base64,{{ charts.correlation_heatmap.image }}" alt="Correlation Heatmap">
             <div class="chart-card__caption">Correlation Matrix — Numeric Columns</div>
+            {% if charts.correlation_heatmap.get('narrative') %}
+            <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ charts.correlation_heatmap.narrative }}</div>
+            {% endif %}
         </div>
         {% endif %}
         {% if charts.get('scatter_plot') and charts.scatter_plot.get('image') %}
         <div class="chart-card no-break">
             <img src="data:image/png;base64,{{ charts.scatter_plot.image }}" alt="Relationship Scatter Plot">
             <div class="chart-card__caption">Relationship: {{ charts.scatter_plot.get('columns', '') }}</div>
+            {% if charts.scatter_plot.get('narrative') %}
+            <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ charts.scatter_plot.narrative }}</div>
+            {% endif %}
         </div>
         {% endif %}
         {% for chart in charts.get('distributions', []) %}
@@ -853,6 +874,9 @@
         <div class="chart-card no-break">
             <img src="data:image/png;base64,{{ chart.image }}" alt="Distribution Chart">
             <div class="chart-card__caption">Distribution of {{ chart.get('column', '') }}</div>
+            {% if chart.get('narrative') %}
+            <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ chart.narrative }}</div>
+            {% endif %}
         </div>
         {% endif %}
         {% endfor %}
@@ -861,6 +885,9 @@
         <div class="chart-card no-break">
             <img src="data:image/png;base64,{{ chart.image }}" alt="Bar Chart">
             <div class="chart-card__caption">Category Breakdown: {{ chart.get('column', '') }}</div>
+            {% if chart.get('narrative') %}
+            <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ chart.narrative }}</div>
+            {% endif %}
         </div>
         {% endif %}
         {% endfor %}
@@ -868,6 +895,9 @@
         <div class="chart-card no-break">
             <img src="data:image/png;base64,{{ charts.donut_chart.image }}" alt="Composition Chart">
             <div class="chart-card__caption">Composition: {{ charts.donut_chart.get('column', '') }}</div>
+            {% if charts.donut_chart.get('narrative') %}
+            <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ charts.donut_chart.narrative }}</div>
+            {% endif %}
         </div>
         {% endif %}
         {% for chart in charts.get('boxplots', []) %}
@@ -875,6 +905,9 @@
         <div class="chart-card no-break">
             <img src="data:image/png;base64,{{ chart.image }}" alt="Boxplot">
             <div class="chart-card__caption">Comparison: {{ chart.get('column', '') }}</div>
+            {% if chart.get('narrative') %}
+            <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ chart.narrative }}</div>
+            {% endif %}
         </div>
         {% endif %}
         {% endfor %}

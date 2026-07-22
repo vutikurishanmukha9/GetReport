@@ -154,8 +154,12 @@ def _suggest_scaling(df: pl.DataFrame, col: str) -> ScalingRecommendation:
     else:
         skewness = 0
     
+    col_lower = col.lower()
+    percentage_keywords = ["pct", "percent", "rate", "ratio", "%", "share", "portion", "accuracy", "score_pct"]
+    has_percentage_name = any(kw in col_lower for kw in percentage_keywords)
+
     # Check if already bounded
-    is_percentage = min_val >= 0 and max_val <= 100
+    is_percentage = (min_val >= 0 and max_val <= 100) and has_percentage_name
     is_normalized = min_val >= 0 and max_val <= 1
     
     if is_normalized:
@@ -204,17 +208,17 @@ def _suggest_scaling(df: pl.DataFrame, col: str) -> ScalingRecommendation:
         return ScalingRecommendation(
             column=col,
             recommended_scaler="minmax",
-            reason="Percentage data (0-100) - MinMaxScaler to normalize to 0-1",
+            reason=f"Percentage ratio column ({min_val:.1f} to {max_val:.1f}) - MinMaxScaler to normalize to 0-1",
             stats=stats,
             considerations=considerations
         )
     
-    # Default: Standard Scaler
+    # Default: Standard Scaler with contextual description
     considerations.append("Produces mean=0, std=1 distribution")
     return ScalingRecommendation(
         column=col,
         recommended_scaler="standard",
-        reason="Approximately normal distribution - StandardScaler recommended",
+        reason=f"Numerical range ({min_val:.1f} to {max_val:.1f}) with balanced distribution - StandardScaler recommended for model stability",
         stats=stats,
         considerations=considerations
     )

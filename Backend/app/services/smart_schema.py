@@ -421,7 +421,7 @@ class SmartSchemaResult:
                     "column": t.column,
                     "current_type": t.current_type,
                     "suggested_type": t.suggested_type,
-                    "confidence": round(t.confidence * 100),
+                    "confidence": round(min(max(t.confidence, 0.0), 1.0), 2),
                     "reason": t.reason,
                     "samples": t.sample_values[:3]
                 }
@@ -432,7 +432,7 @@ class SmartSchemaResult:
                     "source": r.source_column,
                     "target": r.target_column,
                     "type": r.relationship_type,
-                    "confidence": round(r.confidence * 100),
+                    "confidence": round(min(max(r.confidence, 0.0), 1.0), 2),
                     "details": r.details
                 }
                 for r in self.relationships

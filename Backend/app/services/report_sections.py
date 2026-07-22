@@ -445,17 +445,52 @@ def _build_correlations_section(
     story: list[Flowable] = []
     story.append(Paragraph("Strong Correlations", styles["SectionHeading"]))
     story.append(Spacer(1, 0.1 * inch))
+    
+    corrs = analysis_results["strong_correlations"]
+    pos_pairs = [p for p in corrs if p.get("direction") == "positive" or p.get("r_value", 0) > 0]
+    neg_pairs = [p for p in corrs if p.get("direction") == "negative" or p.get("r_value", 0) < 0]
+    pos_pairs.sort(key=lambda x: abs(x.get("r_value", 0)), reverse=True)
+    neg_pairs.sort(key=lambda x: abs(x.get("r_value", 0)), reverse=True)
+
+    interpretation_lines = []
+    if pos_pairs:
+        top_p = pos_pairs[0]
+        col_a = top_p.get('column_a', top_p.get('col_a', '—'))
+        col_b = top_p.get('column_b', top_p.get('col_b', '—'))
+        val = abs(top_p.get('r_value', top_p.get('value', 0)))
+        interpretation_lines.append(
+            f"<b>Strongest Positive Relationship:</b> <i>{col_a}</i> and <i>{col_b}</i> "
+            f"move together in the same direction (r = +{val:.2f}). As {col_a} increases, "
+            f"{col_b} tends to increase proportionally."
+        )
+    if neg_pairs:
+        top_n = neg_pairs[0]
+        col_a = top_n.get('column_a', top_n.get('col_a', '—'))
+        col_b = top_n.get('column_b', top_n.get('col_b', '—'))
+        val = top_n.get('r_value', top_n.get('value', 0))
+        interpretation_lines.append(
+            f"<b>Strongest Inverse Relationship:</b> <i>{col_a}</i> and <i>{col_b}</i> "
+            f"move in opposite directions (r = {val:.2f}). Higher values of {col_a} "
+            f"are associated with lower values of {col_b}."
+        )
+
     story.append(Paragraph(
-        "The following column pairs have a notably strong statistical relationship (|r| ≥ 0.7).",
+        "The following column pairs exhibit strong statistical relationships (|r| ≥ 0.70). "
+        "Understanding these connections helps reveal key drivers and potential redundancies in your dataset.",
         styles["Body"]
     ))
-    story.append(Spacer(1, 0.1 * inch))
+    story.append(Spacer(1, 0.08 * inch))
 
+    for line in interpretation_lines:
+        story.append(Paragraph(line, styles["Normal"]))
+        story.append(Spacer(1, 0.04 * inch))
+
+    story.append(Spacer(1, 0.08 * inch))
     table_data = [["Column A", "Column B", "r Value", "Direction", "Strength"]]
-    for pair in analysis_results["strong_correlations"]:
+    for pair in corrs:
         table_data.append([
-            str(pair.get("column_a", "—")), str(pair.get("column_b", "—")),
-            str(pair.get("r_value", "—")), str(pair.get("direction", "—")).capitalize(),
+            str(pair.get("column_a", pair.get("col_a", "—"))), str(pair.get("column_b", pair.get("col_b", "—"))),
+            str(pair.get("r_value", pair.get("value", "—"))), str(pair.get("direction", "—")).capitalize(),
             str(pair.get("strength", "—")).capitalize(),
         ])
     col_widths = [1.3 * inch, 1.3 * inch, 1.0 * inch, 1.2 * inch, 1.2 * inch]

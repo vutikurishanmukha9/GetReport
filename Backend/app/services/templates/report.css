@@ -506,9 +506,18 @@ tbody tr:last-child td {
     font-weight: 600;
     color: #475569;
     text-align: center;
-    padding: 12px;
+    padding: 10px 12px;
     background: #f8fafc;
     border-top: 1px solid #e2e8f0;
+}
+
+.chart-card__narrative {
+    font-size: 7.5pt;
+    line-height: 1.5;
+    color: #334155;
+    padding: 8px 12px 12px 12px;
+    background: #f1f5f9;
+    border-top: 1px dashed #cbd5e1;
 }
 
 /* ─── Utilities & Formatting Helpers ───────────────────────────────────────── */

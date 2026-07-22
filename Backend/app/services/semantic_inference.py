@@ -315,17 +315,27 @@ def _normalize_column_name(name: str) -> str:
     return name
 
 def _fuzzy_match(text: str, patterns: list[str]) -> list[str]:
-    """Check if any pattern matches (as substring or word boundary)."""
-    text = _normalize_column_name(text)
+    """Check if any pattern matches using token-aware word boundary logic."""
+    norm_text = _normalize_column_name(text)
+    tokens = set(norm_text.split('_'))
     matches = []
+    
+    # Patterns that must match exact word tokens or word boundaries to prevent false substring hits
+    EXACT_TOKEN_PATTERNS = {
+        "end", "dt", "no", "id", "num", "idx", "code", "key", "day", "week", 
+        "year", "month", "time", "title", "label", "first", "last", "city", 
+        "state", "zip", "pay", "unit", "area", "flag", "role", "dept", "sex"
+    }
+
     for pattern in patterns:
         pattern = pattern.lower()
-        # Exact match or word boundary match
-        if pattern in text or text.startswith(pattern) or text.endswith(pattern):
-            matches.append(pattern)
-        # Also check if pattern appears as a word
-        elif re.search(rf'\b{re.escape(pattern)}\b', text):
-            matches.append(pattern)
+        if pattern in EXACT_TOKEN_PATTERNS or len(pattern) <= 3:
+            # Must match an exact word token or word boundary (e.g., 'end' will match 'period_end' but NOT 'gender')
+            if pattern in tokens or re.search(rf'\b{re.escape(pattern)}\b', norm_text):
+                matches.append(pattern)
+        else:
+            if pattern in norm_text or pattern in tokens:
+                matches.append(pattern)
     return matches
 
 
@@ -354,7 +364,7 @@ def detect_domain(df: pl.DataFrame) -> DomainDetection:
         matches = []
         for kw in keywords:
             kw_lower = kw.lower()
-            pattern = re.compile(r'\b' + re.escape(kw_lower))
+            pattern = re.compile(r'\b' + re.escape(kw_lower) + r'\b')
             for col_name in normalized_cols:
                 col_spaced = col_name.replace('_', ' ')
                 if pattern.search(col_spaced):
@@ -405,6 +415,10 @@ def map_column_role(df: pl.DataFrame, column: str) -> ColumnRole:
     """
     col_name = _normalize_column_name(column)
     
+    # Direct explicit overrides for common domain terms
+    if col_name in ("gender", "sex"):
+        return ColumnRole(column=column, role="dimension", confidence=0.95, matched_patterns=["gender"])
+
     best_role = "unknown"
     best_confidence = 0.0
     all_matches: list[str] = []
@@ -419,7 +433,22 @@ def map_column_role(df: pl.DataFrame, column: str) -> ColumnRole:
                 best_confidence = confidence
                 all_matches = matches
     
-    # Value-based heuristics if no name match
+    # Refine specific patterns:
+    # 1. Duration / Time spent metrics (e.g. screen_time_before_sleep, sleep_hours, time_spent)
+    if any(term in col_name for term in ["screen_time", "sleep_time", "time_spent", "duration", "hours", "minutes"]):
+        if best_role == "datetime" or best_role == "unknown":
+            best_role = "predictor_metric"
+            best_confidence = 0.90
+            all_matches = ["duration_metric"]
+
+    # 2. Target labels (e.g. depression_label, class_label, target_label)
+    if "label" in col_name and any(term in col_name for term in ["depression", "class", "target", "cluster", "outcome", "status"]):
+        if best_role == "name_label":
+            best_role = "target_metric" if df[column].dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32) else "dimension"
+            best_confidence = 0.85
+            all_matches = ["target_label"]
+
+    # Value-based heuristics if no strong name match
     if best_confidence < 0.5:
         try:
             dtype = df[column].dtype
@@ -443,10 +472,9 @@ def map_column_role(df: pl.DataFrame, column: str) -> ColumnRole:
                         best_confidence = 0.7
                 
                 # Low cardinality = likely dimension
-                if dtype == pl.Utf8 and series.n_unique() <= 20:
-                    if best_confidence < 0.6:
-                        best_role = "dimension"
-                        best_confidence = 0.6
+                if (dtype == pl.Utf8 or series.n_unique() <= 20) and best_confidence < 0.6:
+                    best_role = "dimension"
+                    best_confidence = 0.6
         except Exception as e:
             logger.debug(f"Value heuristics failed for {column}: {e}")
     
