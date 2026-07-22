@@ -47,13 +47,20 @@ if settings.DATABASE_URL and any("localhost" in o for o in _cors_origins):
         "Set CORS_ORIGINS env var to restrict origins in production."
     )
 
-# CORS (VULN-04: Restricted methods and headers)
+# Ensure Vercel production and preview domains are permitted
+if "https://get-report.vercel.app" not in _cors_origins and "*" not in _cors_origins:
+    _cors_origins.append("https://get-report.vercel.app")
+
+_allow_all = "*" in _cors_origins
+
+# CORS Middleware (Allows Vercel domains, localhost, and custom origin patterns)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
+    allow_origins=["*"] if _allow_all else _cors_origins,
+    allow_origin_regex=None if _allow_all else r"https://.*\.vercel\.app",
+    allow_credentials=not _allow_all,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(endpoints.router, prefix="/api", tags=["api"])

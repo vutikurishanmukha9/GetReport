@@ -36,9 +36,9 @@ class Settings(BaseSettings):
     # Max length for chat questions (prompt injection mitigation)
     MAX_CHAT_QUESTION_LENGTH: int = 500
     
-    # ⚠ SECURITY WARNING: These defaults are for local development ONLY.
-    # In production, you MUST override CORS_ORIGINS via environment variable to restrict access.
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:8080"
+    # ⚠ SECURITY WARNING: These defaults are for local development and Vercel deployment.
+    # In production, you can override CORS_ORIGINS via environment variable to restrict access.
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:8080,https://get-report.vercel.app,https://getreport.vercel.app"
 
     # ─── Analysis Thresholds ─────────────────────────────────────────────
     IQR_LOWER_MULTIPLIER: float = 1.5
