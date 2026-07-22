@@ -134,7 +134,7 @@ async def upload_file(
         raise
     except Exception as e:
         logger.error(f"Upload failed: {str(e)}")
-        raise HTTPException(status_code=500, detail="An internal error occurred during upload.")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
 @router.post("/upload/batch", response_model=BatchTaskResponse)

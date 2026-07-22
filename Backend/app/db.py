@@ -28,13 +28,14 @@ class PostgresCursor:
         self.cursor = cursor
 
     def execute(self, sql: str, params: Tuple = ()) -> Any:
+        sanitized_params = [p.value if hasattr(p, "value") else p for p in params]
         def replace_placeholder(match):
             if match.group(1): return match.group(1)
             return "%s"
         # Regex to handle standard SQL ('') and Postgres (\') escaping
         pattern = r"(\'(?:[^'\\]|\\.|'')*\'|\"(?:[^\"\\]|\\.|\"\")*\")|\?"
         pg_sql = re.sub(pattern, replace_placeholder, sql)
-        return self.cursor.execute(pg_sql, params)
+        return self.cursor.execute(pg_sql, sanitized_params)
 
     def fetchone(self) -> Optional[Any]:
         return self.cursor.fetchone()
@@ -84,8 +85,7 @@ class AsyncPostgresCursor:
 
     async def execute(self, sql: str, params: Tuple = ()) -> Any:
         # asyncpg uses $1, $2, $3. We must convert ? -> $n
-        # Regex to ignore strings matches
-        params = list(params) # Tuple to list
+        sanitized_params = [p.value if hasattr(p, "value") else p for p in params]
         
         counter = 0
         def replace_placeholder(match):
@@ -98,7 +98,7 @@ class AsyncPostgresCursor:
         pattern = r"(\'(?:[^'\\]|\\.|'')*\'|\"(?:[^\"\\]|\\.|\"\")*\")|\?"
         pg_sql = re.sub(pattern, replace_placeholder, sql)
         
-        self._last_result = await self.conn.fetch(pg_sql, *params)
+        self._last_result = await self.conn.fetch(pg_sql, *sanitized_params)
         return self
 
     async def fetchone(self) -> Optional[Any]:
