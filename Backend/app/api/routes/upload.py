@@ -22,9 +22,30 @@ router = APIRouter()
 # Global state for lazy cleanup (DoS prevention)
 _last_cleanup_time = 0
 
+ALLOWED_EXTENSIONS_TUPLE = (
+    '.csv', '.xls', '.xlsx', '.parquet', '.json', '.jsonl', 
+    '.ndjson', '.tsv', '.feather', '.arrow', '.gz'
+)
+
 class TaskResponse(BaseModel):
     task_id: str
     message: str
+
+class BatchTaskResponse(BaseModel):
+    task_ids: list[str]
+    tasks: list[dict]
+    message: str
+
+async def _compute_file_hash(file: UploadFile) -> str:
+    """Compute SHA-256 hash of file content without consuming buffer."""
+    hasher = hashlib.sha256()
+    await file.seek(0)
+    chunk = await file.read(64 * 1024)
+    while chunk:
+        hasher.update(chunk)
+        chunk = await file.read(64 * 1024)
+    await file.seek(0)
+    return hasher.hexdigest()
 
 @router.post("/upload", response_model=TaskResponse)
 @limiter.limit(UPLOAD_LIMIT)
@@ -40,11 +61,12 @@ async def upload_file(
     """
     try:
         # Pre-validate extension
-        if not file.filename.lower().endswith(('.csv', '.xls', '.xlsx')):
-             raise HTTPException(400, "Invalid file type. Only CSV and Excel supported.")
+        if not file.filename.lower().endswith(ALLOWED_EXTENSIONS_TUPLE):
+             raise HTTPException(400, "Invalid file type. Supported formats: CSV, TSV, Excel, Parquet, JSON, JSONL, Feather, GZ.")
              
         # Content Validation (Phase 4 Security Hardening)
         await validate_file_signature(file)
+        file_hash = await _compute_file_hash(file)
          
         # Enforce file size limit in O(1) time using pointer seek
         max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
@@ -78,7 +100,7 @@ async def upload_file(
             safe_filename = "unnamed_file.csv"
              
         # Create Task
-        task_id = await title_task_manager.create_job_async(safe_filename)
+        task_id = await title_task_manager.create_job_async(safe_filename, file_hash=file_hash)
         
         # Save file via Storage Service
         file_ref = storage.save_upload(file.file, safe_filename)
@@ -113,3 +135,49 @@ async def upload_file(
     except Exception as e:
         logger.error(f"Upload failed: {str(e)}")
         raise HTTPException(status_code=500, detail="An internal error occurred during upload.")
+
+
+@router.post("/upload/batch", response_model=BatchTaskResponse)
+@limiter.limit(UPLOAD_LIMIT)
+async def upload_files_batch(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    files: list[UploadFile] = File(...),
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Ingests multiple datasets at once (Batch Upload).
+    Returns list of Task IDs immediately.
+    """
+    if not files or len(files) == 0:
+        raise HTTPException(400, "No files provided.")
+
+    if len(files) > 10:
+        raise HTTPException(400, "Batch upload limit is 10 files per request.")
+
+    task_ids = []
+    task_details = []
+    batch_id = f"batch_{uuid.uuid4().hex[:12]}"
+
+    for file in files:
+        if not file.filename.lower().endswith(ALLOWED_EXTENSIONS_TUPLE):
+            raise HTTPException(400, f"Invalid file type for '{file.filename}'.")
+
+        await validate_file_signature(file)
+        file_hash = await _compute_file_hash(file)
+
+        base_name = os.path.basename(file.filename)
+        safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', base_name) or "unnamed_file.csv"
+
+        task_id = await title_task_manager.create_job_async(safe_filename, batch_id=batch_id, file_hash=file_hash)
+        file_ref = storage.save_upload(file.file, safe_filename)
+        inspect_file_task.delay(task_id, file_ref, safe_filename)
+
+        task_ids.append(task_id)
+        task_details.append({"task_id": task_id, "batch_id": batch_id, "filename": safe_filename, "file_hash": file_hash[:12]})
+
+    return BatchTaskResponse(
+        task_ids=task_ids,
+        tasks=task_details,
+        message=f"Uploaded {len(files)} files successfully under Batch '{batch_id}'. Inspection tasks started."
+

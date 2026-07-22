@@ -15,6 +15,12 @@ SIGNATURES = {
     "xlsx": b"\x50\x4B\x03\x04", 
     # Legacy Microsoft Office (xls, doc, ppt) - OLE2 Compound File
     "xls":  b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1",
+    # Apache Parquet
+    "parquet": b"PAR1",
+    # Apache Arrow / Feather
+    "feather": b"ARROW1",
+    # GZIP compressed file
+    "gz": b"\x1f\x8b",
 }
 
 async def validate_file_signature(file: UploadFile) -> None:
@@ -46,6 +52,33 @@ async def validate_file_signature(file: UploadFile) -> None:
             raise HTTPException(
                 status_code=400, 
                 detail="Invalid file content. Extension says .xls but content does not match (OLE2 signature missing)."
+            )
+
+    # 3. Parquet
+    elif filename.endswith(".parquet"):
+        if not header.startswith(SIGNATURES["parquet"]):
+            logger.warning(f"Validation failed: {filename} claims to be Parquet but lacks PAR1 magic number.")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file content. Parquet header signature missing."
+            )
+
+    # 4. Feather / Arrow
+    elif filename.endswith((".feather", ".arrow")):
+        if not header.startswith(SIGNATURES["feather"]):
+            logger.warning(f"Validation failed: {filename} claims to be Feather/Arrow but lacks ARROW1 signature.")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file content. Feather/Arrow header signature missing."
+            )
+
+    # 5. GZIP
+    elif filename.endswith(".gz"):
+        if not header.startswith(SIGNATURES["gz"]):
+            logger.warning(f"Validation failed: {filename} claims to be GZIP but lacks GZIP magic number.")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file content. GZIP compression header signature missing."
             )
 
     # 3. CSV (Text-based)

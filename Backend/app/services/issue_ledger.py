@@ -413,6 +413,20 @@ def _detect_high_cardinality_issues(df: pl.DataFrame) -> list[Issue]:
     return issues
 
 
+import hashlib
+
+def compute_dataset_fingerprint(df: pl.DataFrame) -> str:
+    """Compute normalized semantic fingerprint for cross-format duplicate dataset detection."""
+    sorted_cols = ",".join(sorted(df.columns))
+    row_count = str(df.height)
+    null_total = str(sum(df[c].null_count() for c in df.columns))
+    
+    # Sample head & tail representations
+    sample_text = str(df.head(5).to_dicts()) + str(df.tail(5).to_dicts())
+    fingerprint_raw = f"{sorted_cols}|{row_count}|{null_total}|{sample_text}"
+    return hashlib.sha256(fingerprint_raw.encode("utf-8")).hexdigest()
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════════════

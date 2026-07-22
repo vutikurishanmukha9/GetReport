@@ -17,7 +17,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 # ─── Constants ───────────────────────────────────────────────────────────────
-ALLOWED_EXTENSIONS: set[str]  = {".csv", ".xls", ".xlsx"}
+ALLOWED_EXTENSIONS: set[str]  = {".csv", ".xls", ".xlsx", ".parquet", ".json", ".jsonl", ".ndjson", ".tsv", ".feather", ".arrow", ".gz"}
 MAX_FILE_SIZE_BYTES: int      = 50 * 1024 * 1024          # 50 MB hard cap (Upload only)
 PREVIEW_ROW_COUNT: int        = 10
 
@@ -171,12 +171,26 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
         if lower_path.endswith(".csv"):
             # Polars read_csv is extremely fast and multi-threaded
             df = pl.read_csv(file_path, ignore_errors=True, n_rows=None)
+        elif lower_path.endswith(".tsv"):
+            df = pl.read_csv(file_path, separator="\t", ignore_errors=True, n_rows=None)
         elif lower_path.endswith((".xls", ".xlsx")):
-             # Polars read_excel uses engine='xlsx2csv' or similar internally via dependencies
+            # Polars read_excel uses engine='xlsx2csv' or similar internally via dependencies
             df = pl.read_excel(file_path)
         elif lower_path.endswith(".parquet"):
             # Parquet: used for intermediate cleaned data files
             df = pl.read_parquet(file_path)
+        elif lower_path.endswith((".jsonl", ".ndjson")):
+            df = pl.read_ndjson(file_path)
+        elif lower_path.endswith(".json"):
+            df = pl.read_json(file_path)
+        elif lower_path.endswith((".feather", ".arrow")):
+            df = pl.read_ipc(file_path)
+        elif lower_path.endswith(".gz"):
+            # Gzip compressed files
+            if lower_path.endswith(".csv.gz"):
+                df = pl.read_csv(file_path, ignore_errors=True)
+            else:
+                df = pl.read_csv(file_path, ignore_errors=True)
         else:
             raise UnsupportedFileTypeError(f"Unsupported extension for: {file_path}")
 

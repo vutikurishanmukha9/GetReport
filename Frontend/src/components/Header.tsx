@@ -53,6 +53,12 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
             >
               how it works
             </Link>
+            <Link 
+              to="/dashboard" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[1.5px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
+            >
+              dashboard
+            </Link>
             {showReset ? (
               <>
                 <div className="h-4 w-px bg-border/60 mx-1" />

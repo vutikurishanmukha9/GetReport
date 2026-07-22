@@ -9,7 +9,7 @@ import numpy as np
 
 from openai import AsyncOpenAI, OpenAI, BadRequestError, NotFoundError
 from app.core.config import settings
-from app.core.rag_utils import TextSplitter, SimpleVectorStore, PostgresVectorStore
+from app.core.rag_utils import TextSplitter, TableAwareTextSplitter, SimpleVectorStore, PostgresVectorStore, TFIDFVectorStore
 from app.services.llm_insight import OPENROUTER_MODELS, OPENAI_MODEL
 
 logger = logging.getLogger(__name__)
@@ -149,7 +149,7 @@ class EnhancedRAGService:
         self._embed_client = None
         self._embed_sync_client = None
 
-        self.text_splitter = TextSplitter(
+        self.text_splitter = TableAwareTextSplitter(
             chunk_size=self.config.CHUNK_SIZE,
             chunk_overlap=self.config.CHUNK_OVERLAP
         )

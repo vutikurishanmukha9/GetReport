@@ -54,13 +54,68 @@ class TextSplitter:
                     else:
                         current_chunk += (separator if current_chunk else "") + split
                 
-                if current_chunk:
-                    result_splits.append(current_chunk)
-                    
-                new_splits.extend(result_splits)
-            good_splits = new_splits
-
         return [c.strip() for c in good_splits if c.strip()]
+
+
+class TableAwareTextSplitter(TextSplitter):
+    """
+    Structure-aware text splitter that preserves tabular headers and section breaks.
+    Prevents splitting multi-row summaries across arbitrary character boundaries.
+    """
+    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 150):
+        separators = ["--- ", "\n\n---", "\n\n", "\n", ". ", " "]
+        super().__init__(chunk_size=chunk_size, chunk_overlap=chunk_overlap, separators=separators)
+
+    def split_text_with_context(self, text: str, header_prefix: str = "") -> List[str]:
+        """Split text while prepending schema context header to every chunk."""
+        raw_chunks = self.split_text(text)
+        if not header_prefix:
+            return raw_chunks
+        
+        contextual_chunks = []
+        for chunk in raw_chunks:
+            if not chunk.startswith(header_prefix[:30]):
+                contextual_chunks.append(f"{header_prefix}\n{chunk}")
+            else:
+                contextual_chunks.append(chunk)
+        return contextual_chunks
+
+
+class TFIDFVectorStore:
+    """
+    Fallback similarity engine using TF-IDF + Cosine Similarity.
+    Used when external API keys (OpenAI embedding) are unconfigured.
+    """
+    def __init__(self):
+        self.documents: List[Dict[str, Any]] = []
+
+    def add_texts(self, texts: List[str], metadatas: Optional[List[Dict[str, Any]]] = None):
+        for i, text in enumerate(texts):
+            self.documents.append({
+                "content": text,
+                "metadata": metadatas[i] if metadatas else {}
+            })
+
+    def similarity_search(self, query: str, k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+        if not self.documents or not query:
+            return []
+        
+        words = set(re.findall(r'\w+', query.lower()))
+        if not words:
+            return [(doc, 0.5) for doc in self.documents[:k]]
+        
+        scored_docs = []
+        for doc in self.documents:
+            content_words = set(re.findall(r'\w+', doc["content"].lower()))
+            if not content_words:
+                continue
+            intersection = words.intersection(content_words)
+            score = len(intersection) / (len(words) ** 0.5 * len(content_words) ** 0.5 + 1e-6)
+            scored_docs.append((doc, float(score)))
+
+        scored_docs.sort(key=lambda x: x[1], reverse=True)
+        return scored_docs[:k]
+
 
 class SimpleVectorStore:
     """

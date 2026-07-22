@@ -63,6 +63,8 @@ class Job:
     message: str
     progress: int = 0
     filename: Optional[str] = None
+    batch_id: Optional[str] = None
+    file_hash: Optional[str] = None
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     report_path: Optional[str] = None
@@ -102,14 +104,14 @@ class TaskManager:
 
     # ─── ASYNC METHODS (For FastAPI) ─────────────────────────────────────────
 
-    async def create_job_async(self, filename: str) -> str:
+    async def create_job_async(self, filename: str, batch_id: Optional[str] = None, file_hash: Optional[str] = None) -> str:
         task_id = str(uuid.uuid4())
         initial_status = TaskStatus.PENDING
         initial_message = "Job created"
         
-        # Schema: task_id, status, filename, message, progress, version
-        query = "INSERT INTO jobs (task_id, status, filename, message, progress, version) VALUES (?, ?, ?, ?, ?, ?)"
-        args = (task_id, initial_status, filename, initial_message, 0, 1)
+        # Schema: task_id, status, filename, message, progress, batch_id, file_hash, version
+        query = "INSERT INTO jobs (task_id, status, filename, message, progress, batch_id, file_hash, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        args = (task_id, initial_status, filename, initial_message, 0, batch_id, file_hash, 1)
 
         try:
             async with get_async_db_connection() as conn:
@@ -235,14 +237,14 @@ class TaskManager:
 
     # ─── SYNC METHODS (Legacy/Celery) ────────────────────────────────────────
 
-    def create_job(self, filename: str) -> str:
+    def create_job(self, filename: str, batch_id: Optional[str] = None, file_hash: Optional[str] = None) -> str:
         """Sync version for testing or legacy calls"""
         task_id = str(uuid.uuid4())
         initial_status = TaskStatus.PENDING
         initial_message = "Job created"
         
-        args = (task_id, initial_status, filename, initial_message, 0, 1)
-        query = "INSERT INTO jobs (task_id, status, filename, message, progress, version) VALUES (?, ?, ?, ?, ?, ?)"
+        args = (task_id, initial_status, filename, initial_message, 0, batch_id, file_hash, 1)
+        query = "INSERT INTO jobs (task_id, status, filename, message, progress, batch_id, file_hash, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 
         with get_db_connection() as conn:
             conn.execute(query, args)

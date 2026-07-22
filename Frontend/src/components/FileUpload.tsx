@@ -72,22 +72,19 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   }, [taskId, expectedPhase, taskStatus, taskResult, taskError, onFileUploaded]);
 
   const validateFile = (file: File): boolean => {
-    // ... (keep existing validation)
-    const validTypes = [
-      "text/csv",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    const validExtensions = [
+      ".csv", ".xlsx", ".xls", ".parquet", ".json", 
+      ".jsonl", ".ndjson", ".tsv", ".feather", ".arrow", ".gz"
     ];
-    const validExtensions = [".csv", ".xlsx", ".xls"];
 
     const hasValidExtension = validExtensions.some(ext =>
       file.name.toLowerCase().endsWith(ext)
     );
 
-    if (!validTypes.includes(file.type) && !hasValidExtension) {
+    if (!hasValidExtension) {
       toast({
-        title: "Invalid file type",
-        description: "Please upload a CSV or Excel file (.csv, .xlsx, .xls)",
+        title: "Invalid file format",
+        description: "Supported formats: CSV, TSV, Excel (.xlsx, .xls), Parquet, JSON, JSONL, Feather, GZ.",
         variant: "destructive",
       });
       return false;
