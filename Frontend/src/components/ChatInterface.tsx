@@ -167,7 +167,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
         {/* Messages list */}
         <div 
           ref={chatContainerRef}
-          className="h-[420px] overflow-y-auto p-4 space-y-6 scrollbar-thin"
+          className="h-[400px] sm:h-[450px] overflow-y-auto p-3 sm:p-4 space-y-5 scrollbar-thin"
         >
           {messages.map((msg) => {
             const isBot = msg.role === "assistant";
@@ -175,24 +175,24 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
               <div
                 key={msg.id}
                 className={cn(
-                  "flex gap-3 max-w-[85%] animate-in fade-in slide-in-from-bottom-2 duration-300",
+                  "flex gap-2 sm:gap-3 max-w-[95%] sm:max-w-[85%] animate-in fade-in slide-in-from-bottom-2 duration-300",
                   isBot ? "mr-auto" : "ml-auto flex-row-reverse"
                 )}
               >
                 {/* Avatar Icon */}
                 <Avatar className={cn(
-                  "h-8 w-8 shrink-0 mt-0.5 border border-border bg-white text-primary shadow-sm"
+                  "h-7 w-7 sm:h-8 sm:w-8 shrink-0 mt-0.5 border border-border bg-white text-primary shadow-sm"
                 )}>
                   <AvatarFallback className="flex items-center justify-center bg-transparent">
-                    {isBot ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                    {isBot ? <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                   </AvatarFallback>
                 </Avatar>
 
                 {/* Bubble container */}
-                <div className="space-y-2.5 max-w-full">
+                <div className="space-y-2 max-w-full">
                   <div
                     className={cn(
-                      "p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm",
+                      "p-3 sm:p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm",
                       isBot
                         ? "bg-muted border border-border text-foreground rounded-tl-sm font-sans"
                         : "bg-primary text-primary-foreground rounded-tr-sm font-sans"

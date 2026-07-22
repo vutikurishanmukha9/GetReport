@@ -301,30 +301,30 @@ export const ReportGeneration = ({
                       {/* Column Summary Line */}
                       <div 
                         onClick={() => toggleColumnExpand(c.column)}
-                        className="flex items-center justify-between p-3 cursor-pointer select-none"
+                        className="flex items-center justify-between p-3 cursor-pointer select-none gap-2"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Badge className={`h-6 w-6 rounded-md flex items-center justify-center p-0 font-bold ${getGradeColorClass(c.grade)}`}>
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                          <Badge className={`h-6 w-6 rounded-md flex items-center justify-center p-0 font-bold shrink-0 ${getGradeColorClass(c.grade)}`}>
                             {c.grade}
                           </Badge>
-                          <span className="font-mono text-xs font-semibold text-foreground truncate max-w-[150px] sm:max-w-[200px]" title={c.column}>
+                          <span className="font-mono text-xs font-semibold text-foreground truncate max-w-[110px] sm:max-w-[200px]" title={c.column}>
                             {c.column}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
                           <span className="font-mono text-xs text-muted-foreground">
                             {c.overall.toFixed(0)}%
                           </span>
                           {hasIssues && (
-                            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border border-amber-200 h-5 px-2 rounded-full text-[9px] font-mono">
+                            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border border-amber-200 h-5 px-1.5 sm:px-2 rounded-full text-[9px] font-mono">
                               {c.issues.length} alert{c.issues.length > 1 ? 's' : ''}
                             </Badge>
                           )}
                           {isExpanded ? (
-                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
                           ) : (
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                           )}
                         </div>
                       </div>
@@ -396,7 +396,7 @@ export const ReportGeneration = ({
         {/* ─── Visual Insights Matplotlib Gallery (New) ─── */}
         {chartTabsList.length > 0 && (
           <Card className="border border-border bg-card shadow-premium rounded-2xl overflow-hidden">
-            <CardHeader className="border-b border-border pb-3">
+            <CardHeader className="border-b border-border bg-muted/10 pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <CardTitle className="text-lg font-display font-bold text-foreground flex items-center gap-2">
@@ -410,7 +410,7 @@ export const ReportGeneration = ({
               </div>
 
               {/* Tab Navigation Pill Bar */}
-              <div className="flex flex-wrap gap-1.5 mt-4 border-b border-border/40 pb-2">
+              <div className="flex overflow-x-auto gap-1.5 mt-4 border-b border-border/40 pb-2 scrollbar-none snap-x whitespace-nowrap">
                 {chartTabsList.map((t) => {
                   const Icon = t.icon;
                   const isActive = activeChartTab === t.id;
@@ -418,7 +418,7 @@ export const ReportGeneration = ({
                     <button
                       key={t.id}
                       onClick={() => setActiveChartTab(t.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-150 ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-150 shrink-0 ${
                         isActive
                           ? "bg-primary text-primary-foreground shadow-sm scale-95"
                           : "bg-secondary/40 hover:bg-secondary text-muted-foreground hover:text-foreground"
@@ -462,12 +462,12 @@ export const ReportGeneration = ({
               {activeChartTab === "distributions" && charts.distributions && charts.distributions.length > 0 && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                   {/* Sub-selector column buttons */}
-                  <div className="flex flex-wrap gap-1 justify-center">
+                  <div className="flex overflow-x-auto gap-1 justify-start sm:justify-center py-1 scrollbar-none snap-x whitespace-nowrap">
                     {charts.distributions.map((item, idx) => (
                       <button
                         key={idx}
                         onClick={() => setActiveDistIndex(idx)}
-                        className={`px-2 py-1 rounded text-[10px] font-mono font-semibold transition-all ${
+                        className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
                           activeDistIndex === idx
                             ? "bg-primary/15 text-primary border border-primary/30"
                             : "bg-muted/50 hover:bg-muted text-muted-foreground border border-transparent"
@@ -502,12 +502,12 @@ export const ReportGeneration = ({
                 <div className="space-y-6 animate-in fade-in duration-300">
                   {/* Select Donut or Bar chart selection */}
                   {charts.bar_charts && charts.bar_charts.length > 0 && (
-                    <div className="flex flex-wrap gap-1 justify-center">
+                    <div className="flex overflow-x-auto gap-1 justify-start sm:justify-center py-1 scrollbar-none snap-x whitespace-nowrap">
                       {charts.bar_charts.map((item, idx) => (
                         <button
                           key={idx}
                           onClick={() => setActiveBarIndex(idx)}
-                          className={`px-2 py-1 rounded text-[10px] font-mono font-semibold transition-all ${
+                          className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
                             activeBarIndex === idx
                               ? "bg-primary/15 text-primary border border-primary/30"
                               : "bg-muted/50 hover:bg-muted text-muted-foreground border border-transparent"
@@ -519,7 +519,7 @@ export const ReportGeneration = ({
                       {charts.donut_chart && (
                         <button
                           onClick={() => setActiveBarIndex(-1)}
-                          className={`px-2 py-1 rounded text-[10px] font-mono font-semibold transition-all ${
+                          className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
                             activeBarIndex === -1
                               ? "bg-primary/15 text-primary border border-primary/30"
                               : "bg-muted/50 hover:bg-muted text-muted-foreground border border-transparent"
@@ -573,12 +573,12 @@ export const ReportGeneration = ({
               {/* Bivariate Viewer (Box plots / Scatters) */}
               {activeChartTab === "bivariate" && (
                 <div className="space-y-6 animate-in fade-in duration-300">
-                  <div className="flex flex-wrap gap-1 justify-center">
+                  <div className="flex overflow-x-auto gap-1 justify-start sm:justify-center py-1 scrollbar-none snap-x whitespace-nowrap">
                     {charts.boxplots && charts.boxplots.map((item, idx) => (
                       <button
                         key={idx}
                         onClick={() => setActiveBoxIndex(idx)}
-                        className={`px-2 py-1 rounded text-[10px] font-mono font-semibold transition-all ${
+                        className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
                           activeBoxIndex === idx
                             ? "bg-primary/15 text-primary border border-primary/30"
                             : "bg-muted/50 hover:bg-muted text-muted-foreground border border-transparent"
