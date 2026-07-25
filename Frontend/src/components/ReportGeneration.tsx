@@ -79,7 +79,7 @@ export const ReportGeneration = ({
   };
 
   // Use WebSocket Hook for Real-Time Updates
-  const { status: taskStatus, progress: taskProgress, isConnected } = useTaskStatus(taskId || undefined);
+  const { status: taskStatus, progress: taskProgress, message: taskMessage, isConnected } = useTaskStatus(taskId || undefined);
 
   useEffect(() => {
     let mounted = true;
@@ -140,7 +140,7 @@ export const ReportGeneration = ({
     }
 
     return () => { mounted = false; };
-  }, [step, taskId, taskStatus, taskProgress]);
+  }, [step, taskId, taskStatus, taskProgress, taskMessage]);
 
   // Handle Manual Download
   /* Handle Manual Download */
