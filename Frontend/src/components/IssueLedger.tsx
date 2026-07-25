@@ -74,14 +74,41 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 }) => {
     const [loading, setLoading] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [optimisticIssues, setOptimisticIssues] = useState<Issue[] | null>(null);
+
+    // Sync optimistic state when parent data changes
+    const issuesList = optimisticIssues || data.issues;
+
+    // Derived summary counts for instant UI badge updates
+    const summary = React.useMemo(() => {
+        const approved = issuesList.filter(i => i.status === 'approved').length;
+        const rejected = issuesList.filter(i => i.status === 'rejected').length;
+        const modified = issuesList.filter(i => i.status === 'modified').length;
+        const pending = issuesList.filter(i => i.status === 'pending').length;
+        return {
+            approved,
+            rejected,
+            modified,
+            pending,
+            total: issuesList.length
+        };
+    }, [issuesList]);
 
     const handleApprove = async (issueId: string) => {
         setLoading(issueId);
         setError(null);
+
+        // Optimistic mutation (0ms feedback)
+        const previous = issuesList;
+        setOptimisticIssues(prev =>
+            (prev || data.issues).map(i => (i.id === issueId ? { ...i, status: 'approved' as const } : i))
+        );
+
         try {
             await api.approveIssue(taskId, issueId);
             onRefresh();
         } catch (e) {
+            setOptimisticIssues(previous); // Rollback on failure
             setError((e as Error).message);
         } finally {
             setLoading(null);
@@ -91,10 +118,18 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     const handleReject = async (issueId: string) => {
         setLoading(issueId);
         setError(null);
+
+        // Optimistic mutation (0ms feedback)
+        const previous = issuesList;
+        setOptimisticIssues(prev =>
+            (prev || data.issues).map(i => (i.id === issueId ? { ...i, status: 'rejected' as const } : i))
+        );
+
         try {
             await api.rejectIssue(taskId, issueId);
             onRefresh();
         } catch (e) {
+            setOptimisticIssues(previous); // Rollback on failure
             setError((e as Error).message);
         } finally {
             setLoading(null);
@@ -104,10 +139,17 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     const handleApproveAll = async () => {
         setLoading('all');
         setError(null);
+
+        const previous = issuesList;
+        setOptimisticIssues(prev =>
+            (prev || data.issues).map(i => (i.status === 'pending' ? { ...i, status: 'approved' as const } : i))
+        );
+
         try {
             await api.approveAllIssues(taskId);
             onRefresh();
         } catch (e) {
+            setOptimisticIssues(previous);
             setError((e as Error).message);
         } finally {
             setLoading(null);
@@ -117,10 +159,17 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     const handleRejectAll = async () => {
         setLoading('all');
         setError(null);
+
+        const previous = issuesList;
+        setOptimisticIssues(prev =>
+            (prev || data.issues).map(i => (i.status === 'pending' ? { ...i, status: 'rejected' as const } : i))
+        );
+
         try {
             await api.rejectAllIssues(taskId);
             onRefresh();
         } catch (e) {
+            setOptimisticIssues(previous);
             setError((e as Error).message);
         } finally {
             setLoading(null);
@@ -140,7 +189,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
         }
     };
 
-    const { issues, summary, locked } = data;
+    const issues = issuesList;
+    const locked = data.locked;
     const hasPending = summary.pending > 0;
 
     if (issues.length === 0) {

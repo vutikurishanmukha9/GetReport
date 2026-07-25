@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { api, StatusResponse } from '@/services/api';
-import { useToast } from '@/hooks/use-toast';
 
 export type TaskStatus = 'PENDING' | 'PROCESSING' | 'WAITING_FOR_USER' | 'COMPLETED' | 'FAILED';
 
@@ -24,7 +23,10 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
   const [isConnected, setIsConnected] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef<number>(0);
   const taskIdRef = useRef<string | null>(null);
   const statusRef = useRef<UseTaskStatusResult['status']>('CONNECTING');
 
@@ -33,37 +35,83 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     setStatus(newStatus);
   }, []);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnect();
-    };
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
   }, []);
 
-  // Auto-connect if activeTaskId is provided
-  useEffect(() => {
-    if (activeTaskId) {
-      connect(activeTaskId);
-    } else {
-      disconnect();
+  const clearWatchdog = useCallback(() => {
+    if (watchdogTimerRef.current) {
+      clearTimeout(watchdogTimerRef.current);
+      watchdogTimerRef.current = null;
     }
-  }, [activeTaskId]);
+  }, []);
+
+  // HTTP Polling fallback function (runs as resilient backup)
+  const pollStatus = useCallback(async (taskId: string) => {
+    try {
+      const data: StatusResponse = await api.getTaskStatus(taskId);
+      if (!data) return;
+
+      if (data.status) setTaskStatus(data.status.toUpperCase() as TaskStatus);
+      if (data.progress !== undefined) setProgress((prev) => Math.max(prev, data.progress));
+      if (data.message) setMessage(data.message);
+      if (data.result) setResult(data.result);
+      if (data.error) setError(data.error);
+
+      if (['COMPLETED', 'FAILED'].includes(data.status?.toUpperCase())) {
+        stopPolling();
+        clearWatchdog();
+        if (wsRef.current) {
+          try { wsRef.current.close(); } catch (_) {}
+          wsRef.current = null;
+        }
+      }
+    } catch (err) {
+      console.warn("HTTP Status poll warning:", err);
+    }
+  }, [setTaskStatus, stopPolling, clearWatchdog]);
+
+  const startPolling = useCallback((taskId: string) => {
+    stopPolling();
+    pollStatus(taskId);
+    pollIntervalRef.current = setInterval(() => {
+      pollStatus(taskId);
+    }, 1500);
+  }, [pollStatus, stopPolling]);
+
+  // Reset watchdog on frame arrival (if no frame for 25s, reconnect WS)
+  const resetWatchdog = useCallback((taskId: string) => {
+    clearWatchdog();
+    watchdogTimerRef.current = setTimeout(() => {
+      if (taskIdRef.current === taskId && !['COMPLETED', 'FAILED'].includes(statusRef.current)) {
+        console.warn("WebSocket watchdog timeout (no frames for 25s). Reconnecting...");
+        if (wsRef.current) {
+          try { wsRef.current.close(); } catch (_) {}
+        }
+      }
+    }, 25000);
+  }, [clearWatchdog]);
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {
-      wsRef.current.close();
+      try { wsRef.current.close(); } catch (_) {}
       wsRef.current = null;
     }
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+    clearWatchdog();
+    stopPolling();
     setIsConnected(false);
+    retryCountRef.current = 0;
     setTaskStatus('DISCONNECTED');
-  }, [setTaskStatus]);
+  }, [setTaskStatus, stopPolling, clearWatchdog]);
 
   const connect = useCallback((taskId: string) => {
-    // Prevent duplicate connections
     if (wsRef.current?.readyState === WebSocket.OPEN && taskIdRef.current === taskId) {
       return;
     }
@@ -72,62 +120,92 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     taskIdRef.current = taskId;
     setTaskStatus('CONNECTING');
 
-    const url = api.getWebSocketUrl(taskId);
-    console.log(`Connecting to WebSocket: ${url}`);
+    // Parallel HTTP Polling Backup
+    startPolling(taskId);
 
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+    try {
+      const url = api.getWebSocketUrl(taskId);
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
 
-    ws.onopen = () => {
-      console.log("WebSocket Connected");
-      setIsConnected(true);
-      setTaskStatus('PROCESSING'); // Assume processing initially or wait for message
-      // Reset retry logic if any
-    };
+      ws.onopen = () => {
+        setIsConnected(true);
+        retryCountRef.current = 0; // Reset backoff on success
+        setTaskStatus('PROCESSING');
+        resetWatchdog(taskId);
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        // Expected format: { task_id, status, progress, message, result?, error? }
+      ws.onmessage = (event) => {
+        resetWatchdog(taskId);
+        try {
+          const data = JSON.parse(event.data);
 
-        if (data.status) setTaskStatus(data.status.toUpperCase() as TaskStatus);
-        if (data.progress !== undefined) setProgress(data.progress);
-        if (data.message) setMessage(data.message);
-        if (data.result) setResult(data.result);
-        if (data.error) setError(data.error);
+          // Handle server ping frame -> send pong
+          if (data.type === 'ping') {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+            }
+            return;
+          }
 
-        if (['COMPLETED', 'FAILED'].includes(data.status?.toUpperCase())) {
-          ws.close(); // Clean close on terminal state
+          if (data.status) setTaskStatus(data.status.toUpperCase() as TaskStatus);
+          if (data.progress !== undefined) setProgress((prev) => Math.max(prev, data.progress));
+          if (data.message) setMessage(data.message);
+          if (data.result) setResult(data.result);
+          if (data.error) setError(data.error);
+
+          if (['COMPLETED', 'FAILED'].includes(data.status?.toUpperCase())) {
+            stopPolling();
+            clearWatchdog();
+            try { ws.close(); } catch (_) {}
+          }
+        } catch (e) {
+          console.error("Failed to parse WebSocket message:", e);
         }
-      } catch (e) {
-        console.error("Failed to parse WebSocket message:", e);
-      }
+      };
+
+      ws.onerror = () => {
+        console.warn("WebSocket status channel unavailable; HTTP polling active.");
+      };
+
+      ws.onclose = () => {
+        setIsConnected(false);
+        wsRef.current = null;
+        clearWatchdog();
+
+        if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
+          // Exponential backoff with random jitter (1s, 2s, 4s, 8s, 16s, 30s max)
+          const attempt = retryCountRef.current;
+          retryCountRef.current += 1;
+          const delay = Math.min(30000, 1000 * Math.pow(1.5, attempt)) + Math.random() * 500;
+
+          reconnectTimeoutRef.current = setTimeout(() => {
+            if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
+              connect(taskId);
+            }
+          }, delay);
+        }
+      };
+    } catch (e) {
+      console.warn("WebSocket init error; active HTTP polling handling status:", e);
+    }
+  }, [disconnect, setTaskStatus, startPolling, stopPolling, resetWatchdog, clearWatchdog]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      disconnect();
     };
+  }, [disconnect]);
 
-    ws.onerror = (e) => {
-      console.error("WebSocket Error:", e);
-      setError("Connection error");
-      // Do not close here, let onclose handle it
-    };
-
-    ws.onclose = (event) => {
-      console.log("WebSocket Disconnected", event.code, event.reason);
-      setIsConnected(false);
-      wsRef.current = null;
-
-      // Reconnect logic?
-      // If checking status of a long-running job, we should retry.
-      // But if the job explicitly completed/failed (closed by us), don't retry.
-      if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
-        // Retry in 3s
-        reconnectTimeoutRef.current = setTimeout(() => {
-          console.log("Reconnecting...");
-          connect(taskId);
-        }, 3000);
-      }
-    };
-
-  }, [disconnect, setTaskStatus]);
+  // Auto-connect if activeTaskId is provided
+  useEffect(() => {
+    if (activeTaskId) {
+      connect(activeTaskId);
+    } else {
+      disconnect();
+    }
+  }, [activeTaskId, connect, disconnect]);
 
   return {
     status,
@@ -140,3 +218,5 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     disconnect
   };
 };
+
+

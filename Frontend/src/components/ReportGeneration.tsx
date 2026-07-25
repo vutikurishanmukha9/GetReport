@@ -108,9 +108,9 @@ export const ReportGeneration = ({
     // React to WebSocket Status Updates
     if (step === "generating" && taskId) {
       if (taskStatus === 'PROCESSING') {
-        setStatus("Generating PDF report…");
-        // Map task progress (0-100) to UI progress (10-90)
-        setProgress(10 + (taskProgress * 0.8));
+        if (taskMessage) setStatus(taskMessage);
+        else setStatus("Generating PDF report…");
+        setProgress(Math.min(95, Math.max(taskProgress, 10)));
       } else if (taskStatus === 'COMPLETED') {
         if (mounted && !downloadUrl) {
           setStatus("Downloading PDF…");
@@ -867,32 +867,78 @@ export const ReportGeneration = ({
   }
 
   return (
-    <div className="max-w-xl mx-auto mt-12 text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-400">
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Loader2 className="h-28 w-28 animate-spin text-primary/10" />
-        </div>
-        <div className="relative z-10 bg-card/75 border border-border shadow-premium rounded-full p-6 inline-block">
-          <FileText className="h-12 w-12 text-primary animate-pulse" />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h3 className="text-xl font-display font-bold text-foreground">{status}</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          Our AI is analyzing {info.rows.toLocaleString()} rows and finding insights…
-        </p>
-
-        <div className="w-full max-w-sm mx-auto space-y-2 pt-2">
-          {/* Indeterminate loader for honest feedback */}
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary border border-border/40">
-            <div className="h-full w-full flex-1 bg-primary animate-indeterminate-progress" style={{ transformOrigin: "0% 50%" }}></div>
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-400">
+      {/* Live Status Header Card */}
+      <Card className="border border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-primary/10 rounded-xl relative">
+                <Loader2 className="h-6 w-6 text-primary animate-spin" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-display font-bold text-foreground">{status}</h3>
+                  <Badge variant="outline" className="font-mono text-xs font-bold text-primary bg-primary/5 border-primary/20">
+                    {Math.round(progress)}%
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Processing <span className="font-mono text-foreground font-semibold">{info.rows.toLocaleString()}</span> rows across <span className="font-mono text-foreground font-semibold">{info.columns.length}</span> columns for <span className="font-mono text-foreground">{filename}</span>
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-[10px] font-mono text-muted-foreground text-center">
-            rendering high-quality pdf…
-          </p>
-        </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-1.5 pt-1">
+            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden border border-border/40">
+              <div
+                className="h-full bg-primary transition-all duration-300 ease-out rounded-full"
+                style={{ width: `${Math.max(10, Math.min(100, progress))}%` }}
+              />
+            </div>
+            <div className="flex justify-between items-center text-[10px] font-mono text-muted-foreground">
+              <span>Initializing pipeline</span>
+              <span>Compiling PDF & AI Insights</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Progressive Shimmer Skeletons Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="md:col-span-1 border border-border/60 bg-card/60 p-4 space-y-3">
+          <div className="h-4 w-28 bg-muted animate-pulse rounded-md" />
+          <div className="h-16 w-full bg-muted/70 animate-pulse rounded-xl" />
+          <div className="space-y-2 pt-2">
+            <div className="h-3 w-full bg-muted/50 animate-pulse rounded" />
+            <div className="h-3 w-3/4 bg-muted/50 animate-pulse rounded" />
+          </div>
+        </Card>
+
+        <Card className="md:col-span-2 border border-border/60 bg-card/60 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="h-4 w-36 bg-muted animate-pulse rounded-md" />
+            <div className="h-4 w-16 bg-muted/60 animate-pulse rounded-md" />
+          </div>
+          <div className="h-40 w-full bg-muted/40 animate-pulse rounded-xl flex items-center justify-center">
+            <BarChart3 className="h-10 w-10 text-muted-foreground/30 animate-pulse" />
+          </div>
+        </Card>
       </div>
+
+      <Card className="border border-border/60 bg-card/60 p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Brain className="h-4 w-4 text-primary/40 animate-pulse" />
+          <div className="h-4 w-48 bg-muted animate-pulse rounded-md" />
+        </div>
+        <div className="space-y-2">
+          <div className="h-3.5 w-full bg-muted/60 animate-pulse rounded" />
+          <div className="h-3.5 w-5/6 bg-muted/60 animate-pulse rounded" />
+          <div className="h-3.5 w-4/6 bg-muted/40 animate-pulse rounded" />
+        </div>
+      </Card>
     </div>
   );
 };

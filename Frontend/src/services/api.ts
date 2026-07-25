@@ -109,11 +109,79 @@ export const api = {
     /**
      * Chat with the processed report (RAG).
      */
-    chatWithJob: async (taskId: string, question: string): Promise<{ answer: string; sources: string[]; suggested_followups?: string[] }> => {
+    chatWithJob: async (
+        taskId: string, 
+        question: string,
+        chatHistory?: { role: string; content: string }[]
+    ): Promise<{ answer: string; sources: string[]; suggested_followups?: string[] }> => {
         return fetchClient<{ answer: string; sources: string[]; suggested_followups?: string[] }>(`/jobs/${taskId}/chat`, {
             method: "POST",
-            body: JSON.stringify({ question }),
+            body: JSON.stringify({ question, chat_history: chatHistory }),
         });
+    },
+
+    /**
+     * Stream RAG chat tokens in real-time.
+     */
+    streamChatWithJob: async (
+        taskId: string,
+        question: string,
+        onToken: (token: string) => void,
+        onMetadata: (metadata: { sources: string[]; suggested_followups?: string[] }) => void,
+        onDone: () => void,
+        onError: (err: Error) => void,
+        chatHistory?: { role: string; content: string }[]
+    ): Promise<void> => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/chat/stream`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question, chat_history: chatHistory })
+            });
+
+            if (!response.ok || !response.body) {
+                throw new Error(`Chat stream failed (${response.status})`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+                    try {
+                        const parsed = JSON.parse(trimmed);
+                        if (parsed.type === "metadata") {
+                            onMetadata({
+                                sources: parsed.sources || [],
+                                suggested_followups: parsed.suggested_followups
+                            });
+                        } else if (parsed.type === "token") {
+                            onToken(parsed.token || "");
+                        } else if (parsed.type === "done") {
+                            onDone();
+                            return;
+                        } else if (parsed.type === "error") {
+                            onError(new Error(parsed.error || "Streaming error"));
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn("Failed to parse chat stream chunk:", trimmed);
+                    }
+                }
+            }
+            onDone();
+        } catch (err) {
+            onError(err as Error);
+        }
     },
 
     /**

@@ -2,6 +2,7 @@
 Chat Route — RAG-powered conversation with analyzed data.
 """
 from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import logging
 
@@ -14,8 +15,11 @@ from app.services.rag_service import rag_service, SecurityGuard
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+from typing import Optional, List, Dict, Any
+
 class ChatRequest(BaseModel):
     question: str
+    chat_history: Optional[List[Dict[str, str]]] = None
 
 @router.post("/jobs/{task_id}/chat")
 @limiter.limit(CHAT_LIMIT)
@@ -31,13 +35,48 @@ async def chat_with_job(
     if not job or job.status != TaskStatus.COMPLETED:
          raise HTTPException(400, "Job is not completed yet.")
     
-    # Sanitize and truncate user question (VULN-07: Prompt injection mitigation)
     sanitized_question = SecurityGuard.sanitize_input(body.question)
     if not sanitized_question:
         raise HTTPException(400, "Question cannot be empty.")
     if len(sanitized_question) > settings.MAX_CHAT_QUESTION_LENGTH:
         sanitized_question = sanitized_question[:settings.MAX_CHAT_QUESTION_LENGTH]
-    # Pass the full job result (which contains structured analysis & insights)
-    # directly into the RAG context to vastly improve model reasoning context.
-    response = await rag_service.chat_with_report(task_id, sanitized_question, job_result=job.result)
+        
+    response = await rag_service.chat_with_report(
+        task_id,
+        sanitized_question,
+        job_result=job.result,
+        chat_history=body.chat_history
+    )
     return response
+
+@router.post("/jobs/{task_id}/chat/stream")
+@limiter.limit(CHAT_LIMIT)
+async def chat_stream_with_job(
+    request: Request, task_id: str, body: ChatRequest,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Stream RAG chat answer tokens in real-time using Server-Sent Events (SSE).
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job or job.status != TaskStatus.COMPLETED:
+         raise HTTPException(400, "Job is not completed yet.")
+    
+    sanitized_question = SecurityGuard.sanitize_input(body.question)
+    if not sanitized_question:
+        raise HTTPException(400, "Question cannot be empty.")
+    if len(sanitized_question) > settings.MAX_CHAT_QUESTION_LENGTH:
+        sanitized_question = sanitized_question[:settings.MAX_CHAT_QUESTION_LENGTH]
+
+    return StreamingResponse(
+        rag_service.chat_stream_with_report(
+            task_id,
+            sanitized_question,
+            job_result=job.result,
+            chat_history=body.chat_history
+        ),
+        media_type="text/event-stream"
+    )
+
+

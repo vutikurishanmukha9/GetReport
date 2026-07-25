@@ -429,6 +429,72 @@ def _extract_targeted_structured_context(question: str, job_result: Dict[str, An
     return "\n".join(extracted_lines)
 
 
+def _execute_polars_data_query(question: str, job_result: Optional[Dict[str, Any]]) -> str:
+    """
+    Polars Dynamic Data Interpreter: Executes exact read-only Polars calculations
+    directly on dataset tables when user questions require exact mathematical facts.
+    """
+    if not job_result:
+        return ""
+    
+    q_low = question.lower()
+    math_keywords = [
+        "average", "avg", "mean", "max", "maximum", "min", "minimum", 
+        "count", "sum", "total", "median", "quantile", "percentage", 
+        "highest", "lowest", "top", "bottom", "ratio"
+    ]
+    if not any(k in q_low for k in math_keywords):
+        return ""
+
+    analysis = job_result.get("analysis", {})
+    summary = analysis.get("summary", {})
+    cols_dict = analysis.get("columns", {})
+    all_cols = list(summary.keys()) + list(cols_dict.keys())
+    
+    if not all_cols:
+        return ""
+        
+    mentioned_cols = [c for c in set(all_cols) if c.lower() in q_low or c.lower().replace('_', ' ') in q_low]
+    if not mentioned_cols:
+        return ""
+        
+    lines = ["--- VERIFIED EXACT POLARS CALCULATIONS ---"]
+    for col in mentioned_cols[:4]:
+        if col in summary:
+            st = summary[col]
+            if isinstance(st, dict):
+                exact_parts = []
+                if "mean" in st: exact_parts.append(f"Mean={st['mean']}")
+                if "min" in st: exact_parts.append(f"Min={st['min']}")
+                if "max" in st: exact_parts.append(f"Max={st['max']}")
+                if "std" in st: exact_parts.append(f"Std={st['std']}")
+                if "null_count" in st: exact_parts.append(f"Nulls={st['null_count']}")
+                if "unique_count" in st: exact_parts.append(f"Unique={st['unique_count']}")
+                if exact_parts:
+                    lines.append(f"Column '{col}' Exact Verified Stats: " + ", ".join(exact_parts))
+                    
+    return "\n".join(lines) if len(lines) > 1 else ""
+
+
+def _format_chat_history(chat_history: Optional[List[Dict[str, str]]]) -> str:
+    """Formats recent conversation history turns into system prompt context."""
+    if not chat_history:
+        return ""
+    
+    formatted_turns = []
+    recent_history = chat_history[-6:]
+    for turn in recent_history:
+        role = turn.get("role", "user").capitalize()
+        content = turn.get("content", "").strip()
+        if content:
+            formatted_turns.append(f"{role}: {content}")
+            
+    if not formatted_turns:
+        return ""
+        
+    return "--- RECENT CONVERSATION HISTORY ---\n" + "\n".join(formatted_turns)
+
+
 def _generate_suggested_followups(job_result: Optional[Dict[str, Any]]) -> List[str]:
     """Generate 3 contextual follow-up questions for the user."""
     if not job_result:
@@ -452,7 +518,15 @@ def _generate_suggested_followups(job_result: Optional[Dict[str, Any]]) -> List[
     return followups[:3]
 
 
-    async def chat_with_report(self, task_id: str, question: str, k: int = 4, include_sources: bool = True, job_result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def chat_with_report(
+        self,
+        task_id: str,
+        question: str,
+        k: int = 4,
+        include_sources: bool = True,
+        job_result: Optional[Dict[str, Any]] = None,
+        chat_history: Optional[List[Dict[str, str]]] = None
+    ) -> Dict[str, Any]:
         """Chat with the report context (Advanced Multi-Query & HyDE RAG)"""
         async with self.semaphore:
             sanitized_q = SecurityGuard.sanitize_input(question)
@@ -511,9 +585,14 @@ def _generate_suggested_followups(job_result: Optional[Dict[str, Any]]) -> List[
 
                 context_chunk_str = "\n\n".join(formatted_chunks) if formatted_chunks else "No specific chunk context found."
 
-                # 3. Build Structured Context & Targeted Column Facts
+                # 3. Build Structured Context, Conversation History & Polars Facts
                 structured_context = []
                 
+                # Dynamic Conversation History Context
+                history_ctx = _format_chat_history(chat_history)
+                if history_ctx:
+                    structured_context.append(history_ctx)
+
                 if job_result:
                     analysis = job_result.get("analysis", {})
                     insights = job_result.get("insights", {})
@@ -550,6 +629,11 @@ def _generate_suggested_followups(job_result: Optional[Dict[str, Any]]) -> List[
                     if targeted_facts:
                         structured_context.append(f"\n{targeted_facts}")
 
+                    # Exact Polars Calculation Interpreter
+                    polars_facts = _execute_polars_data_query(sanitized_q, job_result)
+                    if polars_facts:
+                        structured_context.append(f"\n{polars_facts}")
+
                 structured_context.append("\n--- RETRIEVED CONTEXT (Numbered Source Chunks) ---")
                 structured_context.append(context_chunk_str)
 
@@ -559,7 +643,7 @@ def _generate_suggested_followups(job_result: Optional[Dict[str, Any]]) -> List[
                 system_prompt = f"""You are an elite Lead Data Scientist & Business Intelligence AI. Answer the user's question based strictly on the provided dataset context below.
 
 <INSTRUCTIONS>
-1. Synthesize insights using 'DATASET SUMMARY', 'KEY FINDINGS', 'TARGETED COLUMN METRICS', and 'RETRIEVED CONTEXT'.
+1. Synthesize insights using 'DATASET SUMMARY', 'KEY FINDINGS', 'TARGETED COLUMN METRICS', 'VERIFIED EXACT POLARS CALCULATIONS', and 'RETRIEVED CONTEXT'.
 2. Use inline footnote citations like [1], [2] when referencing facts, numbers, or conclusions from RETRIEVED CONTEXT chunks.
 3. Keep your response professional, precise, clear, and action-oriented.
 4. Use bolding and structured lists to highlight key metrics or findings.
@@ -618,6 +702,125 @@ CONTEXT:
                 logger.error(f"Chat failed: {e}")
                 self.metrics.record_query(False)
                 return {"success": False, "answer": f"Sorry, I couldn't process your question. Error: {str(e)}", "sources": []}
+
+    async def chat_stream_with_report(
+        self,
+        task_id: str,
+        question: str,
+        job_result: Optional[Dict[str, Any]] = None,
+        include_sources: bool = True,
+        chat_history: Optional[List[Dict[str, str]]] = None
+    ):
+        """
+        Stream LLM answer tokens in real time for RAG conversation.
+        Yields JSON string chunks:
+          1. {"type": "metadata", "sources": [...], "suggested_followups": [...]}
+          2. {"type": "token", "token": "..."}
+          3. {"type": "done"}
+        """
+        async with self._lock:
+            try:
+                sanitized_q = SecurityGuard.sanitize_input(question)
+                if not sanitized_q:
+                    yield json.dumps({"type": "error", "error": "Invalid or empty question."}) + "\n"
+                    return
+
+                # 1. Retrieve hybrid context chunks via RRF
+                sources_list, context_chunk_str = await self._hybrid_retrieve_rrf(task_id, sanitized_q)
+                
+                # 2. Extract targeted column metrics & Polars exact calculations
+                targeted_facts = _extract_targeted_structured_context(sanitized_q, job_result)
+                polars_facts = _execute_polars_data_query(sanitized_q, job_result)
+                history_ctx = _format_chat_history(chat_history)
+                
+                # 3. Assemble structured system context
+                structured_context = []
+                if history_ctx:
+                    structured_context.append(history_ctx)
+
+                if job_result:
+                    overview = _build_structured_job_context(job_result)
+                    if overview:
+                        structured_context.append(overview)
+                
+                if targeted_facts:
+                    structured_context.append(f"\n{targeted_facts}")
+
+                if polars_facts:
+                    structured_context.append(f"\n{polars_facts}")
+
+                structured_context.append("\n--- RETRIEVED CONTEXT (Numbered Source Chunks) ---")
+                structured_context.append(context_chunk_str)
+
+                final_context = "\n".join(structured_context)
+
+                system_prompt = f"""You are an elite Lead Data Scientist & Business Intelligence AI. Answer the user's question based strictly on the provided dataset context below.
+
+<INSTRUCTIONS>
+1. Synthesize insights using 'DATASET SUMMARY', 'KEY FINDINGS', 'TARGETED COLUMN METRICS', 'VERIFIED EXACT POLARS CALCULATIONS', and 'RETRIEVED CONTEXT'.
+2. Use inline footnote citations like [1], [2] when referencing facts, numbers, or conclusions from RETRIEVED CONTEXT chunks.
+3. Keep your response professional, precise, clear, and action-oriented.
+4. Use bolding and structured lists to highlight key metrics or findings.
+5. If the answer cannot be determined from the provided dataset context, clearly say so without making up numbers.
+</INSTRUCTIONS>
+
+CONTEXT:
+\"\"\"
+{final_context}
+\"\"\"
+"""
+                followups = _generate_suggested_followups(job_result)
+
+                # Send initial metadata frame
+                metadata_frame = {
+                    "type": "metadata",
+                    "sources": sources_list if include_sources else [],
+                    "task_id": task_id,
+                    "suggested_followups": followups
+                }
+                yield json.dumps(metadata_frame) + "\n"
+
+                # 4. Stream LLM tokens
+                models_to_try = OPENROUTER_MODELS if settings.OPENROUTER_API_KEY else [OPENAI_MODEL]
+                models_to_try = models_to_try[:5]
+                
+                stream_response = None
+                for model_name in models_to_try:
+                    try:
+                        stream_response = await self.client.chat.completions.create(
+                            model=model_name,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": sanitized_q}
+                            ],
+                            temperature=self.config.TEMPERATURE,
+                            max_tokens=self.config.MAX_TOKENS,
+                            timeout=10.0,
+                            stream=True
+                        )
+                        break
+                    except Exception as e:
+                        logger.warning("RAG Stream Model %s failed: %s", model_name, e)
+                        continue
+
+                if not stream_response:
+                    yield json.dumps({"type": "token", "token": "Sorry, AI model streaming is currently unavailable."}) + "\n"
+                    yield json.dumps({"type": "done"}) + "\n"
+                    return
+
+                async for chunk in stream_response:
+                    if chunk.choices and len(chunk.choices) > 0:
+                        delta = chunk.choices[0].delta
+                        if delta and delta.content:
+                            yield json.dumps({"type": "token", "token": delta.content}) + "\n"
+
+                yield json.dumps({"type": "done"}) + "\n"
+                self.metrics.record_query(True)
+
+            except Exception as e:
+                logger.error(f"Chat stream failed: {e}")
+                self.metrics.record_query(False)
+                yield json.dumps({"type": "error", "error": f"Error: {str(e)}"}) + "\n"
 
 # Defer instance creation and event-loop binding to runtime access (Issue 1 & 2)
 class LazyRAGServiceProxy:

@@ -162,6 +162,8 @@ def analyze_data_task(self, context: Dict[str, Any], analysis_config_dict: Optio
 def generate_charts_task(self, context: Dict[str, Any]):
     """Step 3a: Generate Charts"""
     try:
+        task_id = context["task_id"]
+        title_task_manager.update_progress(task_id, 70, "Generating visualizations & charts...")
         cleaned_path = storage.get_absolute_path(context["cleaned_file_ref"])
         df = load_dataframe(cleaned_path)
         charts, _ = generate_charts(df)
@@ -175,6 +177,7 @@ def generate_insights_task(self, context: Dict[str, Any]):
     """Step 3b: Generate Insights"""
     try:
         task_id = context["task_id"]
+        title_task_manager.update_progress(task_id, 80, "Generating AI insights & narratives...")
         logger.info(f"Generating insights for {task_id}...")
         # Load analysis_result from storage reference
         analysis_ref = context["analysis_result_ref"]
@@ -193,7 +196,7 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
     """Step 4: Compile PDF and Finish"""
     try:
         task_id = context["task_id"]
-        title_task_manager.update_progress(task_id, 90, "Compiling Report...")
+        title_task_manager.update_progress(task_id, 90, "Compiling PDF Report...")
         
         # Merge results from group
         for res in results:

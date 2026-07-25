@@ -66,33 +66,61 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const assistantMsgId = (Date.now() + 1).toString();
+    const initialAssistantMsg: Message = {
+      id: assistantMsgId,
+      role: "assistant",
+      content: "",
+      sources: [],
+      suggested_followups: [],
+      timestamp: new Date(),
+    };
+
+    const formattedHistory = messages.map(m => ({ role: m.role, content: m.content }));
+
+    setMessages((prev) => [...prev, userMsg, initialAssistantMsg]);
     setInput("");
     setIsLoading(true);
 
-    try {
-      const response = await api.chatWithJob(taskId, query);
-
-      const assistantMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: response.answer, 
-        sources: response.sources,
-        suggested_followups: response.suggested_followups,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMsg]);
-    } catch (error) {
-      console.error("Chat error:", error);
-      toast({
-        title: "Communication Failure",
-        description: "Failed to fetch response from analysis model. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    api.streamChatWithJob(
+      taskId,
+      query,
+      (token) => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMsgId
+              ? { ...msg, content: msg.content + token }
+              : msg
+          )
+        );
+      },
+      (metadata) => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMsgId
+              ? {
+                  ...msg,
+                  sources: metadata.sources,
+                  suggested_followups: metadata.suggested_followups,
+                }
+              : msg
+          )
+        );
+      },
+      () => {
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error("Stream chat error:", error);
+        toast({
+          title: "Communication Failure",
+          description: "Failed to stream response from analysis model. Please try again.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+      },
+      formattedHistory
+    );
   };
 
   const handleSend = () => handleSendQuery(input);
