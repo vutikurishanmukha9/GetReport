@@ -34,3 +34,4 @@ slowapi>=0.1.9
 # Utilities
 python-dotenv>=1.0.1
 boto3>=1.34.0
+psutil>=5.9.8

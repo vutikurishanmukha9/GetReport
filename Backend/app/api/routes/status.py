@@ -250,12 +250,15 @@ async def health_check():
     Render Uptime Probe & Health Endpoint.
     Monitors process memory, database pool connection, and system status.
     """
-    import os
-    import psutil
+    ram_mb = 0.0
+    try:
+        import psutil
+        process = psutil.Process(os.getpid())
+        ram_mb = round(process.memory_info().rss / (1024 * 1024), 2)
+    except (ImportError, ModuleNotFoundError, Exception):
+        ram_mb = 0.0
+        
     from app.db import get_async_db_connection
-    
-    process = psutil.Process(os.getpid())
-    ram_mb = round(process.memory_info().rss / (1024 * 1024), 2)
     
     db_healthy = True
     try:
