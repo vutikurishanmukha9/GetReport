@@ -324,32 +324,26 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   <label className="inline-block">
                     <input
                       type="file"
-                      accept=".csv,.xlsx,.xls"
+                      accept=".csv,.xlsx,.xls,.parquet,.json,.jsonl,.tsv"
                       onChange={handleFileSelect}
                       className="sr-only"
                     />
-                    <Button asChild variant="default" size="lg" className="cursor-pointer shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95">
-                      <span className="text-sm font-medium">
-                        <Upload className="h-4 w-4 mr-2" />
+                    <Button asChild variant="default" size="lg" className="cursor-pointer shadow-premium bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 rounded-xl px-6 py-3">
+                      <span className="text-sm font-semibold flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
                         Browse Files
                       </span>
                     </Button>
                   </label>
 
                   {/* Supported formats */}
-                  <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-5 sm:mt-8 text-xs font-mono">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-muted-foreground rounded-full border border-border shadow-xs">
-                      <FileSpreadsheet className="h-3 w-3" />
-                      csv
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-muted-foreground rounded-full border border-border shadow-xs">
-                      <FileSpreadsheet className="h-3 w-3" />
-                      xlsx
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-muted-foreground rounded-full border border-border shadow-xs">
-                      <FileSpreadsheet className="h-3 w-3" />
-                      xls
-                    </span>
+                  <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 mt-6 sm:mt-8 text-xs">
+                    {['.csv', '.xlsx', '.parquet', '.json', '.tsv'].map((fmt) => (
+                      <span key={fmt} className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-foreground/80 font-mono text-[11px] font-medium rounded-full border border-border/80 shadow-2xs hover:border-primary/30 transition-colors">
+                        <FileSpreadsheet className="h-3 w-3 text-primary" />
+                        {fmt}
+                      </span>
+                    ))}
                   </div>
                 </motion.div>
               )}
@@ -360,15 +354,16 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
       {/* Info Note */}
       <motion.div
-        className="flex items-start gap-2.5 sm:gap-3 mt-4 sm:mt-6 p-3 sm:p-4 rounded-xl border border-border bg-white text-xs sm:text-sm text-muted-foreground leading-relaxed shadow-xs"
+        className="flex items-start gap-3 mt-4 sm:mt-6 p-4 rounded-2xl border border-border/80 bg-white text-xs sm:text-sm text-muted-foreground leading-relaxed shadow-premium"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
-        <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-primary mt-0.5" />
-        <p>
-          Your data is processed securely. Files are not stored permanently and are
-          automatically deleted after report generation.
+        <div className="p-1 rounded-md bg-primary/10 text-primary shrink-0 mt-0.5">
+          <AlertCircle className="h-4 w-4" />
+        </div>
+        <p className="font-sans">
+          <strong className="text-foreground">Privacy Guaranteed:</strong> Your data is processed securely in isolated memory. Files are never stored permanently and are automatically purged after report synthesis.
         </p>
       </motion.div>
     </motion.div>

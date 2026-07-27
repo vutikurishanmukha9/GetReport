@@ -25,15 +25,15 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
 
   return (
     <header className="fixed top-4 left-0 right-0 z-50 w-full max-w-7xl mx-auto px-4 sm:px-6">
-      <div className="border border-border/80 bg-background/70 backdrop-blur-md shadow-xs rounded-full px-4 sm:px-6 transition-all duration-200">
+      <div className="border border-border/80 bg-background/80 backdrop-blur-xl shadow-premium rounded-full px-4 sm:px-6 transition-all duration-200">
         <div className="flex h-14 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <Link to="/" onClick={onReset} className="flex items-center gap-2 group">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-premium transition-transform duration-200 group-hover:scale-105">
+            <Link to="/" onClick={onReset} className="flex items-center gap-2.5 group">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-all duration-200 group-hover:scale-105 group-hover:shadow-primary/20">
                 <FileSpreadsheet className="h-4 w-4" />
               </div>
-              <span className="text-base font-display font-bold tracking-tight text-foreground">
+              <span className="text-base font-display font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
                 GetReport
               </span>
             </Link>
@@ -43,19 +43,19 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
           <nav className="hidden md:flex items-center gap-6">
             <Link 
               to="/features" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[1.5px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
+              className="text-sm font-sans font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
             >
               features
             </Link>
             <Link 
               to="/how-it-works" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[1.5px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
+              className="text-sm font-sans font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
             >
               how it works
             </Link>
             <Link 
               to="/dashboard" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[1.5px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
+              className="text-sm font-sans font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
             >
               dashboard
             </Link>
@@ -66,9 +66,9 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   variant="outline" 
                   size="sm" 
                   onClick={onReset} 
-                  className="gap-2 rounded-full shadow-premium border-border/80 transition-all duration-150 hover:-translate-y-0.5 active:scale-95"
+                  className="gap-2 rounded-full shadow-2xs border-border/80 bg-white hover:bg-muted/40 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-medium text-xs px-3.5"
                 >
-                  <RotateCcw className="h-3.5 w-3.5" />
+                  <RotateCcw className="h-3.5 w-3.5 text-primary" />
                   Start Over
                 </Button>
               </>
@@ -78,7 +78,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 <Link to="/workspace">
                   <Button 
                     size="sm" 
-                    className="rounded-full shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-xs px-4"
+                    className="rounded-full shadow-premium bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-xs px-4 cursor-pointer"
                   >
                     Launch Workspace
                   </Button>
@@ -94,7 +94,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 variant="ghost" 
                 size="icon" 
                 onClick={onReset} 
-                className="h-9 w-9 rounded-full transition-all duration-150 active:scale-95"
+                className="h-9 w-9 rounded-full transition-all duration-150 active:scale-95 text-primary"
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
@@ -105,7 +105,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[320px] rounded-l-3xl border-l bg-background/95 backdrop-blur-lg">
+              <SheetContent side="right" className="w-[280px] sm:w-[320px] rounded-l-3xl border-l border-border/80 bg-background/95 backdrop-blur-xl">
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <nav className="flex flex-col gap-4 mt-8">
                   <Link

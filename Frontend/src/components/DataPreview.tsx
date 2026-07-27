@@ -58,26 +58,26 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
         </div>
 
         <div className="flex gap-2 sm:gap-3">
-          <Button variant="outline" onClick={onBack} className="gap-2 rounded-xl shadow-premium border-border/80 transition-all duration-150 hover:-translate-y-0.5 active:scale-95">
+          <Button variant="outline" onClick={onBack} className="gap-2 rounded-xl shadow-2xs border-border/80 bg-white hover:bg-muted/40 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm font-semibold">
             <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline font-medium">Upload New</span>
+            <span>Upload New</span>
           </Button>
-          <Button onClick={onGenerateReport} className="gap-2 flex-1 sm:flex-none rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95">
-            <span className="font-medium">Generate Report</span>
+          <Button onClick={onGenerateReport} className="gap-2 flex-1 sm:flex-none rounded-xl shadow-premium bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm font-semibold px-5 cursor-pointer">
+            <span>Generate Report</span>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-white border border-border p-1 rounded-xl mb-6 shadow-xs">
-          <TabsTrigger value="preview" className="rounded-lg text-sm px-4 py-1.5">Data Preview</TabsTrigger>
-          <TabsTrigger value="quality" className="rounded-lg text-sm px-4 py-1.5">Data Quality</TabsTrigger>
+        <TabsList className="bg-muted/30 border border-border/80 p-1.5 rounded-2xl mb-6 shadow-2xs">
+          <TabsTrigger value="preview" className="rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-2xs data-[state=active]:text-foreground transition-all">Data Preview</TabsTrigger>
+          <TabsTrigger value="quality" className="rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-2xs data-[state=active]:text-foreground transition-all">Data Quality</TabsTrigger>
         </TabsList>
 
         <TabsContent value="preview" className="space-y-6">
           {/* Column Chips */}
-          <Card className="border border-border bg-card shadow-premium rounded-2xl">
+          <Card className="border border-border/80 bg-card shadow-premium rounded-2xl">
             <CardHeader className="pb-3 sm:pb-4 border-b border-border/60">
               <CardTitle className="text-lg font-display font-bold text-foreground">Detected Columns</CardTitle>
             </CardHeader>
@@ -86,12 +86,12 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                 {info.columns.map((column) => (
                   <div
                     key={column}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-sm border border-border shadow-xs font-sans"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-xs border border-border/80 shadow-2xs font-sans hover:border-primary/30 transition-colors"
                   >
-                    <span className="font-medium text-foreground">{column}</span>
+                    <span className="font-semibold text-foreground">{column}</span>
                     <Badge
                       variant={getTypeBadgeVariant(info.dtypes[column])}
-                      className="text-[10px] font-mono gap-1 px-1.5 py-0 border-border/30 rounded-full"
+                      className="text-[10px] font-mono gap-1 px-2 py-0.5 border-border/40 rounded-full"
                     >
                       {getTypeIcon(info.dtypes[column])}
                       {info.dtypes[column]}
@@ -103,31 +103,35 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
           </Card>
 
           {/* Data Table */}
-          <Card className="border border-border bg-card shadow-premium rounded-2xl overflow-hidden">
-            <CardHeader className="pb-3 sm:pb-4 border-b border-border/60">
+          <Card className="border border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
+            <CardHeader className="pb-3 sm:pb-4 border-b border-border/60 bg-muted/10">
               <CardTitle className="text-lg font-display font-bold text-foreground">First 10 Rows</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="w-full overflow-x-auto">
-                <div className="min-w-[600px]">
+              <div className="w-full overflow-x-auto custom-scrollbar">
+                <div className="min-w-[650px]">
                   <Table className="border-collapse">
-                    <TableHeader className="bg-muted/40">
-                      <TableRow className="border-b border-border hover:bg-transparent">
+                    <TableHeader className="bg-muted/30">
+                      <TableRow className="border-b border-border/60 hover:bg-transparent">
                         {info.columns.map((column) => (
-                          <TableHead key={column} className="font-display font-semibold text-foreground px-4 py-2.5 whitespace-nowrap border-r border-border last:border-r-0">
+                          <TableHead key={column} className="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-3 whitespace-nowrap border-r border-border/60 last:border-r-0">
                             {column}
                           </TableHead>
                         ))}
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="divide-y divide-border/60 bg-card">
                       {info.preview.map((row, rowIndex) => {
                         if (!row) return null;
                         return (
-                          <TableRow key={rowIndex} className="border-b border-border hover:bg-muted/10">
+                          <TableRow key={rowIndex} className="border-b border-border/40 hover:bg-primary/[0.02] transition-colors">
                             {info.columns.map((column) => (
-                              <TableCell key={column} className="font-mono text-xs text-muted-foreground/90 whitespace-nowrap px-4 py-2 border-r border-border last:border-r-0">
-                                {String(row[column] ?? "-")}
+                              <TableCell key={column} className="font-mono text-xs text-foreground/90 whitespace-nowrap px-4 py-2.5 border-r border-border/60 last:border-r-0">
+                                {row[column] === null || row[column] === undefined ? (
+                                  <span className="text-muted-foreground italic font-sans">null</span>
+                                ) : (
+                                  String(row[column])
+                                )}
                               </TableCell>
                             ))}
                           </TableRow>

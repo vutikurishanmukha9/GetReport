@@ -220,10 +220,10 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                 <div className="space-y-2 max-w-full">
                   <div
                     className={cn(
-                      "p-3 sm:p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm",
+                      "p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-premium",
                       isBot
-                        ? "bg-muted border border-border text-foreground rounded-tl-sm font-sans"
-                        : "bg-primary text-primary-foreground rounded-tr-sm font-sans"
+                        ? "bg-white border border-border/80 text-foreground rounded-tl-xs font-sans"
+                        : "bg-primary text-primary-foreground rounded-tr-xs font-sans shadow-md"
                     )}
                   >
                     {renderMessageContent(msg)}
@@ -246,7 +246,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                   {/* Interactive Suggested Follow-Up Prompt Chips (Bot only) */}
                   {isBot && msg.suggested_followups && msg.suggested_followups.length > 0 && (
                     <div className="pt-1.5 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                      <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-1">
+                      <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
                         <Sparkles className="h-3 w-3 text-primary" />
                         <span>Suggested Follow-Ups</span>
                       </div>
@@ -256,7 +256,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                             key={qIdx}
                             onClick={() => handleSendQuery(qText)}
                             disabled={isLoading}
-                            className="text-left text-[11px] font-sans bg-background hover:bg-primary/10 border border-border hover:border-primary/40 text-foreground/90 hover:text-primary rounded-xl px-3 py-1.5 transition-all duration-150 shadow-xs active:scale-95 disabled:opacity-50"
+                            className="text-left text-xs font-sans bg-white hover:bg-primary/5 border border-border/80 hover:border-primary/40 text-foreground rounded-xl px-3.5 py-1.5 transition-all duration-150 shadow-2xs hover:shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer"
                           >
                             {qText}
                           </button>
@@ -280,12 +280,12 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
           {/* Loader typing block */}
           {isLoading && (
             <div className="flex gap-3 mr-auto max-w-[85%] animate-pulse">
-              <Avatar className="h-8 w-8 mt-0.5 shrink-0 bg-white border border-border text-primary shadow-sm">
+              <Avatar className="h-8 w-8 mt-0.5 shrink-0 bg-white border border-border/80 text-primary shadow-2xs">
                 <AvatarFallback className="flex items-center justify-center bg-transparent">
-                  <Bot className="h-4 w-4" />
+                  <Bot className="h-4 w-4 text-primary" />
                 </AvatarFallback>
               </Avatar>
-              <div className="bg-muted border border-border p-3.5 rounded-2xl rounded-tl-sm flex items-center gap-2">
+              <div className="bg-white border border-border/80 p-3.5 rounded-2xl rounded-tl-xs flex items-center gap-2 shadow-2xs">
                 <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary" />
                 <span className="text-xs font-mono text-muted-foreground">Synthesizing response…</span>
               </div>
@@ -295,14 +295,14 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
         </div>
 
         {/* Input Textbox bar */}
-        <div className="p-4 border-t border-border bg-muted/10">
-          <div className="flex items-center gap-2 bg-background border border-border focus-within:border-primary/45 focus-within:ring-1 focus-within:ring-primary/45 rounded-xl p-1.5 transition-all duration-200">
+        <div className="p-4 border-t border-border/60 bg-muted/10">
+          <div className="flex items-center gap-2 bg-white border border-border/80 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20 rounded-2xl p-1.5 transition-all duration-200 shadow-2xs">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about trends, anomaly causes, schema corrections…"
-              className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-xs sm:text-sm placeholder:text-muted-foreground/60 h-9"
+              className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-xs sm:text-sm placeholder:text-muted-foreground/60 h-10 px-3 font-sans"
               disabled={isLoading}
               maxLength={2000}
             />
@@ -310,9 +310,9 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
               onClick={handleSend} 
               disabled={isLoading || !input.trim()} 
               size="icon"
-              className="h-8 w-8 rounded-lg shadow-premium shrink-0 transition-all duration-150 active:scale-95"
+              className="h-9 w-9 rounded-xl shadow-premium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 transition-all duration-150 active:scale-90 cursor-pointer disabled:opacity-40"
             >
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-4 w-4" />
             </Button>
           </div>
         </div>

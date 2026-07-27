@@ -36,43 +36,43 @@ export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness })
   };
 
   return (
-    <Card className="border border-border bg-card shadow-premium rounded-2xl overflow-hidden mt-6">
-      <CardHeader className="border-b border-border bg-muted/20 px-6 py-4">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+    <Card className="border border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden mt-6">
+      <CardHeader className="border-b border-border/60 bg-muted/10 px-6 py-4">
+        <CardTitle className="text-lg font-display font-bold text-foreground flex items-center gap-2">
           Machine Learning Readiness Assessment
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-6 pb-6 border-b border-border">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-6 pb-6 border-b border-border/60">
           <div className="flex items-center gap-4">
-            <div className={`flex flex-col items-center justify-center w-20 h-20 rounded-2xl ${statusConfig.badgeColorClass} font-bold shadow-lg shadow-black/5`}>
-              <span className="text-2xl leading-none">{Math.round(score)}%</span>
-              <span className="text-[9px] uppercase tracking-wider font-semibold opacity-90 mt-1">Score</span>
+            <div className={`flex flex-col items-center justify-center w-20 h-20 rounded-2xl ${statusConfig.badgeColorClass} font-bold shadow-md`}>
+              <span className="text-2xl font-mono leading-none">{Math.round(score)}%</span>
+              <span className="text-[9px] font-sans uppercase tracking-wider font-semibold opacity-90 mt-1">Score</span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-bold tracking-tight text-foreground">{status}</span>
+                <span className="text-xl font-display font-bold tracking-tight text-foreground">{status}</span>
                 {statusConfig.icon}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">{column_context}</p>
+              <p className="text-xs text-muted-foreground font-sans mt-0.5">{column_context}</p>
             </div>
           </div>
           
-          <div className="flex-1">
+          <div className="flex-1 w-full">
             <div className={`p-4 rounded-xl border ${statusConfig.colorClass}`}>
-              <h4 className="text-xs font-semibold uppercase tracking-wider mb-1">Expert Recommendation</h4>
-              <p className="text-sm font-medium leading-relaxed">{recommendation}</p>
+              <h4 className="text-xs font-display font-bold uppercase tracking-wider mb-1">Expert Recommendation</h4>
+              <p className="text-xs sm:text-sm font-sans font-medium leading-relaxed">{recommendation}</p>
             </div>
           </div>
         </div>
 
         {reasons && reasons.length > 0 && (
           <div className="pt-6">
-            <h4 className="text-sm font-semibold text-foreground mb-3">Detected Issues & Constraints</h4>
+            <h4 className="text-sm font-display font-bold text-foreground mb-3">Detected Issues & Constraints</h4>
             <ul className="space-y-2.5">
               {reasons.map((reason, idx) => (
-                <li key={idx} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 dark:bg-rose-400 mt-2 shrink-0" />
+                <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-muted-foreground font-sans">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-2 shrink-0" />
                   <span className="leading-relaxed">{reason}</span>
                 </li>
               ))}
