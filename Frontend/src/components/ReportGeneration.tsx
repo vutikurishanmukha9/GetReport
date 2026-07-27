@@ -3,7 +3,7 @@ import {
   CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight, 
   AlertTriangle, ArrowRight, BarChart3, PieChart, Activity, 
   FileSpreadsheet, TrendingUp, ChevronDown, ChevronUp, ShieldCheck, 
-  BookOpen, Table2, Grid
+  BookOpen, Table2, Grid, Brain, Sparkles
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
