@@ -401,7 +401,8 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
               {/* File Cards List */}
               <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
                 {stagedFiles.map((file, idx) => {
-                  const ext = file.name.slice(file.name.rfind(".")).toLowerCase();
+                  const extIndex = file.name.lastIndexOf(".");
+                  const ext = extIndex !== -1 ? file.name.slice(extIndex).toLowerCase() : "";
                   return (
                     <motion.div
                       key={`${file.name}-${idx}`}
