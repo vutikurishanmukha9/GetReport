@@ -253,26 +253,30 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     }
 
     return (
-        <div className="bg-card border border-border shadow-premium rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-400">
+        <div className="bg-card border border-border/80 shadow-premium rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-400">
             {/* Header */}
-            <div className="border-b border-border px-6 py-5 bg-muted/10">
+            <div className="border-b border-border/60 px-6 py-5 bg-gradient-to-r from-muted/20 via-card to-card">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h3 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
+                    <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shrink-0 shadow-2xs">
                             <AlertTriangle className="w-5 h-5 text-primary" />
-                            Issue Ledger
-                        </h3>
-                        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-                            Review and approve or reject data fixes before commencing analysis
-                        </p>
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-display font-bold text-foreground tracking-tight flex items-center gap-2">
+                                Issue Ledger
+                            </h3>
+                            <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 font-sans">
+                                Review and approve or reject data fixes before commencing analysis
+                            </p>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 self-start sm:self-center font-mono text-xs">
-                        <span className="bg-muted px-3 py-1 rounded-md border border-border text-muted-foreground">
-                          {summary.total} issues
+                    <div className="flex items-center gap-2 self-start sm:self-center">
+                        <span className="bg-muted/60 text-foreground px-3 py-1 rounded-full border border-border/60 text-xs font-medium shadow-2xs">
+                            {summary.total} {summary.total === 1 ? 'issue' : 'issues'}
                         </span>
                         {locked && (
-                            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-md flex items-center gap-1.5 font-bold">
-                                <Lock className="w-3.5 h-3.5" /> locked
+                            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-3 py-1 rounded-full flex items-center gap-1.5 text-xs font-semibold shadow-2xs">
+                                <Lock className="w-3.5 h-3.5 text-emerald-600" /> Locked
                             </span>
                         )}
                     </div>
@@ -280,38 +284,38 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             </div>
 
             {/* Summary Bar */}
-            <div className="bg-muted/5 border-b border-border px-6 py-3">
+            <div className="bg-muted/10 border-b border-border/60 px-6 py-3.5">
                 <div className="flex flex-wrap gap-4 items-center justify-between">
-                    <div className="flex gap-4 text-xs font-mono">
-                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                            <span className="w-2 h-2 bg-muted-foreground/45 rounded-full"></span>
-                            pending: {summary.pending}
+                    <div className="flex items-center gap-4 text-xs">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-800 font-medium">
+                            <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                            Pending: {summary.pending}
                         </span>
-                        <span className="flex items-center gap-1.5 text-emerald-750">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 font-medium">
                             <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                            approved: {summary.approved}
+                            Approved: {summary.approved}
                         </span>
-                        <span className="flex items-center gap-1.5 text-destructive">
-                            <span className="w-2 h-2 bg-destructive rounded-full"></span>
-                            rejected: {summary.rejected}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-800 font-medium">
+                            <span className="w-2 h-2 bg-rose-500 rounded-full"></span>
+                            Rejected: {summary.rejected}
                         </span>
                     </div>
 
                     {!locked && (
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2">
                             <button
                                 onClick={handleApproveAll}
                                 disabled={loading !== null || !hasPending}
-                                className="px-3 py-1.5 border border-border bg-white hover:bg-muted/50 rounded-lg text-xs font-mono font-medium hover:text-foreground disabled:opacity-50 flex items-center gap-1 transition-colors active:scale-95"
+                                className="px-3.5 py-1.5 border border-emerald-200/80 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
                             >
-                                <CheckCheck className="w-4 h-4 text-emerald-600" /> approve all
+                                <CheckCheck className="w-4 h-4 text-emerald-600" /> Approve All
                             </button>
                             <button
                                 onClick={handleRejectAll}
                                 disabled={loading !== null || !hasPending}
-                                className="px-3 py-1.5 border border-border bg-white hover:bg-muted/50 rounded-lg text-xs font-mono font-medium hover:text-foreground disabled:opacity-50 flex items-center gap-1 transition-colors active:scale-95"
+                                className="px-3.5 py-1.5 border border-rose-200/80 bg-rose-50/80 hover:bg-rose-100 text-rose-800 rounded-xl text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
                             >
-                                <XCircle className="w-4 h-4 text-destructive" /> reject all
+                                <XCircle className="w-4 h-4 text-rose-600" /> Reject All
                             </button>
                         </div>
                     )}
@@ -320,91 +324,119 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
             {/* Error Message */}
             {error && (
-                <div className="bg-red-50 border-b border-red-200 px-6 py-3 text-sm font-mono text-destructive">
-                    {error}
+                <div className="bg-rose-50/90 border-b border-rose-200 px-6 py-3 text-xs font-semibold text-rose-800 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{error}</span>
                 </div>
             )}
 
             {/* Issues Table */}
-            <div className="max-h-[420px] overflow-auto">
-                <table className="w-full whitespace-nowrap md:whitespace-normal">
-                    <thead className="bg-muted/30 border-b border-border sticky top-0 z-10">
-                        <tr className="text-left text-[10px] font-mono font-semibold text-muted-foreground uppercase tracking-wider">
-                            <th className="px-6 py-3">Issue Details</th>
-                            <th className="px-4 py-3">Column</th>
-                            <th className="px-4 py-3">Severity</th>
-                            <th className="px-4 py-3">Impact</th>
-                            <th className="px-4 py-3">Suggested Fix</th>
-                            <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3 text-right">Actions</th>
+            <div className="max-h-[440px] overflow-x-auto overflow-y-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead className="bg-muted/40 border-b border-border/80 sticky top-0 z-10 backdrop-blur-md">
+                        <tr className="text-[11px] font-sans font-bold text-muted-foreground uppercase tracking-wider">
+                            <th className="px-6 py-3.5">Issue Details</th>
+                            <th className="px-4 py-3.5">Column</th>
+                            <th className="px-4 py-3.5">Severity</th>
+                            <th className="px-4 py-3.5">Impact</th>
+                            <th className="px-4 py-3.5">Suggested Fix</th>
+                            <th className="px-4 py-3.5">Status</th>
+                            <th className="px-6 py-3.5 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-border">
+                    <tbody className="divide-y divide-border/60 bg-card">
                         {issues.map((issue) => (
                             <tr
                                 key={issue.id}
-                                className={`hover:bg-muted/10 transition-colors ${issue.status === 'rejected' ? 'opacity-55' : ''
-                                    }`}
+                                className={`hover:bg-primary/[0.02] transition-colors duration-150 ${
+                                    issue.status === 'rejected' ? 'opacity-50 bg-muted/10' : ''
+                                }`}
                             >
                                 <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2">
-                                        {issue.severity === 'critical' && <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />}
-                                        {issue.severity === 'high' && <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" />}
-                                        {issue.severity === 'medium' && <Info className="w-4 h-4 text-yellow-500 shrink-0" />}
-                                        <span className="font-display font-semibold text-sm text-foreground">
-                                            {issueTypeLabels[issue.issue_type] || issue.issue_type}
-                                        </span>
+                                    <div className="flex items-start gap-2.5">
+                                        {issue.severity === 'critical' && (
+                                            <div className="p-1 rounded-md bg-rose-100 text-rose-600 shrink-0 mt-0.5">
+                                                <AlertCircle className="w-4 h-4" />
+                                            </div>
+                                        )}
+                                        {issue.severity === 'high' && (
+                                            <div className="p-1 rounded-md bg-orange-100 text-orange-600 shrink-0 mt-0.5">
+                                                <AlertTriangle className="w-4 h-4" />
+                                            </div>
+                                        )}
+                                        {issue.severity === 'medium' && (
+                                            <div className="p-1 rounded-md bg-amber-100 text-amber-600 shrink-0 mt-0.5">
+                                                <Info className="w-4 h-4" />
+                                            </div>
+                                        )}
+                                        {issue.severity === 'low' && (
+                                            <div className="p-1 rounded-md bg-emerald-100 text-emerald-600 shrink-0 mt-0.5">
+                                                <Check className="w-4 h-4" />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <span className="font-display font-semibold text-sm text-foreground tracking-tight block">
+                                                {issueTypeLabels[issue.issue_type] || issue.issue_type}
+                                            </span>
+                                            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed max-w-sm font-sans">
+                                                {issue.description}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-sm font-sans">
-                                        {issue.description}
-                                    </p>
                                 </td>
                                 <td className="px-4 py-4">
-                                    <code className="text-xs bg-muted/30 text-foreground border border-border px-2 py-1 rounded-md font-mono">
+                                    <code className="text-xs bg-muted/40 text-foreground border border-border/80 px-2.5 py-1 rounded-lg font-mono shadow-2xs">
                                         {issue.column || 'all_rows'}
                                     </code>
                                 </td>
                                 <td className="px-4 py-4">
-                                    <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${severityColors[issue.severity]}`}>
+                                    <span className={`text-[10px] font-sans font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border shadow-2xs ${severityColors[issue.severity]}`}>
                                         {issue.severity}
                                     </span>
                                 </td>
-                                <td className="px-4 py-4 text-xs font-mono text-muted-foreground">
-                                    {issue.affected_rows.toLocaleString()} rows
-                                    <span className="text-muted-foreground/60 ml-1">({issue.affected_pct}%)</span>
-                                </td>
-                                <td className="px-4 py-4 text-xs text-muted-foreground max-w-xs truncate font-mono">
-                                    {issue.suggested_fix.toLowerCase()}
+                                <td className="px-4 py-4 text-xs font-sans text-muted-foreground">
+                                    <span className="font-semibold text-foreground">{issue.affected_rows.toLocaleString()}</span> rows
+                                    <span className="text-muted-foreground/70 ml-1 font-mono">({issue.affected_pct}%)</span>
                                 </td>
                                 <td className="px-4 py-4">
-                                    <span className={`text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${statusColors[issue.status]}`}>
-                                        {issue.status}
+                                    <span className="text-xs font-sans text-muted-foreground max-w-xs block truncate" title={issue.suggested_fix}>
+                                        {issue.suggested_fix}
                                     </span>
                                 </td>
-                                <td className="px-4 py-4 text-right">
+                                <td className="px-4 py-4">
+                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5 shadow-2xs ${statusColors[issue.status]}`}>
+                                        {issue.status === 'pending' && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>}
+                                        {issue.status === 'approved' && <Check className="w-3 h-3 text-emerald-600" />}
+                                        {issue.status === 'rejected' && <X className="w-3 h-3 text-rose-600" />}
+                                        <span className="capitalize">{issue.status}</span>
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 text-right">
                                     {!locked && issue.status === 'pending' && (
-                                        <div className="flex justify-end gap-1.5">
+                                        <div className="flex justify-end items-center gap-2">
                                             <button
                                                 onClick={() => handleApprove(issue.id)}
                                                 disabled={loading !== null}
-                                                className="p-1.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 transition-all duration-150 active:scale-90"
-                                                title="Approve"
+                                                className="w-8 h-8 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-full border border-emerald-200/80 flex items-center justify-center shadow-2xs hover:shadow-xs transition-all duration-150 active:scale-90 cursor-pointer disabled:opacity-50"
+                                                title="Approve Fix"
                                             >
-                                                <Check className="w-3.5 h-3.5" />
+                                                <Check className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleReject(issue.id)}
                                                 disabled={loading !== null}
-                                                className="p-1.5 bg-red-50 text-red-700 rounded-full border border-red-200 hover:bg-red-100 disabled:opacity-50 transition-all duration-150 active:scale-90"
-                                                title="Reject"
+                                                className="w-8 h-8 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-full border border-rose-200/80 flex items-center justify-center shadow-2xs hover:shadow-xs transition-all duration-150 active:scale-90 cursor-pointer disabled:opacity-50"
+                                                title="Reject Fix"
                                             >
-                                                <X className="w-3.5 h-3.5" />
+                                                <X className="w-4 h-4" />
                                             </button>
                                         </div>
                                     )}
                                     {issue.status !== 'pending' && (
-                                        <span className="text-xs font-mono font-bold text-muted-foreground mr-2">
-                                            {issue.status === 'approved' ? '✓ approved' : '✗ rejected'}
+                                        <span className={`text-xs font-semibold inline-flex items-center gap-1 ${
+                                            issue.status === 'approved' ? 'text-emerald-700' : 'text-rose-700'
+                                        }`}>
+                                            {issue.status === 'approved' ? '✓ Approved' : '✕ Rejected'}
                                         </span>
                                     )}
                                 </td>
@@ -415,26 +447,30 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             </div>
 
             {/* Footer Actions */}
-            <div className="bg-muted/5 border-t border-border px-6 py-4">
+            <div className="bg-muted/10 border-t border-border/60 px-6 py-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-normal font-sans">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground font-sans">
                         {hasPending ? (
                             <>
-                                <AlertTriangle className="w-4 h-4 inline mr-1.5 text-primary align-text-bottom" />
-                                <strong>{summary.pending}</strong> issue(s) still pending review
+                                <div className="p-1 rounded-md bg-amber-100 text-amber-700">
+                                    <AlertTriangle className="w-4 h-4" />
+                                </div>
+                                <span><strong className="text-foreground">{summary.pending}</strong> issue(s) still pending review before locking dataset.</span>
                             </>
                         ) : (
                             <>
-                                <Check className="w-4 h-4 inline mr-1.5 text-emerald-600 align-text-bottom" />
-                                All issues successfully reviewed.
+                                <div className="p-1 rounded-md bg-emerald-100 text-emerald-700">
+                                    <Check className="w-4 h-4" />
+                                </div>
+                                <span className="text-emerald-800 font-medium">All issues successfully reviewed and ready for analysis.</span>
                             </>
                         )}
-                    </p>
+                    </div>
 
                     <button
                         onClick={handleLockAndProceed}
                         disabled={loading !== null || hasPending || locked}
-                        className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium shadow-premium hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-150 hover:-translate-y-0.5 active:scale-95"
+                        className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold shadow-premium hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 cursor-pointer"
                     >
                         <Lock className="w-4 h-4" />
                         Lock & Proceed to Analysis
