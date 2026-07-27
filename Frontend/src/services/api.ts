@@ -210,6 +210,40 @@ export const api = {
     },
 
     /**
+     * Upload and join multiple files on a primary key column.
+     */
+    uploadJoinedFiles: async (files: File[], joinKey: string, joinType: string = "inner"): Promise<{ task_id: string; message: string }> => {
+        const formData = new FormData();
+        files.forEach(f => formData.append("files", f));
+        formData.append("join_key", joinKey);
+        formData.append("join_type", joinType);
+
+        const response = await fetch(`${API_BASE_URL}/upload/join`, {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!response.ok) {
+            let errorMessage = `Joined upload failed: ${response.statusText}`;
+            try {
+                const data = await response.json();
+                errorMessage = data.detail || errorMessage;
+            } catch (e) {}
+            throw new Error(errorMessage);
+        }
+        return response.json();
+    },
+
+    /**
+     * Download multi-format export (CSV, Parquet, HTML).
+     */
+    downloadExportBlob: async (taskId: string, format: "csv" | "parquet" | "html"): Promise<Blob> => {
+        const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/export/${format}`);
+        if (!response.ok) throw new Error(`Failed to export ${format.toUpperCase()} file`);
+        return response.blob();
+    },
+
+    /**
      * Stage 2: Resume analysis with cleaning rules.
      */
     startAnalysis: async (taskId: string, rules: Record<string, any>): Promise<{ message: string }> => {

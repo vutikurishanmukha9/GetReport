@@ -364,6 +364,72 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
         logger.error("Parse failed: %s", e)
         raise ParseError(f"Could not parse file: {str(e)}")
 
+
+def join_datasets(
+    dfs_dict: dict[str, pl.DataFrame],
+    join_key: str,
+    how: str = "inner"
+) -> pl.DataFrame:
+    """
+    Polars-optimized multi-dataset join engine.
+    Joins multiple datasets on a common key column (e.g., 'id', 'user_id', 'date').
+    Appends suffix to overlapping non-key columns.
+    """
+    if not dfs_dict:
+        raise ValueError("No datasets provided for join.")
+    
+    file_names = list(dfs_dict.keys())
+    if len(file_names) == 1:
+        return dfs_dict[file_names[0]]
+
+    # Standardize join_key to snake_case
+    clean_key = _to_snake_case(join_key)
+    
+    base_name = file_names[0]
+    base_df = dfs_dict[base_name]
+    if clean_key not in base_df.columns:
+        matched_cols = [c for c in base_df.columns if c.lower() == clean_key.lower()]
+        if matched_cols:
+            clean_key = matched_cols[0]
+        else:
+            raise KeyError(f"Join key '{join_key}' not found in primary dataset '{base_name}'. Available: {base_df.columns}")
+
+    result_df = base_df
+
+    for idx, fname in enumerate(file_names[1:], start=1):
+        other_df = dfs_dict[fname]
+        
+        other_key = clean_key
+        if other_key not in other_df.columns:
+            matched_cols = [c for c in other_df.columns if c.lower() == clean_key.lower()]
+            if matched_cols:
+                other_key = matched_cols[0]
+            else:
+                raise KeyError(f"Join key '{join_key}' not found in dataset '{fname}'. Available: {other_df.columns}")
+
+        col_rename = {}
+        if other_key != clean_key:
+            col_rename[other_key] = clean_key
+
+        for c in other_df.columns:
+            if c != other_key and c in result_df.columns:
+                safe_name = f"{c}_{idx+1}"
+                col_rename[c] = safe_name
+        
+        if col_rename:
+            other_df = other_df.rename(col_rename)
+
+        how_mode = how.lower()
+        if how_mode == "outer":
+            how_mode = "full"
+        if how_mode not in ("inner", "left", "full"):
+            how_mode = "inner"
+
+        result_df = result_df.join(other_df, on=clean_key, how=how_mode, coalesce=True)
+
+    return _sanitize_and_coerce_df(result_df)
+
+
 # ─── Inspection (Polars) ─────────────────────────────────────────────────────
 def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
     """

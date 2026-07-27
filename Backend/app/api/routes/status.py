@@ -241,3 +241,36 @@ async def websocket_status(websocket: WebSocket, task_id: str, api_key: str = Qu
         _active_ws_connections -= 1
         logger.info(f"WebSocket closed for task {task_id} (active: {_active_ws_connections})")
 
+
+# ─── Render Healthcheck Probe ────────────────────────────────────────────────
+
+@router.get("/healthz")
+async def health_check():
+    """
+    Render Uptime Probe & Health Endpoint.
+    Monitors process memory, database pool connection, and system status.
+    """
+    import os
+    import psutil
+    from app.db import get_async_db_connection
+    
+    process = psutil.Process(os.getpid())
+    ram_mb = round(process.memory_info().rss / (1024 * 1024), 2)
+    
+    db_healthy = True
+    try:
+        async with get_async_db_connection() as db:
+            await db.execute("SELECT 1")
+    except Exception as db_err:
+        logger.error(f"Healthcheck DB probe error: {db_err}")
+        db_healthy = False
+
+    return {
+        "status": "healthy" if db_healthy else "degraded",
+        "uptime": "ok",
+        "db_connected": db_healthy,
+        "process_ram_mb": ram_mb,
+        "active_ws_connections": _active_ws_connections
+    }
+
+

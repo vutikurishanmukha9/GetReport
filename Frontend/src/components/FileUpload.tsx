@@ -21,6 +21,10 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  
+  // Join options for multi-dataset upload
+  const [joinKey, setJoinKey] = useState<string>("id");
+  const [joinType, setJoinType] = useState<"inner" | "left" | "outer">("inner");
 
   // New States for Interactive Cleaning
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -107,7 +111,6 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     if (valid.length === 0) return;
 
     setStagedFiles(prev => {
-      // Prevent duplicates by filename
       const existingNames = new Set(prev.map(f => f.name));
       const uniqueNew = valid.filter(f => !existingNames.has(f.name));
       if (uniqueNew.length < valid.length) {
@@ -137,17 +140,25 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   const startAnalysisPipeline = async () => {
     if (stagedFiles.length === 0) return;
 
-    const fileToProcess = stagedFiles[0];
     setIsProcessing(true);
-    setSelectedFile(fileToProcess);
     setInspectionData(null);
 
     try {
-      toast({ title: "Uploading...", description: `Sending '${fileToProcess.name}' to server...` });
-
-      const { task_id } = await api.uploadFile(fileToProcess);
-      setTaskId(task_id);
-      setExpectedPhase('INSPECTION'); // Start waiting for inspection
+      if (stagedFiles.length === 1) {
+        const fileToProcess = stagedFiles[0];
+        setSelectedFile(fileToProcess);
+        toast({ title: "Uploading...", description: `Sending '${fileToProcess.name}' to server...` });
+        const { task_id } = await api.uploadFile(fileToProcess);
+        setTaskId(task_id);
+      } else {
+        const syntheticJoinedFile = new File([], `joined_${joinType}_${stagedFiles.length}_datasets.csv`);
+        setSelectedFile(syntheticJoinedFile);
+        toast({ title: "Joining Datasets...", description: `Merging ${stagedFiles.length} datasets on '${joinKey}' (${joinType} join)...` });
+        const { task_id } = await api.uploadJoinedFiles(stagedFiles, joinKey, joinType);
+        setTaskId(task_id);
+      }
+      
+      setExpectedPhase('INSPECTION');
 
     } catch (error: any) {
       console.error("Error initiating upload:", error);
@@ -415,6 +426,42 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                 })}
               </div>
 
+              {/* Join Configuration (Shown when multiple files are staged) */}
+              {stagedFiles.length > 1 && !isProcessing && (
+                <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-display font-bold text-primary uppercase tracking-wider">
+                      Multi-Dataset Join Configuration
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">Polars Rust Engine</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="block text-muted-foreground font-medium mb-1">Primary Join Key Column</label>
+                      <input
+                        type="text"
+                        value={joinKey}
+                        onChange={(e) => setJoinKey(e.target.value)}
+                        placeholder="e.g. id, user_id, date"
+                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-white text-foreground focus:outline-none focus:border-primary font-mono text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-muted-foreground font-medium mb-1">Join Strategy</label>
+                      <select
+                        value={joinType}
+                        onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
+                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-white text-foreground focus:outline-none focus:border-primary font-sans text-xs"
+                      >
+                        <option value="inner">Inner Join (Matched Rows)</option>
+                        <option value="left">Left Join (Keep Base Dataset)</option>
+                        <option value="outer">Outer Join (All Rows)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Manual "Start Analysis" Burgundy CTA Button */}
               {!isProcessing && (
                 <div className="pt-2">
@@ -424,7 +471,11 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                     className="w-full rounded-xl shadow-premium bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 py-3.5 text-sm font-display font-semibold flex items-center justify-center gap-2"
                   >
                     <FileSpreadsheet className="h-4 w-4" />
-                    <span>Start Analysis & Audit ({stagedFiles.length} {stagedFiles.length === 1 ? 'Dataset' : 'Datasets'})</span>
+                    <span>
+                      {stagedFiles.length > 1
+                        ? `Start Joined Analysis (${stagedFiles.length} Datasets on '${joinKey}')`
+                        : "Start Analysis & Audit (1 Dataset)"}
+                    </span>
                   </Button>
                 </div>
               )}

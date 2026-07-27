@@ -1,7 +1,7 @@
 """
 Upload Route — File ingestion endpoint.
 """
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Request, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Request, Depends
 from pydantic import BaseModel
 import logging
 import os
@@ -183,4 +183,85 @@ async def upload_files_batch(
         tasks=task_details,
         message=f"Uploaded {len(files)} files successfully under Batch '{batch_id}'. Inspection tasks started."
     )
+
+
+@router.post("/upload/join", response_model=TaskResponse)
+@limiter.limit(UPLOAD_LIMIT)
+async def upload_and_join_files(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    files: list[UploadFile] = File(...),
+    join_key: str = Form(...),
+    join_type: str = Form("inner"),
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Ingests multiple files, joins them on a primary key column, and starts inspection on the joined dataset.
+    """
+    from app.services.data_processing import load_dataframe, join_datasets
+    import io
+
+    if not files or len(files) < 2:
+        raise HTTPException(400, "At least 2 files are required for a joined analysis.")
+
+    if len(files) > 5:
+        raise HTTPException(400, "Maximum 5 files allowed for joined analysis.")
+
+    dfs_map = {}
+    temp_files_to_remove = []
+
+    try:
+        for file in files:
+            if not file.filename.lower().endswith(ALLOWED_EXTENSIONS_TUPLE):
+                raise HTTPException(400, f"Invalid file type for '{file.filename}'.")
+
+            await validate_file_signature(file)
+            base_name = os.path.basename(file.filename)
+            safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', base_name) or "unnamed_file.csv"
+            
+            # Save temporary file to disk for load_dataframe
+            file_ref = storage.save_upload(file.file, safe_filename)
+            temp_files_to_remove.append(file_ref)
+
+            df = load_dataframe(file_ref)
+            dfs_map[safe_filename] = df
+
+        # Perform Multi-Dataset Join
+        joined_df = join_datasets(dfs_map, join_key=join_key, how=join_type)
+
+        if joined_df.height == 0:
+            raise HTTPException(400, f"Joined dataset resulted in 0 rows. Verify join key '{join_key}' and join mode '{join_type}'.")
+
+        # Save joined dataframe as CSV
+        joined_filename = f"joined_{join_type}_{uuid.uuid4().hex[:8]}.csv"
+        csv_bytes = io.BytesIO()
+        joined_df.write_csv(csv_bytes)
+        csv_bytes.seek(0)
+
+        file_hash = hashlib.sha256(csv_bytes.getvalue()).hexdigest()
+        task_id = await title_task_manager.create_job_async(joined_filename, file_hash=file_hash)
+        
+        joined_file_ref = storage.save_upload(csv_bytes, joined_filename)
+        inspect_file_task.delay(task_id, joined_file_ref, joined_filename)
+
+        return TaskResponse(
+            task_id=task_id,
+            message=f"Successfully joined {len(files)} files on '{join_key}' ({join_type} join). Inspection started."
+        )
+
+    except KeyError as ke:
+        raise HTTPException(400, str(ke).strip("'"))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Joined upload failed: {str(e)}")
+        raise HTTPException(500, f"Joined upload failed: {str(e)}")
+    finally:
+        # Clean up intermediate staged component files
+        for tmp_ref in temp_files_to_remove:
+            try:
+                storage.delete(tmp_ref)
+            except Exception:
+                pass
+
 

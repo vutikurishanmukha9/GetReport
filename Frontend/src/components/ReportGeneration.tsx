@@ -157,6 +157,27 @@ export const ReportGeneration = ({
     }
   };
 
+  const downloadExport = async (format: "csv" | "parquet" | "html") => {
+    if (!taskId) return;
+    try {
+      toast({ title: "Preparing Export...", description: `Packaging ${format.toUpperCase()} export file...` });
+      const blob = await api.downloadExportBlob(taskId, format);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const safeName = filename ? filename.replace(/\.[^/.]+$/, "") : "dataset";
+      link.download = format === "html" ? `Report_${safeName}.html` : `Cleaned_${safeName}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast({ title: "Export Downloaded", description: `Successfully exported ${format.toUpperCase()} file.` });
+    } catch (e: any) {
+      console.error("Export error:", e);
+      toast({ title: "Export Failed", description: e.message || "Could not download export.", variant: "destructive" });
+    }
+  };
+
   if (step === "complete") {
     // Generate robust fallback confidence scores if backend didn't supply them
     const fallbackConfidenceScores = {
@@ -219,6 +240,87 @@ export const ReportGeneration = ({
 
     return (
       <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in zoom-in-95 duration-400">
+
+        {/* Action Panel: PDF & Multi-Format Exports */}
+        <div className="flex flex-col items-center justify-center p-8 bg-card border border-border/80 rounded-2xl shadow-premium text-center space-y-6">
+          <div className="flex flex-col items-center space-y-2">
+            <div className="h-12 w-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-500/20 mb-1">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+            <h2 className="text-2xl font-display font-bold text-foreground tracking-tight">
+              Report & Data Exports Ready
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
+              Audit for <strong className="text-foreground font-mono text-xs">{filename}</strong> is fully ready. Download publication-ready PDF, cleaned raw datasets, or standalone HTML briefing.
+            </p>
+          </div>
+
+          {/* Primary & Secondary Export Action Buttons Grid */}
+          <div className="space-y-3 w-full max-w-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button 
+                size="lg" 
+                className="w-full rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90" 
+                onClick={downloadFile}
+              >
+                <Download className="h-4 w-4" />
+                <span>Download PDF Report</span>
+                <ChevronRight className="h-4 w-4 opacity-70 ml-0.5" />
+              </Button>
+
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="w-full rounded-xl border-border bg-white hover:bg-muted/30 shadow-sm transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm text-foreground" 
+                onClick={() => downloadExport("html")}
+              >
+                <BookOpen className="h-4 w-4 text-primary" />
+                <span>Download HTML Briefing</span>
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <Button 
+                size="default" 
+                variant="outline" 
+                className="w-full rounded-xl border-border/80 bg-muted/10 hover:bg-white text-xs font-mono text-foreground flex items-center justify-center gap-2" 
+                onClick={() => downloadExport("csv")}
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5 text-primary" />
+                <span>Export Cleaned CSV</span>
+              </Button>
+
+              <Button 
+                size="default" 
+                variant="outline" 
+                className="w-full rounded-xl border-border/80 bg-muted/10 hover:bg-white text-xs font-mono text-foreground flex items-center justify-center gap-2" 
+                onClick={() => downloadExport("parquet")}
+              >
+                <Table2 className="h-3.5 w-3.5 text-primary" />
+                <span>Export Parquet</span>
+              </Button>
+            </div>
+
+            <div className="pt-2 border-t border-border/40">
+              <Button 
+                size="default" 
+                variant="ghost" 
+                className="rounded-xl text-muted-foreground hover:text-foreground text-xs flex items-center gap-2 mx-auto" 
+                onClick={onReset}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Audit New Dataset</span>
+              </Button>
+            </div>
+          </div>
+
+          {!downloadUrl && !isGenerating && (
+            <div className="p-3 rounded-xl bg-amber-500/5 text-amber-600 border border-amber-500/20 text-[10px] font-mono flex items-center justify-center gap-2 max-w-md">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <span>If visual render buffers have timed out, refresh the pipeline to rebuild.</span>
+            </div>
+          )}
+        </div>
 
         {/* ─── Premium Editorial Cover Page Container ─── */}
         <div className="grid gap-6 md:grid-cols-12 items-stretch">

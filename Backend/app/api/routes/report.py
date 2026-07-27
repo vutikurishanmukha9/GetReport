@@ -304,3 +304,118 @@ async def generate_report_direct(body: GenerateReportRequest):
     except Exception as e:
         logger.error(f"Direct PDF Generation failed: {str(e)}")
         raise HTTPException(500, f"Failed to generate PDF report: {str(e)}")
+
+
+# ─── Multi-Format Export Route (CSV / Parquet / HTML) ─────────────────────────
+
+@router.get("/jobs/{task_id}/export/{export_format}")
+async def export_cleaned_data_or_report(
+    task_id: str,
+    export_format: str,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Exports the audited/cleaned dataset or HTML report bundle.
+    Supported formats: 'csv', 'parquet', 'html'.
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found or analysis not complete")
+
+    clean_fmt = export_format.lower()
+    filename_base = _sanitize_download_filename(job.filename or "dataset")
+    
+    from app.services.storage import get_storage_provider
+    from app.services.data_processing import load_dataframe
+    import io
+
+    storage = get_storage_provider()
+    
+    if clean_fmt in ("csv", "parquet"):
+        try:
+            file_path = storage.get_absolute_path(job.filename)
+            if not os.path.exists(file_path):
+                raise HTTPException(404, "Cleaned dataset source file not found")
+
+            df = load_dataframe(file_path)
+            
+            if clean_fmt == "csv":
+                buffer = io.BytesIO()
+                df.write_csv(buffer)
+                buffer.seek(0)
+                return Response(
+                    content=buffer.getvalue(),
+                    media_type="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename=Cleaned_{filename_base}.csv"}
+                )
+            else: # parquet
+                buffer = io.BytesIO()
+                df.write_parquet(buffer)
+                buffer.seek(0)
+                return Response(
+                    content=buffer.getvalue(),
+                    media_type="application/octet-stream",
+                    headers={"Content-Disposition": f"attachment; filename=Cleaned_{filename_base}.parquet"}
+                )
+        except Exception as e:
+            logger.error(f"Data export failed: {e}")
+            raise HTTPException(500, f"Failed to export cleaned dataset: {str(e)}")
+
+    elif clean_fmt == "html":
+        info = job.result.get("info", {})
+        summary = job.result.get("analysis", {}).get("executive_summary", "No executive summary available.")
+        score = job.result.get("ml_readiness", {}).get("overall_score", 100)
+        
+        html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GetReport — Executive Data Briefing: {filename_base}</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #FAF6F0; color: #2C2C2C; padding: 40px; margin: 0; }}
+        .card {{ background: #FFFFFF; border: 1px solid #E5DCC3; border-radius: 16px; padding: 32px; max-width: 900px; margin: 0 auto; box-shadow: 0 10px 30px rgba(114,47,55,0.08); }}
+        .header {{ border-bottom: 2px solid #722F37; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }}
+        h1 {{ color: #722F37; margin: 0; font-size: 26px; }}
+        .badge {{ background: #722F37; color: #FFFFFF; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 14px; }}
+        .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px; }}
+        .stat {{ background: #FAF6F0; padding: 16px; border-radius: 12px; text-align: center; border: 1px solid #E5DCC3; }}
+        .stat-val {{ font-size: 22px; font-weight: bold; color: #722F37; }}
+        .stat-lbl {{ font-size: 12px; color: #666; text-transform: uppercase; margin-top: 4px; }}
+        .summary {{ background: #FFF9F5; border-left: 4px solid #722F37; padding: 20px; border-radius: 8px; line-height: 1.6; margin-bottom: 30px; }}
+        .footer {{ text-align: center; font-size: 12px; color: #888; margin-top: 40px; }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <div>
+                <h1>Executive Data Analysis Briefing</h1>
+                <p style="margin: 4px 0 0 0; color: #666;">Dataset: {filename_base}</p>
+            </div>
+            <span class="badge">ML Readiness: {score}/100</span>
+        </div>
+        <div class="grid">
+            <div class="stat"><div class="stat-val">{info.get("rows", 0):,}</div><div class="stat-lbl">Total Rows</div></div>
+            <div class="stat"><div class="stat-val">{info.get("columns", 0)}</div><div class="stat-lbl">Total Columns</div></div>
+            <div class="stat"><div class="stat-val">{info.get("data_health_score", 100)}%</div><div class="stat-lbl">Data Health</div></div>
+        </div>
+        <h2>Executive Summary & Insights</h2>
+        <div class="summary">
+            {summary.replace('\n', '<br/>')}
+        </div>
+        <div class="footer">
+            Generated by GetReport Platform — Privacy Guaranteed & Isolated Processing
+        </div>
+    </div>
+</body>
+</html>"""
+        return Response(
+            content=html_content,
+            media_type="text/html",
+            headers={"Content-Disposition": f"attachment; filename=Report_{filename_base}.html"}
+        )
+    else:
+        raise HTTPException(400, "Invalid export format. Supported: 'csv', 'parquet', 'html'")
+
