@@ -60,7 +60,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             </div>
 
             {/* ─── Global Warnings ─── */}
-            {report.issues.filter(i => i.column === "Multiple").map((issue, idx) => (
+            {(report?.issues || []).filter(i => i.column === "Multiple").map((issue, idx) => (
                 <div key={idx} className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 p-5 rounded-2xl flex items-start gap-4 shadow-sm animate-in fade-in duration-300">
                     <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-700 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-2xs">
                         <AlertTriangle className="h-5 w-5" />
@@ -85,8 +85,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
             {/* Column Health Grid */}
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                {report.columns.map((col) => {
-                    const issue = report.issues.find(i => i.column === col.name);
+                {(report?.columns || []).map((col) => {
+                    const issue = (report?.issues || []).find(i => i.column === col.name);
                     const hasIssue = col.missing_count > 0 || (issue && ['outliers', 'high_cardinality', 'class_imbalance'].includes(issue.type));
 
                     if (!hasIssue) return null;

@@ -44,37 +44,54 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
     const normalizedStatus = taskStatus.toUpperCase();
 
-    // CASE 1: Inspection Ready
+    // CASE 1: Inspection Ready (WAITING_FOR_USER or COMPLETED with quality_report)
     if (expectedPhase === 'INSPECTION') {
-      if (normalizedStatus === 'WAITING_FOR_USER' && taskResult && taskResult.stage === 'INSPECTION') {
+      const isInspectionReady = 
+        (normalizedStatus === 'WAITING_FOR_USER' || normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS') &&
+        taskResult &&
+        (taskResult.quality_report || taskResult.issue_ledger || taskResult.stage === 'INSPECTION');
+
+      if (isInspectionReady) {
         setInspectionData(taskResult as InspectionResult);
         setIsProcessing(false);
         setExpectedPhase(null); // Stop waiting
-        toast({ title: "Data Inspection Complete", description: "Please review the issues found." });
+        toast({ title: "Data Inspection Complete", description: "Please review the detected issues found." });
+        return;
+      }
+
+      // If inspection was bypassed or analysis returned directly
+      if ((normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS') && taskResult && ('analysis' in taskResult || 'info' in taskResult)) {
+        setIsProcessing(false);
+        setInspectionData(null);
+        setExpectedPhase(null);
+        onFileUploaded(taskResult as ApiResponse, taskId);
+        toast({ title: "Analysis Complete!", description: `Successfully analyzed ${taskResult.info?.rows || 0} rows.` });
+        return;
       }
     }
 
     // CASE 2: Analysis Complete
     if (expectedPhase === 'ANALYSIS') {
-      if (normalizedStatus === 'COMPLETED') {
-        if (taskResult && 'analysis' in taskResult) {
+      if (normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS' || normalizedStatus === 'DONE') {
+        if (taskResult && ('analysis' in taskResult || 'info' in taskResult)) {
           setIsProcessing(false);
           setInspectionData(null);
           setExpectedPhase(null);
           onFileUploaded(taskResult as ApiResponse, taskId);
-          toast({ title: "Analysis Complete!", description: `Successfully analyzed ${taskResult.info.rows} rows.` });
+          toast({ title: "Analysis Complete!", description: `Successfully analyzed ${taskResult.info?.rows || 0} rows.` });
+          return;
         }
       }
     }
 
     // CASE 3: Failure
-    if (normalizedStatus === 'FAILED') {
+    if (normalizedStatus === 'FAILED' || normalizedStatus === 'ERROR') {
       setIsProcessing(false);
       setExpectedPhase(null);
       toast({ title: "Processing Failed", description: taskError || "An error occurred.", variant: "destructive" });
     }
 
-  }, [taskId, expectedPhase, taskStatus, taskResult, taskError, onFileUploaded]);
+  }, [taskId, expectedPhase, taskStatus, taskResult, taskError, onFileUploaded, toast]);
 
   const validateFile = (file: File): boolean => {
     const validExtensions = [
