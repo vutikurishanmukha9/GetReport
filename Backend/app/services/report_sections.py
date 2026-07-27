@@ -622,22 +622,18 @@ def _build_visualizations(
     styles: dict[str, ParagraphStyle],
     meta: ReportMetadata,
 ) -> list[Flowable]:
-    """Build all chart/visualization sections."""
+    """Build all chart/visualization sections with tight, compact layout."""
     story: list[Flowable] = []
     has_any_chart = False
 
     if "correlation_heatmap" in charts and charts["correlation_heatmap"]:
-        section_items: list[Flowable] = [
-            Paragraph("Correlation Analysis", styles["SectionHeading"]),
-            Spacer(1, 0.1 * inch),
-        ]
-        img = _decode_image(charts["correlation_heatmap"], 6 * inch, 4.5 * inch, "Correlation Heatmap", meta)
+        story.append(Paragraph("Correlation Analysis", styles["SectionHeading"]))
+        img = _decode_image(charts["correlation_heatmap"], 5.2 * inch, 3.2 * inch, "Correlation Heatmap", meta)
         if img:
-            section_items.extend([img, Spacer(1, 0.25 * inch)])
-            story.append(KeepTogether(section_items))
+            story.append(img)
+            story.append(Spacer(1, 0.12 * inch))
             has_any_chart = True
         else:
-            story.extend(section_items)
             story.append(Paragraph("Correlation heatmap could not be rendered.", styles["Body"]))
 
     scatter = charts.get("scatter_plot")
@@ -645,14 +641,11 @@ def _build_visualizations(
         columns = scatter.get("columns", "")
         image = scatter.get("image", "")
         title = f"Relationship: {columns}" if columns else "Relationship Scatter Plot"
-        img = _decode_image(image, 5.5 * inch, 4.0 * inch, title, meta)
+        img = _decode_image(image, 4.8 * inch, 2.8 * inch, title, meta)
         if img:
-            story.append(KeepTogether([
-                Paragraph(title, styles["SectionHeading"]),
-                Spacer(1, 0.1 * inch),
-                img,
-                Spacer(1, 0.25 * inch),
-            ]))
+            story.append(Paragraph(title, styles["SectionHeading"]))
+            story.append(img)
+            story.append(Spacer(1, 0.12 * inch))
             has_any_chart = True
         else:
             story.append(Paragraph(f"{title} could not be rendered.", styles["Body"]))
@@ -661,13 +654,11 @@ def _build_visualizations(
         story.append(Paragraph("Feature Distributions", styles["SectionHeading"]))
         for dist in charts["distributions"]:
             col_label = dist.get("column", "Unknown")
-            img = _decode_image(dist.get("image", ""), 5 * inch, 3 * inch, f"Distribution: {col_label}", meta)
+            img = _decode_image(dist.get("image", ""), 4.8 * inch, 2.4 * inch, f"Distribution: {col_label}", meta)
             if img:
-                story.append(KeepTogether([
-                    Paragraph(f"Distribution of {col_label}", styles["SubHeading"]),
-                    img,
-                    Spacer(1, 0.1 * inch),
-                ]))
+                story.append(Paragraph(f"Distribution of {col_label}", styles["SubHeading"]))
+                story.append(img)
+                story.append(Spacer(1, 0.1 * inch))
                 has_any_chart = True
             else:
                 story.append(Paragraph(f"Distribution of {col_label}", styles["SubHeading"]))
@@ -678,11 +669,11 @@ def _build_visualizations(
         story.append(Paragraph("Category Comparisons", styles["SectionHeading"]))
         for bar in charts["bar_charts"]:
             col_label = bar.get("column", "Unknown")
-            story.append(Paragraph(f"Bar Chart: {col_label}", styles["SubHeading"]))
-            img = _decode_image(bar.get("image", ""), 5.5 * inch, 3.5 * inch, f"Bar Chart: {col_label}", meta)
+            img = _decode_image(bar.get("image", ""), 4.8 * inch, 2.5 * inch, f"Bar Chart: {col_label}", meta)
             if img:
+                story.append(Paragraph(f"Bar Chart: {col_label}", styles["SubHeading"]))
                 story.append(img)
-                story.append(Spacer(1, 0.15 * inch))
+                story.append(Spacer(1, 0.1 * inch))
                 has_any_chart = True
             else:
                 story.append(Paragraph(f"Bar chart for '{col_label}' could not be rendered.", styles["Body"]))
@@ -691,11 +682,11 @@ def _build_visualizations(
         story.append(Paragraph("Category vs Numeric Analysis", styles["SectionHeading"]))
         for box in charts["boxplots"]:
             col_label = box.get("column", "Unknown")
-            story.append(Paragraph(f"Spread: {col_label}", styles["SubHeading"]))
-            img = _decode_image(box.get("image", ""), 5.5 * inch, 4 * inch, f"Boxplot: {col_label}", meta)
+            img = _decode_image(box.get("image", ""), 4.8 * inch, 2.5 * inch, f"Boxplot: {col_label}", meta)
             if img:
+                story.append(Paragraph(f"Spread: {col_label}", styles["SubHeading"]))
                 story.append(img)
-                story.append(Spacer(1, 0.15 * inch))
+                story.append(Spacer(1, 0.1 * inch))
                 has_any_chart = True
             else:
                 story.append(Paragraph(f"Boxplot for '{col_label}' could not be rendered.", styles["Body"]))
@@ -704,11 +695,11 @@ def _build_visualizations(
         story.append(Paragraph("Trend Analysis", styles["SectionHeading"]))
         for trend in charts["trend_charts"]:
             col_label = trend.get("column", "Unknown")
-            story.append(Paragraph(f"Trend: {col_label}", styles["SubHeading"]))
-            img = _decode_image(trend.get("image", ""), 5.5 * inch, 3.0 * inch, f"Trend: {col_label}", meta)
+            img = _decode_image(trend.get("image", ""), 4.8 * inch, 2.5 * inch, f"Trend: {col_label}", meta)
             if img:
+                story.append(Paragraph(f"Trend: {col_label}", styles["SubHeading"]))
                 story.append(img)
-                story.append(Spacer(1, 0.15 * inch))
+                story.append(Spacer(1, 0.1 * inch))
                 has_any_chart = True
             else:
                 story.append(Paragraph(f"Trend chart for '{col_label}' could not be rendered.", styles["Body"]))
@@ -717,11 +708,11 @@ def _build_visualizations(
         story.append(Paragraph("Composition Analysis", styles["SectionHeading"]))
         for pie in charts["pie_charts"]:
             col_label = pie.get("column", "Unknown")
-            story.append(Paragraph(f"Composition: {col_label}", styles["SubHeading"]))
-            img = _decode_image(pie.get("image", ""), 4.0 * inch, 4.0 * inch, f"Pie Chart: {col_label}", meta)
+            img = _decode_image(pie.get("image", ""), 4.5 * inch, 2.5 * inch, f"Composition: {col_label}", meta)
             if img:
+                story.append(Paragraph(f"Composition: {col_label}", styles["SubHeading"]))
                 story.append(img)
-                story.append(Spacer(1, 0.15 * inch))
+                story.append(Spacer(1, 0.1 * inch))
                 has_any_chart = True
             else:
                 story.append(Paragraph(f"Pie chart for '{col_label}' could not be rendered.", styles["Body"]))

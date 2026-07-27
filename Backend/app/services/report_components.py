@@ -14,16 +14,18 @@ logger = logging.getLogger(__name__)
 
 def build_stat_table(stat_data: List[List[Any]]) -> Table:
     """
-    Constructs the 4-column executive summary grid.
+    Constructs the 4-column executive summary grid with warm parchment cards.
     """
-    t = Table(stat_data, colWidths=[1.5*inch]*4)
+    t = Table(stat_data, colWidths=[1.6*inch]*4)
     t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#eef2ff')),
+        ('BACKGROUND', (0,0), (-1,-1), Brand.TABLE_ROW_ALT),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 10),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
-        ('ROUNDEDCORNERS', [8, 8, 8, 8]), 
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('LINEABOVE', (0,0), (-1,0), 1, Brand.DIVIDER),
+        ('LINEBELOW', (0,-1), (-1,-1), 1, Brand.DIVIDER),
+        ('BOX', (0,0), (-1,-1), 0.5, Brand.DIVIDER),
     ]))
     return t
 
@@ -36,7 +38,7 @@ def create_chart_section(
 ) -> None:
     """
     Decodes a base64 image and appends it to the story with a title.
-    Handles errors gracefully (skips if invalid).
+    Optimizes height (max 3.2 inch) to fit cleanly without causing massive empty page breaks!
     """
     if not b64_str:
         return
@@ -45,23 +47,21 @@ def create_chart_section(
         img_buffer = io.BytesIO(base64.b64decode(b64_str))
         img = Image(img_buffer)
         
-        # Resize to fit A4 width (approx 6 inches usable)
-        max_width = 6 * inch
-        aspect = img.imageHeight / float(img.imageWidth)
+        # Resize to fit printable width nicely (max 5.2 inches usable)
+        max_width = 5.2 * inch
+        aspect = img.imageHeight / float(img.imageWidth) if img.imageWidth > 0 else 0.75
         img.drawWidth = max_width
         img.drawHeight = max_width * aspect
         
-        # Cap height to avoid page overflow
-        max_height = 4.5 * inch
+        # Cap height strictly to 3.2 inch to ensure 2 charts or text + chart fit per page
+        max_height = 3.2 * inch
         if img.drawHeight > max_height:
             img.drawHeight = max_height
-            img.drawWidth = max_height / aspect
+            img.drawWidth = max_height / aspect if aspect > 0 else max_width
         
-        story.append(KeepTogether([
-            Paragraph(title, styles['ModernHeading']),
-            img,
-            Spacer(1, 15),
-        ]))
+        story.append(Paragraph(title, styles['ModernHeading']))
+        story.append(img)
+        story.append(Spacer(1, 10))
     except Exception as e:
         logger.warning(f"Error decoding chart '{title}': {e}")
         story.append(Paragraph(title, styles['ModernHeading']))
@@ -89,50 +89,6 @@ def build_correlations_table(strong_correlations: List[Dict], styles: dict) -> O
         col1 = pair.get("col1", pair.get("column_a", ""))
         col2 = pair.get("col2", pair.get("column_b", ""))
         r = pair.get("correlation", pair.get("r", pair.get("r_value", 0)))
-        
-        abs_r = abs(r) if isinstance(r, (int, float)) else 0
-        if abs_r >= 0.9:
-            strength = "Very Strong"
-        elif abs_r >= 0.7:
-            strength = "Strong"
-        else:
-            strength = "Moderate"
-        
-        rows.append([
-            Paragraph(str(col1), styles['ModernBody']),
-            Paragraph(str(col2), styles['ModernBody']),
-            Paragraph(f"{r:.3f}" if isinstance(r, (int, float)) else str(r), styles['ModernBody']),
-            Paragraph(strength, styles['ModernBody']),
-        ])
-    
-    if len(rows) <= 1:
-        return None
-    
-    t = Table(rows, colWidths=[1.5*inch, 1.5*inch, 1.2*inch, 1.2*inch])
-    t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), Brand.TABLE_HEADER),
-        ('TEXTCOLOR', (0,0), (-1,0), Brand.TEXT_LIGHT),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 9),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('BACKGROUND', (0,1), (-1,-1), Brand.TABLE_ROW),
-        ('GRID', (0,0), (-1,-1), 0.5, Brand.DIVIDER),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-    ]))
-    
-    # Alternating rows
-    for i in range(2, len(rows), 2):
-        t.setStyle(TableStyle([
-            ('BACKGROUND', (0, i), (-1, i), Brand.TABLE_ROW_ALT),
-        ]))
-    
-    return t
-
-
-def build_outlier_table(outliers: Dict[str, Any], styles: dict) -> Optional[Table]:
-    """
-    Build a styled table showing outlier summary per column.
     Returns None if no data.
     """
     if not outliers:

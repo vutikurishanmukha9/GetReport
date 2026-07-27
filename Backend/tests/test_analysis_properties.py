@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import polars as pl
 import pytest
+hypothesis = pytest.importorskip("hypothesis")
 from hypothesis import given, settings, assume, HealthCheck
 from hypothesis import strategies as st
 

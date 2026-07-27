@@ -4,8 +4,17 @@ from typing import Dict, Any, Optional, List
 from io import BytesIO
 import json
 
-from celery import chain, group
-from app.core.celery_app import celery_app
+try:
+    from celery import chain, group
+    from app.core.celery_app import celery_app
+except ImportError:
+    chain = group = None
+    class DummyCelery:
+        def task(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+    celery_app = DummyCelery()
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.services.storage import get_storage_provider
 from app.services.rag_service import rag_service

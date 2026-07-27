@@ -94,7 +94,9 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
         fontSize=28,
         textColor=Brand.TEXT_LIGHT,
         alignment=TA_CENTER,
-        spaceAfter=6,
+        fontName="Helvetica-Bold",
+        leading=34,
+        spaceAfter=10,
     )
 
     # Subtitle — smaller, light accent, centered
@@ -102,52 +104,63 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
         "ReportSubtitle",
         parent=base["Normal"],
         fontSize=12,
-        textColor=Brand.ACCENT_LIGHT,
+        textColor=colors.HexColor("#F3E8E8"),
         alignment=TA_CENTER,
-        spaceAfter=4,
+        fontName="Helvetica",
+        leading=16,
+        spaceAfter=6,
     )
 
-    # Section heading — accent color, left-aligned
+    # Section heading — accent color, left-aligned, keepWithNext=True to prevent orphan titles!
     custom["SectionHeading"] = ParagraphStyle(
         "SectionHeading",
         parent=base["Heading2"],
-        fontSize=16,
+        fontSize=15,
         textColor=Brand.ACCENT,
-        spaceBefore=12,
+        fontName="Helvetica-Bold",
+        spaceBefore=14,
         spaceAfter=6,
         alignment=TA_LEFT,
+        leading=18,
+        keepWithNext=True,
     )
 
     # Sub-heading — slightly smaller, dark text
     custom["SubHeading"] = ParagraphStyle(
         "SubHeading",
         parent=base["Heading3"],
-        fontSize=12,
+        fontSize=11,
         textColor=Brand.TEXT_DARK,
-        spaceBefore=8,
+        fontName="Helvetica-Bold",
+        spaceBefore=10,
         spaceAfter=4,
+        leading=14,
+        keepWithNext=True,
     )
 
     # Body text — justified, readable
     custom["Body"] = ParagraphStyle(
         "Body",
         parent=base["Normal"],
-        fontSize=10,
+        fontSize=9.5,
         textColor=Brand.TEXT_DARK,
-        alignment=TA_JUSTIFY,
+        fontName="Helvetica",
+        alignment=TA_LEFT,
         leading=14,
+        spaceAfter=4,
     )
 
     # Insight text — used inside the insight box
     custom["InsightText"] = ParagraphStyle(
         "InsightText",
         parent=base["Normal"],
-        fontSize=10,
+        fontSize=9.5,
         textColor=Brand.TEXT_DARK,
+        fontName="Helvetica",
         alignment=TA_LEFT,
         leading=14,
-        leftIndent=12,
-        rightIndent=12,
+        leftIndent=8,
+        rightIndent=8,
     )
 
     # Insight — alias for general usage
@@ -158,10 +171,11 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
         "WarningText",
         parent=base["Normal"],
         fontSize=9,
-        textColor=colors.HexColor("#92400e"),
+        textColor=colors.HexColor("#7C2D12"),
+        fontName="Helvetica",
         alignment=TA_LEFT,
         leading=13,
-        leftIndent=10,
+        leftIndent=6,
     )
 
     # Table Caption — used above tables
@@ -174,6 +188,7 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
         fontName="Helvetica-Bold",
         leading=14,
         spaceAfter=4,
+        keepWithNext=True,
     )
 
     # Footer text
@@ -189,30 +204,37 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
     custom["ModernTitle"] = ParagraphStyle(
         "ModernTitle",
         parent=base["Title"],
-        fontSize=24,
+        fontSize=22,
         textColor=Brand.ACCENT,
         alignment=TA_LEFT,
         spaceAfter=8,
         fontName="Helvetica-Bold",
+        leading=26,
+        keepWithNext=True,
     )
 
     custom["ModernHeading"] = ParagraphStyle(
         "ModernHeading",
         parent=base["Heading2"],
-        fontSize=16,
+        fontSize=15,
         textColor=Brand.ACCENT,
-        spaceBefore=12,
+        fontName="Helvetica-Bold",
+        spaceBefore=14,
         spaceAfter=6,
         alignment=TA_LEFT,
+        leading=18,
+        keepWithNext=True,
     )
 
     custom["ModernBody"] = ParagraphStyle(
         "ModernBody",
         parent=base["Normal"],
-        fontSize=10,
+        fontSize=9.5,
         textColor=Brand.TEXT_DARK,
+        fontName="Helvetica",
         alignment=TA_LEFT,
         leading=14,
+        spaceAfter=4,
     )
 
     custom["MetaValue"] = ParagraphStyle(
@@ -228,24 +250,27 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
     custom["MetaLabel"] = ParagraphStyle(
         "MetaLabel",
         parent=base["Normal"],
-        fontSize=9,
-        textColor=colors.grey,
+        fontSize=8.5,
+        textColor=colors.HexColor("#555555"),
+        fontName="Helvetica-Bold",
         alignment=TA_CENTER,
     )
 
     custom["InsightBox"] = ParagraphStyle(
         "InsightBox",
         parent=base["Normal"],
-        fontSize=10,
+        fontSize=9.5,
         textColor=Brand.TEXT_DARK,
+        fontName="Helvetica",
         alignment=TA_LEFT,
         leading=14,
-        leftIndent=12,
-        rightIndent=12,
-        backColor=colors.HexColor("#F0F9FF"),
-        borderColor=Brand.ACCENT,
+        leftIndent=8,
+        rightIndent=8,
+        backColor=Brand.INSIGHT_BG,
+        borderColor=Brand.INSIGHT_BORDER,
         borderWidth=1,
         borderPadding=8,
+        borderRadius=6,
     )
 
     return custom
@@ -253,21 +278,29 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
 
 # ─── Page Header / Footer Callbacks ──────────────────────────────────────────
 def _header_callback(canvas, doc) -> None:
-    """Draw a thin accent bar at the top of every page (except page 1 = title)."""
+    """Draw a thin burgundy accent bar at the top of every page (except page 1 = title)."""
     if doc.page == 1:
-        return  # title page has no header
+        return  # title page has no running header
+    canvas.saveState()
     canvas.setFillColor(Brand.ACCENT)
     canvas.rect(0, letter[1] - 0.35 * inch, letter[0], 0.35 * inch, fill=1, stroke=0)
     canvas.setFillColor(Brand.TEXT_LIGHT)
-    canvas.setFont("Helvetica-Bold", 9)
-    canvas.drawString(0.5 * inch, letter[1] - 0.22 * inch, "GetReport — Data Analysis Report")
+    canvas.setFont("Helvetica-Bold", 8.5)
+    canvas.drawString(0.6 * inch, letter[1] - 0.22 * inch, "GetReport — Executive Data Analysis Briefing")
+    canvas.restoreState()
 
 
 def _footer_callback(canvas, doc) -> None:
-    """Draw page number at the bottom center of every page."""
-    canvas.setFillColor(colors.grey)
+    """Draw footer page number and confidentiality note at the bottom of every page."""
+    canvas.saveState()
+    canvas.setStrokeColor(Brand.DIVIDER)
+    canvas.setLineWidth(0.5)
+    canvas.line(0.6 * inch, 0.45 * inch, letter[0] - 0.6 * inch, 0.45 * inch)
+    canvas.setFillColor(colors.HexColor("#666666"))
     canvas.setFont("Helvetica", 8)
-    canvas.drawCentredString(letter[0] / 2, 0.3 * inch, f"Page {doc.page}")
+    canvas.drawString(0.6 * inch, 0.3 * inch, "Confidential — Generated by GetReport AI")
+    canvas.drawRightString(letter[0] - 0.6 * inch, 0.3 * inch, f"Page {doc.page}")
+    canvas.restoreState()
 
 def _page_callback(canvas, doc) -> None:
     """Apply both header and footer to the page."""
