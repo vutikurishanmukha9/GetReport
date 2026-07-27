@@ -19,6 +19,7 @@ import { useTaskStatus } from "@/hooks/useTaskStatus"; // Add import
 export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // New States for Interactive Cleaning
@@ -84,7 +85,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     if (!hasValidExtension) {
       toast({
         title: "Invalid file format",
-        description: "Supported formats: CSV, TSV, Excel (.xlsx, .xls), Parquet, JSON, JSONL, Feather, GZ.",
+        description: `Format not supported for '${file.name}'. Supported: CSV, TSV, Excel, Parquet, JSON.`,
         variant: "destructive",
       });
       return false;
@@ -93,7 +94,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     if (file.size > 50 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please upload a file smaller than 50MB",
+        description: `'${file.name}' exceeds the 50MB size limit.`,
         variant: "destructive",
       });
       return false;
@@ -101,15 +102,50 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     return true;
   };
 
-  const processFile = async (file: File) => {
+  const addFilesToStaging = (files: File[]) => {
+    const valid = files.filter(validateFile);
+    if (valid.length === 0) return;
+
+    setStagedFiles(prev => {
+      // Prevent duplicates by filename
+      const existingNames = new Set(prev.map(f => f.name));
+      const uniqueNew = valid.filter(f => !existingNames.has(f.name));
+      if (uniqueNew.length < valid.length) {
+        toast({ title: "Duplicate file skipped", description: "Some files are already in staging." });
+      }
+      return [...prev, ...uniqueNew];
+    });
+
+    toast({
+      title: "File Staged",
+      description: `${valid.length} file(s) added to staging. Click 'Start Analysis' when ready!`,
+    });
+  };
+
+  const removeFileFromStaging = (index: number) => {
+    setStagedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const clearStaging = () => {
+    setStagedFiles([]);
+    setSelectedFile(null);
+    setInspectionData(null);
+    setExpectedPhase(null);
+    setTaskId(null);
+  };
+
+  const startAnalysisPipeline = async () => {
+    if (stagedFiles.length === 0) return;
+
+    const fileToProcess = stagedFiles[0];
     setIsProcessing(true);
-    setSelectedFile(file);
+    setSelectedFile(fileToProcess);
     setInspectionData(null);
 
     try {
-      toast({ title: "Uploading...", description: "Sending file to server..." });
+      toast({ title: "Uploading...", description: `Sending '${fileToProcess.name}' to server...` });
 
-      const { task_id } = await api.uploadFile(file);
+      const { task_id } = await api.uploadFile(fileToProcess);
       setTaskId(task_id);
       setExpectedPhase('INSPECTION'); // Start waiting for inspection
 
@@ -142,37 +178,34 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     e.preventDefault();
     setIsDragging(false);
 
-    const file = e.dataTransfer.files[0];
-    if (file && validateFile(file)) {
-      processFile(file);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length > 0) {
+      addFilesToStaging(droppedFiles);
     }
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && validateFile(file)) {
-      processFile(file);
+    const selected = e.target.files ? Array.from(e.target.files) : [];
+    if (selected.length > 0) {
+      addFilesToStaging(selected);
     }
+    e.target.value = ""; // Reset input
   };
 
-  const clearFile = () => {
-    setSelectedFile(null);
-    setInspectionData(null);
-    setExpectedPhase(null);
-    setTaskId(null); // Disconnect WebSocket
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   // ─── RENDER: HEALTH CHECK + ISSUE LEDGER UI ─────────────────────────────────
   if (inspectionData && !isProcessing) {
     const issueLedgerData = inspectionData.issue_ledger;
 
-    // Refresh function to re-fetch the issue ledger with updated statuses
     const refreshIssues = async () => {
       if (!taskId) return;
       try {
-        // Fetch the updated issue ledger directly from the issues endpoint
         const updatedLedger = await api.getIssues(taskId);
-        // Merge the updated ledger into the current inspectionData
         setInspectionData(prev => prev ? { ...prev, issue_ledger: updatedLedger } : prev);
       } catch (e) {
         console.error("Failed to refresh issues:", e);
@@ -181,7 +214,6 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
     return (
       <div className="space-y-8 max-w-7xl mx-auto">
-        {/* Issue Ledger Section */}
         {issueLedgerData && issueLedgerData.issues && issueLedgerData.issues.length > 0 && (
           <IssueLedger
             taskId={taskId!}
@@ -191,7 +223,6 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
           />
         )}
 
-        {/* DataHealthCheck for column-level controls */}
         <DataHealthCheck
           report={inspectionData.quality_report}
           onContinue={handleCleaningRules}
@@ -204,7 +235,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   // ─── RENDER: UPLOAD UI ────────────────────────────────────────────────────
   return (
     <motion.div
-      className="max-w-2xl mx-auto"
+      className="max-w-3xl mx-auto space-y-6"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.1 }}
@@ -222,10 +253,11 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       </AnimatePresence>
 
       <Card className="border border-border bg-card shadow-premium rounded-2xl overflow-hidden transition-all duration-300 hover:border-border/80 hover:shadow-xl">
-        <CardContent className="p-3">
+        <CardContent className="p-4 sm:p-6 space-y-6">
+          {/* Dropzone Container */}
           <div
             className={`
-              relative p-6 sm:p-8 md:p-12 text-center transition-all duration-200 min-h-[360px] flex flex-col items-center justify-center
+              relative p-6 sm:p-8 md:p-10 text-center transition-all duration-200 min-h-[260px] flex flex-col items-center justify-center
               border-2 border-dashed border-border/60 rounded-xl
               ${isDragging ? "bg-primary/5 border-primary/45" : "bg-muted/10"}
               ${isProcessing ? "opacity-75 pointer-events-none" : ""}
@@ -240,7 +272,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
             {/* Upload Icon */}
             <motion.div
               className={`
-                mx-auto mb-4 sm:mb-6 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center 
+                mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center 
                 rounded-full transition-all duration-200 shadow-premium border border-border
                 ${isDragging ? "bg-primary/10 border-primary/30 text-primary" : "bg-white text-muted-foreground"}
               `}
@@ -257,15 +289,6 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                     transition={{ rotate: { repeat: Infinity, duration: 1.2, ease: "linear" } }}
                     className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border-2 border-primary border-t-transparent"
                   />
-                ) : selectedFile ? (
-                  <motion.div
-                    key="file"
-                    initial={{ opacity: 0, scale: 0.7 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.7 }}
-                  >
-                    <FileSpreadsheet className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
-                  </motion.div>
                 ) : (
                   <motion.div
                     key="upload"
@@ -273,88 +296,146 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <Upload className="h-6 w-6 sm:h-7 sm:w-7" />
+                    <Upload className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
                   </motion.div>
                 )}
               </AnimatePresence>
             </motion.div>
 
-            {/* Text Content */}
-            <AnimatePresence mode="wait">
-              {selectedFile ? (
-                <motion.div
-                  key="selected"
-                  className="space-y-3"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                >
-                  <div className="flex items-center justify-center gap-2 text-sm sm:text-base">
-                    <span className="font-display font-medium text-foreground truncate max-w-[200px] sm:max-w-[300px]">
-                      {selectedFile.name}
+            {/* Dropzone Text & File Selector */}
+            <div className="space-y-2">
+              <h3 className="text-lg sm:text-xl font-display font-bold text-foreground tracking-tight">
+                {isDragging ? "Drop datasets here" : "Drag & drop files or browse"}
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-md font-sans">
+                Upload CSV, Excel (.xlsx, .xls), Parquet, TSV, or JSON files. Add as many files as you need before starting analysis.
+              </p>
+            </div>
+
+            {/* Browse Button */}
+            {!isProcessing && (
+              <div className="mt-5">
+                <label className="inline-block">
+                  <input
+                    type="file"
+                    multiple
+                    accept=".csv,.xlsx,.xls,.parquet,.json,.jsonl,.tsv"
+                    onChange={handleFileSelect}
+                    className="sr-only"
+                  />
+                  <Button asChild variant="outline" size="default" className="cursor-pointer border-border bg-white text-foreground hover:bg-muted/30 transition-all duration-150 rounded-xl px-5 py-2.5 shadow-sm">
+                    <span className="text-xs font-semibold flex items-center gap-2">
+                      <Upload className="h-3.5 w-3.5 text-primary" />
+                      Browse Files to Stage
                     </span>
-                    {!isProcessing && (
-                      <button
-                        onClick={clearFile}
-                        className="p-1 hover:bg-muted rounded-full transition-colors active:scale-90"
-                      >
-                        <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                      </button>
-                    )}
-                  </div>
-                  {isProcessing && (
-                    <p className="text-xs sm:text-sm text-muted-foreground font-mono">processing file…</p>
-                  )}
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                >
-                  <h3 className="text-lg sm:text-xl font-display font-bold mb-2 text-foreground tracking-tight">
-                    {isDragging ? "Drop your file here" : "Upload your dataset"}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4 sm:mb-6 px-4 font-sans leading-relaxed">
-                    Drag and drop your CSV or Excel file, or click to browse
-                  </p>
+                  </Button>
+                </label>
+              </div>
+            )}
 
-                  {/* Browse Button */}
-                  <label className="inline-block">
-                    <input
-                      type="file"
-                      accept=".csv,.xlsx,.xls,.parquet,.json,.jsonl,.tsv"
-                      onChange={handleFileSelect}
-                      className="sr-only"
-                    />
-                    <Button asChild variant="default" size="lg" className="cursor-pointer shadow-premium bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 rounded-xl px-6 py-3">
-                      <span className="text-sm font-semibold flex items-center gap-2">
-                        <Upload className="h-4 w-4" />
-                        Browse Files
-                      </span>
-                    </Button>
-                  </label>
-
-                  {/* Supported formats */}
-                  <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 mt-6 sm:mt-8 text-xs">
-                    {['.csv', '.xlsx', '.parquet', '.json', '.tsv'].map((fmt) => (
-                      <span key={fmt} className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-foreground/80 font-mono text-[11px] font-medium rounded-full border border-border/80 shadow-2xs hover:border-primary/30 transition-colors">
-                        <FileSpreadsheet className="h-3 w-3 text-primary" />
-                        {fmt}
-                      </span>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Supported formats */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-6 text-xs">
+              {['.csv', '.xlsx', '.parquet', '.json', '.tsv'].map((fmt) => (
+                <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white text-foreground/80 font-mono text-[10px] font-medium rounded-full border border-border/80 shadow-2xs">
+                  <FileSpreadsheet className="h-3 w-3 text-primary" />
+                  {fmt}
+                </span>
+              ))}
+            </div>
           </div>
+
+          {/* Staged Files Queue Manager */}
+          {stagedFiles.length > 0 && (
+            <motion.div 
+              className="space-y-4 pt-2"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-display font-bold text-foreground uppercase tracking-wide">
+                    Staged Datasets
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono text-xs font-bold">
+                    {stagedFiles.length}
+                  </span>
+                </div>
+                {!isProcessing && (
+                  <button 
+                    onClick={clearStaging}
+                    className="text-xs text-muted-foreground hover:text-destructive transition-colors font-medium"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+
+              {/* File Cards List */}
+              <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                {stagedFiles.map((file, idx) => {
+                  const ext = file.name.slice(file.name.rfind(".")).toLowerCase();
+                  return (
+                    <motion.div
+                      key={`${file.name}-${idx}`}
+                      className="flex items-center justify-between p-3 rounded-xl bg-white border border-border/80 shadow-2xs hover:border-primary/30 transition-all"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="p-2 rounded-lg bg-primary/5 text-primary shrink-0">
+                          <FileSpreadsheet className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-display font-semibold text-xs sm:text-sm text-foreground truncate max-w-[240px] sm:max-w-[340px]">
+                              {file.name}
+                            </span>
+                            <span className="px-1.5 py-0.2 rounded bg-muted text-[10px] font-mono text-muted-foreground uppercase">
+                              {ext}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-muted-foreground font-mono">
+                            {formatFileSize(file.size)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {!isProcessing && (
+                        <button
+                          onClick={() => removeFileFromStaging(idx)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          title="Remove file from staging"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Manual "Start Analysis" Burgundy CTA Button */}
+              {!isProcessing && (
+                <div className="pt-2">
+                  <Button
+                    size="lg"
+                    onClick={startAnalysisPipeline}
+                    className="w-full rounded-xl shadow-premium bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 py-3.5 text-sm font-display font-semibold flex items-center justify-center gap-2"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Start Analysis & Audit ({stagedFiles.length} {stagedFiles.length === 1 ? 'Dataset' : 'Datasets'})</span>
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
         </CardContent>
       </Card>
 
       {/* Info Note */}
       <motion.div
-        className="flex items-start gap-3 mt-4 sm:mt-6 p-4 rounded-2xl border border-border/80 bg-white text-xs sm:text-sm text-muted-foreground leading-relaxed shadow-premium"
+        className="flex items-start gap-3 p-4 rounded-2xl border border-border/80 bg-white text-xs sm:text-sm text-muted-foreground leading-relaxed shadow-premium"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}

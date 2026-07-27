@@ -31,22 +31,34 @@ Data analysis traditionally requires:
 
 ## Key Features
 
-### High-Performance Analysis & Extended Ingestion
-- **Modular Architecture**: Clean, maintainable `app/services/analysis/` package structure.
+### Ultra-Robust Ingestion & Messy Dataset Engine
+- **Multi-Encoding Auto-Fallback**: Auto-detects and gracefully falls back through `UTF-8`, `UTF-8-BOM` (`utf-8-sig`), `ISO-8859-1`, `Latin-1`, `Windows-1252`, and `UTF-16` without crashing.
+- **Delimiter & Separator Auto-Detection**: Auto-detects `,`, `;`, `\t`, `|`, and `:` delimiters, ensuring European/custom CSVs are never parsed as a single string column.
+- **Metadata Preamble Text Detection**: Auto-detects and skips leading text/metadata lines sitting above actual table headers.
+- **Universal Null Value Standardizer**: Standardizes string null variants (`"nan"`, `"NaN"`, `"N/A"`, `"n/a"`, `"null"`, `"NULL"`, `"None"`, `"#N/A"`, `"#REF!"`, `"#VALUE!"`, `"-"`, `"?"`, `""`, `"missing"`) into true `pl.Null` / `np.nan` values upon load.
+- **Dirty String Currency & Symbol Coercion**: Auto-cleans currency strings (`$1,250.50`), percentages (`15%`), and negative parenthetical numbers `(100.00)` into `Float64` numeric columns.
 - **Extended Ingestion Support**: Native parsing for **11+ file formats** (`.csv`, `.tsv`, `.xls`, `.xlsx`, `.parquet`, `.json`, `.jsonl`, `.ndjson`, `.feather`, `.arrow`, `.gz`).
 - **Multi-File Batch Uploads (`POST /upload/batch`)**: Ingest up to 10 datasets simultaneously grouped under a single session `batch_id`.
-- **Polars Lazy Execution**: Single-pass computation for summary statistics (~10x faster).
 - **Winsorization (Outlier Capping)**: Replaces outlier values beyond IQR thresholds with boundary limits to preserve dataset size without artificial variance/mean skew.
-- **Time-Series Detection**: Automatic trend and seasonality analysis when date columns present.
-- **Real-Time Job Updates**: WebSocket connection supporting Redis PubSub (or polling fallback) for real-time progress updates.
+
+### Staging Queue & Interactive Data Health Workflow
+- **Interactive Dataset Staging Queue**: Drag & drop or browse multiple datasets into a staging queue without auto-starting processing.
+- **Staged File Manager**: Inspect staged datasets with format badges (`.csv`, `.xlsx`, `.parquet`), formatted file sizes (`1.2 MB`), and single-click file removal before running analysis.
+- **Manual "Start Analysis & Audit" CTA**: Explicit user control to trigger dataset inspection when ready.
+- **Interactive Issue Ledger**: Review data quality alerts, approve or reject automated cleaning actions, modify values, and track changes.
+- **Machine Learning Readiness Score**: Computes a comprehensive dataset readiness score (0-100%) evaluating completeness, constant variance, format consistency, outliers, and class imbalance.
+
+### Dual-Engine PDF Generation (Revamped)
+- **Warm Parchment & Burgundy Design System**: Executive Briefing document styling matching GetReport's signature **Warm Parchment (`#FAF6F0`) & Deep Burgundy (`#722F37`)** brand palette.
+- **Continuous Flowing Page Layouts**: Eliminated 4–5 inch blank bottom page gaps by optimizing chart aspect ratios (`2.4" – 3.2"` max height) and removing rigid page breaks.
+- **Two-Pass `NumberedCanvas`**: Computes total pages dynamically (*"Page X of Y"*) alongside running top header bars (*"GetReport — Executive Data Analysis Briefing"*) and confidentiality footers.
+- **Dual Engine Choice**: Uses `WeasyPrint` (production HTML/CSS caching) or `ReportLab` (fast local dev without system dependencies).
 
 ### Trust Foundation & Deduplication Strategy
 - **Two-Tier Cross-Format Deduplication**:
-  - **Tier 1 (SHA-256 Byte Hash)**: Computes streaming byte digests (`file_hash`) during upload to immediately catch binary duplicates.
-  - **Tier 2 (Polars Semantic Fingerprinting)**: Computes normalized row-level fingerprints across column names, row counts, and data checksums to catch duplicate records even across different file formats (e.g. matching `.parquet` against `.csv`).
+  - **Tier 1 (SHA-256 Byte Hash)**: Computes streaming byte digests (`file_hash`) during upload to catch binary duplicates.
+  - **Tier 2 (Polars Semantic Fingerprinting)**: Computes normalized row-level fingerprints across column names, row counts, and data checksums to catch duplicate records across different file formats.
 - **Column Confidence Scores**: Grades every column on Completeness, Consistency, Validity, and Stability.
-- **Machine Learning Readiness Score**: Computes a comprehensive dataset readiness score (0-100%) evaluating column-level completeness, constant or near-zero variance features, format consistency, outliers, and class imbalance with explicit expert recommendations.
-- **Interactive Issue Ledger**: Review data quality alerts, approve or reject automated cleaning actions, modify values, and track changes.
 - **Decision Transparency**: Logs why specific tests (Correlation, Time-Series, Anova) were run or skipped.
 - **Transformation DAG**: Tracks data transformations as a directed acyclic graph for complete auditability.
 
@@ -54,16 +66,11 @@ Data analysis traditionally requires:
 - **Hybrid RAG Engine**: Combines **Dense Vector Search** with **Sparse Keyword Scoring** for precise context retrieval.
 - **Table-Aware Text Splitting (`TableAwareTextSplitter`)**: Splits text by paragraphs and tabular section boundaries while prefixing schema headers to prevent row-boundary fragmentation.
 - **Resilient Embedding Fallbacks (`TFIDFVectorStore`)**: If OpenAI embedding API keys are unconfigured or unavailable, the system automatically falls back to an in-memory TF-IDF + Cosine search engine, ensuring RAG chat is 100% operational.
-- **Interactive RAG Chat**: Ask questions directly about the dataset and its generated analysis using the context-aware chat interface, equipped with early blank-query guards and input length limits.
-
-### Audit History Dashboard & PDF Generation
-- **Audit History Dashboard (`/dashboard`)**: Dedicated dashboard page to view past dataset audits, search records by filename/grade, and download PDF reports directly.
-- **Dual-Engine PDF Generation**: Uses `WeasyPrint` (production HTML/CSS caching) or `ReportLab` (fast local dev without system dependencies).
+- **Interactive RAG Chat**: Ask questions directly about the dataset and its generated analysis using the context-aware chat interface.
 
 ### Security First Design
 - **Magic Number Validation**: Strictly verifies file signatures (`.xlsx`, `.xls`, `.parquet`, `.feather`, `.gz`) to prevent extension spoofing.
 - **Content Inspection**: Rejects binary files masquerading as text CSVs.
-- **Input Sanitization**: Guards against prompt injection in RAG workflows (max query length limit).
 - **Zip Bomb Mitigation**: Pre-validates compressed file parameters (ratio, file count, and decompressed XML size) to prevent OOM/DoS attacks during Excel file ingestion.
 
 ---

@@ -153,13 +153,150 @@ def _validate_zip_bomb(file_path: str, max_uncompressed_size_mb: int | None = No
             raise
         raise ParseError(f"Error checking zip archive safety: {str(e)}")
 
+# Extended Null Values List for Polars CSV parsing and post-processing
+EXTENDED_NULL_VALUES: list[str] = [
+    "nan", "NaN", "NAN", "N/A", "n/a", "null", "NULL", "None", "none",
+    "#N/A", "#REF!", "#VALUE!", "#DIV/0!", "-", "?", "", "  ", "nil",
+    "missing", "NA", "N.A.", "<NA>", "undefined", "null_value"
+]
+
+def _detect_csv_parameters(file_path: str) -> tuple[str, str, int]:
+    """
+    Auto-detect encoding, separator, and header row offset for messy CSV files.
+    """
+    encodings = ["utf-8", "utf-8-sig", "latin-1", "cp1252", "iso-8859-1", "utf-16"]
+    best_encoding = "utf-8"
+    sample_text = ""
+    
+    # 1. Detect Encoding
+    for enc in encodings:
+        try:
+            with open(file_path, "r", encoding=enc, errors="replace") as f:
+                sample_text = "".join([f.readline() for _ in range(30)])
+                best_encoding = enc
+                break
+        except Exception:
+            continue
+
+    if not sample_text:
+        return "utf-8", ",", 0
+
+    lines = [line.strip() for line in sample_text.splitlines() if line.strip()]
+    if not lines:
+        return best_encoding, ",", 0
+
+    # 2. Detect Separator
+    possible_separators = [",", ";", "\t", "|", ":"]
+    sep_counts: dict[str, tuple[int, int]] = {}
+    for sep in possible_separators:
+        counts = [line.count(sep) for line in lines[:10]]
+        if counts and max(counts) > 0:
+            mode_count = max(set(counts), key=counts.count)
+            sep_counts[sep] = (mode_count, counts.count(mode_count))
+            
+    best_sep = ","
+    if sep_counts:
+        best_sep = max(sep_counts.keys(), key=lambda s: (sep_counts[s][0], sep_counts[s][1]))
+
+    # 3. Detect Skip Rows (Header Offset for Metadata text rows)
+    skip_rows = 0
+    if len(lines) > 2 and best_sep:
+        counts = [line.count(best_sep) for line in lines]
+        max_sep_in_file = max(counts) if counts else 0
+        for idx, cnt in enumerate(counts[:10]):
+            if max_sep_in_file > 2 and cnt < (max_sep_in_file * 0.5):
+                skip_rows = idx + 1
+            else:
+                break
+
+    return best_encoding, best_sep, skip_rows
+
+
+def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Sanitize dataframe columns:
+    1. Replace string null variants with true Null.
+    2. Coerce string columns with currency/symbols/percentages into numeric floats.
+    3. Ensure clean, unique snake_case column names.
+    4. Replace infinity / -infinity float values with Null.
+    """
+    if df.height == 0 or df.width == 0:
+        return df
+
+    # Step A: Unique snake_case column names
+    seen_names: set[str] = set()
+    new_column_names: list[str] = []
+    for idx, col in enumerate(df.columns):
+        clean_name = _to_snake_case(str(col)) if col and str(col).strip() else f"column_{idx+1}"
+        base_name = clean_name
+        counter = 1
+        while clean_name in seen_names:
+            clean_name = f"{base_name}_{counter}"
+            counter += 1
+        seen_names.add(clean_name)
+        new_column_names.append(clean_name)
+
+    df = df.rename(dict(zip(df.columns, new_column_names)))
+
+    # Step B: Column-level cleaning & auto coercion
+    exprs = []
+    for col_name in df.columns:
+        col_expr = pl.col(col_name)
+        dtype = df[col_name].dtype
+
+        if dtype in (pl.Utf8, pl.Object):
+            trimmed = col_expr.str.strip_chars()
+            null_handled = (
+                pl.when(trimmed.str.to_lowercase().is_in([v.lower() for v in EXTENDED_NULL_VALUES]) | (trimmed == ""))
+                .then(None)
+                .otherwise(trimmed)
+            )
+
+            # Check if string column is actually numeric (currency $, €, £, %, commas)
+            sample = df[col_name].drop_nulls().head(100)
+            if sample.len() > 0:
+                clean_sample = (
+                    sample.str.strip_chars()
+                    .str.replace_all(r"[\$,€,£,₹,¥,\s]", "")
+                    .str.replace_all(r"%", "")
+                    .str.replace_all(r"^\((.*)\)$", r"-\1")
+                )
+                numeric_parsed = clean_sample.cast(pl.Float64, strict=False)
+                valid_num_count = numeric_parsed.drop_nulls().len()
+
+                if valid_num_count / float(sample.len()) >= 0.7:
+                    coerced = (
+                        null_handled
+                        .str.replace_all(r"[\$,€,£,₹,¥,\s]", "")
+                        .str.replace_all(r"%", "")
+                        .str.replace_all(r"^\((.*)\)$", r"-\1")
+                        .cast(pl.Float64, strict=False)
+                    )
+                    exprs.append(coerced.alias(col_name))
+                    continue
+
+            exprs.append(null_handled.alias(col_name))
+
+        elif dtype in (pl.Float64, pl.Float32):
+            clean_float = (
+                pl.when(col_expr.is_infinite() | col_expr.is_nan())
+                .then(None)
+                .otherwise(col_expr)
+            )
+            exprs.append(clean_float.alias(col_name))
+        else:
+            exprs.append(col_expr)
+
+    return df.with_columns(exprs)
+
+
 # ─── File Loader (Polars) ────────────────────────────────────────────────────
 def load_dataframe(file_path: str) -> pl.DataFrame:
     """
-    Load a file from disk into a Polars DataFrame.
-    Optimized for performance and memory.
+    Load a file from disk into a Polars DataFrame with multi-encoding fallback,
+    auto-delimiter detection, dirty string auto-coercion, and zip bomb validation.
     """
-    logger.info("═══ load_dataframe (Polars) started — '%s' ═══", file_path)
+    logger.info("═══ load_dataframe (Ultra-Robust) started — '%s' ═══", file_path)
     
     # Pre-validate zip files (Excel) against Zip Bombs
     lower_path = file_path.lower()
@@ -168,16 +305,40 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
     
     try:
         lower_path = file_path.lower()
-        if lower_path.endswith(".csv"):
-            # Polars read_csv is extremely fast and multi-threaded
-            df = pl.read_csv(file_path, ignore_errors=True, n_rows=None)
+        if lower_path.endswith(".csv") or lower_path.endswith(".txt"):
+            encoding, sep, skip_rows = _detect_csv_parameters(file_path)
+            try:
+                df = pl.read_csv(
+                    file_path,
+                    separator=sep,
+                    skip_rows=skip_rows,
+                    encoding=encoding,
+                    ignore_errors=True,
+                    null_values=EXTENDED_NULL_VALUES,
+                    truncate_ragged_lines=True,
+                )
+            except Exception as csv_err:
+                logger.warning("Primary CSV read failed (%s). Falling back to Latin-1 lenient parse with sep='%s'.", csv_err, sep)
+                df = pl.read_csv(
+                    file_path,
+                    separator=sep,
+                    skip_rows=skip_rows,
+                    encoding="latin-1",
+                    ignore_errors=True,
+                    null_values=EXTENDED_NULL_VALUES,
+                    truncate_ragged_lines=True,
+                )
         elif lower_path.endswith(".tsv"):
-            df = pl.read_csv(file_path, separator="\t", ignore_errors=True, n_rows=None)
+            df = pl.read_csv(
+                file_path,
+                separator="\t",
+                ignore_errors=True,
+                null_values=EXTENDED_NULL_VALUES,
+                truncate_ragged_lines=True,
+            )
         elif lower_path.endswith((".xls", ".xlsx")):
-            # Polars read_excel uses engine='xlsx2csv' or similar internally via dependencies
             df = pl.read_excel(file_path)
         elif lower_path.endswith(".parquet"):
-            # Parquet: used for intermediate cleaned data files
             df = pl.read_parquet(file_path)
         elif lower_path.endswith((".jsonl", ".ndjson")):
             df = pl.read_ndjson(file_path)
@@ -186,16 +347,15 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
         elif lower_path.endswith((".feather", ".arrow")):
             df = pl.read_ipc(file_path)
         elif lower_path.endswith(".gz"):
-            # Gzip compressed files
-            if lower_path.endswith(".csv.gz"):
-                df = pl.read_csv(file_path, ignore_errors=True)
-            else:
-                df = pl.read_csv(file_path, ignore_errors=True)
+            df = pl.read_csv(file_path, ignore_errors=True, null_values=EXTENDED_NULL_VALUES)
         else:
             raise UnsupportedFileTypeError(f"Unsupported extension for: {file_path}")
 
         if df.height == 0:
             raise EmptyFileError("File is empty")
+
+        # Sanitize column names, coerce currency/percent strings, and clean nulls
+        df = _sanitize_and_coerce_df(df)
             
         logger.info("Loaded DataFrame: %d rows × %d columns", df.height, df.width)
         return df
