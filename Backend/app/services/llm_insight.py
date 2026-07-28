@@ -22,6 +22,7 @@ from openai import (
     AuthenticationError,
     APIConnectionError,
     APITimeoutError,
+    APIStatusError,
     BadRequestError,
     NotFoundError,
 )
@@ -47,21 +48,21 @@ OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
 # If a model is paid-only or unavailable, it auto-skips to the next one
 OPENROUTER_MODELS: list[str] = [
     # ── Fast free models (prioritize response speed for chat) ──
-    "google/gemini-2.0-flash-001",        # Free tier — extremely fast
-    "meta-llama/llama-3.1-8b-instruct",   # Free tier — small, fast
-    "mistralai/mistral-7b-instruct",      # Free tier — small, fast
-    "qwen/qwen-2.5-7b-instruct",         # Free tier — small, fast
-    "minimax/minimax-01",                 # Free tier — Minimax
+    "google/gemini-2.0-flash-exp",            # Free tier — Gemini 2.0 Flash (experimental, replaces deprecated -001)
+    "google/gemma-3-4b-it:free",              # Free tier — Gemma 3 4B
+    "meta-llama/llama-3.1-8b-instruct:free",  # Free tier — small, fast
+    "mistralai/mistral-7b-instruct:free",     # Free tier — small, fast
+    "qwen/qwen-2.5-7b-instruct:free",        # Free tier — small, fast
     # ── Capable free models (higher quality) ──
-    "mistralai/mixtral-8x22b-instruct",   # Free tier — Mixtral 8x22B MoE
-    "meta-llama/llama-3.1-70b-instruct",  # Free tier — Llama 3.1 70B
-    "meta-llama/llama-4-scout",           # Free tier — Llama 4 efficient
-    "meta-llama/llama-4-maverick",        # Free tier — Llama 4 flagship
-    "deepseek/deepseek-v3.2",            # Free tier — DeepSeek V3.2
-    "qwen/qwen3.5-9b",                   # Free tier — Qwen 3.5 9B
-    "google/gemma-2-9b-it",               # Free tier
+    "google/gemma-2-9b-it:free",              # Free tier — Gemma 2 9B
+    "meta-llama/llama-3.1-70b-instruct:free", # Free tier — Llama 3.1 70B
+    "meta-llama/llama-4-scout:free",          # Free tier — Llama 4 efficient
+    "meta-llama/llama-4-maverick:free",       # Free tier — Llama 4 flagship
+    "deepseek/deepseek-r1:free",              # Free tier — DeepSeek R1
+    "qwen/qwen3-8b:free",                    # Free tier — Qwen 3 8B
     # ── Paid (last resort before OpenAI) ──
-    "deepseek/deepseek-chat",             # Paid (fallback)
+    "qwen/qwen3.7-flash",                    # Paid — ultra-cheap ($0.03/M input), fast
+    "deepseek/deepseek-chat",                 # Paid (fallback)
 ]
 
 # Errors that are transient and worth retrying
@@ -364,12 +365,22 @@ async def _call_provider(
             raise
 
         except (BadRequestError, NotFoundError) as e:
-            # 402 Payment Required or 404 model not found — skip immediately
+            # 400 Bad Request or 404 model not found — skip immediately
             logger.warning(
                 "%s model unavailable (%s: %s) — skipping to next model.",
                 provider.name, type(e).__name__, str(e)
             )
             raise InsightGenerationError(f"{provider.name}: {str(e)}")
+
+        except APIStatusError as e:
+            # 402 Payment Required / insufficient credits — skip immediately
+            if e.status_code in (402, 403):
+                logger.warning(
+                    "%s credits exhausted or forbidden (HTTP %d: %s) — skipping to next model.",
+                    provider.name, e.status_code, str(e)
+                )
+                raise InsightGenerationError(f"{provider.name}: HTTP {e.status_code}")
+            raise  # Re-raise unknown status errors
 
         except _RETRYABLE_EXCEPTIONS as e:
             retries_used = attempt
