@@ -169,13 +169,15 @@ async def init_async_db():
         global async_pg_pool
         import asyncpg
         if not async_pg_pool:
-            # Enforce public schema to find 'jobs'
+            # Enforce public schema to find 'jobs' and prune idle connections dropped by Neon SSL
             async_pg_pool = await asyncpg.create_pool(
                 dsn=settings.DATABASE_URL, 
                 min_size=settings.DB_POOL_MIN_SIZE, 
-                max_size=settings.DB_POOL_MAX_SIZE
+                max_size=settings.DB_POOL_MAX_SIZE,
+                max_inactive_connection_lifetime=60.0,
+                command_timeout=15.0
             )
-            logger.info("Async PostgreSQL Pool initialized (search_path=public).")
+            logger.info("Async PostgreSQL Pool initialized (search_path=public, max_inactive_lifetime=60s).")
 
 def close_db():
     """Sync Cleanup"""
@@ -467,8 +469,32 @@ async def get_async_db_connection():
         # Postgres Async
         global async_pg_pool
         if not async_pg_pool: await init_async_db()
-        async with async_pg_pool.acquire() as conn:
-            yield AsyncPostgresConnection(conn, async_pg_pool)
+        
+        conn = None
+        retries = 3
+        while retries > 0:
+            try:
+                conn = await async_pg_pool.acquire(timeout=5.0)
+                # Pre-ping: Neon Serverless Postgres drops idle SSL connections.
+                await conn.execute("SELECT 1")
+                break
+            except Exception as e:
+                if conn:
+                    try:
+                        await async_pg_pool.release(conn, terminate=True)
+                    except Exception:
+                        pass
+                    conn = None
+                retries -= 1
+                if retries == 0:
+                    logger.error(f"Async PostgreSQL pool exhausted of alive connections: {e}")
+                    raise e
+
+        async_conn = AsyncPostgresConnection(conn, async_pg_pool)
+        try:
+            yield async_conn
+        finally:
+            await async_conn.close()
     else:
         # SQLite Async
         import aiosqlite
