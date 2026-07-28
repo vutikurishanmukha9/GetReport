@@ -5,7 +5,8 @@ from starlette.responses import Response
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
-    Adds standard security headers to every response.
+    Adds enterprise security headers to every response to defeat scanners (ZAP, Invicti, Nuclei)
+    and enforce HTTPS transport security (Wireshark, Burp Suite).
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
@@ -14,5 +15,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none';"
+        response.headers["Server"] = "GetReport-Secure"
         return response
