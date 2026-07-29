@@ -479,3 +479,47 @@ def detect_issues(
     
     logger.info(f"Detected {len(ledger.issues)} issues")
     return ledger
+
+
+def apply_remediation(
+    df: pl.DataFrame,
+    ledger: IssueLedger,
+    selected_ids: list[str] | None = None
+) -> pl.DataFrame:
+    """
+    Applies approved or selected quality remediation fixes to a Polars DataFrame safely.
+    
+    Args:
+        df: Input Polars DataFrame
+        ledger: IssueLedger containing quality issues
+        selected_ids: Optional specific issue IDs to execute (if None, applies all approved/modified)
+        
+    Returns:
+        Remediated Polars DataFrame
+    """
+    if not isinstance(df, pl.DataFrame):
+        raise TypeError(f"Expected pl.DataFrame, got {type(df)}")
+
+    issues_to_apply = []
+    for issue in ledger.issues:
+        if selected_ids is not None:
+            if issue.id in selected_ids:
+                issues_to_apply.append(issue)
+        elif issue.status in ("approved", "modified"):
+            issues_to_apply.append(issue)
+
+    if not issues_to_apply:
+        return df
+
+    loc_env = {"df": df, "pl": pl}
+    for issue in issues_to_apply:
+        try:
+            if issue.fix_code and not issue.fix_code.startswith("#"):
+                exec(issue.fix_code, globals(), loc_env)
+                df = loc_env["df"]
+                logger.info("Applied remediation fix for issue %s (%s: %s)", issue.id, issue.issue_type, issue.column)
+        except Exception as e:
+            logger.warning("Failed to apply remediation fix for issue %s: %s", issue.id, e)
+
+    return df
+
