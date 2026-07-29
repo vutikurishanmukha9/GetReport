@@ -68,6 +68,7 @@ class Job:
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     report_path: Optional[str] = None
+    report_status: str = "not_started"
     result_path: Optional[str] = None
     version: int = 0  # For Optimistic Locking
 
@@ -173,9 +174,12 @@ class TaskManager:
             message=row["message"],
             progress=row["progress"],
             filename=row["filename"],
+            batch_id=row["batch_id"] if "batch_id" in row.keys() else None,
+            file_hash=row["file_hash"] if "file_hash" in row.keys() else None,
             result=result_data,
             error=row["error"],
             report_path=row["report_path"],
+            report_status=row["report_status"] if "report_status" in row.keys() and row["report_status"] else "not_started",
             result_path=result_ref,
             version=row["version"]
         )
@@ -275,9 +279,12 @@ class TaskManager:
             message=row["message"],
             progress=row["progress"],
             filename=row["filename"],
+            batch_id=row["batch_id"] if "batch_id" in row.keys() else None,
+            file_hash=row["file_hash"] if "file_hash" in row.keys() else None,
             result=result_data,
             error=row["error"],
             report_path=row["report_path"],
+            report_status=row["report_status"] if "report_status" in row.keys() and row["report_status"] else "not_started",
             result_path=result_ref,
             version=row.get("version", 0) if hasattr(row, "get") else row["version"]
         )
@@ -347,6 +354,35 @@ class TaskManager:
             "status": TaskStatus.FAILED,
             "error": error_msg
         })
+
+    def find_previous_completed_job(self, task_id: str, filename: str) -> Optional[Job]:
+        """Find the latest completed run for the same dataset name without affecting existing jobs."""
+        with get_db_connection() as conn:
+            row = conn.execute(
+                "SELECT task_id FROM jobs WHERE filename = ? AND status = ? AND task_id != ? ORDER BY created_at DESC LIMIT 1",
+                (filename, TaskStatus.COMPLETED.value, task_id),
+            ).fetchone()
+        if not row:
+            return None
+        previous_id = row["task_id"] if hasattr(row, "keys") else row[0]
+        return self.get_job(previous_id)
+
+    async def set_report_status_async(self, task_id: str, report_status: str) -> None:
+        async with get_async_db_connection() as conn:
+            await conn.execute(
+                "UPDATE jobs SET report_status = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
+                (report_status, task_id),
+            )
+            await conn.commit()
+
+    def set_report_status(self, task_id: str, report_status: str) -> None:
+        """Update the persistent PDF state from synchronous worker tasks."""
+        with get_db_connection() as conn:
+            conn.execute(
+                "UPDATE jobs SET report_status = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
+                (report_status, task_id),
+            )
+            conn.commit()
     
     def complete_job(self, task_id: str, result: Dict[str, Any], report_path: Optional[str] = None):
         result_ref = _save_result_to_storage(task_id, result)
@@ -359,6 +395,7 @@ class TaskManager:
                     message = 'Completed', 
                     result_path = ?, 
                     report_path = ?,
+                    report_status = 'ready',
                     updated_at = CURRENT_TIMESTAMP, 
                     version = version + 1
                 WHERE task_id = ?

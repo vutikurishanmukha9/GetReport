@@ -1,6 +1,8 @@
 from __future__ import annotations
 from pydantic import BaseModel, Field
 from typing import Literal
+import hashlib
+import json
 
 DomainType = Literal["general", "finance", "medical", "marketing", "sales"]
 
@@ -26,6 +28,15 @@ class AnalysisConfig(BaseModel):
     
     # ─── Domain Context ──────────────────────────────────────────────────────
     domain: DomainType = "general"
+    config_version: str = "1.0"
+
+    def snapshot(self) -> dict:
+        """Return an immutable, serialisable record of the configuration used."""
+        values = self.model_dump(mode="json")
+        fingerprint = hashlib.sha256(
+            json.dumps(values, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        return {"version": self.config_version, "fingerprint": fingerprint, "values": values}
     
     @classmethod
     def default(cls) -> "AnalysisConfig":

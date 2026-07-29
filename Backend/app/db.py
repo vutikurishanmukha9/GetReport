@@ -305,6 +305,7 @@ def _create_schema(cursor):
         result_path TEXT,
         error TEXT,
         report_path TEXT,
+        report_status TEXT DEFAULT 'not_started',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         version INTEGER DEFAULT 0
@@ -320,7 +321,7 @@ def _create_schema(cursor):
     """)
     
     # Migrations
-    for col in ["result_path TEXT", "version INTEGER DEFAULT 0", "batch_id TEXT", "file_hash TEXT"]:
+    for col in ["result_path TEXT", "version INTEGER DEFAULT 0", "batch_id TEXT", "file_hash TEXT", "report_status TEXT DEFAULT 'not_started'"]:
         try: cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
         except: pass
 
@@ -336,6 +337,7 @@ def _create_core_tables_explicit(cursor):
         result_path TEXT,
         error TEXT,
         report_path TEXT,
+        report_status TEXT DEFAULT 'not_started',
         batch_id TEXT,
         file_hash TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -359,6 +361,7 @@ def _create_core_tables_explicit(cursor):
         ("version", "INTEGER DEFAULT 0"),
         ("batch_id", "TEXT"),
         ("file_hash", "TEXT"),
+        ("report_status", "TEXT DEFAULT 'not_started'"),
     ]
     for col_name, col_def in migrations:
         try:

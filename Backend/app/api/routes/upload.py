@@ -49,6 +49,39 @@ async def _compute_file_hash(file: UploadFile) -> str:
     await file.seek(0)
     return hasher.hexdigest()
 
+async def _ensure_file_size(file: UploadFile) -> int:
+    """Reject uploads that exceed the configured per-file limit and reset the stream."""
+    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    size = getattr(file, "size", None)
+    if size is None:
+        try:
+            # Starlette's async UploadFile.seek accepts only an offset; use its
+            # underlying seekable object for an O(1) size check.
+            file.file.seek(0, 2)
+            size = file.file.tell()
+            file.file.seek(0)
+        except Exception as seek_err:
+            logger.warning("Size check failed (%s); reading the stream instead.", seek_err)
+            size = 0
+            while chunk := await file.read(64 * 1024):
+                size += len(chunk)
+                if size > max_bytes:
+                    raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
+            await file.seek(0)
+
+    if size > max_bytes:
+        raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
+    return size
+
+async def _validate_upload_sizes(files: list[UploadFile]) -> None:
+    """Apply per-file and aggregate limits before data is persisted."""
+    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    total_size = 0
+    for file in files:
+        total_size += await _ensure_file_size(file)
+        if total_size > max_bytes:
+            raise HTTPException(413, f"Combined upload too large. Max total size: {settings.MAX_UPLOAD_SIZE_MB}MB")
+
 @router.post("/upload", response_model=TaskResponse)
 @limiter.limit(UPLOAD_LIMIT)
 async def upload_file(
@@ -70,28 +103,7 @@ async def upload_file(
         await validate_file_signature(file)
         file_hash = await _compute_file_hash(file)
          
-        # Enforce file size limit in O(1) time using pointer seek
-        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
-        try:
-            await file.seek(0, 2)  # Seek to end
-            size = await file.tell()
-            await file.seek(0)  # Reset to start
-        except Exception as seek_err:
-            # Fallback if async seek(0, 2)/tell() is unsupported by the FastAPI/Starlette wrapper version
-            logger.warning(f"Async seek/tell size check failed ({seek_err}), falling back to streaming read.")
-            size = 0
-            CHUNK_SIZE = 64 * 1024
-            while True:
-                chunk = await file.read(CHUNK_SIZE)
-                if not chunk:
-                    break
-                size += len(chunk)
-                if size > max_bytes:
-                    raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
-            await file.seek(0)
-
-        if size > max_bytes:
-            raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
+        await _ensure_file_size(file)
 
              
         # Sanitize Filename (Security Fix)
@@ -157,6 +169,8 @@ async def upload_files_batch(
     if len(files) > 10:
         raise HTTPException(400, "Batch upload limit is 10 files per request.")
 
+    await _validate_upload_sizes(files)
+
     task_ids = []
     task_details = []
     batch_id = f"batch_{uuid.uuid4().hex[:12]}"
@@ -207,6 +221,11 @@ async def upload_and_join_files(
     if len(files) > 5:
         raise HTTPException(400, "Maximum 5 files allowed for joined analysis.")
 
+    if join_type not in {"inner", "left", "full", "outer", "semi", "anti", "cross"}:
+        raise HTTPException(400, "Invalid join type.")
+
+    await _validate_upload_sizes(files)
+
     dfs_map = {}
     temp_files_to_remove = []
 
@@ -223,7 +242,7 @@ async def upload_and_join_files(
             file_ref = storage.save_upload(file.file, safe_filename)
             temp_files_to_remove.append(file_ref)
 
-            df = load_dataframe(file_ref)
+            df = load_dataframe(storage.get_absolute_path(file_ref))
             dfs_map[safe_filename] = df
 
         # Perform Multi-Dataset Join

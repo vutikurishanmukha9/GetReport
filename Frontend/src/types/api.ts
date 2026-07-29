@@ -103,7 +103,7 @@ export interface AnalysisResult {
     drift_detected?: Array<{ column: string; shift_pct: number; mean_p1: number; mean_p2: number }>;
     has_time_series?: boolean;
     time_column?: string;
-    analyses?: Record<string, any>;
+    analyses?: Record<string, unknown>;
   };
   confidence_scores?: ConfidenceScores;
   ml_readiness?: MLReadiness;
@@ -187,7 +187,7 @@ export interface InspectionReport {
   total_rows: number;
   columns: ColumnProfile[];
   issues: QualityIssue[];
-  preview: Record<string, any>[]; // Added for data preview table
+  preview: Record<string, unknown>[];
 }
 
 export interface CleaningRule {

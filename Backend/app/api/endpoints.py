@@ -70,5 +70,7 @@ async def start_analysis(
        return JSONResponse(status_code=409, content={"message": msg})
         
     # Start Analysis Task (Phase 2) - VIA CELERY
-    resume_analysis_task.delay(task_id, body.rules, body.analysis_config)
+    # Celery's JSON serializer cannot encode Pydantic model instances.
+    analysis_config = body.analysis_config.model_dump() if body.analysis_config else None
+    resume_analysis_task.delay(task_id, body.rules, analysis_config)
     return {"message": "Analysis started"}

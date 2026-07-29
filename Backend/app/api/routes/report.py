@@ -29,7 +29,11 @@ ALLOWED_OUTPUT_DIR = os.path.abspath("outputs")
 def _validate_report_path(report_path: str) -> str:
     """Ensure report_path is within the allowed outputs directory."""
     real_path = os.path.realpath(report_path)
-    if not real_path.startswith(ALLOWED_OUTPUT_DIR):
+    try:
+        is_allowed = os.path.commonpath([ALLOWED_OUTPUT_DIR, real_path]) == ALLOWED_OUTPUT_DIR
+    except ValueError:
+        is_allowed = False
+    if not is_allowed:
         logger.warning(f"Path traversal attempt blocked: {report_path}")
         raise HTTPException(403, "Access denied")
     return real_path
@@ -59,10 +63,12 @@ async def generate_persistent_report(
         raise HTTPException(400, "Job analysis not ready yet")
     
     try:
+        await title_task_manager.set_report_status_async(task_id, "generating")
         generate_pdf_task.delay(task_id)
         return {"message": "Report generation started. Poll /report/status for progress.", "path": None}
         
     except Exception as e:
+        await title_task_manager.set_report_status_async(task_id, "failed")
         logger.error(f"Persistent report generation failed: {str(e)}")
         raise HTTPException(500, "Failed to start report generation.")
 
@@ -82,9 +88,11 @@ async def get_report_status(
         raise HTTPException(404, "Job not found")
     
     if job.report_path and os.path.exists(job.report_path):
-        return {"status": "ready", "path": job.report_path}
-    elif job.report_path:
+        return {"status": "ready", "download_url": f"/api/jobs/{task_id}/report"}
+    elif job.report_status == "generating":
         return {"status": "generating"}
+    elif job.report_status == "failed":
+        return {"status": "failed"}
     else:
         return {"status": "not_started"}
 
@@ -281,13 +289,31 @@ async def get_comparison_report(
     
     return report
 
+
+@router.get("/jobs/{task_id}/history")
+async def get_historical_comparison(
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
+    """Return additive schema-drift and trend data for this dataset run."""
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found or analysis not complete")
+    return job.result.get("historical_comparison", {"schema_drift": {"baseline_available": False, "status": "no_baseline"}})
+
 class GenerateReportRequest(BaseModel):
     filename: str
     analysis: Dict[str, Any]
     charts: Dict[str, Any]
 
 @router.post("/generate-report")
-async def generate_report_direct(body: GenerateReportRequest):
+@limiter.limit(REPORT_LIMIT)
+async def generate_report_direct(
+    request: Request,
+    body: GenerateReportRequest,
+    _auth: None = Depends(verify_api_key),
+):
     """
     Exposes a direct on-the-fly PDF generation endpoint (typically for tests/isolated verification).
     """
@@ -334,7 +360,10 @@ async def export_cleaned_data_or_report(
     
     if clean_fmt in ("csv", "parquet"):
         try:
-            file_path = storage.get_absolute_path(job.filename)
+            cleaned_file_ref = job.result.get("cleaned_file_ref")
+            if not cleaned_file_ref:
+                raise HTTPException(404, "Cleaned dataset is not available for export")
+            file_path = storage.get_absolute_path(cleaned_file_ref)
             if not os.path.exists(file_path):
                 raise HTTPException(404, "Cleaned dataset source file not found")
 

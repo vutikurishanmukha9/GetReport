@@ -24,6 +24,7 @@ from app.services.data_processing import load_dataframe, inspect_dataset, clean_
 from app.services.issue_ledger import detect_issues
 from app.services.analysis import analyze_dataset
 from app.services.analysis_config import AnalysisConfig
+from app.services.dataset_versioning import build_schema_profile, build_historical_comparison
 from app.services.comparison import comparison_service
 from app.services.visualization import generate_charts
 from app.services.llm_insight import generate_insights, generate_insights_sync
@@ -137,6 +138,14 @@ def analyze_data_task(self, context: Dict[str, Any], analysis_config_dict: Optio
         analysis_result = analyze_dataset(df, context.get("top_categories", 10), analysis_config)
         dataset_info = get_dataset_info(df)
         issue_ledger = detect_issues(df)
+        schema_profile = build_schema_profile(df)
+        config_snapshot = analysis_config.snapshot() if analysis_config else AnalysisConfig.default().snapshot()
+        previous_job = title_task_manager.find_previous_completed_job(task_id, context["filename"])
+        historical_comparison = build_historical_comparison(
+            previous_job.id if previous_job else None,
+            previous_job.result if previous_job else None,
+            schema_profile,
+        )
         
         # Compare with original (Optional optimization: load original again? Or assume stats enough?)
         # For comparison report, we need original DF.
@@ -160,6 +169,9 @@ def analyze_data_task(self, context: Dict[str, Any], analysis_config_dict: Optio
             "dataset_info": dataset_info,
             "comparison_report_ref": comparison_ref,
             "issue_ledger_ref": issue_ref,
+            "analysis_config": config_snapshot,
+            "schema_profile": schema_profile,
+            "historical_comparison": historical_comparison,
         })
         return context
     except Exception as e:
@@ -269,6 +281,11 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
             "transformation_dag": context["transformation_dag"],
             "comparison_report": comparison_report,
             "issue_ledger": issue_ledger,
+            "analysis_config": context["analysis_config"],
+            "schema_profile": context["schema_profile"],
+            "historical_comparison": context["historical_comparison"],
+            # Keep the cleaned artifact available for user-requested exports.
+            "cleaned_file_ref": context["cleaned_file_ref"],
             "report_path": pdf_path
         }
         
@@ -276,7 +293,6 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
         
         # Cleanup
         try:
-             storage.delete(context["cleaned_file_ref"])
              storage.delete(context["file_ref"])
              storage.delete(context["analysis_result_ref"])
              storage.delete(context["comparison_report_ref"])
@@ -466,3 +482,4 @@ def generate_pdf_task(task_id: str):
         
     except Exception as e:
         logger.error(f"PDF Gen Task Failed: {e}") 
+        title_task_manager.set_report_status(task_id, "failed")

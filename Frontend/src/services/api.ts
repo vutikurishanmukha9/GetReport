@@ -1,5 +1,3 @@
-import type { ApiResponse, AnalysisResult, Charts, CleaningRulesMap } from "@/types/api";
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 // ─── Response Types ─────────────────────────────────────────────────────────
@@ -15,8 +13,8 @@ export interface StatusResponse {
 }
 
 export interface ReportStatusResponse {
-    status: "ready" | "generating" | "not_started";
-    path?: string;
+    status: "ready" | "generating" | "not_started" | "failed";
+    download_url?: string;
 }
 
 // ─── Client ─────────────────────────────────────────────────────────────────
