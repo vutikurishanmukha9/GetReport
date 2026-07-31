@@ -44,9 +44,9 @@ plt.rcParams.update({
 })
 
 def _fig_to_base64(fig) -> str:
-    """Convert Matplotlib figure to Base64 string."""
+    """Convert Matplotlib figure to Base64 string with PNG compression optimization."""
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", bbox_inches="tight", dpi=CHART_DPI)
+    fig.savefig(buf, format="png", bbox_inches="tight", dpi=CHART_DPI, pil_kwargs={"optimize": True})
     plt.close(fig)
     buf.seek(0)
     return base64.b64encode(buf.read()).decode("utf-8")

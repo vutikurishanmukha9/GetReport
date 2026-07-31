@@ -174,10 +174,10 @@ async def init_async_db():
                 dsn=settings.DATABASE_URL, 
                 min_size=settings.DB_POOL_MIN_SIZE, 
                 max_size=settings.DB_POOL_MAX_SIZE,
-                max_inactive_connection_lifetime=60.0,
-                command_timeout=15.0
+                max_inactive_connection_lifetime=30.0,
+                command_timeout=10.0
             )
-            logger.info("Async PostgreSQL Pool initialized (search_path=public, max_inactive_lifetime=60s).")
+            logger.info("Async PostgreSQL Pool initialized (search_path=public, max_inactive_lifetime=30s).")
 
 def close_db():
     """Sync Cleanup"""

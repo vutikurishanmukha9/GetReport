@@ -21,8 +21,12 @@ from app.services.report_styles import ReportMetadata
 
 logger = logging.getLogger(__name__)
 
-# ─── Template directory ──────────────────────────────────────────────────────
+# ─── Template directory & Jinja Environment ──────────────────────────────────
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
+_JINJA_ENV = Environment(
+    loader=FileSystemLoader(str(_TEMPLATE_DIR)),
+    autoescape=True,
+)
 
 
 class CSSCache:
@@ -73,12 +77,7 @@ def generate_pdf_weasyprint(
 
     # ── 1. Render HTML from template ────────────────────────────────────────
     # Security: autoescape=True to prevent HTML injection from user data
-    env = Environment(
-        loader=FileSystemLoader(str(_TEMPLATE_DIR)),
-        autoescape=True,
-    )
-    env.filters["domain_label"] = _display_domain_name
-    template = env.get_template("report.html")
+    template = _JINJA_ENV.get_template("report.html")
 
     # Build template context
     metadata = analysis_results.get("metadata", {})

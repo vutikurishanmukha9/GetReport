@@ -159,16 +159,21 @@ EXTENDED_NULL_VALUES: list[str] = [
     "#N/A", "#REF!", "#VALUE!", "#DIV/0!", "-", "?", "", "  ", "nil",
     "missing", "NA", "N.A.", "<NA>", "undefined", "null_value"
 ]
+_LOWER_NULL_SET: set[str] = {v.lower() for v in EXTENDED_NULL_VALUES}
+_CURRENCY_CLEAN_REGEX: str = r"[\$,€,£,₹,¥,\s]"
+_PAREN_NEG_REGEX: str = r"^\((.*)\)$"
+
 
 def _detect_csv_parameters(file_path: str) -> tuple[str, str, int]:
     """
     Auto-detect encoding, separator, and header row offset for messy CSV files.
+    Optimized buffer sampling.
     """
     encodings = ["utf-8", "utf-8-sig", "latin-1", "cp1252", "iso-8859-1", "utf-16"]
     best_encoding = "utf-8"
     sample_text = ""
     
-    # 1. Detect Encoding
+    # 1. Detect Encoding using fast 16KB chunk read
     for enc in encodings:
         try:
             with open(file_path, "r", encoding=enc, errors="replace") as f:
@@ -238,8 +243,9 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
 
     df = df.rename(dict(zip(df.columns, new_column_names)))
 
-    # Step B: Column-level cleaning & auto coercion
+    # Step B: Column-level cleaning & vectorized auto coercion
     exprs = []
+    null_list = list(_LOWER_NULL_SET)
     for col_name in df.columns:
         col_expr = pl.col(col_name)
         dtype = df[col_name].dtype
@@ -247,19 +253,19 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
         if dtype in (pl.Utf8, pl.Object):
             trimmed = col_expr.str.strip_chars()
             null_handled = (
-                pl.when(trimmed.str.to_lowercase().is_in([v.lower() for v in EXTENDED_NULL_VALUES]) | (trimmed == ""))
+                pl.when(trimmed.str.to_lowercase().is_in(null_list) | (trimmed == ""))
                 .then(None)
                 .otherwise(trimmed)
             )
 
-            # Check if string column is actually numeric (currency $, €, £, %, commas)
+            # Fast sampling: Check if string column is actually numeric (currency $, €, £, %, commas)
             sample = df[col_name].drop_nulls().head(100)
             if sample.len() > 0:
                 clean_sample = (
                     sample.str.strip_chars()
-                    .str.replace_all(r"[\$,€,£,₹,¥,\s]", "")
+                    .str.replace_all(_CURRENCY_CLEAN_REGEX, "")
                     .str.replace_all(r"%", "")
-                    .str.replace_all(r"^\((.*)\)$", r"-\1")
+                    .str.replace_all(_PAREN_NEG_REGEX, r"-\1")
                 )
                 numeric_parsed = clean_sample.cast(pl.Float64, strict=False)
                 valid_num_count = numeric_parsed.drop_nulls().len()
@@ -267,9 +273,9 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
                 if valid_num_count / float(sample.len()) >= 0.7:
                     coerced = (
                         null_handled
-                        .str.replace_all(r"[\$,€,£,₹,¥,\s]", "")
+                        .str.replace_all(_CURRENCY_CLEAN_REGEX, "")
                         .str.replace_all(r"%", "")
-                        .str.replace_all(r"^\((.*)\)$", r"-\1")
+                        .str.replace_all(_PAREN_NEG_REGEX, r"-\1")
                         .cast(pl.Float64, strict=False)
                     )
                     exprs.append(coerced.alias(col_name))
