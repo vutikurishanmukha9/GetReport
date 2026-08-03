@@ -208,8 +208,9 @@ def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
         else:
             continue  # < 1% — negligible
 
-        # ── Null concentration pattern (head / tail / scattered) ──
-        pattern = "scattered"
+        # ── Null concentration pattern & MCAR/MAR/MNAR classification ──
+        pattern = "scattered (MCAR - Missing Completely At Random)"
+        mechanism = "MCAR"
         try:
             sample_size = min(n_rows, 100)
             head_nulls = df[col].head(sample_size).null_count()
@@ -217,15 +218,23 @@ def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
             head_ratio = head_nulls / sample_size if sample_size > 0 else 0
             tail_ratio = tail_nulls / sample_size if sample_size > 0 else 0
             if tail_ratio > 0.5 and tail_ratio > head_ratio * 2:
-                pattern = "concentrated at tail (recent records may be incomplete)"
+                pattern = "concentrated at tail (MAR - Missing At Random by time segment)"
+                mechanism = "MAR"
             elif head_ratio > 0.5 and head_ratio > tail_ratio * 2:
-                pattern = "concentrated at head (early records may be incomplete)"
+                pattern = "concentrated at head (MAR - Missing At Random by time segment)"
+                mechanism = "MAR"
+            elif "income" in col.lower() or "salary" in col.lower() or "ssn" in col.lower():
+                pattern = "sensitive field bias (MNAR - Missing Not At Random, preserve indicator)"
+                mechanism = "MNAR"
         except Exception:
             pass
 
-        # ── Fix suggestion based on dtype ──
+        # ── Fix suggestion based on dtype & mechanism ──
         dtype = df[col].dtype
-        if dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.Int16, pl.Int8, pl.UInt32, pl.UInt64):
+        if mechanism == "MNAR":
+            fix_code = f"# MNAR field: create missingness flag column before imputation\ndf = df.with_columns(pl.col('{col}').is_null().cast(pl.Int8).alias('{col}_is_missing'))"
+            suggested_fix = "Create missingness indicator flag column (MNAR preservation)"
+        elif dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.Int16, pl.Int8, pl.UInt32, pl.UInt64):
             fix_code = f"df = df.with_columns(pl.col('{col}').fill_null(pl.col('{col}').median()))"
             suggested_fix = "Fill with median value"
         else:
@@ -245,6 +254,129 @@ def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
             suggested_fix=suggested_fix,
             fix_code=fix_code,
         ))
+
+    return issues
+
+
+def _detect_business_rule_violations(df: pl.DataFrame) -> list[Issue]:
+    """Detect domain business rule violations (invalid emails, future dates, out-of-range ages)."""
+    issues = []
+    n_rows = df.height
+    if n_rows == 0:
+        return issues
+
+    import re
+    from datetime import datetime
+
+    for col in df.columns:
+        col_lower = col.lower()
+        dtype = df[col].dtype
+
+        # ── 1. Invalid Email Regex ──
+        if "email" in col_lower and dtype == pl.Utf8:
+            non_null = df[col].drop_nulls()
+            if non_null.len() > 0:
+                email_regex = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+                invalid_mask = ~non_null.str.contains(email_regex)
+                invalid_count = int(invalid_mask.sum())
+                if invalid_count > 0:
+                    pct = (invalid_count / n_rows * 100)
+                    issues.append(Issue(
+                        id=_generate_id(),
+                        issue_type="format_issue",
+                        severity="high" if pct >= 5 else "medium",
+                        column=col,
+                        affected_rows=invalid_count,
+                        affected_pct=pct,
+                        description=f"{invalid_count:,} invalid email address formats detected in '{col}'",
+                        suggested_fix="Filter out or flag invalid email syntax",
+                        fix_code=f"df = df.filter(pl.col('{col}').str.contains(r'{email_regex}') | pl.col('{col}').is_null())",
+                    ))
+
+        # ── 2. Out of Range Age ──
+        if "age" in col_lower and dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.Int16, pl.Int8):
+            non_null = df[col].drop_nulls()
+            if non_null.len() > 0:
+                age_out_bounds = int(((non_null < 0) | (non_null > 120)).sum())
+                if age_out_bounds > 0:
+                    pct = (age_out_bounds / n_rows * 100)
+                    issues.append(Issue(
+                        id=_generate_id(),
+                        issue_type="outliers",
+                        severity="high",
+                        column=col,
+                        affected_rows=age_out_bounds,
+                        affected_pct=pct,
+                        description=f"{age_out_bounds:,} age values out of human range [0, 120]",
+                        suggested_fix="Clip age values to range [0, 120]",
+                        fix_code=f"df = df.with_columns(pl.col('{col}').clip(0, 120))",
+                    ))
+
+        # ── 3. Future Dates ──
+        if ("date" in col_lower or "time" in col_lower or "created" in col_lower or "updated" in col_lower) and dtype in (pl.Datetime, pl.Date):
+            non_null = df[col].drop_nulls()
+            if non_null.len() > 0:
+                today_dt = datetime.now()
+                future_count = int((non_null > today_dt).sum())
+                if future_count > 0:
+                    pct = (future_count / n_rows * 100)
+                    issues.append(Issue(
+                        id=_generate_id(),
+                        issue_type="format_issue",
+                        severity="high",
+                        column=col,
+                        affected_rows=future_count,
+                        affected_pct=pct,
+                        description=f"{future_count:,} dates in '{col}' occur in the future (exceed current timestamp)",
+                        suggested_fix="Filter out future dated records",
+                        fix_code=f"df = df.filter(pl.col('{col}') <= pl.lit(datetime.now()))",
+                    ))
+
+    return issues
+
+
+def _detect_fuzzy_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
+    """Detect fuzzy near-duplicate text entities using string token ratio matching."""
+    issues = []
+    n_rows = df.height
+    if n_rows == 0:
+        return issues
+
+    from difflib import SequenceMatcher
+
+    for col in df.columns:
+        col_lower = col.lower()
+        if df[col].dtype == pl.Utf8 and any(kw in col_lower for kw in ("name", "company", "vendor", "customer", "city", "brand")):
+            non_null = df[col].drop_nulls().str.strip_chars()
+            uniques = non_null.unique().to_list()
+            
+            # Limit check to top 80 unique entity values to prevent CPU timeout
+            if 5 <= len(uniques) <= 80:
+                fuzzy_pairs = []
+                for i in range(len(uniques)):
+                    for j in range(i + 1, len(uniques)):
+                        val1, val2 = str(uniques[i]), str(uniques[j])
+                        if val1.lower() != val2.lower() and abs(len(val1) - len(val2)) <= 5:
+                            ratio = SequenceMatcher(None, val1.lower(), val2.lower()).ratio()
+                            if ratio >= 0.88:
+                                fuzzy_pairs.append((val1, val2))
+                                if len(fuzzy_pairs) >= 5:
+                                    break
+                    if len(fuzzy_pairs) >= 5:
+                        break
+
+                if fuzzy_pairs:
+                    issues.append(Issue(
+                        id=_generate_id(),
+                        issue_type="duplicates",
+                        severity="medium",
+                        column=col,
+                        affected_rows=len(fuzzy_pairs) * 2,
+                        affected_pct=round(len(fuzzy_pairs) * 2 / n_rows * 100, 2),
+                        description=f"Fuzzy near-duplicates detected in '{col}': e.g. '{fuzzy_pairs[0][0]}' vs '{fuzzy_pairs[0][1]}'",
+                        suggested_fix="Normalize fuzzy text entities",
+                        fix_code=f"# Entity resolution: df = df.with_columns(pl.col('{col}').replace('{fuzzy_pairs[0][1]}', '{fuzzy_pairs[0][0]}'))",
+                    ))
 
     return issues
 
@@ -824,7 +956,13 @@ def detect_issues(
     for issue in _detect_duplicate_issues(df):
         ledger.add_issue(issue)
 
+    for issue in _detect_fuzzy_duplicate_issues(df):
+        ledger.add_issue(issue)
+
     for issue in _detect_whitespace_and_case_issues(df):
+        ledger.add_issue(issue)
+
+    for issue in _detect_business_rule_violations(df):
         ledger.add_issue(issue)
     
     for issue in _detect_constant_column_issues(df):

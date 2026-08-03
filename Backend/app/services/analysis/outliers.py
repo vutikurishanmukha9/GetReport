@@ -20,6 +20,7 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
     2. Modified Z-Score via Median Absolute Deviation (MAD) for skewed data
     3. Standard Z-Score (|Z| > 3.0)
     4. Domain boundary anomalies (e.g. negative prices/ages, percentages > 100%)
+    5. Multivariate Anomaly Detection via Isolation Forest & Local Outlier Factor (LOF)
     """
     if not numeric_cols or df.height == 0:
         return {}
@@ -94,7 +95,7 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
 
             if "pct" in col_lower or "percent" in col_lower or "ratio" in col_lower:
                 pct_violations = int(((df[col] < 0) | (df[col] > 100)).sum())
-                if pct_violations > 0 and max(df[col].drop_nulls(), default=0) > 1.0: # Check if scale is 0-100 vs 0-1
+                if pct_violations > 0 and max(df[col].drop_nulls(), default=0) > 1.0:
                     domain_anomalies.append(f"{pct_violations} percentage values outside [0, 100%]")
 
             if count > 0 or mad_outlier_count > 0 or domain_anomalies:
@@ -116,6 +117,35 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
                     "sample_values": vals,
                     "domain_anomalies": domain_anomalies,
                 }
+
+        # ── 5. Multivariate Outlier Detection via Isolation Forest & LOF ──
+        if len(numeric_cols) >= 2 and n_rows >= 20:
+            try:
+                from sklearn.ensemble import IsolationForest
+                from sklearn.neighbors import LocalOutlierFactor
+                import numpy as np
+
+                # Prepare scaled numpy array for top numeric columns
+                clean_df = df.select(numeric_cols[:5]).to_pandas().fillna(0)
+                if len(clean_df) >= 20:
+                    iso = IsolationForest(contamination=0.02, random_state=42, n_estimators=100)
+                    iso_preds = iso.fit_predict(clean_df)
+                    iso_outliers = int((iso_preds == -1).sum())
+
+                    lof = LocalOutlierFactor(n_neighbors=15, contamination=0.02)
+                    lof_preds = lof.fit_predict(clean_df)
+                    high_conf_multivariate = int(((iso_preds == -1) & (lof_preds == -1)).sum())
+
+                    if high_conf_multivariate > 0:
+                        outliers["_multivariate_summary"] = {
+                            "count": high_conf_multivariate,
+                            "percentage": round(high_conf_multivariate / n_rows * 100, 2),
+                            "columns_evaluated": numeric_cols[:5],
+                            "isolation_forest_count": iso_outliers,
+                            "high_confidence_multivariate_count": high_conf_multivariate,
+                        }
+            except Exception as ml_err:
+                logger.debug("Multivariate outlier detection skipped: %s", ml_err)
 
     except Exception as e:
         logger.error(f"Outlier detection failed: {e}")
