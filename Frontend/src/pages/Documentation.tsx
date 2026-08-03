@@ -15,14 +15,14 @@ export const Documentation = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/30 to-background py-16 md:py-24">
           <div className="container mx-auto px-4 text-center space-y-4 max-w-4xl">
-            <Badge variant="outline" className="font-mono text-xs uppercase tracking-wider text-primary border-primary/30 px-3 py-1">
+            <Badge variant="outline" className="font-mono text-xs uppercase tracking-wider text-primary border-primary/30 px-3 py-1 whitespace-nowrap shrink-0">
               System Documentation & Guides
             </Badge>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.05]">
               GetReport Technical Hub.
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Comprehensive reference guides for Polars streaming ingestion, quality confidence scoring, security controls, and multi-format exports.
+              Comprehensive technical guides for Polars streaming ingestion, quality confidence scoring, security controls, and multi-format exports.
             </p>
           </div>
         </div>
@@ -32,19 +32,19 @@ export const Documentation = () => {
           
           {/* Quick Topic Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <a href="#supported-formats" className="p-6 border border-border bg-card rounded-2xl shadow-premium hover:border-primary/30 transition-all group space-y-3">
+            <a href="#supported-formats" className="p-6 border border-border bg-card rounded-2xl shadow-sm hover:shadow-md hover:border-primary/30 transition-all group space-y-3">
               <FileSpreadsheet className="h-8 w-8 text-emerald-600 group-hover:scale-105 transition-transform" />
               <h3 className="font-display font-bold text-foreground text-base">Supported File Formats</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">CSV, Excel, Parquet, TSV, JSONL, and compressed archive streaming capabilities.</p>
             </a>
 
-            <a href="#confidence-scores" className="p-6 border border-border bg-card rounded-2xl shadow-premium hover:border-primary/30 transition-all group space-y-3">
+            <a href="#confidence-scores" className="p-6 border border-border bg-card rounded-2xl shadow-sm hover:shadow-md hover:border-primary/30 transition-all group space-y-3">
               <Gauge className="h-8 w-8 text-primary group-hover:scale-105 transition-transform" />
               <h3 className="font-display font-bold text-foreground text-base">Column Confidence (A-F)</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">Detailed breakdown of Completeness, Consistency, Validity, and Stability scoring algorithms.</p>
             </a>
 
-            <a href="#security" className="p-6 border border-border bg-card rounded-2xl shadow-premium hover:border-primary/30 transition-all group space-y-3">
+            <a href="#security" className="p-6 border border-border bg-card rounded-2xl shadow-sm hover:shadow-md hover:border-primary/30 transition-all group space-y-3">
               <ShieldCheck className="h-8 w-8 text-blue-600 group-hover:scale-105 transition-transform" />
               <h3 className="font-display font-bold text-foreground text-base">Architecture Specs & Security</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">In-memory execution, HSTS, CSP, rate limiting, and zero permanent data retention protocol.</p>
@@ -59,40 +59,40 @@ export const Documentation = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="p-6 border border-border bg-card shadow-sm space-y-3">
-                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between">
+              <Card className="p-6 border border-border bg-card shadow-sm space-y-3 rounded-2xl">
+                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between gap-2">
                   <span>Comma-Separated Values (.csv, .tsv)</span>
-                  <Badge variant="secondary" className="font-mono text-[10px]">Polars Stream</Badge>
+                  <Badge variant="secondary" className="font-mono text-[10px] whitespace-nowrap shrink-0">Polars Stream</Badge>
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Automatic buffer sampling for delimiter detection (<code>,</code>, <code>;</code>, <code>\t</code>, <code>|</code>) and encoding resolution (UTF-8, Latin-1, CP1252).
                 </p>
               </Card>
 
-              <Card className="p-6 border border-border bg-card shadow-sm space-y-3">
-                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between">
+              <Card className="p-6 border border-border bg-card shadow-sm space-y-3 rounded-2xl">
+                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between gap-2">
                   <span>Excel Workbooks (.xlsx, .xls)</span>
-                  <Badge variant="secondary" className="font-mono text-[10px]">calamine Engine</Badge>
+                  <Badge variant="secondary" className="font-mono text-[10px] whitespace-nowrap shrink-0">calamine Engine</Badge>
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   High-speed Rust calamine parser with decompression limits to prevent zip-bomb archives and memory exhaustion.
                 </p>
               </Card>
 
-              <Card className="p-6 border border-border bg-card shadow-sm space-y-3">
-                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between">
+              <Card className="p-6 border border-border bg-card shadow-sm space-y-3 rounded-2xl">
+                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between gap-2">
                   <span>Apache Parquet (.parquet)</span>
-                  <Badge variant="secondary" className="font-mono text-[10px]">Native Rust</Badge>
+                  <Badge variant="secondary" className="font-mono text-[10px] whitespace-nowrap shrink-0">Native Rust</Badge>
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Zero-copy columnar format parsing with full column projection pushdown for sub-millisecond memory loading.
                 </p>
               </Card>
 
-              <Card className="p-6 border border-border bg-card shadow-sm space-y-3">
-                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between">
+              <Card className="p-6 border border-border bg-card shadow-sm space-y-3 rounded-2xl">
+                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between gap-2">
                   <span>JSON Lines (.json, .jsonl, .ndjson)</span>
-                  <Badge variant="secondary" className="font-mono text-[10px]">Auto Schema</Badge>
+                  <Badge variant="secondary" className="font-mono text-[10px] whitespace-nowrap shrink-0">Auto Schema</Badge>
                 </h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Streams line-delimited JSON with automatic nested structure flattening and scalar field coercion.
@@ -110,7 +110,7 @@ export const Documentation = () => {
 
             <div className="space-y-4 text-xs sm:text-sm text-muted-foreground leading-relaxed">
               <p>
-                Every column in your dataset receives a overall score from 0.0% to 100.0% mapped directly to a letter grade:
+                Every column in your dataset receives an overall confidence score from 0.0% to 100.0% mapped directly to a letter grade:
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 font-mono text-center pt-2">
@@ -122,22 +122,22 @@ export const Documentation = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                <Card className="p-5 border border-border bg-card">
+                <Card className="p-5 border border-border bg-card rounded-xl">
                   <h4 className="font-bold text-foreground mb-1 text-sm">Completeness (30% Weight)</h4>
                   <p className="text-xs">Percentage of non-null, non-empty cells in the column.</p>
                 </Card>
 
-                <Card className="p-5 border border-border bg-card">
+                <Card className="p-5 border border-border bg-card rounded-xl">
                   <h4 className="font-bold text-foreground mb-1 text-sm">Consistency (25% Weight)</h4>
                   <p className="text-xs">Format uniformity and pattern adherence across string/date columns.</p>
                 </Card>
 
-                <Card className="p-5 border border-border bg-card">
+                <Card className="p-5 border border-border bg-card rounded-xl">
                   <h4 className="font-bold text-foreground mb-1 text-sm">Validity (25% Weight)</h4>
                   <p className="text-xs">Values falling within plausible domain boundaries (e.g. positive prices).</p>
                 </Card>
 
-                <Card className="p-5 border border-border bg-card">
+                <Card className="p-5 border border-border bg-card rounded-xl">
                   <h4 className="font-bold text-foreground mb-1 text-sm">Stability (20% Weight)</h4>
                   <p className="text-xs">Variance inflation and extreme outlier ratios (IQR & Z-Score).</p>
                 </Card>
@@ -153,7 +153,7 @@ export const Documentation = () => {
             </div>
 
             <div className="space-y-4">
-              <Card className="p-6 border border-border bg-card space-y-4">
+              <Card className="p-6 border border-border bg-card rounded-2xl space-y-4 shadow-sm">
                 <h3 className="font-display font-bold text-base text-foreground flex items-center gap-2">
                   <Lock className="h-5 w-5 text-primary" />
                   <span>In-Memory Ephemeral Execution</span>
