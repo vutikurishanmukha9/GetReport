@@ -335,7 +335,30 @@ def _detect_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
                     fix_code=f"# Near-duplicates on subset: df.unique(subset={subset_cols})",
                 ))
     except Exception:
-        pass  # Near-duplicate scan is best-effort
+        pass
+
+    # ── Primary Key Collision Detection ──
+    try:
+        id_cols = [c for c in df.columns if c.lower() in ("id", "code", "key") or c.lower().endswith("_id") or c.lower().endswith("_code")]
+        for key_col in id_cols:
+            if df[key_col].null_count() < n_rows:
+                key_dupes = df[key_col].is_duplicated().sum()
+                if key_dupes > dup_count and key_dupes > 0:
+                    conflicts = key_dupes - dup_count
+                    pct = (conflicts / n_rows * 100)
+                    issues.append(Issue(
+                        id=_generate_id(),
+                        issue_type="duplicates",
+                        severity="high",
+                        column=key_col,
+                        affected_rows=conflicts,
+                        affected_pct=pct,
+                        description=f"Primary key conflict: {conflicts:,} duplicate IDs in '{key_col}' with non-identical attribute values",
+                        suggested_fix=f"Deduplicate on key column '{key_col}'",
+                        fix_code=f"df = df.unique(subset=['{key_col}'], keep='first')",
+                    ))
+    except Exception:
+        pass
 
     return issues
 
@@ -657,6 +680,113 @@ def compute_dataset_fingerprint(df: pl.DataFrame) -> str:
     return hashlib.sha256(fingerprint_raw.encode("utf-8")).hexdigest()
 
 
+MASKED_NULL_PATTERNS = frozenset({
+    "n/a", "na", "null", "none", "-", "--", "?", "missing", "unknown",
+    "#n/a", "-999", "9999", "00/00/0000", "undefined", "blank", "n.a.", "nil"
+})
+
+
+def _detect_masked_null_issues(df: pl.DataFrame) -> list[Issue]:
+    """Detect hidden/masked null placeholders in string and numeric columns."""
+    issues = []
+    n_rows = df.height
+    if n_rows == 0:
+        return issues
+
+    for col in df.columns:
+        dtype = df[col].dtype
+        masked_count = 0
+
+        if dtype == pl.Utf8:
+            non_null = df[col].drop_nulls()
+            if non_null.len() == 0:
+                continue
+            masked_mask = non_null.str.to_lowercase().str.strip_chars().is_in(list(MASKED_NULL_PATTERNS))
+            masked_count = int(masked_mask.sum())
+        elif dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32):
+            non_null = df[col].drop_nulls()
+            if non_null.len() == 0:
+                continue
+            masked_count = int(non_null.is_in([-999, -9999, 9999, 99999]).sum())
+
+        if masked_count > 0:
+            masked_pct = (masked_count / n_rows * 100)
+            severity: Severity = "high" if masked_pct >= 10 else ("medium" if masked_pct >= 3 else "low")
+            
+            if dtype == pl.Utf8:
+                fix_code = f"df = df.with_columns(pl.when(pl.col('{col}').str.to_lowercase().str.strip_chars().is_in({list(MASKED_NULL_PATTERNS)})).then(None).otherwise(pl.col('{col}')).alias('{col}'))"
+            else:
+                fix_code = f"df = df.with_columns(pl.when(pl.col('{col}').is_in([-999, -9999, 9999, 99999])).then(None).otherwise(pl.col('{col}')).alias('{col}'))"
+
+            issues.append(Issue(
+                id=_generate_id(),
+                issue_type="missing_values",
+                severity=severity,
+                column=col,
+                affected_rows=masked_count,
+                affected_pct=masked_pct,
+                description=f"{masked_count:,} masked null placeholders detected (e.g. 'N/A', '-999', '?')",
+                suggested_fix="Convert masked null strings to native nulls",
+                fix_code=fix_code,
+            ))
+
+    return issues
+
+
+def _detect_whitespace_and_case_issues(df: pl.DataFrame) -> list[Issue]:
+    """Detect leading/trailing whitespace pollution and case fragmentation in string columns."""
+    issues = []
+    n_rows = df.height
+    if n_rows == 0:
+        return issues
+
+    for col in df.columns:
+        if df[col].dtype != pl.Utf8:
+            continue
+
+        non_null = df[col].drop_nulls()
+        if non_null.len() == 0:
+            continue
+
+        # ── 1. Whitespace pollution ──
+        trimmed = non_null.str.strip_chars()
+        space_diff = int((non_null != trimmed).sum())
+
+        if space_diff > 0:
+            pct = (space_diff / n_rows * 100)
+            issues.append(Issue(
+                id=_generate_id(),
+                issue_type="format_issue",
+                severity="low" if pct < 5 else "medium",
+                column=col,
+                affected_rows=space_diff,
+                affected_pct=pct,
+                description=f"{space_diff:,} values have leading/trailing whitespace pollution",
+                suggested_fix="Trim leading and trailing whitespace",
+                fix_code=f"df = df.with_columns(pl.col('{col}').str.strip_chars().alias('{col}'))",
+            ))
+
+        # ── 2. Case fragmentation in categorical columns ──
+        n_unique_raw = non_null.n_unique()
+        n_unique_lower = non_null.str.to_lowercase().n_unique()
+
+        if n_unique_raw > n_unique_lower and n_unique_raw <= 100:
+            diff = n_unique_raw - n_unique_lower
+            issues.append(Issue(
+                id=_generate_id(),
+                issue_type="format_issue",
+                severity="medium",
+                column=col,
+                affected_rows=n_rows,
+                affected_pct=100.0,
+                description=f"Case fragmentation: {n_unique_raw} raw distinct values reduce to {n_unique_lower} when lowercased ({diff} casing variations)",
+                suggested_fix="Normalize text to title case",
+                fix_code=f"df = df.with_columns(pl.col('{col}').str.to_titlecase().alias('{col}'))",
+            ))
+
+    return issues
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -688,7 +818,13 @@ def detect_issues(
     for issue in _detect_missing_value_issues(df):
         ledger.add_issue(issue)
     
+    for issue in _detect_masked_null_issues(df):
+        ledger.add_issue(issue)
+    
     for issue in _detect_duplicate_issues(df):
+        ledger.add_issue(issue)
+
+    for issue in _detect_whitespace_and_case_issues(df):
         ledger.add_issue(issue)
     
     for issue in _detect_constant_column_issues(df):
