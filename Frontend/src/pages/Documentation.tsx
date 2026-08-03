@@ -1,175 +1,192 @@
-import { BookOpen, FileSpreadsheet, AlertTriangle, Gauge, Brain, CheckCircle2 } from "lucide-react";
+import { BookOpen, FileSpreadsheet, AlertTriangle, Gauge, Brain, CheckCircle2, ShieldCheck, Lock, Layers, Terminal, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
-const Documentation = () => {
-    return (
-        <div className="min-h-screen bg-background animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="bg-muted/30 border-b">
-                <div className="container mx-auto px-4 py-16 text-center">
-                    <h1 className="text-4xl font-bold tracking-tight mb-4">Documentation</h1>
-                    <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                        Guides, references, and best practices for using GetReport.
-                    </p>
-                </div>
-            </div>
+export const Documentation = () => {
+  return (
+    <div className="min-h-screen flex flex-col bg-background animate-in fade-in duration-500">
+      <Header onReset={() => {}} showReset={false} />
 
-            <div className="container mx-auto px-4 py-12 max-w-6xl">
-                {/* Popular Topics Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-                    <Link to="#" className="p-6 border rounded-xl hover:bg-muted/50 transition-colors group">
-                        <FileSpreadsheet className="h-8 w-8 text-green-600 mb-3 group-hover:scale-110 transition-transform" />
-                        <h3 className="font-semibold mb-1">Data Prep</h3>
-                        <p className="text-xs text-muted-foreground">Formatting your CSV/Excel for best results</p>
-                    </Link>
-                    <Link to="#" className="p-6 border rounded-xl hover:bg-muted/50 transition-colors group">
-                        <Gauge className="h-8 w-8 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
-                        <h3 className="font-semibold mb-1">Interpreting Scores</h3>
-                        <p className="text-xs text-muted-foreground">Understanding A-F confidence grades</p>
-                    </Link>
-                    <Link to="#" className="p-6 border rounded-xl hover:bg-muted/50 transition-colors group">
-                        <Brain className="h-8 w-8 text-purple-600 mb-3 group-hover:scale-110 transition-transform" />
-                        <h3 className="font-semibold mb-1">AI Insights</h3>
-                        <p className="text-xs text-muted-foreground">How our RAG architecture works</p>
-                    </Link>
-                </div>
-
-                <div className="grid gap-12">
-                    {/* Getting Started */}
-                    <section>
-                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                            <BookOpen className="h-6 w-6 text-primary" /> Getting Started
-                        </h2>
-                        <div className="prose prose-slate max-w-none">
-                            <p>
-                                GetReport transforms raw spreadsheets into professional, auditable reports.
-                                Every analysis decision is explained. Every column is graded. Every action is transparent.
-                            </p>
-                            <h3 className="text-lg font-semibold mt-6 mb-3">Supported File Formats</h3>
-                            <ul className="space-y-2 list-none pl-0">
-                                <li className="flex items-center gap-2">
-                                    <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                                    <span><strong>CSV (.csv):</strong> Comma-separated values. Auto-detects encoding and delimiters.</span>
-                                </li>
-                                <li className="flex items-center gap-2">
-                                    <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                                    <span><strong>Excel (.xls, .xlsx):</strong> Microsoft Excel workbooks. Uses first sheet by default.</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </section>
-
-                    {/* Tier 1: Trust Foundation */}
-                    <section>
-                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                            <Gauge className="h-6 w-6 text-primary" /> Tier 1: Trust Foundation
-                        </h2>
-                        <div className="grid gap-4">
-                            <div className="p-4 border rounded-lg">
-                                <h4 className="font-semibold mb-2">Column Confidence Scores</h4>
-                                <p className="text-muted-foreground text-sm">
-                                    Each column is graded A-F across four dimensions: <strong>Completeness</strong> (% non-null),
-                                    <strong> Consistency</strong> (format uniformity), <strong>Validity</strong> (expected ranges),
-                                    and <strong>Stability</strong> (variance detection).
-                                </p>
-                            </div>
-                            <div className="p-4 border rounded-lg">
-                                <h4 className="font-semibold mb-2">Why I Did X Explanations</h4>
-                                <p className="text-muted-foreground text-sm">
-                                    Full transparency into analysis decisions. See why each analysis (correlation, outliers, time-series, etc.)
-                                    was run or skipped, with evidence and reasoning.
-                                </p>
-                            </div>
-                            <div className="p-4 border rounded-lg">
-                                <h4 className="font-semibold mb-2">Semantic Domain Detection</h4>
-                                <p className="text-muted-foreground text-sm">
-                                    Automatic domain classification (Education, Sales, Healthcare, HR, Finance) with confidence percentage,
-                                    matched keywords, and alternative domain candidates.
-                                </p>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Tier 2: Intelligence */}
-                    <section>
-                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                            <Brain className="h-6 w-6 text-primary" /> Tier 2: Advanced Intelligence
-                        </h2>
-                        <div className="grid gap-4">
-                            <div className="p-4 border rounded-lg">
-                                <h4 className="font-semibold mb-2">Feature Engineering Recommendations</h4>
-                                <p className="text-muted-foreground text-sm">
-                                    ML-ready suggestions: encoding (One-Hot, Label, Target), scaling (StandardScaler, MinMax, RobustScaler),
-                                    and feature creation ideas.
-                                </p>
-                            </div>
-                            <div className="p-4 border rounded-lg">
-                                <h4 className="font-semibold mb-2">Smart Schema Inference</h4>
-                                <p className="text-muted-foreground text-sm">
-                                    Detects type mismatches, suggests corrections, identifies hidden dates in strings,
-                                    and discovers implicit relationships between columns.
-                                </p>
-                            </div>
-                            <div className="p-4 border rounded-lg">
-                                <h4 className="font-semibold mb-2">Actionable Recommendations</h4>
-                                <p className="text-muted-foreground text-sm">
-                                    Domain-specific next steps with priority levels (Critical, High, Medium, Low).
-                                    Categories: data_quality, analysis, reporting, ml_prep.
-                                </p>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* FAQ / troubleshooting */}
-                    <section>
-                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                            <AlertTriangle className="h-6 w-6 text-amber-500" /> Troubleshooting & FAQ
-                        </h2>
-                        <Accordion type="single" collapsible className="w-full">
-                            <AccordionItem value="item-1">
-                                <AccordionTrigger>My file failed to upload. Why?</AccordionTrigger>
-                                <AccordionContent>
-                                    Common reasons include files larger than 50MB, corrupted formatting, or unsupported extensions.
-                                    Ensure your file is a valid CSV or Excel file and try again.
-                                </AccordionContent>
-                            </AccordionItem>
-                            <AccordionItem value="item-2">
-                                <AccordionTrigger>What do the confidence grades mean?</AccordionTrigger>
-                                <AccordionContent>
-                                    Grades range from A (excellent, 90%+) to F (critical issues, below 50%).
-                                    Each grade combines four scores: Completeness, Consistency, Validity, and Stability.
-                                    High-confidence columns (A-B) are reliable for analysis. Low-confidence columns (D-F) need attention.
-                                </AccordionContent>
-                            </AccordionItem>
-                            <AccordionItem value="item-3">
-                                <AccordionTrigger>How does the AI Insights work?</AccordionTrigger>
-                                <AccordionContent>
-                                    We use statistical summaries (not raw confidential rows) with a Large Language Model to identify trends.
-                                    Your raw PII data is never used for training or sent to external services.
-                                </AccordionContent>
-                            </AccordionItem>
-                            <AccordionItem value="item-4">
-                                <AccordionTrigger>Why was a specific analysis skipped?</AccordionTrigger>
-                                <AccordionContent>
-                                    Check the “Analysis Decisions” section in your PDF report. Each skipped analysis includes
-                                    a reason (e.g., “Time-series skipped: no datetime columns detected” or “Correlation skipped: fewer than 2 numeric columns”).
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    </section>
-                </div>
-
-                <div className="mt-16 text-center border-t pt-8">
-                    <p className="text-muted-foreground mb-4">Still have questions?</p>
-                    <Link to="/contact">
-                        <Button variant="secondary">Contact Support</Button>
-                    </Link>
-                </div>
-            </div>
+      <main className="flex-1 pt-20">
+        {/* Header */}
+        <div className="border-b border-border/60 bg-gradient-to-b from-muted/30 to-background py-16 md:py-24">
+          <div className="container mx-auto px-4 text-center space-y-4 max-w-4xl">
+            <Badge variant="outline" className="font-mono text-xs uppercase tracking-wider text-primary border-primary/30 px-3 py-1">
+              System Documentation & Guides
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.05]">
+              GetReport Technical Hub.
+            </h1>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Comprehensive reference guides for Polars streaming ingestion, quality confidence scoring, security controls, and multi-format exports.
+            </p>
+          </div>
         </div>
-    );
+
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-16 max-w-6xl space-y-16">
+          
+          {/* Quick Topic Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <a href="#supported-formats" className="p-6 border border-border bg-card rounded-2xl shadow-premium hover:border-primary/30 transition-all group space-y-3">
+              <FileSpreadsheet className="h-8 w-8 text-emerald-600 group-hover:scale-105 transition-transform" />
+              <h3 className="font-display font-bold text-foreground text-base">Supported File Formats</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">CSV, Excel, Parquet, TSV, JSONL, and compressed archive streaming capabilities.</p>
+            </a>
+
+            <a href="#confidence-scores" className="p-6 border border-border bg-card rounded-2xl shadow-premium hover:border-primary/30 transition-all group space-y-3">
+              <Gauge className="h-8 w-8 text-primary group-hover:scale-105 transition-transform" />
+              <h3 className="font-display font-bold text-foreground text-base">Column Confidence (A-F)</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">Detailed breakdown of Completeness, Consistency, Validity, and Stability scoring algorithms.</p>
+            </a>
+
+            <a href="#security" className="p-6 border border-border bg-card rounded-2xl shadow-premium hover:border-primary/30 transition-all group space-y-3">
+              <ShieldCheck className="h-8 w-8 text-blue-600 group-hover:scale-105 transition-transform" />
+              <h3 className="font-display font-bold text-foreground text-base">Architecture Specs & Security</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">In-memory execution, HSTS, CSP, rate limiting, and zero permanent data retention protocol.</p>
+            </a>
+          </div>
+
+          {/* Section 1: File Formats */}
+          <section id="supported-formats" className="space-y-6 scroll-mt-28">
+            <div className="flex items-center gap-3 border-b border-border pb-4">
+              <FileSpreadsheet className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-display font-bold text-foreground uppercase tracking-tight">Supported Ingestion Formats</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="p-6 border border-border bg-card shadow-sm space-y-3">
+                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between">
+                  <span>Comma-Separated Values (.csv, .tsv)</span>
+                  <Badge variant="secondary" className="font-mono text-[10px]">Polars Stream</Badge>
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Automatic buffer sampling for delimiter detection (<code>,</code>, <code>;</code>, <code>\t</code>, <code>|</code>) and encoding resolution (UTF-8, Latin-1, CP1252).
+                </p>
+              </Card>
+
+              <Card className="p-6 border border-border bg-card shadow-sm space-y-3">
+                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between">
+                  <span>Excel Workbooks (.xlsx, .xls)</span>
+                  <Badge variant="secondary" className="font-mono text-[10px]">calamine Engine</Badge>
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  High-speed Rust calamine parser with decompression limits to prevent zip-bomb archives and memory exhaustion.
+                </p>
+              </Card>
+
+              <Card className="p-6 border border-border bg-card shadow-sm space-y-3">
+                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between">
+                  <span>Apache Parquet (.parquet)</span>
+                  <Badge variant="secondary" className="font-mono text-[10px]">Native Rust</Badge>
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Zero-copy columnar format parsing with full column projection pushdown for sub-millisecond memory loading.
+                </p>
+              </Card>
+
+              <Card className="p-6 border border-border bg-card shadow-sm space-y-3">
+                <h4 className="font-display font-bold text-foreground text-sm flex items-center justify-between">
+                  <span>JSON Lines (.json, .jsonl, .ndjson)</span>
+                  <Badge variant="secondary" className="font-mono text-[10px]">Auto Schema</Badge>
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Streams line-delimited JSON with automatic nested structure flattening and scalar field coercion.
+                </p>
+              </Card>
+            </div>
+          </section>
+
+          {/* Section 2: Confidence Scoring */}
+          <section id="confidence-scores" className="space-y-6 scroll-mt-28">
+            <div className="flex items-center gap-3 border-b border-border pb-4">
+              <Gauge className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-display font-bold text-foreground uppercase tracking-tight">Column Confidence Grades (A-F)</h2>
+            </div>
+
+            <div className="space-y-4 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              <p>
+                Every column in your dataset receives a overall score from 0.0% to 100.0% mapped directly to a letter grade:
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 font-mono text-center pt-2">
+                <div className="p-3 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 font-bold">Grade A: ≥ 90%</div>
+                <div className="p-3 rounded-xl border border-blue-300 bg-blue-50 text-blue-800 font-bold">Grade B: 80 - 89%</div>
+                <div className="p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 font-bold">Grade C: 70 - 79%</div>
+                <div className="p-3 rounded-xl border border-orange-300 bg-orange-50 text-orange-800 font-bold">Grade D: 60 - 69%</div>
+                <div className="p-3 rounded-xl border border-red-300 bg-red-50 text-red-800 font-bold">Grade F: &lt; 60%</div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                <Card className="p-5 border border-border bg-card">
+                  <h4 className="font-bold text-foreground mb-1 text-sm">Completeness (30% Weight)</h4>
+                  <p className="text-xs">Percentage of non-null, non-empty cells in the column.</p>
+                </Card>
+
+                <Card className="p-5 border border-border bg-card">
+                  <h4 className="font-bold text-foreground mb-1 text-sm">Consistency (25% Weight)</h4>
+                  <p className="text-xs">Format uniformity and pattern adherence across string/date columns.</p>
+                </Card>
+
+                <Card className="p-5 border border-border bg-card">
+                  <h4 className="font-bold text-foreground mb-1 text-sm">Validity (25% Weight)</h4>
+                  <p className="text-xs">Values falling within plausible domain boundaries (e.g. positive prices).</p>
+                </Card>
+
+                <Card className="p-5 border border-border bg-card">
+                  <h4 className="font-bold text-foreground mb-1 text-sm">Stability (20% Weight)</h4>
+                  <p className="text-xs">Variance inflation and extreme outlier ratios (IQR & Z-Score).</p>
+                </Card>
+              </div>
+            </div>
+          </section>
+
+          {/* Section 3: Architecture & Security */}
+          <section id="security" className="space-y-6 scroll-mt-28">
+            <div className="flex items-center gap-3 border-b border-border pb-4">
+              <ShieldCheck className="h-6 w-6 text-emerald-600" />
+              <h2 className="text-2xl font-display font-bold text-foreground uppercase tracking-tight">Architecture & Security Specifications</h2>
+            </div>
+
+            <div className="space-y-4">
+              <Card className="p-6 border border-border bg-card space-y-4">
+                <h3 className="font-display font-bold text-base text-foreground flex items-center gap-2">
+                  <Lock className="h-5 w-5 text-primary" />
+                  <span>In-Memory Ephemeral Execution</span>
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  GetReport processes raw tabular data in temporary server memory. Files are never stored on persistent storage drives. All memory allocations, intermediate calculation dataframes, and synthesized PDF buffers are automatically garbage-collected and purged upon session completion (or after 1 hour of inactivity).
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-[11px] pt-2">
+                  <div className="p-3 rounded-lg bg-muted/60 border border-border/40">
+                    <span className="font-bold text-foreground block">HSTS Enforced</span>
+                    <span className="text-muted-foreground">max-age=63072000</span>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/60 border border-border/40">
+                    <span className="font-bold text-foreground block">CSP Enforced</span>
+                    <span className="text-muted-foreground">frame-ancestors 'none'</span>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/60 border border-border/40">
+                    <span className="font-bold text-foreground block">Banner Masking</span>
+                    <span className="text-muted-foreground">Server: GetReport-Secure</span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </section>
+
+        </div>
+
+      </main>
+
+      <Footer />
+    </div>
+  );
 };
 
 export default Documentation;

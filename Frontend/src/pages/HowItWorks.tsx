@@ -1,8 +1,10 @@
-import { UploadCloud, Search, FileDown, ArrowRight, Gauge, Brain, FileCheck, Server, Sparkles, Cpu, Code2 } from "lucide-react";
+import { UploadCloud, Search, FileDown, ArrowRight, Gauge, Brain, FileCheck, Server, Sparkles, Cpu, Code2, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 const steps = [
   {
@@ -10,169 +12,164 @@ const steps = [
     icon: UploadCloud,
     title: "Ingestion & Inferred Schemas",
     description: "Drop your CSV or Excel ledger. Our Polars parser streams the file in memory, automatically resolving character encodings, field separators, and primary column data types.",
-    details: ["Supports CSV, XLSX, XLS", "Auto-detects UTF-8 & ISO-8859", "Zero database storage (in-memory)"],
+    details: ["Supports CSV, XLSX, Parquet, TSV", "Auto-detects UTF-8, Latin-1 & CP1252", "Zero persistent disk storage (in-memory)"],
   },
   {
     id: "02",
     icon: Search,
-    title: "Hygiene Scoring & Capping",
-    description: "Our quality algorithms calculate completeness, stability, and validity. Duplicates are flagged, missing cells capped/filled, and type mismatches repaired in a transaction audit DAG.",
-    details: ["A-F column confidence grades", "Interactive check overrides", "Lock-in schema definitions"],
+    title: "Hygiene Scoring & Issue Ledger",
+    description: "Our quality algorithms calculate completeness, stability, and validity. Surfacing 9 issue categories in an interactive ledger where you approve, reject, or modify fixes before execution.",
+    details: ["A-F column confidence grades", "Interactive issue overrides", "Automated Winsorization & imputation"],
   },
   {
     id: "03",
     icon: Brain,
-    title: "Statistical Decisions Auditing",
-    description: "Executes Pearson correlations, extreme outlier checks, skewness tests, Kurtosis shapes, and time-series conceptual drift. Every test run produces structured logs explaining why it ran.",
-    details: ["Why-I-Did-X transparency logs", "VIF multicollinearity metrics", "drift shifts analysis"],
+    title: "Statistical Auditing",
+    description: "Executes Pearson correlations, extreme outlier checks, skewness tests, Kurtosis shapes, VIF multicollinearity, and time-series conceptual drift. Every test run produces structured logs explaining why it ran.",
+    details: ["Why-I-Did-X transparency logs", "VIF multicollinearity metrics", "Pairwise correlation detection (|r| > 0.7)"],
   },
   {
     id: "04",
     icon: Sparkles,
     title: "AI Synthesis & RAG Context",
-    description: "A semantic layer extracts the business domain (e.g. Sales, Education) and passes data summaries to our RAG engine, generating deep summaries and custom feature recommendations.",
-    details: ["One-hot & scaling suggestions", "Contextual anomaly indicators", "Confidential row protection"],
+    description: "A semantic layer extracts the business domain (e.g. Sales, Education, Healthcare) and passes statistical summaries to our RAG engine, generating deep summaries and executive insights.",
+    details: ["Multi-provider LLM fallback chain", "Deterministic offline AI fallback", "Confidential row protection"],
   },
   {
     id: "05",
     icon: FileDown,
     title: "Board-Ready PDF Compilation",
-    description: "Compiles a formatted executive audit report via WeasyPrint, featuring high-DPI charts, complete stats tables, and recommendations. Cached locally for easy stakeholder sharing.",
-    details: ["Matplotlib chart embeddings", "Executive-style report cover", "Local cache buffer download"],
+    description: "Compiles a formatted executive audit report via WeasyPrint, featuring high-DPI charts, complete stats tables, and recommendations. Available as PDF, CSV, Parquet, or HTML.",
+    details: ["Matplotlib chart embeddings", "Executive-style report cover", "Multi-format streaming export"],
   },
 ];
 
 export const HowItWorks = () => {
   return (
-    <div className="min-h-screen bg-background animate-in fade-in duration-500 pb-20">
-      
-      {/* Editorial Title Header */}
-      <div className="border-b border-border/60 bg-background py-12 md:py-20">
-        <div className="container mx-auto px-4 text-center space-y-4">
-          <Badge variant="outline" className="font-mono text-xs uppercase tracking-wider text-primary">
-            Audit Methodology
-          </Badge>
-          <h1 className="text-4xl sm:text-5xl font-display font-extrabold text-foreground tracking-tight uppercase">
-            Transparent Data Pipeline.
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            From raw spreadsheet fields to board-level audit reports. We expose every decision, every threshold, and every mathematical operation.
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen flex flex-col bg-background animate-in fade-in duration-500">
+      <Header onReset={() => {}} showReset={false} />
 
-      {/* Timeline List Section */}
-      <div className="container mx-auto px-4 py-12 md:py-20">
-        <div className="max-w-3xl mx-auto relative pl-6 sm:pl-8 border-l border-border/70 space-y-12">
-          
-          {steps.map((step) => (
-            <div key={step.id} className="relative group pl-2 sm:pl-4">
-              {/* Connected Circle Bullet */}
-              <div className="absolute -left-[39px] sm:-left-[47px] top-6 h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-background border border-border group-hover:border-primary flex items-center justify-center transition-colors duration-200 z-10 shadow-sm">
-                <step.icon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
-              </div>
-
-              {/* Step content card */}
-              <div className="border border-border/80 bg-card p-6 rounded-2xl shadow-premium space-y-3 hover:-translate-y-0.5 transition-all duration-200">
-                <div className="flex items-center gap-3">
-                  <span className="text-lg sm:text-xl font-mono font-bold text-primary/45">{step.id}</span>
-                  <h3 className="text-base sm:text-lg font-display font-bold text-foreground uppercase tracking-tight">{step.title}</h3>
-                </div>
-
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl font-sans">
-                  {step.description}
-                </p>
-
-                {/* Detail badges */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {step.details.map((detail, i) => (
-                    <Badge 
-                      key={i} 
-                      variant="secondary" 
-                      className="px-2 py-0.5 rounded bg-muted/60 text-muted-foreground border border-transparent font-mono text-[9px] hover:border-border transition-all"
-                    >
-                      {detail}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Under the Hood Pipeline block Diagram */}
-      <div className="border-t border-border/60 bg-muted/35 py-12 md:py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center max-w-xl mx-auto mb-16 space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">Under the Hood</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">The architecture behind GetReport’s sub-second parsing and AI generation.</p>
-          </div>
-
-          {/* Connected Block diagram pipeline */}
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-4 items-center">
-            
-            {/* Stage 1 */}
-            <Card className="border border-border/80 bg-card p-5 text-center shadow-premium rounded-xl flex flex-col justify-between h-40">
-              <div className="text-[10px] font-mono text-primary font-bold uppercase tracking-wider">01 Client App</div>
-              <div className="h-10 w-10 bg-primary/10 text-primary rounded-xl mx-auto flex items-center justify-center my-2 shadow-inner">
-                <Code2 className="h-5 w-5" />
-              </div>
-              <div className="space-y-0.5">
-                <span className="block text-xs font-semibold text-foreground">React / Vite UI</span>
-                <span className="block text-[10px] text-muted-foreground">Stream files chunk-by-chunk</span>
-              </div>
-            </Card>
-
-            <div className="hidden md:flex justify-center text-muted-foreground/40 shrink-0">
-              <ArrowRight className="h-5 w-5" />
-            </div>
-
-            {/* Stage 2 */}
-            <Card className="border border-border/80 bg-card p-5 text-center shadow-premium rounded-xl flex flex-col justify-between h-40">
-              <div className="text-[10px] font-mono text-primary font-bold uppercase tracking-wider">02 API Gateway</div>
-              <div className="h-10 w-10 bg-primary/10 text-primary rounded-xl mx-auto flex items-center justify-center my-2 shadow-inner">
-                <Server className="h-5 w-5" />
-              </div>
-              <div className="space-y-0.5">
-                <span className="block text-xs font-semibold text-foreground">FastAPI Router</span>
-                <span className="block text-[10px] text-muted-foreground">Secure routes & validation</span>
-              </div>
-            </Card>
-
-            <div className="hidden md:flex justify-center text-muted-foreground/40 shrink-0">
-              <ArrowRight className="h-5 w-5" />
-            </div>
-
-            {/* Stage 3 */}
-            <Card className="border border-border/80 bg-card p-5 text-center shadow-premium rounded-xl flex flex-col justify-between h-40">
-              <div className="text-[10px] font-mono text-primary font-bold uppercase tracking-wider">03 Processing</div>
-              <div className="h-10 w-10 bg-primary/10 text-primary rounded-xl mx-auto flex items-center justify-center my-2 shadow-inner">
-                <Cpu className="h-5 w-5" />
-              </div>
-              <div className="space-y-0.5">
-                <span className="block text-xs font-semibold text-foreground">Polars Engine</span>
-                <span className="block text-[10px] text-muted-foreground">Rust-powered multi-threaded math</span>
-              </div>
-            </Card>
-
+      <main className="flex-1 pt-20">
+        {/* Editorial Title Header */}
+        <div className="border-b border-border/60 bg-gradient-to-b from-muted/30 to-background py-16 md:py-24">
+          <div className="container mx-auto px-4 text-center space-y-4 max-w-4xl">
+            <Badge variant="outline" className="font-mono text-xs uppercase tracking-wider text-primary border-primary/30 px-3 py-1">
+              Audit Methodology & Architecture
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.05]">
+              Transparent Data Pipeline.
+            </h1>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              From raw spreadsheet fields to board-level audit reports. We expose every decision, every threshold, and every mathematical operation.
+            </p>
           </div>
         </div>
-      </div>
 
-      {/* CTA Footer */}
-      <div className="container mx-auto px-4 pt-16 md:pt-24 text-center space-y-6">
-        <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground uppercase tracking-tight">Execute your audit</h2>
-        <div className="pt-2">
-          <Link to="/workspace">
-            <Button size="lg" className="h-11 rounded-xl shadow-premium hover:-translate-y-0.5 active:scale-95 transition-all">
-              <span>Ingest File</span>
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Button>
-          </Link>
+        {/* Vertical Pipeline Steps */}
+        <div className="container mx-auto px-4 py-16 md:py-24 max-w-5xl">
+          <div className="space-y-12 relative before:absolute before:inset-0 before:left-8 sm:before:left-1/2 before:-ml-px before:w-0.5 before:bg-border/60 hidden sm:block" />
+
+          <div className="space-y-12">
+            {steps.map((step, idx) => {
+              const Icon = step.icon;
+              return (
+                <Card key={step.id} className="border border-border/80 bg-card p-6 md:p-8 rounded-2xl shadow-premium hover:border-primary/30 transition-all duration-300 relative group">
+                  <div className="flex flex-col md:flex-row gap-6 md:items-start">
+                    
+                    {/* Number & Icon Badge */}
+                    <div className="flex items-center gap-4 shrink-0">
+                      <span className="font-mono font-bold text-2xl text-primary/40 group-hover:text-primary transition-colors">
+                        {step.id}
+                      </span>
+                      <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                    </div>
+
+                    {/* Step Info */}
+                    <div className="space-y-3 flex-1">
+                      <h3 className="text-xl font-display font-bold text-foreground uppercase tracking-tight">
+                        {step.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {step.description}
+                      </p>
+
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {step.details.map((detail, dIdx) => (
+                          <span key={dIdx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60 text-muted-foreground text-[11px] font-mono border border-border/40">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                            {detail}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
+        {/* Architecture Comparison Table */}
+        <div className="border-t border-border/60 bg-muted/20 py-16 md:py-24">
+          <div className="container mx-auto px-4 max-w-5xl">
+            <div className="text-center mb-12 space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground uppercase tracking-tight">Why GetReport vs Manual Python / Excel</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">Automated transparency instead of brittle custom scripts.</p>
+            </div>
+
+            <div className="border border-border bg-card rounded-2xl shadow-premium overflow-hidden">
+              <div className="grid grid-cols-3 bg-muted/50 p-4 border-b border-border text-xs font-display font-bold uppercase tracking-wider text-foreground">
+                <div>Capability</div>
+                <div>Manual Python / Pandas</div>
+                <div className="text-primary font-extrabold">GetReport Subsystem</div>
+              </div>
+
+              <div className="divide-y divide-border/60 text-xs sm:text-sm font-sans">
+                <div className="grid grid-cols-3 p-4 items-center">
+                  <div className="font-semibold text-foreground">Audit Speed</div>
+                  <div className="text-muted-foreground">Minutes to hours</div>
+                  <div className="text-emerald-700 font-bold font-mono">Sub-second (Polars Rust)</div>
+                </div>
+
+                <div className="grid grid-cols-3 p-4 items-center">
+                  <div className="font-semibold text-foreground">Quality Grading</div>
+                  <div className="text-muted-foreground">Manual inspection</div>
+                  <div className="text-emerald-700 font-bold font-mono">A-F Column Confidence</div>
+                </div>
+
+                <div className="grid grid-cols-3 p-4 items-center">
+                  <div className="font-semibold text-foreground">Data Privacy</div>
+                  <div className="text-muted-foreground">Varies / raw logs</div>
+                  <div className="text-emerald-700 font-bold font-mono">In-Memory Ephemeral</div>
+                </div>
+
+                <div className="grid grid-cols-3 p-4 items-center">
+                  <div className="font-semibold text-foreground">Executive Output</div>
+                  <div className="text-muted-foreground">Raw charts / Jupyter notebook</div>
+                  <div className="text-emerald-700 font-bold font-mono">Board-Ready PDF & RAG</div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="text-center pt-14">
+              <Link to="/workspace">
+                <Button size="lg" className="h-12 px-8 rounded-xl shadow-premium hover:-translate-y-0.5 active:scale-95 transition-all font-display font-semibold">
+                  <span>Start Audit Pipeline</span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+
+      <Footer />
     </div>
   );
 };
