@@ -46,6 +46,12 @@ def _display_domain_name(domain: str) -> str:
     return labels.get(domain, str(domain).replace("_", " ").title())
 
 
+def _truncate(value: Any, max_chars: int) -> str:
+    """Keep dense PDF table cells readable."""
+    text = "" if value is None else str(value)
+    return text if len(text) <= max_chars else f"{text[: max_chars - 3]}..."
+
+
 # ─── Section Builders ────────────────────────────────────────────────────────
 
 def _build_title_page(filename: str, styles: dict[str, ParagraphStyle]) -> list[Flowable]:
@@ -237,16 +243,16 @@ def _build_issue_ledger_section(
     table_data = [["Column", "Issue", "Severity", "Status", "Suggested Action"]]
     for issue in issues[:20]:
         table_data.append([
-            issue.get("column") or "Dataset",
-            issue.get("description", ""),
+            _truncate(issue.get("column") or "Dataset", 22),
+            _truncate(issue.get("description", ""), 90),
             str(issue.get("severity", "")).title(),
             str(issue.get("status", "")).title(),
-            issue.get("suggested_fix", ""),
+            _truncate(issue.get("suggested_fix", ""), 90),
         ])
 
     story.append(_build_styled_table(
         table_data,
-        col_widths=[1.0 * inch, 2.0 * inch, 0.8 * inch, 0.8 * inch, 1.8 * inch],
+        col_widths=[1.0 * inch, 2.2 * inch, 0.65 * inch, 0.7 * inch, 1.85 * inch],
     ))
     story.extend(_divider())
     meta.sections_included.append("Issue Ledger")

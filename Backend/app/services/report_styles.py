@@ -7,6 +7,7 @@ Extracted from report_generator.py for maintainability.
 from __future__ import annotations
 
 import base64
+import html
 import logging
 from dataclasses import dataclass, field
 from io import BytesIO
@@ -22,6 +23,7 @@ from reportlab.platypus import (
     Table,
     TableStyle,
     HRFlowable,
+    Paragraph,
 )
 from reportlab.platypus.flowables import Flowable
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
@@ -378,7 +380,8 @@ def _build_styled_table(
     Returns:
         A styled ReportLab Table.
     """
-    t = Table(data, colWidths=col_widths)
+    wrapped_data = _wrap_table_cells(data)
+    t = Table(wrapped_data, colWidths=col_widths, splitByRow=True, repeatRows=1)
 
     style_commands = [
         # Header row
@@ -403,7 +406,7 @@ def _build_styled_table(
     ]
 
     # Alternating row backgrounds
-    for row_idx in range(1, len(data)):
+    for row_idx in range(1, len(wrapped_data)):
         if row_idx % 2 == 0:
             style_commands.append(
                 ("BACKGROUND", (0, row_idx), (-1, row_idx), Brand.TABLE_ROW_ALT)
@@ -411,6 +414,59 @@ def _build_styled_table(
 
     t.setStyle(TableStyle(style_commands))
     return t
+
+
+def _wrap_table_cells(data: list[list[Any]]) -> list[list[Any]]:
+    """Convert scalar cells to Paragraphs so table text wraps and markup renders."""
+    if not data:
+        return data
+
+    header_style = ParagraphStyle(
+        "ReportTableHeader",
+        fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=10,
+        textColor=Brand.TEXT_LIGHT,
+        alignment=TA_CENTER,
+        wordWrap="CJK",
+    )
+    body_style = ParagraphStyle(
+        "ReportTableCell",
+        fontName="Helvetica",
+        fontSize=7,
+        leading=9,
+        textColor=Brand.TEXT_DARK,
+        alignment=TA_LEFT,
+        wordWrap="CJK",
+    )
+
+    wrapped: list[list[Any]] = []
+    for row_idx, row in enumerate(data):
+        style = header_style if row_idx == 0 else body_style
+        wrapped.append([
+            cell if isinstance(cell, Flowable) else Paragraph(_safe_table_markup(cell), style)
+            for cell in row
+        ])
+    return wrapped
+
+
+def _safe_table_markup(value: Any) -> str:
+    """Escape arbitrary values while allowing report-generated inline tags."""
+    text = html.escape("" if value is None else str(value))
+    allowed = {
+        "&lt;b&gt;": "<b>",
+        "&lt;/b&gt;": "</b>",
+        "&lt;i&gt;": "<i>",
+        "&lt;/i&gt;": "</i>",
+        "&lt;br/&gt;": "<br/>",
+        "&lt;br /&gt;": "<br/>",
+        "&lt;font color=&#x27;": "<font color='",
+        "&#x27;&gt;": "'>",
+        "&lt;/font&gt;": "</font>",
+    }
+    for escaped, raw in allowed.items():
+        text = text.replace(escaped, raw)
+    return text
 
 
 # ─── Section Divider ─────────────────────────────────────────────────────────
