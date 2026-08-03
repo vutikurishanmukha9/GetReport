@@ -1,4 +1,4 @@
-import { Check, ArrowRight, Zap, Shield, HelpCircle, Sparkles, Building2, UserCheck, Code2, Globe, Heart } from "lucide-react";
+import { Check, ArrowRight, Zap, Shield, Sparkles, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,64 +7,15 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
-const plans = [
-  {
-    name: "Browser & Cloud Audit",
-    price: "$0",
-    period: "100% FREE FOREVER",
-    description: "Instant in-memory dataset audits directly in your web browser with zero registration or paywalls.",
-    badge: "RECOMMENDED",
-    features: [
-      "Full file ingestion (CSV, XLSX, Parquet, TSV, JSONL)",
-      "Interactive Issue Ledger (9 quality issue categories)",
-      "A-F Column Confidence Scoring System",
-      "Multi-dataset relational joins (up to 5 files)",
-      "Deterministic RAG AI Companion for dataset chat",
-      "WeasyPrint executive PDF report downloads",
-      "Multi-format streaming export (CSV, Parquet, HTML)",
-      "100% ephemeral in-memory processing security",
-    ],
-    cta: "Start Free Audit",
-    link: "/workspace",
-    variant: "default" as const,
-  },
-  {
-    name: "Self-Hosted Open Source",
-    price: "$0",
-    period: "OPEN SOURCE",
-    description: "Deploy GetReport locally on your workstation or company servers with Docker or Python virtualenv.",
-    badge: "DEVELOPERS",
-    features: [
-      "100% full source code access on GitHub",
-      "Local Python & Celery task execution",
-      "Custom memory & file size limits (unrestricted RAM)",
-      "Zero data leaving your local machine or network",
-      "Custom LLM API key integration (OpenAI / OpenRouter)",
-      "Full API routing & custom backend service extendability",
-    ],
-    cta: "View GitHub Repository",
-    link: "https://github.com/vutikurishanmukha9/GetReport",
-    external: true,
-    variant: "outline" as const,
-  },
-  {
-    name: "Enterprise Self-Hosted",
-    price: "$0",
-    period: "COMMUNITY EDITION",
-    description: "Deploy in private Kubernetes clusters or AWS/GCP VPC environments with custom compliance controls.",
-    badge: "ENTERPRISE READY",
-    features: [
-      "Complete deployment guides for Docker & Render",
-      "Isolated celery worker pool configuration",
-      "PostgreSQL asyncpg connection pool tuning",
-      "Security header defenses (HSTS, CSP, banner masking)",
-      "Automated quality remediation DAG execution",
-      "Zero vendor lock-in or subscription fees",
-    ],
-    cta: "Explore Architecture Specs",
-    link: "/documentation#security",
-    variant: "outline" as const,
-  },
+const currentOfferingFeatures = [
+  "Multi-format file ingestion (CSV, XLSX, XLS, Parquet, TSV, JSONL)",
+  "Interactive Issue Ledger with 1-click quality remediation",
+  "A-F Column Confidence Scoring System",
+  "Multi-dataset relational joins (up to 5 datasets on primary keys)",
+  "Ephemeral RAG AI Companion for interactive dataset Q&A",
+  "WeasyPrint board-ready PDF report downloads",
+  "Multi-format streaming export (CSV, Parquet, HTML)",
+  "100% ephemeral in-memory execution (zero permanent disk storage)",
 ];
 
 const faqs = [
@@ -94,104 +45,88 @@ export const Pricing = () => {
       <main className="flex-1 pt-20">
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/30 to-background py-16 md:py-24">
-          <div className="container mx-auto px-4 text-center space-y-4 max-w-4xl">
+          <div className="container mx-auto px-4 text-center space-y-4 max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-semibold uppercase tracking-wider font-mono border border-emerald-500/20">
               <Heart className="h-3.5 w-3.5 fill-emerald-500" />
-              <span>100% Free & Open Source for Everyone</span>
+              <span>100% Free & Open Source</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.05]">
-              All Features Unlocked. $0 Forever.
+              GetReport Free Edition.
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              No hidden fees, no credit cards required, and no feature paywalls. Experience full automated data quality audits, multi-dataset joins, and executive PDF reports for free.
+              No subscriptions, no hidden fees, and no feature locks. Complete automated data quality audits, multi-dataset joins, and executive PDF reports for everyone.
             </p>
           </div>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="container mx-auto px-4 py-16 md:py-24 max-w-7xl">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-            {plans.map((plan, idx) => (
-              <Card
-                key={plan.name}
-                className={`border bg-card rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 relative ${
-                  plan.badge === "RECOMMENDED" ? "border-primary shadow-lg ring-1 ring-primary/20" : "border-border/80 hover:border-primary/30"
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-4">
-                    <h3 className="text-lg sm:text-xl font-display font-bold text-foreground uppercase tracking-tight">
-                      {plan.name}
-                    </h3>
-                    {plan.badge && (
-                      <Badge className="bg-primary text-primary-foreground text-[9px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md whitespace-nowrap shrink-0">
-                        {plan.badge}
-                      </Badge>
-                    )}
-                  </div>
+        {/* Single Focused Offering Card */}
+        <div className="container mx-auto px-4 py-16 max-w-3xl">
+          <Card className="border-2 border-primary/30 bg-card rounded-3xl p-8 sm:p-12 shadow-premium relative overflow-hidden space-y-8">
+            
+            {/* Card Header & Price */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-border/60 pb-8">
+              <div className="space-y-2">
+                <Badge className="bg-primary text-primary-foreground text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-md whitespace-nowrap w-fit">
+                  FULL SUITE INCLUDED
+                </Badge>
+                <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-foreground uppercase tracking-tight">
+                  GetReport Full Access
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Instant in-memory dataset audits with zero registration required.
+                </p>
+              </div>
 
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-display font-extrabold text-foreground">{plan.price}</span>
-                      <span className="text-xs text-emerald-700 font-mono font-bold">{plan.period}</span>
-                    </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      {plan.description}
-                    </p>
-                  </div>
-
-                  <div className="space-y-3 pt-4 border-t border-border/60 mb-8">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-bold">Included Features</span>
-                    <ul className="space-y-2.5 text-xs text-foreground font-sans">
-                      {plan.features.map((feature, fIdx) => (
-                        <li key={fIdx} className="flex items-start gap-2.5">
-                          <Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+              <div className="flex flex-col items-start sm:items-end shrink-0">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-5xl font-display font-extrabold text-foreground">$0</span>
+                  <span className="text-xs text-emerald-700 font-mono font-bold">100% FREE</span>
                 </div>
+                <span className="text-[11px] text-muted-foreground font-mono">No credit card required</span>
+              </div>
+            </div>
 
-                <div className="pt-4">
-                  {plan.external ? (
-                    <a href={plan.link} target="_blank" rel="noopener noreferrer">
-                      <Button
-                        size="lg"
-                        variant={plan.variant}
-                        className="w-full rounded-xl h-11 font-display font-semibold text-sm"
-                      >
-                        <span>{plan.cta}</span>
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </a>
-                  ) : (
-                    <Link to={plan.link}>
-                      <Button
-                        size="lg"
-                        variant={plan.variant}
-                        className={`w-full rounded-xl h-11 font-display font-semibold text-sm ${
-                          plan.badge === "RECOMMENDED" ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" : ""
-                        }`}
-                      >
-                        <span>{plan.cta}</span>
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </Card>
-            ))}
-          </div>
+            {/* Included Features List */}
+            <div className="space-y-4">
+              <span className="text-xs font-mono uppercase tracking-wider text-primary font-bold block">
+                Everything Included In Current Version:
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm text-foreground font-sans">
+                {currentOfferingFeatures.map((feature, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-muted/40 border border-border/40">
+                    <Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span className="leading-snug">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action CTA */}
+            <div className="pt-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+                <Shield className="h-4 w-4 text-emerald-600" />
+                <span>Zero permanent disk storage</span>
+              </div>
+
+              <Link to="/workspace" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto h-12 px-8 rounded-xl font-display font-semibold text-sm shadow-premium">
+                  <span>Start Free Audit Now</span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+
+          </Card>
         </div>
 
         {/* FAQ Section */}
         <div className="border-t border-border/60 bg-muted/20 py-16 md:py-24">
-          <div className="container mx-auto px-4 max-w-4xl">
+          <div className="container mx-auto px-4 max-w-3xl">
             <div className="text-center mb-12 space-y-2">
               <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground uppercase tracking-tight">Frequently Asked Questions</h2>
-              <p className="text-xs sm:text-sm text-muted-foreground">Everything you need to know about GetReport's free platform and security guarantees.</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Everything you need to know about GetReport's free platform.</p>
             </div>
 
             <Accordion type="single" collapsible className="space-y-4">
