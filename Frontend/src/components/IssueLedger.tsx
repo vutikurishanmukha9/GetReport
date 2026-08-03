@@ -302,7 +302,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                     </div>
 
                     {!locked && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <button
                                 onClick={handleApproveAll}
                                 disabled={loading !== null || !hasPending}

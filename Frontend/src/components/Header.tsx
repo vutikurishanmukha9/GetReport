@@ -1,9 +1,4 @@
-/* Hallmark · component: nav · genre: modern-minimal · theme: Quiet
- * states: default · hover · focus · active · disabled
- * contrast: pass
- */
-
-import { FileSpreadsheet, RotateCcw, Menu } from "lucide-react";
+import { FileSpreadsheet, RotateCcw, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -13,7 +8,6 @@ import {
   SheetTrigger,
   SheetTitle,
 } from "@/components/ui/sheet";
-
 
 interface HeaderProps {
   onReset: () => void;
@@ -25,7 +19,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
 
   return (
     <header className="fixed top-4 left-0 right-0 z-50 w-full max-w-7xl mx-auto px-4 sm:px-6">
-      <div className="border border-border/80 bg-background/80 backdrop-blur-xl shadow-premium rounded-full px-4 sm:px-6 transition-all duration-200">
+      <div className="border border-border/80 bg-background/90 backdrop-blur-xl shadow-premium rounded-full px-4 sm:px-6 transition-all duration-200">
         <div className="flex h-14 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2">
@@ -38,27 +32,40 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
               </span>
             </Link>
           </div>
- 
+
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             <Link 
               to="/features" 
-              className="text-sm font-sans font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
+              className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
             >
-              features
+              Features
             </Link>
             <Link 
               to="/how-it-works" 
-              className="text-sm font-sans font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
+              className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
             >
-              how it works
+              How It Works
             </Link>
             <Link 
-              to="/dashboard" 
-              className="text-sm font-sans font-medium text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
+              to="/pricing" 
+              className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
             >
-              dashboard
+              Pricing
             </Link>
+            <Link 
+              to="/documentation" 
+              className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
+            >
+              Docs
+            </Link>
+            <Link 
+              to="/examples" 
+              className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
+            >
+              Examples
+            </Link>
+
             {showReset ? (
               <>
                 <div className="h-4 w-px bg-border/60 mx-1" />
@@ -66,10 +73,10 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   variant="outline" 
                   size="sm" 
                   onClick={onReset} 
-                  className="gap-2 rounded-full shadow-2xs border-border/80 bg-white hover:bg-muted/40 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-medium text-xs px-3.5"
+                  className="gap-2 rounded-full shadow-2xs border-border/80 bg-white hover:bg-muted/40 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-xs px-3.5"
                 >
                   <RotateCcw className="h-3.5 w-3.5 text-primary" />
-                  Start Over
+                  <span>Start Over</span>
                 </Button>
               </>
             ) : (
@@ -86,7 +93,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
               </>
             )}
           </nav>
- 
+
           {/* Mobile Menu */}
           <div className="flex md:hidden items-center gap-2">
             {showReset && (
@@ -110,24 +117,52 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 <nav className="flex flex-col gap-4 mt-8">
                   <Link
                     to="/workspace"
-                    className="text-lg font-display font-semibold text-primary hover:text-primary transition-colors py-2 border-b"
+                    className="text-base font-display font-bold text-primary hover:text-primary transition-colors py-2 border-b border-border/60"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Launch Workspace
                   </Link>
                   <Link
                     to="/features"
-                    className="text-lg font-display font-medium hover:text-primary transition-colors py-2 border-b"
+                    className="text-sm font-display font-semibold uppercase tracking-wider hover:text-primary transition-colors py-2 border-b border-border/60"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Features
                   </Link>
                   <Link
                     to="/how-it-works"
-                    className="text-lg font-display font-medium hover:text-primary transition-colors py-2 border-b"
+                    className="text-sm font-display font-semibold uppercase tracking-wider hover:text-primary transition-colors py-2 border-b border-border/60"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    How it Works
+                    How It Works
+                  </Link>
+                  <Link
+                    to="/pricing"
+                    className="text-sm font-display font-semibold uppercase tracking-wider hover:text-primary transition-colors py-2 border-b border-border/60"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Pricing ($0 Free)
+                  </Link>
+                  <Link
+                    to="/documentation"
+                    className="text-sm font-display font-semibold uppercase tracking-wider hover:text-primary transition-colors py-2 border-b border-border/60"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Documentation
+                  </Link>
+                  <Link
+                    to="/examples"
+                    className="text-sm font-display font-semibold uppercase tracking-wider hover:text-primary transition-colors py-2 border-b border-border/60"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Examples
+                  </Link>
+                  <Link
+                    to="/contact"
+                    className="text-sm font-display font-semibold uppercase tracking-wider hover:text-primary transition-colors py-2 border-b border-border/60"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Contact
                   </Link>
                 </nav>
               </SheetContent>
