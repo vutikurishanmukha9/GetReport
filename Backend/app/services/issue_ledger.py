@@ -332,6 +332,80 @@ def _detect_business_rule_violations(df: pl.DataFrame) -> list[Issue]:
                         fix_code=f"df = df.filter(pl.col('{col}') <= pl.lit(datetime.now()))",
                     ))
 
+    # ── 4. Cross-Field Date Chronology Violations (e.g. ship_date < order_date) ──
+    date_cols = [c for c in df.columns if df[c].dtype in (pl.Date, pl.Datetime)]
+    if len(date_cols) >= 2:
+        start_col = next((c for c in date_cols if any(kw in c.lower() for kw in ("start", "order", "create", "begin", "open"))), None)
+        end_col = next((c for c in date_cols if any(kw in c.lower() for kw in ("end", "ship", "close", "finish", "deliver", "expire"))), None)
+
+        if start_col and end_col and start_col != end_col:
+            try:
+                invalid_seq_count = int((df[end_col] < df[start_col]).drop_nulls().sum())
+                if invalid_seq_count > 0:
+                    pct = (invalid_seq_count / n_rows * 100)
+                    issues.append(Issue(
+                        id=_generate_id(),
+                        issue_type="format_issue",
+                        severity="high",
+                        column=end_col,
+                        affected_rows=invalid_seq_count,
+                        affected_pct=pct,
+                        description=f"Chronology error: {invalid_seq_count:,} rows where '{end_col}' is earlier than '{start_col}'",
+                        suggested_fix=f"Filter out rows where '{end_col}' < '{start_col}'",
+                        fix_code=f"df = df.filter((pl.col('{end_col}') >= pl.col('{start_col}')) | pl.col('{end_col}').is_null() | pl.col('{start_col}').is_null())",
+                    ))
+            except Exception:
+                pass
+
+    return issues
+
+
+SUMMARY_KEYWORDS = frozenset({"total", "grand total", "sum", "subtotal", "average", "avg", "mean", "summary", "count"})
+
+def _detect_summary_rows_and_mid_headers(df: pl.DataFrame) -> list[Issue]:
+    """Detect repeated header rows mid-file or trailing summary/total rows mixed into transaction rows."""
+    issues = []
+    n_rows = df.height
+    if n_rows < 5:
+        return issues
+
+    for col in df.columns[:5]:
+        if df[col].dtype == pl.Utf8:
+            non_null = df[col].drop_nulls().str.strip_chars()
+
+            # ── 1. Repeated header rows mid-file ──
+            repeated_headers = int((non_null.str.to_lowercase() == col.lower()).sum())
+            if repeated_headers > 0:
+                pct = (repeated_headers / n_rows * 100)
+                issues.append(Issue(
+                    id=_generate_id(),
+                    issue_type="format_issue",
+                    severity="high",
+                    column=col,
+                    affected_rows=repeated_headers,
+                    affected_pct=pct,
+                    description=f"{repeated_headers:,} repeated header row(s) detected mid-file in column '{col}'",
+                    suggested_fix=f"Filter out repeated header rows",
+                    fix_code=f"df = df.filter(pl.col('{col}').str.to_lowercase() != '{col.lower()}')",
+                ))
+
+            # ── 2. Summary / Total rows ──
+            summary_mask = non_null.str.to_lowercase().is_in(list(SUMMARY_KEYWORDS))
+            summary_count = int(summary_mask.sum())
+            if summary_count > 0:
+                pct = (summary_count / n_rows * 100)
+                issues.append(Issue(
+                    id=_generate_id(),
+                    issue_type="format_issue",
+                    severity="high",
+                    column=col,
+                    affected_rows=summary_count,
+                    affected_pct=pct,
+                    description=f"{summary_count:,} aggregate summary/total row(s) detected mixed into dataset",
+                    suggested_fix=f"Filter out aggregate summary rows",
+                    fix_code=f"df = df.filter(~pl.col('{col}').str.to_lowercase().str.strip_chars().is_in({list(SUMMARY_KEYWORDS)}))",
+                ))
+
     return issues
 
 
@@ -945,6 +1019,9 @@ def detect_issues(
     
     # Detect various issue types
     for issue in _detect_empty_column_issues(df):
+        ledger.add_issue(issue)
+    
+    for issue in _detect_summary_rows_and_mid_headers(df):
         ledger.add_issue(issue)
     
     for issue in _detect_missing_value_issues(df):

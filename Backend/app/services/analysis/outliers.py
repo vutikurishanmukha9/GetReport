@@ -17,10 +17,11 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
     
     Combines:
     1. Adaptive IQR Bounds (Mild 1.5x, Severe 3.0x)
-    2. Modified Z-Score via Median Absolute Deviation (MAD) for skewed data
-    3. Standard Z-Score (|Z| > 3.0)
-    4. Domain boundary anomalies (e.g. negative prices/ages, percentages > 100%)
-    5. Multivariate Anomaly Detection via Isolation Forest & Local Outlier Factor (LOF)
+    2. Log-Transformed IQR Bounds for heavy right-skewed business metrics (skew > 2.0)
+    3. Modified Z-Score via Median Absolute Deviation (MAD) for non-normal distributions
+    4. Standard Z-Score (|Z| > 3.0)
+    5. Domain boundary anomalies (e.g. negative prices/ages, percentages > 100%)
+    6. Multivariate Anomaly Detection via Isolation Forest & Local Outlier Factor (LOF)
     """
     if not numeric_cols or df.height == 0:
         return {}
@@ -59,11 +60,28 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
             if iqr == 0 and (std_val is None or std_val == 0):
                 continue
 
+            # Check skewness for log-transformation recommendation
+            is_heavy_skew = skew_val is not None and skew_val > 2.0
+            
             # Mild & Severe IQR Bounds
             lower_mild = q1 - IQR_LOWER_MULTIPLIER * iqr
             upper_mild = q3 + IQR_UPPER_MULTIPLIER * iqr
             lower_severe = q1 - 3.0 * iqr
             upper_severe = q3 + 3.0 * iqr
+
+            # Log-transformed IQR for heavy right skew
+            log_outlier_count = 0
+            if is_heavy_skew and (df[col] >= 0).all():
+                try:
+                    log_series = (df[col].cast(pl.Float64) + 1.0).log()
+                    l_q1 = log_series.quantile(0.25)
+                    l_q3 = log_series.quantile(0.75)
+                    if l_q1 is not None and l_q3 is not None:
+                        l_iqr = l_q3 - l_q1
+                        l_upper = l_q3 + 1.5 * l_iqr
+                        log_outlier_count = int((log_series > l_upper).sum())
+                except Exception:
+                    pass
 
             # ── 2. MAD Calculation (Median Absolute Deviation) ──
             mad_val = None
@@ -107,6 +125,8 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
                     "percentage": round(count / n_rows * 100, 2),
                     "severe_count": severe_count,
                     "mad_outlier_count": mad_outlier_count,
+                    "log_outlier_count": log_outlier_count,
+                    "is_heavy_skew": is_heavy_skew,
                     "skewness": round(skew_val, 2) if skew_val is not None else 0.0,
                     "min_outlier": outlier_rows[col].min() if count > 0 else None,
                     "max_outlier": outlier_rows[col].max() if count > 0 else None,
@@ -123,7 +143,6 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
             try:
                 from sklearn.ensemble import IsolationForest
                 from sklearn.neighbors import LocalOutlierFactor
-                import numpy as np
 
                 # Prepare scaled numpy array for top numeric columns
                 clean_df = df.select(numeric_cols[:5]).to_pandas().fillna(0)
