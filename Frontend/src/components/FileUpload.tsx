@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import { Upload, FileSpreadsheet, AlertCircle, X } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertCircle, X, Shield, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -502,19 +503,49 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
         </CardContent>
       </Card>
 
-      {/* Info Note */}
+      {/* Privacy & Data Handling Disclosure */}
       <motion.div
-        className="flex items-start gap-3 p-4 rounded-2xl border border-border/80 bg-white text-xs sm:text-sm text-muted-foreground leading-relaxed shadow-premium"
+        className="p-5 rounded-2xl border border-border/80 bg-white shadow-premium space-y-3"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
-        <div className="p-1 rounded-md bg-primary/10 text-primary shrink-0 mt-0.5">
-          <AlertCircle className="h-4 w-4" />
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+            <Shield className="h-4 w-4" />
+          </div>
+          <h3 className="text-xs sm:text-sm font-display font-bold text-foreground uppercase tracking-wide">
+            Your Data, Your Control
+          </h3>
         </div>
-        <p className="font-sans">
-          <strong className="text-foreground">Privacy Guaranteed:</strong> Your data is processed securely in isolated memory. Files are never stored permanently and are automatically purged after report synthesis.
-        </p>
+
+        <ul className="space-y-2 text-[11px] sm:text-xs text-muted-foreground leading-relaxed font-sans">
+          <li className="flex items-start gap-2">
+            <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
+            <span><strong className="text-foreground">In-Memory Processing</strong> — Your file is loaded into isolated server memory and is never written to persistent disk storage.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
+            <span><strong className="text-foreground">Auto-Purge</strong> — All uploaded data, intermediate results, and generated reports are automatically deleted within 1 hour of session inactivity.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
+            <span><strong className="text-foreground">No Third-Party Sharing</strong> — Raw row-level data is never sent to any external AI provider. Only aggregated statistical summaries are used for insight generation.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
+            <span><strong className="text-foreground">End-to-End Encryption</strong> — All uploads are transmitted over HTTPS / TLS 1.3. Server-side memory is isolated per request.</span>
+          </li>
+        </ul>
+
+        <div className="pt-1">
+          <Link
+            to="/privacy-policy"
+            className="text-[10px] sm:text-xs text-primary hover:text-primary/80 font-medium font-display underline underline-offset-2 transition-colors"
+          >
+            Read Full Privacy Policy →
+          </Link>
+        </div>
       </motion.div>
     </motion.div>
   );

@@ -180,32 +180,60 @@ def _generate_id() -> str:
 
 
 def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
-    """Detect columns with significant missing values."""
+    """Detect columns with significant missing values.
+    
+    Enhancements over baseline:
+    - Threshold lowered from 5% to 1% so low-level gaps are surfaced.
+    - Four severity tiers: critical (≥30%), high (≥15%), medium (≥5%), low (≥1%).
+    - Head/tail null concentration analysis for time-series bias detection.
+    - Numeric columns get median fill; string columns get mode fill.
+    """
     issues = []
     n_rows = df.height
-    
+    if n_rows == 0:
+        return issues
+
     for col in df.columns:
         null_count = df[col].null_count()
-        null_pct = (null_count / n_rows * 100) if n_rows > 0 else 0
-        
+        null_pct = (null_count / n_rows * 100)
+
         if null_pct >= 30:
-            severity = "critical"
+            severity: Severity = "critical"
         elif null_pct >= 15:
             severity = "high"
         elif null_pct >= 5:
             severity = "medium"
+        elif null_pct >= 1:
+            severity = "low"
         else:
-            continue  # Skip low missing %
-        
-        # Determine fix based on column type
+            continue  # < 1% — negligible
+
+        # ── Null concentration pattern (head / tail / scattered) ──
+        pattern = "scattered"
+        try:
+            sample_size = min(n_rows, 100)
+            head_nulls = df[col].head(sample_size).null_count()
+            tail_nulls = df[col].tail(sample_size).null_count()
+            head_ratio = head_nulls / sample_size if sample_size > 0 else 0
+            tail_ratio = tail_nulls / sample_size if sample_size > 0 else 0
+            if tail_ratio > 0.5 and tail_ratio > head_ratio * 2:
+                pattern = "concentrated at tail (recent records may be incomplete)"
+            elif head_ratio > 0.5 and head_ratio > tail_ratio * 2:
+                pattern = "concentrated at head (early records may be incomplete)"
+        except Exception:
+            pass
+
+        # ── Fix suggestion based on dtype ──
         dtype = df[col].dtype
-        if dtype in (pl.Int64, pl.Float64):
+        if dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.Int16, pl.Int8, pl.UInt32, pl.UInt64):
             fix_code = f"df = df.with_columns(pl.col('{col}').fill_null(pl.col('{col}').median()))"
-            suggested_fix = f"Fill with median value"
+            suggested_fix = "Fill with median value"
         else:
             fix_code = f"df = df.with_columns(pl.col('{col}').fill_null(pl.col('{col}').mode().first()))"
-            suggested_fix = f"Fill with most common value"
-        
+            suggested_fix = "Fill with most common value"
+
+        desc = f"{null_pct:.1f}% missing values ({null_count:,} rows) — {pattern}"
+
         issues.append(Issue(
             id=_generate_id(),
             issue_type="missing_values",
@@ -213,31 +241,58 @@ def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
             column=col,
             affected_rows=null_count,
             affected_pct=null_pct,
-            description=f"{null_pct:.1f}% missing values ({null_count:,} rows)",
+            description=desc,
             suggested_fix=suggested_fix,
             fix_code=fix_code,
         ))
-    
+
     return issues
 
 
 def _detect_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
-    """Detect duplicate rows."""
+    """Detect duplicate rows with enhanced diagnostics.
+    
+    Enhancements:
+    - Critical severity tier for ≥40% duplicates.
+    - Near-duplicate column-subset scan on top 5 lowest-cardinality columns.
+    - Reports which columns contribute most to duplication.
+    """
     issues = []
     n_rows = df.height
+    if n_rows == 0:
+        return issues
+
+    # ── Exact duplicate detection ──
     n_unique = df.n_unique()
     dup_count = n_rows - n_unique
-    
+
     if dup_count > 0:
-        dup_pct = (dup_count / n_rows * 100) if n_rows > 0 else 0
-        
-        if dup_pct >= 20:
+        dup_pct = (dup_count / n_rows * 100)
+
+        if dup_pct >= 40:
+            severity: Severity = "critical"
+        elif dup_pct >= 20:
             severity = "high"
         elif dup_pct >= 5:
             severity = "medium"
         else:
             severity = "low"
-        
+
+        # ── Identify columns contributing most to duplication ──
+        contributing_cols: list[str] = []
+        try:
+            for col in df.columns[:10]:  # Check first 10 columns
+                col_unique = df[col].n_unique()
+                col_ratio = col_unique / n_rows if n_rows > 0 else 1
+                if col_ratio < 0.5:  # Low cardinality = likely contributor
+                    contributing_cols.append(col)
+        except Exception:
+            pass
+
+        desc = f"{dup_count:,} exact duplicate rows ({dup_pct:.1f}%)"
+        if contributing_cols:
+            desc += f" — low-cardinality columns: {', '.join(contributing_cols[:5])}"
+
         issues.append(Issue(
             id=_generate_id(),
             issue_type="duplicates",
@@ -245,11 +300,43 @@ def _detect_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
             column=None,
             affected_rows=dup_count,
             affected_pct=dup_pct,
-            description=f"{dup_count:,} duplicate rows ({dup_pct:.1f}%)",
+            description=desc,
             suggested_fix="Remove duplicate rows",
             fix_code="df = df.unique()",
         ))
-    
+
+    # ── Near-duplicate detection (column-subset scan) ──
+    try:
+        # Pick top 5 lowest-cardinality non-empty columns for subset check
+        col_cardinalities = []
+        for col in df.columns:
+            if df[col].null_count() < n_rows:
+                col_cardinalities.append((col, df[col].n_unique()))
+        col_cardinalities.sort(key=lambda x: x[1])
+        subset_cols = [c[0] for c in col_cardinalities[:5]]
+
+        if len(subset_cols) >= 2 and len(subset_cols) < len(df.columns):
+            subset_unique = df.select(subset_cols).n_unique()
+            near_dup_count = n_rows - subset_unique
+            near_dup_pct = (near_dup_count / n_rows * 100) if n_rows > 0 else 0
+
+            # Only report if near-dupes exceed exact dupes by a meaningful margin
+            if near_dup_count > dup_count and near_dup_pct >= 3:
+                extra = near_dup_count - dup_count
+                issues.append(Issue(
+                    id=_generate_id(),
+                    issue_type="duplicates",
+                    severity="medium",
+                    column=None,
+                    affected_rows=extra,
+                    affected_pct=(extra / n_rows * 100) if n_rows > 0 else 0,
+                    description=f"{extra:,} near-duplicate rows detected on columns [{', '.join(subset_cols)}]",
+                    suggested_fix="Review rows that differ only in minor fields",
+                    fix_code=f"# Near-duplicates on subset: df.unique(subset={subset_cols})",
+                ))
+    except Exception:
+        pass  # Near-duplicate scan is best-effort
+
     return issues
 
 
@@ -298,46 +385,126 @@ def _detect_constant_column_issues(df: pl.DataFrame) -> list[Issue]:
     
     return issues
 
+import re as _re
+
+_NUMERIC_PATTERN = _re.compile(r'^[\s$€£₹¥]?-?[\d,]+\.?\d*\s*%?$')
+_BOOL_LOWER_SET = frozenset({"true", "false", "yes", "no", "0", "1", "t", "f", "y", "n"})
+
 
 def _detect_type_mismatch_issues(
     df: pl.DataFrame,
     smart_schema: dict[str, Any] | None = None
 ) -> list[Issue]:
-    """Detect type mismatches from smart schema analysis."""
+    """Detect type mismatches with enhanced auto-detection.
+    
+    Enhancements:
+    - Auto-detects numeric strings in Utf8 columns even when smart_schema is None.
+    - Detects boolean-like columns (true/false, yes/no, 0/1).
+    - Includes sample values in descriptions for user clarity.
+    """
     issues = []
-    
-    if not smart_schema:
+    already_flagged: set[str] = set()
+
+    # ── 1. Smart-schema driven corrections (if available) ──
+    if smart_schema:
+        corrections = smart_schema.get("type_corrections", [])
+        for corr in corrections:
+            col = corr.get("column", "")
+            current = corr.get("current_type", "")
+            suggested = corr.get("suggested_type", "")
+            reason = corr.get("reason", "")
+            code = corr.get("conversion_code", "")
+
+            if not code:
+                if suggested == "datetime":
+                    code = f"df = df.with_columns(pl.col('{col}').str.to_datetime())"
+                elif suggested == "integer":
+                    code = f"df = df.with_columns(pl.col('{col}').cast(pl.Int64))"
+                elif suggested == "float":
+                    code = f"df = df.with_columns(pl.col('{col}').cast(pl.Float64))"
+
+            # Include sample values for clarity
+            samples_str = ""
+            try:
+                if col in df.columns:
+                    samples = df[col].drop_nulls().head(3).to_list()
+                    if samples:
+                        samples_str = f" — samples: {samples[:3]}"
+            except Exception:
+                pass
+
+            issues.append(Issue(
+                id=_generate_id(),
+                issue_type="type_mismatch",
+                severity="medium",
+                column=col,
+                affected_rows=df.height,
+                affected_pct=100.0,
+                description=f"Currently {current}, should be {suggested}. {reason}{samples_str}",
+                suggested_fix=f"Convert to {suggested}",
+                fix_code=code if code else f"# Manual conversion needed for {col}",
+            ))
+            already_flagged.add(col)
+
+    # ── 2. Auto-detect numeric strings in Utf8 columns ──
+    n_rows = df.height
+    if n_rows == 0:
         return issues
-    
-    corrections = smart_schema.get("type_corrections", [])
-    for corr in corrections:
-        col = corr.get("column", "")
-        current = corr.get("current_type", "")
-        suggested = corr.get("suggested_type", "")
-        reason = corr.get("reason", "")
-        code = corr.get("conversion_code", "")
-        
-        if not code:
-            # Generate default conversion code
-            if suggested == "datetime":
-                code = f"df = df.with_columns(pl.col('{col}').str.to_datetime())"
-            elif suggested == "integer":
-                code = f"df = df.with_columns(pl.col('{col}').cast(pl.Int64))"
-            elif suggested == "float":
-                code = f"df = df.with_columns(pl.col('{col}').cast(pl.Float64))"
-        
-        issues.append(Issue(
-            id=_generate_id(),
-            issue_type="type_mismatch",
-            severity="medium",
-            column=col,
-            affected_rows=df.height,
-            affected_pct=100.0,
-            description=f"Currently {current}, should be {suggested}. {reason}",
-            suggested_fix=f"Convert to {suggested}",
-            fix_code=code if code else f"# Manual conversion needed for {col}",
-        ))
-    
+
+    for col in df.columns:
+        if col in already_flagged:
+            continue
+        if df[col].dtype != pl.Utf8:
+            continue
+
+        non_null = df[col].drop_nulls()
+        sample_size = min(non_null.len(), 100)
+        if sample_size < 5:
+            continue
+
+        sample = non_null.head(sample_size).to_list()
+
+        # ── Boolean detection ──
+        lower_sample = [str(v).strip().lower() for v in sample if v is not None]
+        if lower_sample and all(v in _BOOL_LOWER_SET for v in lower_sample):
+            unique_vals = set(lower_sample)
+            if len(unique_vals) <= 4:  # e.g. {"true", "false"} or {"yes", "no"}
+                issues.append(Issue(
+                    id=_generate_id(),
+                    issue_type="type_mismatch",
+                    severity="low",
+                    column=col,
+                    affected_rows=n_rows,
+                    affected_pct=100.0,
+                    description=f"Column contains boolean-like values ({', '.join(sorted(unique_vals))}) stored as strings — samples: {sample[:3]}",
+                    suggested_fix="Convert to Boolean",
+                    fix_code=f"df = df.with_columns(pl.col('{col}').str.to_lowercase().is_in(['true','yes','1','t','y']).alias('{col}'))",
+                ))
+                already_flagged.add(col)
+                continue
+
+        # ── Numeric string detection ──
+        numeric_matches = sum(1 for v in sample if v is not None and _NUMERIC_PATTERN.match(str(v).strip()))
+        match_ratio = numeric_matches / sample_size if sample_size > 0 else 0
+
+        if match_ratio >= 0.80:
+            # Determine if int or float
+            has_decimal = any("." in str(v) for v in sample if v is not None)
+            target_type = "Float64" if has_decimal else "Int64"
+
+            issues.append(Issue(
+                id=_generate_id(),
+                issue_type="type_mismatch",
+                severity="medium",
+                column=col,
+                affected_rows=n_rows,
+                affected_pct=100.0,
+                description=f"String column appears numeric ({match_ratio:.0%} of sampled values parse as numbers) — samples: {sample[:3]}",
+                suggested_fix=f"Convert to {target_type}",
+                fix_code=f"df = df.with_columns(pl.col('{col}').cast(pl.{target_type}, strict=False))",
+            ))
+            already_flagged.add(col)
+
     return issues
 
 
@@ -345,45 +512,108 @@ def _detect_outlier_issues(
     df: pl.DataFrame,
     outliers: dict[str, Any] | None = None
 ) -> list[Issue]:
-    """Detect outlier issues from analysis results."""
+    """Detect outlier issues with enhanced diagnostics.
+    
+    Enhancements:
+    - Self-computes IQR outliers when no pre-computed outlier data is passed.
+    - Adds max |Z-score| annotation for context.
+    - Critical severity tier for ≥20% outliers.
+    - Differentiated fix suggestions: flag (< 5%), Winsorize (5–15%), clip (> 15%).
+    """
     issues = []
-    
-    if not outliers:
-        return issues
-    
     n_rows = df.height
-    
-    for col, outlier_info in outliers.items():
+    if n_rows == 0:
+        return issues
+
+    # ── Build outlier data: use provided dict or self-compute via IQR ──
+    outlier_data: dict[str, dict[str, Any]] = {}
+
+    if outliers:
+        outlier_data = outliers
+    else:
+        # Self-compute IQR outliers for all numeric columns
+        numeric_dtypes = (pl.Int8, pl.Int16, pl.Int32, pl.Int64, pl.Float32, pl.Float64, pl.UInt32, pl.UInt64)
+        for col in df.columns:
+            if df[col].dtype not in numeric_dtypes:
+                continue
+            series = df[col].drop_nulls()
+            if series.len() < 10:  # Skip tiny series
+                continue
+            try:
+                q1 = series.quantile(0.25)
+                q3 = series.quantile(0.75)
+                if q1 is None or q3 is None:
+                    continue
+                iqr = q3 - q1
+                lower = q1 - 1.5 * iqr
+                upper = q3 + 1.5 * iqr
+                count = series.filter((series < lower) | (series > upper)).len()
+                if count > 0:
+                    outlier_data[col] = {"count": count, "q1": q1, "q3": q3}
+            except Exception:
+                continue
+
+    for col, outlier_info in outlier_data.items():
         count = outlier_info.get("count", 0)
-        if count > 0:
-            pct = (count / n_rows * 100) if n_rows > 0 else 0
-            
-            if pct >= 10:
-                severity = "high"
-            elif pct >= 5:
-                severity = "medium"
-            else:
-                severity = "low"
-            
-            # Clip to IQR bounds
-            q1 = outlier_info.get("q1", 0)
-            q3 = outlier_info.get("q3", 0)
-            iqr = q3 - q1
-            lower = q1 - 1.5 * iqr
-            upper = q3 + 1.5 * iqr
-            
-            issues.append(Issue(
-                id=_generate_id(),
-                issue_type="outliers",
-                severity=severity,
-                column=col,
-                affected_rows=count,
-                affected_pct=pct,
-                description=f"{count:,} outliers detected ({pct:.1f}%)",
-                suggested_fix=f"Clip to range [{lower:.2f}, {upper:.2f}]",
-                fix_code=f"df = df.with_columns(pl.col('{col}').clip({lower:.2f}, {upper:.2f}))",
-            ))
-    
+        if count <= 0:
+            continue
+
+        pct = (count / n_rows * 100) if n_rows > 0 else 0
+
+        if pct >= 20:
+            severity: Severity = "critical"
+        elif pct >= 10:
+            severity = "high"
+        elif pct >= 5:
+            severity = "medium"
+        else:
+            severity = "low"
+
+        q1 = outlier_info.get("q1", 0)
+        q3 = outlier_info.get("q3", 0)
+        iqr = q3 - q1
+        lower = q1 - 1.5 * iqr
+        upper = q3 + 1.5 * iqr
+
+        # ── Z-score annotation (max |z|) ──
+        z_note = ""
+        try:
+            if col in df.columns:
+                series = df[col].drop_nulls().cast(pl.Float64)
+                mean_val = series.mean()
+                std_val = series.std()
+                if std_val and std_val > 0 and mean_val is not None:
+                    max_z = ((series - mean_val) / std_val).abs().max()
+                    if max_z is not None:
+                        z_note = f", max |z| = {max_z:.1f}"
+        except Exception:
+            pass
+
+        desc = f"{count:,} outliers detected ({pct:.1f}%{z_note})"
+
+        # ── Differentiated fix suggestions ──
+        if pct < 5:
+            suggested_fix = "Flag for manual review"
+            fix_code = f"# Review outliers in '{col}' — values outside [{lower:.2f}, {upper:.2f}]"
+        elif pct < 15:
+            suggested_fix = f"Winsorize to IQR bounds [{lower:.2f}, {upper:.2f}]"
+            fix_code = f"df = df.with_columns(pl.col('{col}').clip({lower:.2f}, {upper:.2f}))"
+        else:
+            suggested_fix = f"Clip to range [{lower:.2f}, {upper:.2f}]"
+            fix_code = f"df = df.with_columns(pl.col('{col}').clip({lower:.2f}, {upper:.2f}))"
+
+        issues.append(Issue(
+            id=_generate_id(),
+            issue_type="outliers",
+            severity=severity,
+            column=col,
+            affected_rows=count,
+            affected_pct=pct,
+            description=desc,
+            suggested_fix=suggested_fix,
+            fix_code=fix_code,
+        ))
+
     return issues
 
 
