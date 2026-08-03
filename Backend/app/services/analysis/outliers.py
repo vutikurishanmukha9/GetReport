@@ -170,3 +170,73 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
         logger.error(f"Outlier detection failed: {e}")
 
     return outliers
+
+
+def detect_time_series_stl_outliers(df: pl.DataFrame, date_col: str, numeric_col: str) -> dict:
+    """
+    Performs Seasonal Trend Decomposition (STL) for time-indexed numeric metrics.
+    
+    Decomposes series: Observed(t) = Trend(t) + Seasonal(t) + Residual(t)
+    Evaluates MAD outliers on Residual(t) rather than raw values, preventing false positive
+    alerts caused by predictable weekly or monthly seasonal surges.
+    """
+    if date_col not in df.columns or numeric_col not in df.columns or df.height < 14:
+        return {"has_stl_outliers": False, "reason": "Insufficient observations for STL decomposition"}
+
+    try:
+        import numpy as np
+        import pandas as pd
+
+        # Sort by date and convert to pandas Series
+        ts_pd = df.select([date_col, numeric_col]).drop_nulls().sort(date_col).to_pandas()
+        ts_pd[date_col] = pd.to_datetime(ts_pd[date_col])
+        ts_pd.set_index(date_col, inplace=True)
+        
+        series = ts_pd[numeric_col].astype(float)
+        if len(series) < 14:
+            return {"has_stl_outliers": False, "reason": "Fewer than 14 non-null observations"}
+
+        try:
+            from statsmodels.tsa.seasonal import STL
+            stl = STL(series, period=7, seasonal=13)
+            res = stl.fit()
+            trend = res.trend
+            seasonal = res.seasonal
+            resid = res.resid
+        except Exception:
+            # Fallback: Rolling Median Trend & Weekly Seasonal Decomposition
+            trend = series.rolling(window=7, min_periods=1, center=True).median()
+            detrended = series - trend
+            seasonal = detrended.groupby(series.index.dayofweek).transform("median")
+            resid = series - trend - seasonal
+
+        # Outlier detection on residuals using MAD
+        median_r = float(np.median(resid))
+        mad_r = float(np.median(np.abs(resid - median_r)))
+
+        stl_outliers_mask = np.zeros(len(resid), dtype=bool)
+        if mad_r > 0:
+            mod_z_r = 0.6745 * np.abs(resid - median_r) / mad_r
+            stl_outliers_mask = mod_z_r > 3.0
+        else:
+            std_r = float(np.std(resid))
+            if std_r > 0:
+                stl_outliers_mask = np.abs(resid - np.mean(resid)) > 2.0 * std_r
+
+        stl_outlier_count = int(stl_outliers_mask.sum())
+
+        return {
+            "has_stl_outliers": stl_outlier_count > 0,
+            "stl_outlier_count": stl_outlier_count,
+            "total_observations": len(series),
+            "pct_stl_outliers": round(stl_outlier_count / len(series) * 100, 2),
+            "date_col": date_col,
+            "numeric_col": numeric_col,
+            "trend_summary": {"min": float(trend.min()), "max": float(trend.max())},
+            "seasonal_summary": {"amplitude": float(seasonal.max() - seasonal.min())},
+            "residual_mad": mad_r,
+        }
+
+    except Exception as err:
+        logger.debug("STL time series decomposition skipped: %s", err)
+        return {"has_stl_outliers": False, "reason": str(err)}

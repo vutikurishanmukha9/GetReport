@@ -676,3 +676,89 @@ def generate_interactive_charts(df: pl.DataFrame) -> dict[str, Any]:
         charts["box_plots"] = box_plots
     
     return charts
+
+
+def generate_stl_decomposition_chart(df: pl.DataFrame, date_col: str, numeric_col: str) -> str | None:
+    """Renders a 4-panel Matplotlib figure (Observed, Trend, Seasonal, Residual) for time-series STL decomposition."""
+    try:
+        import pandas as pd
+        from statsmodels.tsa.seasonal import STL
+
+        ts_pd = df.select([date_col, numeric_col]).drop_nulls().sort(date_col).to_pandas()
+        ts_pd[date_col] = pd.to_datetime(ts_pd[date_col])
+        ts_pd.set_index(date_col, inplace=True)
+
+        series = ts_pd[numeric_col].astype(float)
+        if len(series) < 14:
+            return None
+
+        stl = STL(series, period=7, seasonal=13)
+        res = stl.fit()
+
+        fig, axes = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
+        fig.suptitle(f"STL Seasonal Decomposition — {numeric_col}", fontsize=14, fontweight="bold", color=BRAND_TEXT)
+
+        axes[0].plot(series.index, series.values, color=BRAND_PRIMARY, lw=1.5)
+        axes[0].set_ylabel("Observed", fontsize=9, fontweight="bold")
+        axes[0].grid(True, alpha=0.3)
+
+        axes[1].plot(series.index, res.trend, color="#3b82f6", lw=1.5)
+        axes[1].set_ylabel("Trend", fontsize=9, fontweight="bold")
+        axes[1].grid(True, alpha=0.3)
+
+        axes[2].plot(series.index, res.seasonal, color="#8b5cf6", lw=1.5)
+        axes[2].set_ylabel("Seasonal", fontsize=9, fontweight="bold")
+        axes[2].grid(True, alpha=0.3)
+
+        axes[3].scatter(series.index, res.resid, color="#ef4444", s=15, alpha=0.7)
+        axes[3].axhline(0, color="gray", linestyle="--", alpha=0.5)
+        axes[3].set_ylabel("Residual", fontsize=9, fontweight="bold")
+        axes[3].grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        return _fig_to_base64(fig)
+    except Exception as err:
+        logger.warning(f"STL chart rendering failed: {err}")
+        return None
+
+
+def generate_er_relationship_diagram(relationships: list[dict]) -> str | None:
+    """Renders a visual ER diagram illustrating multi-table relationships and orphan counts."""
+    if not relationships:
+        return None
+
+    try:
+        fig, ax = plt.subplots(figsize=(8, len(relationships) * 1.5 + 2))
+        ax.axis("off")
+        ax.set_title("Multi-Table Entity Relationship & Referential Map", fontsize=14, fontweight="bold", pad=20)
+
+        y_pos = len(relationships) - 0.5
+        for rel in relationships:
+            p_table = rel.get("primary_table", "Parent")
+            f_table = rel.get("foreign_table", "Child")
+            pk = rel.get("pk_col", "id")
+            fk = rel.get("fk_col", "fk_id")
+            orphans = rel.get("orphan_count", 0)
+
+            bbox_props = dict(boxstyle="round,pad=0.5", fc="#e0e7ff", ec=BRAND_PRIMARY, lw=1.5)
+            ax.text(0.15, y_pos, f"  {p_table}  \nPK: {pk}", ha="center", va="center", bbox=bbox_props, fontsize=10, fontweight="bold")
+
+            arrow_color = "#ef4444" if orphans > 0 else "#22c55e"
+            ax.annotate("", xy=(0.8, y_pos), xytext=(0.35, y_pos),
+                        arrowprops=dict(arrowstyle="->", color=arrow_color, lw=2))
+
+            orphan_text = f"Orphans: {orphans:,}" if orphans > 0 else "100% Valid"
+            ax.text(0.575, y_pos + 0.15, f"{fk} → {pk}\n({orphan_text})", ha="center", va="center", fontsize=8, color=arrow_color, fontweight="bold")
+
+            bbox_child = dict(boxstyle="round,pad=0.5", fc="#f1f5f9", ec="#94a3b8", lw=1.5)
+            ax.text(0.85, y_pos, f"  {f_table}  \nFK: {fk}", ha="center", va="center", bbox=bbox_child, fontsize=10, fontweight="bold")
+
+            y_pos -= 1.2
+
+        ax.set_xlim(0, 1)
+        ax.set_ylim(-0.5, len(relationships))
+        plt.tight_layout()
+        return _fig_to_base64(fig)
+    except Exception as err:
+        logger.warning(f"ER diagram rendering failed: {err}")
+        return None
