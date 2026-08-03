@@ -1,6 +1,5 @@
 import pytest
 import polars as pl
-import pandas as pd
 from datetime import datetime, timedelta
 
 from app.services.foreign_key_integrity import detect_foreign_key_violations

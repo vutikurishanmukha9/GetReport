@@ -185,32 +185,40 @@ def detect_time_series_stl_outliers(df: pl.DataFrame, date_col: str, numeric_col
 
     try:
         import numpy as np
-        import pandas as pd
 
-        # Sort by date and convert to pandas Series
-        ts_pd = df.select([date_col, numeric_col]).drop_nulls().sort(date_col).to_pandas()
-        ts_pd[date_col] = pd.to_datetime(ts_pd[date_col])
-        ts_pd.set_index(date_col, inplace=True)
-        
-        series = ts_pd[numeric_col].astype(float)
-        if len(series) < 14:
+        # Extract sorted series using pure Polars + NumPy
+        clean_df = df.select([date_col, numeric_col]).drop_nulls().sort(date_col)
+        if clean_df.height < 14:
             return {"has_stl_outliers": False, "reason": "Fewer than 14 non-null observations"}
 
-        try:
-            from statsmodels.tsa.seasonal import STL
-            stl = STL(series, period=7, seasonal=13)
-            res = stl.fit()
-            trend = res.trend
-            seasonal = res.seasonal
-            resid = res.resid
-        except Exception:
-            # Fallback: Rolling Median Trend & Weekly Seasonal Decomposition
-            trend = series.rolling(window=7, min_periods=1, center=True).median()
-            detrended = series - trend
-            seasonal = detrended.groupby(series.index.dayofweek).transform("median")
-            resid = series - trend - seasonal
+        series_vec = clean_df[numeric_col].cast(pl.Float64).to_numpy()
+        n = len(series_vec)
 
-        # Outlier detection on residuals using MAD
+        try:
+            import pandas as pd
+            from statsmodels.tsa.seasonal import STL
+            ts_pd = clean_df.to_pandas()
+            ts_pd[date_col] = pd.to_datetime(ts_pd[date_col])
+            ts_pd.set_index(date_col, inplace=True)
+            res = STL(ts_pd[numeric_col].astype(float), period=7, seasonal=13).fit()
+            trend = res.trend.values
+            seasonal = res.seasonal.values
+            resid = res.resid.values
+        except Exception:
+            # Pure NumPy Fallback: Rolling Mean Trend + Weekly Seasonal Decomposition
+            window = 7
+            kernel = np.ones(window) / window
+            trend = np.convolve(series_vec, kernel, mode="same")
+            detrended = series_vec - trend
+            
+            seasonal = np.zeros(n)
+            for day in range(7):
+                mask = (np.arange(n) % 7) == day
+                if mask.any():
+                    seasonal[mask] = np.median(detrended[mask])
+            resid = series_vec - trend - seasonal
+
+        # Outlier detection on residuals using Modified Z-score via MAD
         median_r = float(np.median(resid))
         mad_r = float(np.median(np.abs(resid - median_r)))
 
@@ -228,12 +236,12 @@ def detect_time_series_stl_outliers(df: pl.DataFrame, date_col: str, numeric_col
         return {
             "has_stl_outliers": stl_outlier_count > 0,
             "stl_outlier_count": stl_outlier_count,
-            "total_observations": len(series),
-            "pct_stl_outliers": round(stl_outlier_count / len(series) * 100, 2),
+            "total_observations": n,
+            "pct_stl_outliers": round(stl_outlier_count / n * 100, 2),
             "date_col": date_col,
             "numeric_col": numeric_col,
-            "trend_summary": {"min": float(trend.min()), "max": float(trend.max())},
-            "seasonal_summary": {"amplitude": float(seasonal.max() - seasonal.min())},
+            "trend_summary": {"min": float(np.min(trend)), "max": float(np.max(trend))},
+            "seasonal_summary": {"amplitude": float(np.max(seasonal) - np.min(seasonal))},
             "residual_mad": mad_r,
         }
 
