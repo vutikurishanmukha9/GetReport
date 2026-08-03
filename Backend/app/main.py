@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
     await close_async_db()
     close_db()
 
-app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
 # Rate Limiting
 app.state.limiter = limiter

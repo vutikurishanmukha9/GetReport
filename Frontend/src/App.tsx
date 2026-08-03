@@ -15,7 +15,7 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const Features = lazy(() => import("./pages/Features"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const Documentation = lazy(() => import("./pages/Documentation"));
-const ApiDocs = lazy(() => import("./pages/ApiDocs"));
+
 const Examples = lazy(() => import("./pages/Examples"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -46,7 +46,7 @@ const App = () => (
             <Route path="/features" element={<Features />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/documentation" element={<Documentation />} />
-            <Route path="/api" element={<ApiDocs />} />
+
             <Route path="/examples" element={<Examples />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />

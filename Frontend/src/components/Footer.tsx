@@ -34,7 +34,7 @@ export const Footer = () => {
               <h4 className="text-xs font-display font-bold text-foreground uppercase tracking-wider mb-4">Resources</h4>
               <ul className="space-y-2.5 text-xs text-muted-foreground font-sans">
                 <li><Link to="/documentation" className="hover:text-foreground hover:underline transition-colors">documentation</Link></li>
-                <li><Link to="/api" className="hover:text-foreground hover:underline transition-colors">api reference</Link></li>
+
                 <li><Link to="/examples" className="hover:text-foreground hover:underline transition-colors">examples</Link></li>
               </ul>
             </div>
