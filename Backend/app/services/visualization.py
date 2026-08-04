@@ -81,7 +81,8 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     warnings = []
     
     # Identify columns
-    all_numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
+    # Identify columns using Polars is_numeric check
+    all_numeric_cols = [c for c, t in df.schema.items() if t.is_numeric()]
     cat_cols = [c for c in df.columns if c not in all_numeric_cols]
     
     logger.info(f"Visualization: Total columns={df.width}, numeric={len(all_numeric_cols)}, categorical={len(cat_cols)}")
@@ -89,6 +90,10 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     # Filter to only analytical numeric columns (exclude IDs, dates, low-variance)
     column_classification = classify_numeric_columns(df, all_numeric_cols)
     numeric_cols = column_classification["analytical"]
+    
+    # Fallback to all_numeric_cols if classification left fewer than 2 columns but dataset has numeric data
+    if len(numeric_cols) < 2 and len(all_numeric_cols) >= 2:
+        numeric_cols = all_numeric_cols
     
     logger.info(f"Visualization: After classification - analytical={len(numeric_cols)}, excluded={len(column_classification.get('excluded', []))}")
     
@@ -101,10 +106,22 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     if len(numeric_cols) > 1:
         try:
             target_cols_for_corr = numeric_cols[:20]
-            data_matrix = df.select(target_cols_for_corr).drop_nulls().to_numpy().T
+            clean_sel = df.select([pl.col(c).cast(pl.Float64) for c in target_cols_for_corr])
+            
+            # Use listwise deletion if >= 2 rows remain; otherwise fallback to median imputation
+            if clean_sel.drop_nulls().height >= 2:
+                matrix_df = clean_sel.drop_nulls()
+            else:
+                matrix_df = clean_sel.select([
+                    pl.col(c).fill_null(pl.col(c).median()).fill_null(0.0)
+                    for c in target_cols_for_corr
+                ])
+                
+            data_matrix = matrix_df.to_numpy().T
             
             if data_matrix.shape[1] > 1:
-                corr_matrix = np.corrcoef(data_matrix)
+                corr_matrix = np.nan_to_num(np.corrcoef(data_matrix), nan=0.0)
+                np.fill_diagonal(corr_matrix, 1.0)
                 
                 from matplotlib.colors import LinearSegmentedColormap
                 brand_cmap = LinearSegmentedColormap.from_list(
@@ -604,12 +621,21 @@ def generate_interactive_charts(df: pl.DataFrame) -> dict[str, Any]:
     if len(numeric_cols) > 1:
         try:
             target_cols = numeric_cols[:15]
-            data_matrix = df.select(target_cols).drop_nulls().to_numpy().T
+            clean_sel = df.select([pl.col(c).cast(pl.Float64) for c in target_cols])
+            
+            if clean_sel.drop_nulls().height >= 2:
+                matrix_df = clean_sel.drop_nulls()
+            else:
+                matrix_df = clean_sel.select([
+                    pl.col(c).fill_null(pl.col(c).median()).fill_null(0.0)
+                    for c in target_cols
+                ])
+                
+            data_matrix = matrix_df.to_numpy().T
             
             if data_matrix.shape[1] > 1:
-                corr_matrix = np.corrcoef(data_matrix)
-                # Replace NaN with 0
-                corr_matrix = np.nan_to_num(corr_matrix, nan=0.0)
+                corr_matrix = np.nan_to_num(np.corrcoef(data_matrix), nan=0.0)
+                np.fill_diagonal(corr_matrix, 1.0)
                 
                 charts["correlation_heatmap"] = {
                     "plotly_spec": {

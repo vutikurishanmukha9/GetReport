@@ -41,7 +41,9 @@ def classify_numeric_columns(df: pl.DataFrame, numeric_cols: list[str]) -> dict[
             n_unique = df[col].n_unique()
             uniqueness_ratio = n_unique / df.height if df.height > 0 else 0
             
-            if uniqueness_ratio >= ID_UNIQUENESS_THRESHOLD:
+            # Continuous floats naturally have high uniqueness - only flag integer types
+            is_int_type = df[col].dtype in (pl.Int64, pl.Int32, pl.Int16, pl.Int8, pl.UInt64, pl.UInt32, pl.UInt16, pl.UInt8)
+            if uniqueness_ratio >= ID_UNIQUENESS_THRESHOLD and is_int_type:
                 reasons.append(f"high_uniqueness_{round(uniqueness_ratio*100)}%")
         except:
             pass

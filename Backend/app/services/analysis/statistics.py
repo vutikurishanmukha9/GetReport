@@ -68,15 +68,23 @@ def compute_correlation(df: pl.DataFrame, numeric_cols: list[str]):
         # This is standard behavior for correlation matrices (listwise deletion)
         
         # Selecting columns and dropping nulls
-        clean_df = df.select(numeric_cols).drop_nulls()
+        clean_df = df.select([pl.col(c).cast(pl.Float64) for c in numeric_cols]).drop_nulls()
         
+        if clean_df.height < 2:
+            # Fallback to median imputation if listwise deletion dropped all rows
+            clean_df = df.select([
+                pl.col(c).cast(pl.Float64).fill_null(pl.col(c).median()).fill_null(0.0)
+                for c in numeric_cols
+            ])
+            
         if clean_df.height < 2:
             return {}, [] # Not enough data
             
         data_matrix = clean_df.to_numpy().T # Transpose for np.corrcoef (expects variables as rows)
         
-        # Compute Matrix
-        corr_matrix = np.corrcoef(data_matrix)
+        # Compute Matrix & clean NaNs
+        corr_matrix = np.nan_to_num(np.corrcoef(data_matrix), nan=0.0)
+        np.fill_diagonal(corr_matrix, 1.0)
         
         # Map back to dictionary
         corr_dict = {c: {} for c in numeric_cols}

@@ -102,5 +102,32 @@ def test_report_generation():
         import traceback
         traceback.print_exc()
 
+def test_correlation_heatmap_generation_with_nulls():
+    import polars as pl
+    from app.services.visualization import generate_charts
+    from app.services.analysis.statistics import compute_correlation
+
+    # Create dataset with float columns (100% unique) and staggered nulls
+    df = pl.DataFrame({
+        "revenue": [100.5, None, 300.2, 400.8, 500.1, 600.9, 700.4, 800.2],
+        "expenses": [50.1, 150.4, None, 250.9, 350.2, 450.8, 550.1, 650.3],
+        "profit": [50.4, 100.2, 200.1, None, 150.0, 150.1, 150.3, 149.9],
+    })
+
+    # 1. Test generate_charts returns correlation_heatmap
+    charts, warnings = generate_charts(df)
+    assert "correlation_heatmap" in charts
+    assert charts["correlation_heatmap"] is not None
+    assert "image" in charts["correlation_heatmap"]
+    assert len(charts["correlation_heatmap"]["image"]) > 100
+
+    # 2. Test compute_correlation returns matrix and strong pairs
+    corr_dict, strong_pairs = compute_correlation(df, ["revenue", "expenses", "profit"])
+    assert "revenue" in corr_dict
+    assert "expenses" in corr_dict["revenue"]
+
+
 if __name__ == "__main__":
     test_report_generation()
+    test_correlation_heatmap_generation_with_nulls()
+
