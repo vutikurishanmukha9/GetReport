@@ -534,26 +534,26 @@ class EnhancedRAGService:
             if not chunks:
                 return {"success": False, "error": "No text chunks"}
 
-            # Embed
-            embeddings = await self._get_embeddings(chunks)
+            metadatas = [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
 
-            # Store (Hybrid: Postgres for Prod, In-Memory for Local)
-            if settings.DATABASE_URL:
-                store = PostgresVectorStore(task_id)
-                await store.add_texts_async(
-                    chunks, 
-                    embeddings, 
-                    [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
-                )
-                logger.info(f"Report {task_id} ingested into Postgres Vector Store (Async)")
-            else:
-                # Local In-Memory Fallback
-                store = SimpleVectorStore()
-                metadatas = [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
-                store.add_texts(chunks, embeddings, metadatas)
+            # Embed (Try API embeddings first, fallback to TF-IDF if credits exhausted)
+            try:
+                embeddings = await self._get_embeddings(chunks)
+                if settings.DATABASE_URL:
+                    store = PostgresVectorStore(task_id)
+                    await store.add_texts_async(chunks, embeddings, metadatas)
+                    logger.info(f"Report {task_id} ingested into Postgres Vector Store (Async)")
+                else:
+                    store = SimpleVectorStore()
+                    store.add_texts(chunks, embeddings, metadatas)
+                    await self.cache.set(task_id, store)
+                    self._save_local_vector_store(task_id, store)
+            except Exception as embed_err:
+                logger.warning(f"API Embeddings failed ({embed_err}) — falling back to TFIDFVectorStore for task {task_id}")
+                store = TFIDFVectorStore()
+                store.add_texts(chunks, metadatas)
                 await self.cache.set(task_id, store)
-                self._save_local_vector_store(task_id, store)
-            
+
             return {"success": True, "num_chunks": len(chunks)}
         except Exception as e:
             logger.error(f"Ingest failed: {e}")
@@ -574,22 +574,27 @@ class EnhancedRAGService:
             if not chunks:
                  return {"success": False, "error": "No text chunks"}
             
-            # Embed (Sync)
-            embeddings = self._get_embeddings_sync(chunks)
-            
-            # Store
-            if settings.DATABASE_URL:
-                 store = PostgresVectorStore(task_id)
-                 # Sync call to add_texts
-                 store.add_texts(chunks, embeddings, [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))])
-                 logger.info(f"Report {task_id} ingested into Postgres Vector Store (Sync)")
-            else:
-                 store = SimpleVectorStore()
-                 metadatas = [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
-                 store.add_texts(chunks, embeddings, metadatas)
-                 self._save_local_vector_store(task_id, store)
-                 logger.info(f"Report {task_id} ingested into Local File Vector Store (Sync)")
-            
+            metadatas = [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
+
+            # Embed (Sync) - Try API embeddings first, fallback to TF-IDF if credits exhausted
+            try:
+                embeddings = self._get_embeddings_sync(chunks)
+                if settings.DATABASE_URL:
+                     store = PostgresVectorStore(task_id)
+                     store.add_texts(chunks, embeddings, metadatas)
+                     logger.info(f"Report {task_id} ingested into Postgres Vector Store (Sync)")
+                else:
+                     store = SimpleVectorStore()
+                     store.add_texts(chunks, embeddings, metadatas)
+                     self._save_local_vector_store(task_id, store)
+                     logger.info(f"Report {task_id} ingested into Local File Vector Store (Sync)")
+            except Exception as embed_err:
+                logger.warning(f"Sync API Embeddings failed ({embed_err}) — falling back to TFIDFVectorStore for task {task_id}")
+                store = TFIDFVectorStore()
+                store.add_texts(chunks, metadatas)
+                # Store in local file cache as TF-IDF
+                self._save_local_vector_store(task_id, store)
+
             return {"success": True, "num_chunks": len(chunks)}
         except Exception as e:
             logger.error(f"Ingest (Blocking) failed: {e}")

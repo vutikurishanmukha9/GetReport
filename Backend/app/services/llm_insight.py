@@ -44,20 +44,19 @@ RETRY_BASE_DELAY_SEC: float = 1.0
 RETRY_MAX_DELAY_SEC: float  = 8.0
 OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
 
-# OpenRouter models in priority order (User preferred models + reliable free-tier fallbacks)
+# OpenRouter models in priority order (User preferred models + reliable fallbacks)
 OPENROUTER_MODELS: list[str] = [
-    # ── User Requested Quality Models ──
-    "google/gemini-2.5-flash",
-    "moonshotai/kimi-k2.5",
-    "deepseek/deepseek-v4-flash",
-    "qwen/qwen3.6-flash",
-    # ── High Quality Free-Tier Fallbacks (guarantees success on zero-credit keys) ──
-    "google/gemini-2.0-flash-exp",
-    "meta-llama/llama-3.1-70b-instruct:free",
-    "deepseek/deepseek-r1:free",
-    "meta-llama/llama-3.1-8b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
-    "qwen/qwen-2.5-7b-instruct:free",
+    # ── User Requested Quality & Fallback Models ──
+    "google/gemini-2.5-flash",        # 1. Primary
+    "moonshotai/kimi-k2.5",           # 2. First fallback
+    "deepseek/deepseek-v4-flash",     # 3. Second fallback
+    "qwen/qwen3.6-flash",             # 4. Third fallback
+    "z-ai/glm-5.5-air",               # 5. Final fallback
+    # ── High Reliability Active Fallbacks ──
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "google/gemini-2.0-flash-lite-001",
+    "qwen/qwen-2.5-7b-instruct",
+    "meta-llama/llama-3.1-8b-instruct",
 ]
 
 # Errors that are transient and worth retrying
