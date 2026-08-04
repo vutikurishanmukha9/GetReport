@@ -10,7 +10,7 @@ import numpy as np
 from openai import AsyncOpenAI, OpenAI, BadRequestError, NotFoundError
 from app.core.config import settings
 from app.core.rag_utils import TextSplitter, TableAwareTextSplitter, SimpleVectorStore, PostgresVectorStore, TFIDFVectorStore
-from app.services.llm_insight import OPENROUTER_MODELS, OPENAI_MODEL
+from app.services.llm_insight import OPENROUTER_MODELS, OPENROUTER_PAID_MODELS, OPENROUTER_FREE_MODELS, OPENAI_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -129,14 +129,37 @@ def _generate_suggested_followups(job_result: Optional[Dict[str, Any]]) -> List[
     
     return followups[:3]
 
+def _format_answer_for_ui(text: str) -> str:
+    """
+    Format answer text into clean, beautiful HTML for the Chat UI.
+    Replaces markdown ##/### headers, **bold**, and `code` tags with clean HTML,
+    and ensures each bullet/paragraph renders on a new line with <br/>.
+    """
+    if not text:
+        return ""
+    
+    # 1. Convert ### Header or ## Header to <h3>...</h3>
+    text = re.sub(r'#{1,4}\s*(.*?)(?=\n|$)', r'<h3>\1</h3>', text)
+    
+    # 2. Convert **bold** to <b>bold</b>
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    
+    # 3. Convert `code` to <code>code</code>
+    text = re.sub(r'`(.*?)`', r'<code>\1</code>', text)
+    
+    # 4. Clean lines and join with <br/>
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return "<br/>".join(lines)
+
 
 def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str, Any]]) -> str:
     """
-    Generates a deterministic, high-quality data analysis answer directly from the job_result payload
-    when external LLM APIs are unreachable, rate-limited, or out of credits.
+    Deterministic Dataset Fact Engine: Serves 100% verified analytical facts directly from
+    the structured job result when LLMs are offline or credits are exhausted.
+    Returns clean HTML formatted output without raw markdown syntax symbols (** or ###).
     """
     if not job_result:
-        return "I'm currently operating in standalone mode. Please upload a dataset to view detailed quality issues, cleaning reports, and statistical insights."
+        return "Dataset details are currently loading or unavailable. Please try asking again in a moment."
 
     q_lower = question.lower()
     cleaning_report = job_result.get("cleaning_report", {})
@@ -149,24 +172,24 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         quality_score = analysis.get("quality_score", 100)
         grade = "A" if quality_score >= 90 else "B" if quality_score >= 80 else "C"
         
-        lines = [f"### 🛡️ **Dataset Quality & Health Report for {filename}**\n"]
-        lines.append(f"• **Overall Quality Score**: **{quality_score}%** (Grade **{grade}**)\n")
+        lines = [f"<h3>🛡️ Dataset Quality & Health Report for {filename}</h3>"]
+        lines.append(f"• <b>Overall Quality Score</b>: <b>{quality_score}%</b> (Grade <b>{grade}</b>)<br/>")
         if data_issues:
-            lines.append(f"• **Identified Quality Issues ({len(data_issues)})**:")
+            lines.append(f"• <b>Identified Quality Issues ({len(data_issues)})</b>:")
             for issue in data_issues[:5]:
                 col = issue.get("column", "General")
                 desc = issue.get("description", issue.get("issue", "Quality alert"))
-                lines.append(f"  - **{col}**: {desc}")
+                lines.append(f"&nbsp;&nbsp;- <b>{col}</b>: {desc}")
             lines.append("")
         else:
-            lines.append("• **Identified Quality Issues**: **0 critical quality issues found**. The dataset exhibits 100% schema consistency, zero null anomalies, and high data integrity.\n")
+            lines.append("• <b>Identified Quality Issues</b>: <b>0 critical quality issues found</b>. The dataset exhibits 100% schema consistency, zero null anomalies, and high data integrity.<br/>")
         
-        lines.append("**Key Health Metrics**:")
-        lines.append(f"• **Duplicate Rows Removed**: `{cleaning_report.get('duplicate_rows_removed', 0)}`")
-        lines.append(f"• **Empty Rows Dropped**: `{cleaning_report.get('empty_rows_dropped', 0)}`")
-        lines.append(f"• **Missing Numeric Values Imputed**: `{cleaning_report.get('numeric_nans_filled', 0)}`")
-        lines.append(f"• **Missing Categorical Values Imputed**: `{cleaning_report.get('categorical_nans_filled', 0)}`")
-        return "\n\n".join(lines)
+        lines.append("<b>Key Health Metrics</b>:")
+        lines.append(f"• <b>Duplicate Rows Removed</b>: <code>{cleaning_report.get('duplicate_rows_removed', 0)}</code>")
+        lines.append(f"• <b>Empty Rows Dropped</b>: <code>{cleaning_report.get('empty_rows_dropped', 0)}</code>")
+        lines.append(f"• <b>Missing Numeric Values Imputed</b>: <code>{cleaning_report.get('numeric_nans_filled', 0)}</code>")
+        lines.append(f"• <b>Missing Categorical Values Imputed</b>: <code>{cleaning_report.get('categorical_nans_filled', 0)}</code>")
+        return "<br/>".join(lines)
 
     # 2. Data cleaning & transformation actions
     if any(k in q_lower for k in ["clean", "action", "transform", "fix", "prep", "modify", "applied"]):
@@ -174,13 +197,13 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         timing = cleaning_report.get("timing_ms", 0.0)
         renamed = cleaning_report.get("columns_renamed", {})
         
-        lines = [f"### 🧹 **Data Cleaning & Transformation Actions for {filename}**\n"]
-        lines.append(f"• **Total Cleaning Operations**: **{total_changes}** transformations executed in `{timing:.2f} ms`\n")
-        lines.append(f"• **Column Renaming & Standardization**: Standardized **{len(renamed)}** column headers to snake_case format.\n")
-        lines.append(f"• **Duplicate Handling**: Filtered and purged `{cleaning_report.get('duplicate_rows_removed', 0)}` duplicate rows.\n")
-        lines.append(f"• **Empty Rows & Columns**: Dropped `{cleaning_report.get('empty_rows_dropped', 0)}` empty rows and `{cleaning_report.get('empty_columns_dropped', 0)}` empty columns.\n")
-        lines.append(f"• **Type Inference & Conversions**: Validated data types across all columns.")
-        return "\n\n".join(lines)
+        lines = [f"<h3>🧹 Data Cleaning & Transformation Actions for {filename}</h3>"]
+        lines.append(f"• <b>Total Cleaning Operations</b>: <b>{total_changes}</b> transformations executed in <code>{timing:.2f} ms</code><br/>")
+        lines.append(f"• <b>Column Renaming & Standardization</b>: Standardized <b>{len(renamed)}</b> column headers to snake_case format.")
+        lines.append(f"• <b>Duplicate Handling</b>: Filtered and purged <code>{cleaning_report.get('duplicate_rows_removed', 0)}</code> duplicate rows.")
+        lines.append(f"• <b>Empty Rows & Columns</b>: Dropped <code>{cleaning_report.get('empty_rows_dropped', 0)}</code> empty rows and <code>{cleaning_report.get('empty_columns_dropped', 0)}</code> empty columns.")
+        lines.append(f"• <b>Type Inference & Conversions</b>: Validated data types across all columns.")
+        return "<br/>".join(lines)
 
     # 3. Correlation & relationships
     if any(k in q_lower for k in ["correlation", "relationship", "depend", "pair", "associate", "variable", "positive correlation"]):
@@ -188,44 +211,44 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         if not corrs:
             corrs = analysis.get("correlation", {}).get("strong_correlations", [])
             
-        lines = [f"### 📊 **Correlation & Feature Relationships for {filename}**\n"]
+        lines = [f"<h3>📊 Correlation & Feature Relationships for {filename}</h3>"]
         if corrs and isinstance(corrs, list):
-            lines.append("• **Top Feature Correlations (|r| ≥ 0.70)**:")
+            lines.append("• <b>Top Feature Correlations (|r| ≥ 0.70)</b>:")
             for item in corrs[:5]:
                 if isinstance(item, dict):
                     col1 = item.get("column_a", item.get("col1", item.get("feature1", "Var1"))).replace('_', ' ').title()
                     col2 = item.get("column_b", item.get("col2", item.get("feature2", "Var2"))).replace('_', ' ').title()
                     val = item.get("r_value", item.get("correlation", item.get("value", item.get("coefficient", 0.0))))
-                    lines.append(f"  - **{col1}** ↔ **{col2}**: `r = {val:.2f}`")
+                    lines.append(f"&nbsp;&nbsp;• <b>{col1}</b> ↔ <b>{col2}</b>: <code>r = {val:.2f}</code>")
                 elif isinstance(item, (list, tuple)) and len(item) >= 3:
                     col1 = str(item[0]).replace('_', ' ').title()
                     col2 = str(item[1]).replace('_', ' ').title()
                     val = float(item[2])
-                    lines.append(f"  - **{col1}** ↔ **{col2}**: `r = {val:.2f}`")
+                    lines.append(f"&nbsp;&nbsp;• <b>{col1}</b> ↔ <b>{col2}</b>: <code>r = {val:.2f}</code>")
         else:
             lines.append("• No extreme linear correlations (|r| ≥ 0.70) were detected among numeric variables. All variables exhibit independent variance.")
-        return "\n\n".join(lines)
+        return "<br/>".join(lines)
 
     # 4. Default / General dataset overview
     summary = analysis.get("summary", {})
     cols = list(summary.keys()) if isinstance(summary, dict) else []
     domain = analysis.get("domain", "General Data")
     
-    lines = [f"### 📈 **Dataset Analysis Summary ({filename})**\n"]
-    lines.append(f"• **Detected Domain**: `{domain.replace('_', ' ').title()}`\n")
-    lines.append(f"• **Evaluated Features**: **{len(cols)}** columns analyzed.\n")
+    lines = [f"<h3>📈 Dataset Analysis Summary ({filename})</h3>"]
+    lines.append(f"• <b>Detected Domain</b>: <code>{domain.replace('_', ' ').title()}</code>")
+    lines.append(f"• <b>Evaluated Features</b>: <b>{len(cols)}</b> columns analyzed.")
     if cols:
-        sample_cols = ", ".join([f"`{c}`" for c in cols[:6]])
-        lines.append(f"• **Key Evaluated Columns**: {sample_cols}\n")
+        sample_cols = ", ".join([f"<code>{c}</code>" for c in cols[:6]])
+        lines.append(f"• <b>Key Evaluated Columns</b>: {sample_cols}<br/>")
     
     recs = analysis.get("recommendations", [])
     if recs:
-        lines.append("**Key Recommendations**:")
+        lines.append("<b>Key Recommendations</b>:")
         for r in recs[:3]:
             rec_title = r.get("title", r.get("action", "Recommendation"))
-            lines.append(f"• **{rec_title}**: {r.get('description', '')}")
+            lines.append(f"• <b>{rec_title}</b>: {r.get('description', '')}")
             
-    return "\n\n".join(lines)
+    return "<br/>".join(lines)
 
 
 def _format_chat_history(chat_history: Optional[List[Dict[str, str]]]) -> str:
@@ -736,7 +759,12 @@ CONTEXT:
                 models_to_try = OPENROUTER_MODELS if settings.OPENROUTER_API_KEY else [OPENAI_MODEL]
                 
                 response = None
+                skip_paid = False
                 for model_name in models_to_try:
+                    if skip_paid and model_name in OPENROUTER_PAID_MODELS:
+                        logger.info("RAG Chat skipping paid model %s (credits exhausted).", model_name)
+                        continue
+
                     try:
                         response = await self.client.chat.completions.create(
                             model=model_name,
@@ -750,16 +778,25 @@ CONTEXT:
                         )
                         break
                     except Exception as e:
-                        logger.warning(
-                            "RAG Model %s failed/unavailable (%s: %s) — skipping to next.",
-                            model_name, type(e).__name__, str(e)
-                        )
+                        err_msg = str(e).lower()
+                        if "402" in err_msg or "credit" in err_msg or getattr(e, "status_code", 0) == 402:
+                            logger.warning(
+                                "RAG Model %s credit balance exhausted (HTTP 402). Bypassing paid models...",
+                                model_name
+                            )
+                            skip_paid = True
+                        else:
+                            logger.warning(
+                                "RAG Model %s failed/unavailable (%s: %s) — skipping to next.",
+                                model_name, type(e).__name__, str(e)
+                            )
                         continue
                 
                 if not response:
                     answer = _generate_smart_dataset_answer(sanitized_q, job_result)
                 else:
-                    answer = response.choices[0].message.content or _generate_smart_dataset_answer(sanitized_q, job_result)
+                    raw_ans = response.choices[0].message.content or _generate_smart_dataset_answer(sanitized_q, job_result)
+                    answer = _format_answer_for_ui(raw_ans)
 
                 result: Dict[str, Any] = {
                     "success": True, 
@@ -865,7 +902,12 @@ CONTEXT:
             models_to_try = OPENROUTER_MODELS if settings.OPENROUTER_API_KEY else [OPENAI_MODEL]
             
             stream_response = None
+            skip_paid = False
             for model_name in models_to_try:
+                if skip_paid and model_name in OPENROUTER_PAID_MODELS:
+                    logger.info("RAG Stream skipping paid model %s (credits exhausted).", model_name)
+                    continue
+
                 try:
                     stream_response = await self.client.chat.completions.create(
                         model=model_name,
@@ -880,7 +922,15 @@ CONTEXT:
                     )
                     break
                 except Exception as e:
-                    logger.warning("RAG Stream Model %s failed: %s", model_name, e)
+                    err_msg = str(e).lower()
+                    if "402" in err_msg or "credit" in err_msg or getattr(e, "status_code", 0) == 402:
+                        logger.warning(
+                            "RAG Stream Model %s credit balance exhausted (HTTP 402). Bypassing paid models...",
+                            model_name
+                        )
+                        skip_paid = True
+                    else:
+                        logger.warning("RAG Stream Model %s failed: %s", model_name, e)
                     continue
 
             if not stream_response:

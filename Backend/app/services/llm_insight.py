@@ -25,6 +25,7 @@ from openai import (
     APIStatusError,
     BadRequestError,
     NotFoundError,
+    InternalServerError,
 )
 from app.core.config import settings
 
@@ -44,26 +45,30 @@ RETRY_BASE_DELAY_SEC: float = 1.0
 RETRY_MAX_DELAY_SEC: float  = 8.0
 OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
 
-# OpenRouter models in priority order (User preferred models + reliable fallbacks)
-OPENROUTER_MODELS: list[str] = [
-    # ── User Requested Quality & Fallback Models ──
+# OpenRouter Paid Models (Quality-First priority order)
+OPENROUTER_PAID_MODELS: list[str] = [
     "google/gemini-2.5-flash",        # 1. Primary
     "moonshotai/kimi-k2.5",           # 2. First fallback
     "deepseek/deepseek-v4-flash",     # 3. Second fallback
     "qwen/qwen3.6-flash",             # 4. Third fallback
     "z-ai/glm-5.5-air",               # 5. Final fallback
-    # ── High Reliability Active Fallbacks ──
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemini-2.0-flash-lite-001",
-    "qwen/qwen-2.5-7b-instruct",
-    "meta-llama/llama-3.1-8b-instruct",
 ]
+
+# OpenRouter Free Models (Zero-cost fallbacks when paid credits are exhausted)
+OPENROUTER_FREE_MODELS: list[str] = [
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "qwen/qwen-2.5-7b-instruct:free",
+    "google/gemini-2.0-flash-exp:free",
+]
+
+# Combined sequence: Paid models first, then Free models
+OPENROUTER_MODELS: list[str] = OPENROUTER_PAID_MODELS + OPENROUTER_FREE_MODELS
 
 # Errors that are transient and worth retrying
 _RETRYABLE_EXCEPTIONS: tuple[type[Exception], ...] = (
     RateLimitError,
-    APIConnectionError,
     APITimeoutError,
+    InternalServerError,
 )
 
 
@@ -73,6 +78,7 @@ class _LLMProvider:
     client: AsyncOpenAI | None
     model: str
     name: str
+    is_paid: bool = True
 
 _providers: list[_LLMProvider] = []
 
@@ -82,16 +88,24 @@ if settings.OPENROUTER_API_KEY:
         api_key=settings.OPENROUTER_API_KEY,
         base_url=OPENROUTER_BASE_URL,
     )
-    for model_name in OPENROUTER_MODELS:
+    for model_name in OPENROUTER_PAID_MODELS:
         _providers.append(_LLMProvider(
-            client=_or_client,         # Same client, different model
+            client=_or_client,
             model=model_name,
             name=f"OpenRouter/{model_name.split('/')[-1]}",
+            is_paid=True
+        ))
+    for model_name in OPENROUTER_FREE_MODELS:
+        _providers.append(_LLMProvider(
+            client=_or_client,
+            model=model_name,
+            name=f"OpenRouter/{model_name.split('/')[-1]}",
+            is_paid=False
         ))
     logger.info(
-        "OpenRouter registered with %d models: %s",
-        len(OPENROUTER_MODELS),
-        ", ".join(m.split("/")[-1] for m in OPENROUTER_MODELS),
+        "OpenRouter registered (%d paid models, %d free models)",
+        len(OPENROUTER_PAID_MODELS),
+        len(OPENROUTER_FREE_MODELS)
     )
 
 # Legacy aliases
@@ -420,13 +434,13 @@ async def _call_provider(
             raise InsightGenerationError(f"{provider.name}: {str(e)}")
 
         except APIStatusError as e:
-            # 402 Payment Required / insufficient credits — skip immediately
-            if e.status_code in (402, 403):
+            # 402 Payment Required / insufficient credits — raise CreditsExhaustedError
+            if e.status_code in (402, 403) or "credit" in str(e).lower():
                 logger.warning(
-                    "%s credits exhausted or forbidden (HTTP %d: %s) — skipping to next model.",
+                    "%s credits exhausted or forbidden (HTTP %d: %s)",
                     provider.name, e.status_code, str(e)
                 )
-                raise InsightGenerationError(f"{provider.name}: HTTP {e.status_code}")
+                raise CreditsExhaustedError(f"{provider.name}: HTTP {e.status_code} Credits Exhausted")
             raise  # Re-raise unknown status errors
 
         except _RETRYABLE_EXCEPTIONS as e:
@@ -476,22 +490,35 @@ async def _call_llm_with_retry(
     user_prompt: str,
 ) -> tuple[Any, int]:
     """
-    Try each registered provider in priority order (Quality-First strategy):
-      1. google/gemini-2.5-flash    (Primary: score 9.8/10 - best executive reasoning)
-      2. moonshotai/kimi-k2.5       (Fallback 1: score 9.5/10 - consultant-style narrative)
-      3. deepseek/deepseek-v4-flash (Fallback 2: score 9.2/10 - pattern recognition & value)
-      4. qwen/qwen3.6-flash         (Fallback 3: score 8.9/10 - fast & structured)
-      5. z-ai/glm-5.5-air           (Fallback 4: score 8.5/10 - final availability backup)
+    Try each registered provider in priority order:
+      Paid Models (Primary: Gemini 2.5 Flash -> Kimi k2.5 -> DeepSeek v4 -> Qwen 3.6 -> GLM 5.5)
+      Free Models (Fallback when credits are 0: Llama 3.3 70B -> Qwen 2.5 7B -> Gemini 2.0 Exp)
 
-    Only falls back on transient failures (429 Rate Limits, 5xx Server Errors, Timeouts, 402 Credits).
+    If a 402 Credits Exhausted error occurs on a paid model, ALL remaining paid models
+    are bypassed immediately since they share the same credit balance.
     """
     if not _providers:
         raise InsightGenerationError("No LLM providers configured.")
 
     last_error = None
+    skip_paid_models = False
+
     for provider in _providers:
+        if skip_paid_models and provider.is_paid:
+            logger.info("Skipping paid model %s (credits exhausted on earlier paid model).", provider.name)
+            continue
+
         try:
             return await _call_provider(provider, system_prompt, user_prompt)
+        except CreditsExhaustedError as e:
+            if provider.is_paid:
+                logger.warning(
+                    "%s credit balance exhausted (HTTP 402). Bypassing all remaining paid models and switching directly to free tier models...",
+                    provider.name
+                )
+                skip_paid_models = True
+            last_error = e
+            continue
         except (InsightGenerationError, AuthenticationError) as e:
             logger.warning(
                 "%s failed (%s). Trying next provider...",
