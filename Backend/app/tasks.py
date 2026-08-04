@@ -306,6 +306,112 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
         title_task_manager.fail_job(context["task_id"], f"Report Generation failed: {str(e)}")
         raise
 
+def _build_rag_narrative(filename, analysis, cleaning, insights_text, info):
+    """
+    Convert structured analysis results into natural-language prose for RAG embedding.
+    Natural language produces far better cosine similarity scores against user questions
+    than raw JSON blobs.
+    """
+    sections = []
+    
+    # 1. Dataset overview
+    rows = info.get('rows', 'N/A')
+    columns = info.get('columns', [])
+    col_count = len(columns) if isinstance(columns, list) else columns
+    sections.append(
+        f"This dataset '{filename}' contains {rows} rows and {col_count} columns. "
+        f"The columns include: {', '.join(columns[:20]) if isinstance(columns, list) else 'N/A'}."
+    )
+    
+    # 2. Summary statistics as prose
+    summary = analysis.get('summary', {})
+    if summary and isinstance(summary, dict):
+        stat_lines = []
+        for col, stats in list(summary.items())[:15]:
+            if isinstance(stats, dict):
+                parts = []
+                if 'mean' in stats: parts.append(f"average of {stats['mean']}")
+                if 'min' in stats: parts.append(f"minimum of {stats['min']}")
+                if 'max' in stats: parts.append(f"maximum of {stats['max']}")
+                if 'std' in stats: parts.append(f"standard deviation of {stats['std']}")
+                if 'null_count' in stats: parts.append(f"{stats['null_count']} missing values")
+                if parts:
+                    stat_lines.append(f"The column '{col}' has {', '.join(parts)}.")
+        if stat_lines:
+            sections.append("Summary statistics for key columns:\n" + "\n".join(stat_lines))
+    
+    # 3. Correlations as prose
+    strong_corrs = analysis.get('strong_correlations', [])
+    if strong_corrs and isinstance(strong_corrs, list):
+        corr_lines = []
+        for c in strong_corrs[:10]:
+            if isinstance(c, dict):
+                col_a = c.get('column_a', c.get('col1', ''))
+                col_b = c.get('column_b', c.get('col2', ''))
+                r = c.get('r_value', c.get('correlation', 0))
+                direction = c.get('direction', 'positive' if r > 0 else 'negative')
+                strength = c.get('strength', 'strong')
+                corr_lines.append(
+                    f"There is a {strength} {direction} correlation between "
+                    f"'{col_a}' and '{col_b}' with correlation coefficient {r:.4f}. "
+                    f"When {col_a.replace('_', ' ')} increases, "
+                    f"{col_b.replace('_', ' ')} {'also increases' if direction == 'positive' else 'tends to decrease'}."
+                )
+        if corr_lines:
+            sections.append("Key correlations and feature relationships:\n" + "\n".join(corr_lines))
+    
+    # 4. Outliers as prose
+    outliers = analysis.get('outliers', {})
+    if outliers and isinstance(outliers, dict):
+        outlier_lines = []
+        for col, details in list(outliers.items())[:10]:
+            if isinstance(details, dict):
+                cnt = details.get('count', 0)
+                pct = details.get('percentage', 0)
+                outlier_lines.append(
+                    f"Column '{col}' has {cnt} outlier values ({pct:.1f}% of records), "
+                    f"representing unusually high or low data points."
+                )
+        if outlier_lines:
+            sections.append("Outlier and anomaly detection results:\n" + "\n".join(outlier_lines))
+    
+    # 5. Data quality and confidence
+    confidence = analysis.get('confidence_scores', {})
+    if confidence and isinstance(confidence, dict):
+        quality_score = confidence.get('dataset_confidence', confidence.get('overall_score', ''))
+        grade = confidence.get('dataset_grade', confidence.get('grade', ''))
+        if quality_score:
+            sections.append(
+                f"The overall data quality confidence score is {quality_score}% "
+                f"(grade: {grade}). "
+                f"This reflects schema consistency, null rate, and data integrity checks."
+            )
+    
+    # 6. AI-generated insights
+    if insights_text:
+        clean_text = insights_text.replace('**', '').replace('<b>', '').replace('</b>', '')
+        clean_text = clean_text.replace('<i>', '').replace('</i>', '')
+        sections.append(f"AI-generated strategic insights:\n{clean_text}")
+    
+    # 7. Data cleaning actions
+    if cleaning and isinstance(cleaning, dict):
+        cleaning_parts = []
+        dup = cleaning.get('duplicate_rows_removed', 0)
+        empty = cleaning.get('empty_rows_dropped', 0)
+        num_fill = cleaning.get('numeric_nans_filled', 0)
+        cat_fill = cleaning.get('categorical_nans_filled', 0)
+        if dup: cleaning_parts.append(f"removed {dup} duplicate rows")
+        if empty: cleaning_parts.append(f"dropped {empty} empty rows")
+        if num_fill: cleaning_parts.append(f"imputed {num_fill} missing numeric values")
+        if cat_fill: cleaning_parts.append(f"imputed {cat_fill} missing categorical values")
+        if cleaning_parts:
+            sections.append(f"Data cleaning actions performed: {', '.join(cleaning_parts)}.")
+        else:
+            sections.append("Data cleaning: No significant cleaning actions were required. The dataset was already in good shape.")
+    
+    return "\n\n".join(sections)
+
+
 def _trigger_rag_ingest(task_id, filename, context, analysis_result):
     try:
         analysis = analysis_result or {}
@@ -318,32 +424,7 @@ def _trigger_rag_ingest(task_id, filename, context, analysis_result):
         cleaning = context.get("cleaning_report", {})
         info = context.get("dataset_info", {})
         
-        sections = [
-            f"=== DATASET EXECUTIVE OVERVIEW FOR {filename} ===",
-            f"Filename: {filename}",
-            f"Total Rows: {info.get('rows', 'N/A')}",
-            f"Total Columns: {info.get('columns', [])}",
-            "",
-            "=== SUMMARY STATISTICS & METRIC DISTRIBUTIONS ===",
-            json.dumps(analysis.get('summary', {}), indent=2),
-            "",
-            "=== AI-GENERATED STRATEGIC INSIGHTS ===",
-            insights_text.replace('**', ''),
-            "",
-            "=== DATA QUALITY CHECKS & CONFIDENCE SCORES ===",
-            json.dumps(analysis.get('confidence_scores', {}), indent=2),
-            "",
-            "=== CORRELATION ANALYSIS & FEATURE REDUNDANCIES ===",
-            json.dumps(analysis.get('correlation', {}), indent=2),
-            "",
-            "=== OUTLIERS & ANOMALIES DETECTED ===",
-            json.dumps(analysis.get('outliers', {}), indent=2),
-            "",
-            "=== DATA CLEANING ACTIONS & TRANSFORMATION LOG ===",
-            json.dumps(cleaning, indent=2) if isinstance(cleaning, dict) else str(cleaning)
-        ]
-        
-        rag_text = "\n".join(sections)
+        rag_text = _build_rag_narrative(filename, analysis, cleaning, insights_text, info)
         rag_ingest_task.delay(task_id, rag_text)
         logger.info(f"Triggered enhanced RAG ingestion for task {task_id}")
     except Exception as e:

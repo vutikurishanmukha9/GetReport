@@ -150,22 +150,23 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         grade = "A" if quality_score >= 90 else "B" if quality_score >= 80 else "C"
         
         lines = [f"### 🛡️ **Dataset Quality & Health Report for {filename}**\n"]
-        lines.append(f"• **Overall Quality Score**: **{quality_score}%** (Grade **{grade}**)")
+        lines.append(f"• **Overall Quality Score**: **{quality_score}%** (Grade **{grade}**)\n")
         if data_issues:
             lines.append(f"• **Identified Quality Issues ({len(data_issues)})**:")
             for issue in data_issues[:5]:
                 col = issue.get("column", "General")
                 desc = issue.get("description", issue.get("issue", "Quality alert"))
                 lines.append(f"  - **{col}**: {desc}")
+            lines.append("")
         else:
-            lines.append("• **Identified Quality Issues**: **0 critical quality issues found**. The dataset exhibits 100% schema consistency, zero null anomalies, and high data integrity.")
+            lines.append("• **Identified Quality Issues**: **0 critical quality issues found**. The dataset exhibits 100% schema consistency, zero null anomalies, and high data integrity.\n")
         
-        lines.append("\n**Key Health Metrics**:")
+        lines.append("**Key Health Metrics**:")
         lines.append(f"• **Duplicate Rows Removed**: `{cleaning_report.get('duplicate_rows_removed', 0)}`")
         lines.append(f"• **Empty Rows Dropped**: `{cleaning_report.get('empty_rows_dropped', 0)}`")
         lines.append(f"• **Missing Numeric Values Imputed**: `{cleaning_report.get('numeric_nans_filled', 0)}`")
         lines.append(f"• **Missing Categorical Values Imputed**: `{cleaning_report.get('categorical_nans_filled', 0)}`")
-        return "\n".join(lines)
+        return "\n\n".join(lines)
 
     # 2. Data cleaning & transformation actions
     if any(k in q_lower for k in ["clean", "action", "transform", "fix", "prep", "modify", "applied"]):
@@ -174,27 +175,36 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         renamed = cleaning_report.get("columns_renamed", {})
         
         lines = [f"### 🧹 **Data Cleaning & Transformation Actions for {filename}**\n"]
-        lines.append(f"• **Total Cleaning Operations**: **{total_changes}** transformations executed in `{timing:.2f} ms`")
-        lines.append(f"• **Column Renaming & Standardization**: Standardized **{len(renamed)}** column headers to snake_case format.")
-        lines.append(f"• **Duplicate Handling**: Filtered and purged `{cleaning_report.get('duplicate_rows_removed', 0)}` duplicate rows.")
-        lines.append(f"• **Empty Rows & Columns**: Dropped `{cleaning_report.get('empty_rows_dropped', 0)}` empty rows and `{cleaning_report.get('empty_columns_dropped', 0)}` empty columns.")
+        lines.append(f"• **Total Cleaning Operations**: **{total_changes}** transformations executed in `{timing:.2f} ms`\n")
+        lines.append(f"• **Column Renaming & Standardization**: Standardized **{len(renamed)}** column headers to snake_case format.\n")
+        lines.append(f"• **Duplicate Handling**: Filtered and purged `{cleaning_report.get('duplicate_rows_removed', 0)}` duplicate rows.\n")
+        lines.append(f"• **Empty Rows & Columns**: Dropped `{cleaning_report.get('empty_rows_dropped', 0)}` empty rows and `{cleaning_report.get('empty_columns_dropped', 0)}` empty columns.\n")
         lines.append(f"• **Type Inference & Conversions**: Validated data types across all columns.")
-        return "\n".join(lines)
+        return "\n\n".join(lines)
 
     # 3. Correlation & relationships
     if any(k in q_lower for k in ["correlation", "relationship", "depend", "pair", "associate", "variable", "positive correlation"]):
         corrs = analysis.get("strong_correlations", [])
+        if not corrs:
+            corrs = analysis.get("correlation", {}).get("strong_correlations", [])
+            
         lines = [f"### 📊 **Correlation & Feature Relationships for {filename}**\n"]
-        if corrs:
+        if corrs and isinstance(corrs, list):
             lines.append("• **Top Feature Correlations (|r| ≥ 0.70)**:")
             for item in corrs[:5]:
-                col1 = item.get("col1", item.get("feature1", "Var1"))
-                col2 = item.get("col2", item.get("feature2", "Var2"))
-                val = item.get("correlation", item.get("value", 0.0))
-                lines.append(f"  - **{col1}** ↔ **{col2}**: `r = {val:.2f}`")
+                if isinstance(item, dict):
+                    col1 = item.get("column_a", item.get("col1", item.get("feature1", "Var1"))).replace('_', ' ').title()
+                    col2 = item.get("column_b", item.get("col2", item.get("feature2", "Var2"))).replace('_', ' ').title()
+                    val = item.get("r_value", item.get("correlation", item.get("value", item.get("coefficient", 0.0))))
+                    lines.append(f"  - **{col1}** ↔ **{col2}**: `r = {val:.2f}`")
+                elif isinstance(item, (list, tuple)) and len(item) >= 3:
+                    col1 = str(item[0]).replace('_', ' ').title()
+                    col2 = str(item[1]).replace('_', ' ').title()
+                    val = float(item[2])
+                    lines.append(f"  - **{col1}** ↔ **{col2}**: `r = {val:.2f}`")
         else:
             lines.append("• No extreme linear correlations (|r| ≥ 0.70) were detected among numeric variables. All variables exhibit independent variance.")
-        return "\n".join(lines)
+        return "\n\n".join(lines)
 
     # 4. Default / General dataset overview
     summary = analysis.get("summary", {})
@@ -202,20 +212,20 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
     domain = analysis.get("domain", "General Data")
     
     lines = [f"### 📈 **Dataset Analysis Summary ({filename})**\n"]
-    lines.append(f"• **Detected Domain**: `{domain.replace('_', ' ').title()}`")
-    lines.append(f"• **Evaluated Features**: **{len(cols)}** columns analyzed.")
+    lines.append(f"• **Detected Domain**: `{domain.replace('_', ' ').title()}`\n")
+    lines.append(f"• **Evaluated Features**: **{len(cols)}** columns analyzed.\n")
     if cols:
         sample_cols = ", ".join([f"`{c}`" for c in cols[:6]])
-        lines.append(f"• **Key Evaluated Columns**: {sample_cols}")
+        lines.append(f"• **Key Evaluated Columns**: {sample_cols}\n")
     
     recs = analysis.get("recommendations", [])
     if recs:
-        lines.append("\n**Key Recommendations**:")
+        lines.append("**Key Recommendations**:")
         for r in recs[:3]:
             rec_title = r.get("title", r.get("action", "Recommendation"))
             lines.append(f"• **{rec_title}**: {r.get('description', '')}")
             
-    return "\n".join(lines)
+    return "\n\n".join(lines)
 
 
 def _format_chat_history(chat_history: Optional[List[Dict[str, str]]]) -> str:
