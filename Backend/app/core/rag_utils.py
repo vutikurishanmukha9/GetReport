@@ -8,13 +8,13 @@ logger = logging.getLogger(__name__)
 
 class TextSplitter:
     """
-    Lightweight recursive character text splitter.
-    Repluces langchain.text_splitter.RecursiveCharacterTextSplitter
+    Recursive character text splitter with proper overlap support.
+    Produces dense, semantically cohesive chunks for embedding.
     """
     def __init__(
         self, 
-        chunk_size: int = 1000, 
-        chunk_overlap: int = 200, 
+        chunk_size: int = 500, 
+        chunk_overlap: int = 100, 
         separators: Optional[List[str]] = None
     ):
         self.chunk_size = chunk_size
@@ -22,48 +22,106 @@ class TextSplitter:
         self.separators = separators or ["\n\n", "\n", ". ", " ", ""]
 
     def split_text(self, text: str) -> List[str]:
-        """Split text into chunks respecting separators."""
-        final_chunks = []
-        if not text:
+        """Split text into overlapping chunks respecting separator hierarchy."""
+        if not text or not text.strip():
             return []
-
-        # Start with the full text as one chunk
-        good_splits = [text]
-
-        for separator in self.separators:
-            if not good_splits:
-                break
+        
+        # Find the best separator for this text
+        separator = self._find_best_separator(text)
+        
+        # Split on the chosen separator
+        splits = text.split(separator) if separator else list(text)
+        
+        # Merge splits into chunks of target size with overlap
+        chunks = self._merge_splits(splits, separator)
+        
+        return [c.strip() for c in chunks if c.strip()]
+    
+    def _find_best_separator(self, text: str) -> str:
+        """Find the finest separator that still produces chunks under chunk_size."""
+        for sep in self.separators:
+            if sep == "":
+                return sep
+            parts = text.split(sep)
+            # Use this separator if at least some parts are under chunk_size
+            if len(parts) > 1:
+                return sep
+        return ""
+    
+    def _merge_splits(self, splits: List[str], separator: str) -> List[str]:
+        """Merge small splits into chunks with overlap."""
+        chunks = []
+        current_parts = []
+        current_len = 0
+        
+        for part in splits:
+            part_len = len(part) + (len(separator) if current_parts else 0)
+            
+            if current_len + part_len > self.chunk_size and current_parts:
+                # Save current chunk
+                chunk_text = separator.join(current_parts)
+                chunks.append(chunk_text)
                 
-            new_splits = []
-            for chunk in good_splits:
-                if len(chunk) < self.chunk_size:
-                    new_splits.append(chunk)
-                    continue
-                
-                # Split this chunk
-                splits = chunk.split(separator)
-                result_splits = []
-                current_chunk = ""
-                
-                for split in splits:
-                    # If adding the next bit exceeds chunk size, save current and start new
-                    if len(current_chunk) + len(split) + len(separator) > self.chunk_size:
-                        if current_chunk:
-                            result_splits.append(current_chunk)
-                        current_chunk = split
+                # Calculate overlap: keep trailing parts that fit within overlap budget
+                overlap_parts = []
+                overlap_len = 0
+                for p in reversed(current_parts):
+                    candidate_len = len(p) + (len(separator) if overlap_parts else 0)
+                    if overlap_len + candidate_len <= self.chunk_overlap:
+                        overlap_parts.insert(0, p)
+                        overlap_len += candidate_len
                     else:
-                        current_chunk += (separator if current_chunk else "") + split
+                        break
                 
-        return [c.strip() for c in good_splits if c.strip()]
+                current_parts = overlap_parts
+                current_len = overlap_len
+            
+            current_parts.append(part)
+            current_len += part_len
+        
+        # Don't forget the last chunk
+        if current_parts:
+            chunk_text = separator.join(current_parts)
+            chunks.append(chunk_text)
+        
+        # If any chunk is still too large, recursively split with finer separators
+        final_chunks = []
+        for chunk in chunks:
+            if len(chunk) > self.chunk_size * 1.5:
+                # Try next finer separator
+                finer_seps = self._get_finer_separators(separator)
+                if finer_seps:
+                    sub_splitter = TextSplitter(
+                        chunk_size=self.chunk_size,
+                        chunk_overlap=self.chunk_overlap,
+                        separators=finer_seps
+                    )
+                    final_chunks.extend(sub_splitter.split_text(chunk))
+                else:
+                    final_chunks.append(chunk)
+            else:
+                final_chunks.append(chunk)
+        
+        return final_chunks
+    
+    def _get_finer_separators(self, current_sep: str) -> List[str]:
+        """Get separators finer than the current one."""
+        try:
+            idx = self.separators.index(current_sep)
+            remaining = self.separators[idx + 1:]
+            return remaining if remaining else None
+        except ValueError:
+            return None
 
 
 class TableAwareTextSplitter(TextSplitter):
     """
     Structure-aware text splitter that preserves tabular headers and section breaks.
-    Prevents splitting multi-row summaries across arbitrary character boundaries.
+    Uses semantic section boundaries (double newline, section markers) as primary
+    separators to keep related content together.
     """
-    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 150):
-        separators = ["--- ", "\n\n---", "\n\n", "\n", ". ", " "]
+    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 75):
+        separators = ["\n\n---", "\n\n", "\n", ". ", " "]
         super().__init__(chunk_size=chunk_size, chunk_overlap=chunk_overlap, separators=separators)
 
     def split_text_with_context(self, text: str, header_prefix: str = "") -> List[str]:
@@ -96,7 +154,7 @@ class TFIDFVectorStore:
                 "metadata": metadatas[i] if metadatas else {}
             })
 
-    def similarity_search(self, query: str, k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+    def similarity_search(self, query: str, k: int = 6) -> List[Tuple[Dict[str, Any], float]]:
         if not self.documents or not query:
             return []
         
@@ -143,7 +201,7 @@ class SimpleVectorStore:
         else:
             self._embeddings_matrix = np.vstack([self._embeddings_matrix, new_embeddings])
             
-    def similarity_search_with_score(self, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+    def similarity_search_with_score(self, query_embedding: List[float], k: int = 6) -> List[Tuple[Dict[str, Any], float]]:
         """
         Return docs most similar to query embedding.
         Returns list of (doc, score). Score is cosine similarity (0-1).
@@ -220,7 +278,7 @@ class PostgresVectorStore:
             # asyncpg auto-commits usually, but let's be explicit if wrapper requires
             # Our AsyncPostgresConnection.commit is pass, so strictly asyncpg auto-commits.
 
-    async def similarity_search_with_score_async(self, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+    async def similarity_search_with_score_async(self, query_embedding: List[float], k: int = 6) -> List[Tuple[Dict[str, Any], float]]:
         """Async search"""
         from app.db import get_async_db_connection
         
@@ -254,7 +312,7 @@ class PostgresVectorStore:
             logger.info("pgvector similarity search failed, falling back to in-memory cosine similarity: %s", e)
             return await self._similarity_search_in_memory_async(query_embedding, k)
 
-    async def hybrid_search_async(self, query_text: str, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+    async def hybrid_search_async(self, query_text: str, query_embedding: List[float], k: int = 6) -> List[Tuple[Dict[str, Any], float]]:
         """
         Async Hybrid Search combining Vector Similarity (pgvector) and Full-Text Keyword Search (tsvector).
         Uses Reciprocal Rank Fusion (RRF) to combine ranks.
@@ -358,7 +416,7 @@ class PostgresVectorStore:
             )
             conn.commit()
 
-    def similarity_search_with_score(self, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+    def similarity_search_with_score(self, query_embedding: List[float], k: int = 6) -> List[Tuple[Dict[str, Any], float]]:
         """Sync Method"""
         from app.db import get_db_connection
         
@@ -401,7 +459,7 @@ class PostgresVectorStore:
             logger.info("Sync pgvector similarity search failed, falling back to in-memory cosine similarity: %s", e)
             return self._similarity_search_in_memory(query_embedding, k)
 
-    async def _similarity_search_in_memory_async(self, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+    async def _similarity_search_in_memory_async(self, query_embedding: List[float], k: int = 6) -> List[Tuple[Dict[str, Any], float]]:
         from app.db import get_async_db_connection
         async with get_async_db_connection() as conn:
             rows = await conn.conn.fetch(
@@ -414,7 +472,7 @@ class PostgresVectorStore:
             )
             return self._calculate_similarity_in_memory(rows, query_embedding, k)
 
-    def _similarity_search_in_memory(self, query_embedding: List[float], k: int = 4) -> List[Tuple[Dict[str, Any], float]]:
+    def _similarity_search_in_memory(self, query_embedding: List[float], k: int = 6) -> List[Tuple[Dict[str, Any], float]]:
         from app.db import get_db_connection
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -457,7 +515,7 @@ class PostgresVectorStore:
             # Parse embedding list from string/vector representation
             try:
                 if isinstance(emb_val, str):
-                    clean_val = emb_val.strip("[]{}")
+                    clean_val = emb_val.strip("[]{}") 
                     emb_list = [float(x) for x in clean_val.split(",") if x.strip()]
                 elif isinstance(emb_val, list):
                     emb_list = [float(x) for x in emb_val]

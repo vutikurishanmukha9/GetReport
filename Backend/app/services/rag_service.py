@@ -33,17 +33,17 @@ class SecurityGuard:
 
 class RAGConfig:
     """Configuration for RAG service"""
-    CHUNK_SIZE: int = 1000
-    CHUNK_OVERLAP: int = 150
+    CHUNK_SIZE: int = 500
+    CHUNK_OVERLAP: int = 100
     # Retrieval
-    DEFAULT_K: int = 4
-    MAX_K: int = 10
-    SIMILARITY_THRESHOLD: float = 0.4
+    DEFAULT_K: int = 6
+    MAX_K: int = 12
+    SIMILARITY_THRESHOLD: float = 0.35
     # Generation — model is set dynamically based on provider
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENROUTER_MODEL: str = "meta-llama/llama-4-scout"  # Free tier
     TEMPERATURE: float = 0.3
-    MAX_TOKENS: int = 500
+    MAX_TOKENS: int = 1000
     # Caching
     CACHE_TTL_SECONDS: int = 3600
     MAX_CACHE_SIZE: int = 100
@@ -599,7 +599,7 @@ class EnhancedRAGService:
         self,
         task_id: str,
         question: str,
-        k: int = 4,
+        k: int = 6,
         include_sources: bool = True,
         job_result: Optional[Dict[str, Any]] = None,
         chat_history: Optional[List[Dict[str, str]]] = None
