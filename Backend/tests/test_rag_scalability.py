@@ -13,17 +13,17 @@ import pytest
 @pytest.fixture(autouse=True)
 def restore_settings():
     orig_db_url = settings.DATABASE_URL
-    orig_openai_key = settings.OPENAI_API_KEY
+    orig_openrouter_key = settings.OPENROUTER_API_KEY
     yield
     settings.DATABASE_URL = orig_db_url
-    settings.OPENAI_API_KEY = orig_openai_key
+    settings.OPENROUTER_API_KEY = orig_openrouter_key
 
 # Mock Config to simulate Prod vs Local
 def test_rag_factory_logic():
     print("Testing RAG Store Selection Logic...")
     
     # Pre-requisite: Set API Key to enable service
-    settings.OPENAI_API_KEY = "sk-mock-key"
+    settings.OPENROUTER_API_KEY = "sk-or-mock-key"
     
     # 1. Test Local (No DATABASE_URL)
     settings.DATABASE_URL = None
@@ -78,7 +78,7 @@ def test_rag_factory_logic():
 
 def test_blocking_ingest():
     print("\nTesting Blocking Ingestion (Sync)...")
-    settings.OPENAI_API_KEY = "sk-mock-key"
+    settings.OPENROUTER_API_KEY = "sk-or-mock-key"
     settings.DATABASE_URL = "postgresql://user:pass@localhost/db"
     
     with patch("app.services.rag_service.PostgresVectorStore") as MockStore:

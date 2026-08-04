@@ -44,25 +44,13 @@ RETRY_BASE_DELAY_SEC: float = 1.0
 RETRY_MAX_DELAY_SEC: float  = 8.0
 OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
 
-# OpenRouter models in priority order (fastest free models first for chat responsiveness)
-# If a model is paid-only or unavailable, it auto-skips to the next one
+# OpenRouter models in priority order
 OPENROUTER_MODELS: list[str] = [
-    # ── Fast free models (prioritize response speed for chat) ──
-    "google/gemini-2.0-flash-exp",            # Free tier — Gemini 2.0 Flash (experimental, replaces deprecated -001)
-    "google/gemma-3-4b-it:free",              # Free tier — Gemma 3 4B
-    "meta-llama/llama-3.1-8b-instruct:free",  # Free tier — small, fast
-    "mistralai/mistral-7b-instruct:free",     # Free tier — small, fast
-    "qwen/qwen-2.5-7b-instruct:free",        # Free tier — small, fast
-    # ── Capable free models (higher quality) ──
-    "google/gemma-2-9b-it:free",              # Free tier — Gemma 2 9B
-    "meta-llama/llama-3.1-70b-instruct:free", # Free tier — Llama 3.1 70B
-    "meta-llama/llama-4-scout:free",          # Free tier — Llama 4 efficient
-    "meta-llama/llama-4-maverick:free",       # Free tier — Llama 4 flagship
-    "deepseek/deepseek-r1:free",              # Free tier — DeepSeek R1
-    "qwen/qwen3-8b:free",                    # Free tier — Qwen 3 8B
-    # ── Paid (last resort before OpenAI) ──
-    "qwen/qwen3.7-flash",                    # Paid — ultra-cheap ($0.03/M input), fast
-    "deepseek/deepseek-chat",                 # Paid (fallback)
+    "google/gemini-2.5-flash",
+    "moonshotai/kimi-k2.5",
+    "deepseek/deepseek-v4-flash",
+    "qwen/qwen3.6-flash",
+    "z-ai/glm-5.5-air",
 ]
 
 # Errors that are transient and worth retrying
@@ -100,18 +88,9 @@ if settings.OPENROUTER_API_KEY:
         ", ".join(m.split("/")[-1] for m in OPENROUTER_MODELS),
     )
 
-# OpenAI as final fallback (if key is set)
-if settings.OPENAI_API_KEY:
-    _providers.append(_LLMProvider(
-        client=AsyncOpenAI(api_key=settings.OPENAI_API_KEY),
-        model=OPENAI_MODEL,
-        name="OpenAI",
-    ))
-    logger.info("OpenAI registered as fallback (%s)", OPENAI_MODEL)
-
 # Legacy aliases
 client = _providers[0].client if _providers else None
-MODEL = _providers[0].model if _providers else OPENAI_MODEL
+MODEL = _providers[0].model if _providers else "google/gemini-2.5-flash"
 
 
 # ─── Custom Exceptions ───────────────────────────────────────────────────────
@@ -120,7 +99,7 @@ class InsightGenerationError(RuntimeError):
 
 
 class MissingAPIKeyError(EnvironmentError):
-    """Raised when OPENAI_API_KEY is not configured."""
+    """Raised when OPENROUTER_API_KEY is not configured."""
 
 
 class EmptyAnalysisDataError(ValueError):
@@ -221,7 +200,7 @@ def _build_fallback(reason: str, analysis_data: dict[str, Any] | None = None) ->
     messages = {
         "no_api_key": (
             "1. <b>Automated Data Summary</b>: Analyzed dataset metrics.\n\n"
-            "2. <b>API Notice</b>: To enable LLM natural language narratives, configure OPENAI_API_KEY in your environment."
+            "2. <b>API Notice</b>: To enable LLM natural language narratives, configure OPENROUTER_API_KEY in your environment."
         ),
         "empty_data": (
             "AI Insights could not be generated — no analysis data was provided to the insight engine."
@@ -465,13 +444,19 @@ async def _call_provider(
     raise InsightGenerationError("Unexpected state in retry loop.")
 
 
-async def _call_openai_with_retry(
+async def _call_llm_with_retry(
     system_prompt: str,
     user_prompt: str,
 ) -> tuple[Any, int]:
     """
-    Try each registered provider in priority order (OpenRouter → OpenAI).
-    If one fails, fall back to the next.
+    Try each registered provider in priority order (Quality-First strategy):
+      1. google/gemini-2.5-flash    (Primary: score 9.8/10 - best executive reasoning)
+      2. moonshotai/kimi-k2.5       (Fallback 1: score 9.5/10 - consultant-style narrative)
+      3. deepseek/deepseek-v4-flash (Fallback 2: score 9.2/10 - pattern recognition & value)
+      4. qwen/qwen3.6-flash         (Fallback 3: score 8.9/10 - fast & structured)
+      5. z-ai/glm-5.5-air           (Fallback 4: score 8.5/10 - final availability backup)
+
+    Only falls back on transient failures (429 Rate Limits, 5xx Server Errors, Timeouts, 402 Credits).
     """
     if not _providers:
         raise InsightGenerationError("No LLM providers configured.")
@@ -572,7 +557,7 @@ async def generate_insights(analysis_data: dict[str, Any]) -> InsightResult:
 
     # ── 1. Check for any configured provider ─────────────────────────────────
     if not _providers:
-        logger.warning("No LLM API keys configured (OPENROUTER_API_KEY or OPENAI_API_KEY) — returning fallback.")
+        logger.warning("No LLM API key configured (OPENROUTER_API_KEY) — returning fallback.")
         return _build_fallback("no_api_key", analysis_data)
 
     # ── 2. Validate input ────────────────────────────────────────────────────
@@ -587,9 +572,9 @@ async def generate_insights(analysis_data: dict[str, Any]) -> InsightResult:
     system_prompt, user_prompt = _build_prompt(analysis_data)
     logger.info("Prompt ready — system: %d chars, user: %d chars.", len(system_prompt), len(user_prompt))
 
-    # ── 4. Call OpenAI with retry logic ──────────────────────────────────────
+    # ── 4. Call OpenRouter with Quality-First fallback chain ─────────────────
     try:
-        response, retries_used = await _call_openai_with_retry(system_prompt, user_prompt)
+        response, retries_used = await _call_llm_with_retry(system_prompt, user_prompt)
 
     except (InsightGenerationError, AuthenticationError) as e:
         # Original behavior: log error, return soft fallback, never crash

@@ -119,32 +119,22 @@ class EnhancedRAGService:
         self.metrics = RAGMetrics()
         self._semaphore = None # Defer asyncio.Semaphore initialization (Issue 1)
         
-        # LLM Provider selection: OpenRouter (primary) → OpenAI (fallback)
-        self.api_key = settings.OPENROUTER_API_KEY or settings.OPENAI_API_KEY
+        # LLM Provider: OpenRouter
+        self.api_key = settings.OPENROUTER_API_KEY
         self.enabled = bool(self.api_key)
-        
-        # Determine base_url based on which key is available
-        if settings.OPENROUTER_API_KEY:
-            self._base_url = "https://openrouter.ai/api/v1"
-            self._provider_name = "OpenRouter"
-        else:
-            self._base_url = None  # default OpenAI
-            self._provider_name = "OpenAI"
+        self._base_url = "https://openrouter.ai/api/v1"
+        self._provider_name = "OpenRouter"
         
         self._client = None
         self._sync_client = None
-        logger.info("RAG Service initialized lazily (%s)", self._provider_name)
+        logger.info("RAG Service initialized (%s)", self._provider_name)
 
-        # Embeddings ALWAYS use OpenAI directly (OpenRouter doesn't support embeddings)
-        if settings.OPENAI_API_KEY:
-            self._embeddings_enabled = True
-            self.embedding_model = "text-embedding-3-small"
-        elif settings.OPENROUTER_API_KEY:
+        if settings.OPENROUTER_API_KEY:
             self._embeddings_enabled = True
             self.embedding_model = "openai/text-embedding-3-small"
         else:
             self._embeddings_enabled = False
-            self.embedding_model = "text-embedding-3-small"
+            self.embedding_model = "openai/text-embedding-3-small"
             
         self._embed_client = None
         self._embed_sync_client = None
@@ -158,9 +148,7 @@ class EnhancedRAGService:
     @property
     def client(self) -> AsyncOpenAI:
         if self._client is None and self.enabled:
-            client_kwargs = {"api_key": self.api_key}
-            if self._base_url:
-                client_kwargs["base_url"] = self._base_url
+            client_kwargs = {"api_key": self.api_key, "base_url": self._base_url}
             self._client = AsyncOpenAI(**client_kwargs)
         return self._client
 
@@ -171,9 +159,7 @@ class EnhancedRAGService:
     @property
     def sync_client(self) -> OpenAI:
         if self._sync_client is None and self.enabled:
-            client_kwargs = {"api_key": self.api_key}
-            if self._base_url:
-                client_kwargs["base_url"] = self._base_url
+            client_kwargs = {"api_key": self.api_key, "base_url": self._base_url}
             self._sync_client = OpenAI(**client_kwargs)
         return self._sync_client
 
@@ -184,10 +170,7 @@ class EnhancedRAGService:
     @property
     def embed_client(self) -> Optional[AsyncOpenAI]:
         if self._embed_client is None and self._embeddings_enabled:
-            if settings.OPENAI_API_KEY:
-                self._embed_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-            elif settings.OPENROUTER_API_KEY:
-                self._embed_client = self.client
+            self._embed_client = self.client
         return self._embed_client
 
     @embed_client.setter
@@ -197,10 +180,7 @@ class EnhancedRAGService:
     @property
     def embed_sync_client(self) -> Optional[OpenAI]:
         if self._embed_sync_client is None and self._embeddings_enabled:
-            if settings.OPENAI_API_KEY:
-                self._embed_sync_client = OpenAI(api_key=settings.OPENAI_API_KEY)
-            elif settings.OPENROUTER_API_KEY:
-                self._embed_sync_client = self.sync_client
+            self._embed_sync_client = self.sync_client
         return self._embed_sync_client
 
     @embed_sync_client.setter
@@ -232,7 +212,7 @@ class EnhancedRAGService:
                 last_err = e
                 logger.warning("Embedding attempt %d/2 failed: %s: %s", attempt + 1, type(e).__name__, str(e))
         
-        logger.error("All embedding attempts failed. Consider adding OPENAI_API_KEY for reliable embeddings.")
+        logger.error("All embedding attempts failed. Ensure OPENROUTER_API_KEY is configured.")
         raise last_err
 
     def _get_embeddings_sync(self, texts: List[str]) -> List[List[float]]:
