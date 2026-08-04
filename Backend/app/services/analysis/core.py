@@ -54,9 +54,20 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
     else:
         logger.info(f"Using provided AnalysisConfig for domain: {config.domain}")
     
-    # Get all numeric columns
-    all_numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32)]
-    cat_cols = [c for c in df.columns if c not in all_numeric_cols]
+    # Get all numeric columns using Polars is_numeric
+    all_numeric_cols = [c for c, t in df.schema.items() if t.is_numeric()]
+    raw_cat_cols = [c for c in df.columns if c not in all_numeric_cols]
+    
+    # Exclude date/time columns and high-cardinality unique text from categorical distributions
+    date_patterns = ['date', 'time', 'timestamp', 'created_at', 'updated_at', 'modified_at', 'dob']
+    cat_cols = []
+    for c in raw_cat_cols:
+        c_lower = c.lower()
+        is_date_name = any(p in c_lower for p in date_patterns)
+        is_date_type = df[c].dtype in (pl.Date, pl.Datetime)
+        high_cardinality = (df[c].n_unique() / df.height > 0.85) if df.height > 20 else False
+        if not (is_date_name or is_date_type or high_cardinality):
+            cat_cols.append(c)
     
     # Semantic column classification - filter out IDs, dates, low-variance
     column_classification = classify_numeric_columns(df, all_numeric_cols)

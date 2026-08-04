@@ -6,7 +6,7 @@ from app.core.config import settings
 ID_UNIQUENESS_THRESHOLD: float = settings.ID_UNIQUENESS_THRESHOLD  # >98% unique values AND name suggests ID = likely ID
 EXCEL_DATE_RANGE = (25569, 73050)  # Excel serial dates: 1970-2100
 # Only very strong ID patterns - avoid false positives like "student_number" which is valid data
-ID_COLUMN_PATTERNS = ['_id', 'uuid', 'guid', 'pk', 'primary_key', 'row_id', 'record_id']
+ID_COLUMN_PATTERNS = ['_id', 'uuid', 'guid', 'pk', 'primary_key', 'row_id', 'record_id', 'retailer_id', 'store_id', 'customer_id', 'user_id', 'account_id', 'product_id', 'order_id', 'invoice_id', 'item_id', 'vendor_id', 'client_id', 'zip_code', 'postal_code', 'code']
 DATE_COLUMN_PATTERNS = ['date', 'time', 'timestamp', 'created_at', 'updated_at', 'modified_at']
 
 def classify_numeric_columns(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, list[str]]:
@@ -76,21 +76,18 @@ def classify_numeric_columns(df: pl.DataFrame, numeric_cols: list[str]) -> dict[
         except:
             pass
         
-        # Decision: Be conservative - only exclude if:
-        # 1. Low variance (always exclude near-constants), OR
-        # 2. BOTH name pattern AND data evidence (high uniqueness or date range)
+        # Decision: Exclude if:
+        # 1. Low variance (near-constant values), OR
+        # 2. Name explicitly matches ID or Date column patterns (e.g., retailer_id, store_id, invoice_date), OR
+        # 3. Data evidence (high uniqueness for int types, or excel serial date range)
         should_exclude = False
         
         if "low_variance" in reasons:
-            should_exclude = True  # Low variance is always excluded
-        elif (is_id_name or is_date_name):
-            # Name suggests ID/date - need additional data evidence
-            has_data_evidence = any(
-                r for r in reasons 
-                if "high_uniqueness" in r or "excel_serial_date" in r
-            )
-            if has_data_evidence:
-                should_exclude = True
+            should_exclude = True
+        elif is_id_name or is_date_name:
+            should_exclude = True  # ID/Date names (retailer_id, store_id, invoice_date) are never analytical numeric metrics
+        elif any(r for r in reasons if "high_uniqueness" in r or "excel_serial_date" in r):
+            should_exclude = True
         
         if should_exclude:
             excluded.append(col)

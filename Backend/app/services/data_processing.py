@@ -767,23 +767,32 @@ def clean_data(
             duration_ms=(time.perf_counter() - step_start) * 1000,
         )
     
-    # ─── Step 4: Type Conversions & Safe Imputation ──────────────────────────
+    # ─── Step 4: Automated Smart Cleaning & Safe Imputation ─────────────────────
+    masked_placeholders = ["n/a", "na", "-999", "null", "?", "-", "missing", "unknown", "none"]
     id_patterns = ["id", "code", "sku", "zip", "phone"]
     
     for col in df.columns:
         col_lower = col.lower()
         is_id = any(p in col_lower for p in id_patterns)
-        
         dtype = df[col].dtype
+        
+        # 4a. Strip masked null string placeholders in Utf8/Object columns & fill categorical
         if dtype == pl.Utf8 or dtype == pl.Object:
+            step_start = time.perf_counter()
+            df_before = df.clone()
+            
+            # Convert masked string placeholders to null
+            df = df.with_columns(
+                pl.when(pl.col(col).str.strip_chars().str.to_lowercase().is_in(masked_placeholders))
+                .then(None)
+                .otherwise(pl.col(col))
+                .alias(col)
+            )
+            
             null_cnt = df[col].null_count()
-            if null_cnt > 0:
-                step_start = time.perf_counter()
-                df_before = df.clone()
-                
+            if null_cnt > 0 and not is_id:
                 df = df.with_columns(pl.col(col).fill_null("Unknown"))
                 report.categorical_nans_filled += null_cnt
-                
                 dag.add_node(
                     operation="fill_null_value",
                     df_before=df_before,
@@ -793,6 +802,26 @@ def clean_data(
                     duration_ms=(time.perf_counter() - step_start) * 1000,
                     values_changed=null_cnt,
                 )
+
+        # 4b. Auto-impute numeric missing values with median for non-ID numeric columns
+        elif dtype.is_numeric() and not is_id:
+            null_cnt = df[col].null_count()
+            if null_cnt > 0:
+                step_start = time.perf_counter()
+                df_before = df.clone()
+                med_val = df[col].median()
+                if med_val is not None:
+                    df = df.with_columns(pl.col(col).fill_null(med_val))
+                    report.numeric_nans_filled += null_cnt
+                    dag.add_node(
+                        operation="fill_null_median",
+                        df_before=df_before,
+                        df_after=df,
+                        target_column=col,
+                        parameters={"fill_value": med_val, "nulls_filled": null_cnt},
+                        duration_ms=(time.perf_counter() - step_start) * 1000,
+                        values_changed=null_cnt,
+                    )
                 
     report.timing_ms = (time.perf_counter() - start_time) * 1000
     report.finalize()
