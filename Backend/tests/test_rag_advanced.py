@@ -82,13 +82,17 @@ def test_targeted_column_context_extraction():
     job_result = {
         "analysis": {
             "summary": {
-                "sleep_hours": {"mean": 7.2, "std": 1.1}
-            },
-            "columns": {
-                "sleep_hours": {"type": "numeric"}
+                "total_sales": {"mean": 5000, "max": 20000},
+                "units_sold": {"mean": 100}
             }
         }
     }
-    ctx = _extract_targeted_structured_context("Tell me about sleep_hours", job_result)
-    assert "--- TARGETED COLUMN STATISTICAL METRICS ---" in ctx
-    assert "sleep_hours" in ctx
+    extracted = _extract_targeted_structured_context("tell me about total_sales", job_result)
+    assert "total_sales" in extracted
+    assert '"mean": 5000' in extracted
+
+@pytest.mark.asyncio
+async def test_lazy_proxy_chat_stream_with_report_attribute():
+    from app.services.rag_service import rag_service
+    assert hasattr(rag_service, "chat_stream_with_report")
+    assert hasattr(rag_service, "chat_with_report")

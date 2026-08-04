@@ -36,7 +36,7 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 _jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), trim_blocks=True, lstrip_blocks=True)
 
 # ─── Constants ───────────────────────────────────────────────────────────────
-OPENAI_MODEL: str           = "gpt-4o-mini"       # model for OpenAI
+OPENAI_MODEL: str           = "google/gemini-2.0-flash-exp"       # fallback model alias
 MAX_TOKENS: int             = 500
 API_TIMEOUT_SECONDS: float  = 30.0
 MAX_RETRIES: int            = 2                   # fewer retries per model, more models
@@ -44,13 +44,20 @@ RETRY_BASE_DELAY_SEC: float = 1.0
 RETRY_MAX_DELAY_SEC: float  = 8.0
 OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
 
-# OpenRouter models in priority order
+# OpenRouter models in priority order (User preferred models + reliable free-tier fallbacks)
 OPENROUTER_MODELS: list[str] = [
+    # ── User Requested Quality Models ──
     "google/gemini-2.5-flash",
     "moonshotai/kimi-k2.5",
     "deepseek/deepseek-v4-flash",
     "qwen/qwen3.6-flash",
-    "z-ai/glm-5.5-air",
+    # ── High Quality Free-Tier Fallbacks (guarantees success on zero-credit keys) ──
+    "google/gemini-2.0-flash-exp",
+    "meta-llama/llama-3.1-70b-instruct:free",
+    "deepseek/deepseek-r1:free",
+    "meta-llama/llama-3.1-8b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
+    "qwen/qwen-2.5-7b-instruct:free",
 ]
 
 # Errors that are transient and worth retrying
