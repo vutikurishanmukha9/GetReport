@@ -1,4 +1,4 @@
-import { UploadCloud, Search, FileDown, ArrowRight, Gauge, Brain, FileCheck, Server, Sparkles, Cpu, Code2, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { UploadCloud, Search, FileDown, ArrowRight, Brain, Sparkles, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,7 +12,7 @@ const steps = [
     icon: UploadCloud,
     title: "Ingestion & Inferred Schemas",
     description: "Drop your CSV or Excel ledger. Our Polars parser streams the file in memory, automatically resolving character encodings, field separators, and primary column data types.",
-    details: ["Supports CSV, XLSX, Parquet, TSV", "Auto-detects UTF-8, Latin-1 & CP1252", "Zero persistent disk storage (in-memory)"],
+    details: ["Supports CSV, XLSX, Parquet, TSV", "Auto-detects UTF-8, Latin-1 & CP1252", "Session-scoped processing"],
   },
   {
     id: "02",
@@ -70,7 +70,7 @@ export const HowItWorks = () => {
           <div className="space-y-12 relative before:absolute before:inset-0 before:left-8 sm:before:left-1/2 before:-ml-px before:w-0.5 before:bg-border/60 hidden sm:block" />
 
           <div className="space-y-12">
-            {steps.map((step, idx) => {
+            {steps.map((step) => {
               const Icon = step.icon;
               return (
                 <Card key={step.id} className="border border-border/80 bg-card p-6 md:p-8 rounded-2xl shadow-premium hover:border-primary/30 transition-all duration-300 relative group">

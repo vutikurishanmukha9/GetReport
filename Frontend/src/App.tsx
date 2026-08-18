@@ -1,9 +1,9 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { Loader2 } from "lucide-react";
 
@@ -25,11 +25,36 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center space-y-3 bg-background animate-in fade-in duration-300">
+  <div className="min-h-screen flex flex-col items-center justify-center space-y-3 bg-background animate-in fade-in duration-300" role="status" aria-live="polite">
     <Loader2 className="h-8 w-8 text-primary animate-spin" />
     <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Loading application...</span>
   </div>
 );
+
+const DocumentMetadata = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const labels = {
+      "/": "GetReport | Data quality reports you can trust",
+      "/workspace": "Workspace | GetReport",
+      "/dashboard": "Audit history | GetReport",
+      "/documentation": "Documentation | GetReport",
+      "/features": "Features | GetReport",
+      "/pricing": "Pricing | GetReport",
+      "/examples": "Examples | GetReport",
+    } as const;
+    const path = location.pathname;
+    if (path in labels) {
+      // SAFETY: 'in' operator check strictly validates that path exists in labels map keys
+      document.title = labels[path as keyof typeof labels];
+    } else {
+      document.title = "GetReport";
+    }
+  }, [location.pathname]);
+
+  return null;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -38,6 +63,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
+        <DocumentMetadata />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Index />} />

@@ -1,4 +1,4 @@
-import { Shield, Lock, Trash2, EyeOff, Server, FileText, CheckCircle2 } from "lucide-react";
+import { Lock, Trash2, EyeOff, Server } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Header } from "@/components/Header";

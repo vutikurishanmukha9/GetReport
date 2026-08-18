@@ -1,4 +1,4 @@
-import { Check, ArrowRight, Zap, Shield, Sparkles, Heart } from "lucide-react";
+import { Check, ArrowRight, Shield, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -107,7 +107,7 @@ export const Pricing = () => {
             <div className="pt-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
                 <Shield className="h-4 w-4 text-emerald-600" />
-                <span>Zero permanent disk storage</span>
+                <span>Session-scoped processing</span>
               </div>
 
               <Link to="/workspace" className="w-full sm:w-auto">

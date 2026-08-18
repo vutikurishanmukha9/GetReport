@@ -10,8 +10,8 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 40 91% 91.4%;
-    --foreground: 240 12% 10%;
+    --background: 40 24% 97%;
+    --foreground: 240 14% 10%;
 
     --card: 0 0% 100%;
     --card-foreground: 240 12% 10%;
@@ -22,25 +22,25 @@ All colors MUST be HSL.
     --primary: 344 58% 30%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 40 30% 86%;
+    --secondary: 40 18% 92%;
     --secondary-foreground: 240 12% 10%;
 
-    --muted: 40 25% 88%;
-    --muted-foreground: 40 12% 35%;
+    --muted: 40 16% 93%;
+    --muted-foreground: 240 8% 35%;
 
-    --accent: 40 30% 90%;
+    --accent: 40 18% 91%;
     --accent-foreground: 240 12% 10%;
 
     --destructive: 0 75% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 40 18% 78%;
-    --input: 40 18% 78%;
+    --border: 40 14% 82%;
+    --input: 40 14% 78%;
     --ring: 344 58% 30%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 40 91% 91.4%;
+    --sidebar-background: 40 24% 97%;
     --sidebar-foreground: 240 12% 10%;
     --sidebar-primary: 344 58% 30%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -57,13 +57,38 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
+
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     @apply bg-background text-foreground antialiased font-sans;
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.16);
+    color: hsl(var(--foreground));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

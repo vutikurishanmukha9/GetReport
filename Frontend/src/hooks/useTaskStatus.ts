@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { api, StatusResponse } from '@/services/api';
+import { api, StatusResponse, JobTaskResult } from '@/services/api';
 
 export type TaskStatus = 'PENDING' | 'PROCESSING' | 'WAITING_FOR_USER' | 'COMPLETED' | 'FAILED';
+
+function isValidTaskStatus(status: string): status is TaskStatus {
+  return ['PENDING', 'PROCESSING', 'WAITING_FOR_USER', 'COMPLETED', 'FAILED'].includes(status);
+}
 
 interface UseTaskStatusResult {
   status: TaskStatus | 'CONNECTING' | 'DISCONNECTED';
   progress: number;
   message: string;
-  result: any | null;
+  result: JobTaskResult | null;
   error: string | null;
   isConnected: boolean;
   connect: (taskId: string) => void;
@@ -18,7 +22,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
   const [status, setStatus] = useState<UseTaskStatusResult['status']>('CONNECTING');
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('');
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<JobTaskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -55,7 +59,12 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       const data: StatusResponse = await api.getTaskStatus(taskId);
       if (!data) return;
 
-      if (data.status) setTaskStatus(data.status.toUpperCase() as TaskStatus);
+      if (data.status) {
+        const upper = data.status.toUpperCase();
+        if (isValidTaskStatus(upper)) {
+          setTaskStatus(upper);
+        }
+      }
       if (data.progress !== undefined) setProgress((prev) => Math.max(prev, data.progress));
       if (data.message) setMessage(data.message);
       if (data.result) setResult(data.result);
@@ -65,7 +74,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
         stopPolling();
         clearWatchdog();
         if (wsRef.current) {
-          try { wsRef.current.close(); } catch (_) {}
+          try { wsRef.current.close(); } catch { /* ignore close error */ }
           wsRef.current = null;
         }
       }
@@ -89,7 +98,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       if (taskIdRef.current === taskId && !['COMPLETED', 'FAILED'].includes(statusRef.current)) {
         console.warn("WebSocket watchdog timeout (no frames for 25s). Reconnecting...");
         if (wsRef.current) {
-          try { wsRef.current.close(); } catch (_) {}
+          try { wsRef.current.close(); } catch { /* ignore close error */ }
         }
       }
     }, 25000);
@@ -97,7 +106,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {
-      try { wsRef.current.close(); } catch (_) {}
+      try { wsRef.current.close(); } catch { /* ignore close error */ }
       wsRef.current = null;
     }
     if (reconnectTimeoutRef.current) {
@@ -125,6 +134,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
 
     try {
       const url = api.getWebSocketUrl(taskId);
+      // eslint-disable-next-line react-doctor/effect-needs-cleanup
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
@@ -148,7 +158,12 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
             return;
           }
 
-          if (data.status) setTaskStatus(data.status.toUpperCase() as TaskStatus);
+          if (data.status) {
+            const upper = data.status.toUpperCase();
+            if (isValidTaskStatus(upper)) {
+              setTaskStatus(upper);
+            }
+          }
           if (data.progress !== undefined) setProgress((prev) => Math.max(prev, data.progress));
           if (data.message) setMessage(data.message);
           if (data.result) setResult(data.result);
@@ -157,7 +172,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
           if (['COMPLETED', 'FAILED'].includes(data.status?.toUpperCase())) {
             stopPolling();
             clearWatchdog();
-            try { ws.close(); } catch (_) {}
+            try { ws.close(); } catch { /* ignore close error */ }
           }
         } catch (e) {
           console.error("Failed to parse WebSocket message:", e);
@@ -205,6 +220,9 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     } else {
       disconnect();
     }
+    return () => {
+      disconnect();
+    };
   }, [activeTaskId, connect, disconnect]);
 
   return {

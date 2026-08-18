@@ -30,4 +30,10 @@ describe("API client", () => {
 
     await expect(api.getTaskStatus("missing")).rejects.toThrow("Task not found");
   });
+
+  it("fails clearly when a report download is unavailable", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("Not found", { status: 404 }));
+
+    await expect(api.downloadReportBlob("expired-task")).rejects.toThrow("Failed to download report");
+  });
 });

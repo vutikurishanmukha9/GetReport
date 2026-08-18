@@ -1,7 +1,7 @@
-import { BarChart, FileSpreadsheet, GraduationCap, Users, DollarSign, Heart, Gauge, Brain, ArrowRight, Download, CheckCircle2 } from "lucide-react";
+import { BarChart, GraduationCap, Users, DollarSign, Heart, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";

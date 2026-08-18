@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Upload,
@@ -85,49 +85,47 @@ export const ProcessPipeline = ({
     minCompletedStage,
 }: ProcessPipelineProps) => {
     // High-water-mark: pipeline NEVER goes backwards
-    const highWaterRef = useRef<number>(minCompletedStage ?? -1);
+    const [highestStageIndex, setHighestStageIndex] = useState<number>(minCompletedStage ?? 0);
 
-    // Update high-water if minCompletedStage changes
     useEffect(() => {
-        if (minCompletedStage !== undefined && minCompletedStage > highWaterRef.current) {
-            highWaterRef.current = minCompletedStage;
+        if (!isActive) return;
+        const isComplete = taskStatus?.toUpperCase() === "COMPLETED";
+        if (isComplete) {
+            setHighestStageIndex(STAGE_DEFINITIONS.length - 1);
+            return;
         }
-    }, [minCompletedStage]);
+        const rawStageId = resolveCurrentStage(taskStatus, message, progress);
+        const rawIndex = STAGE_INDEX_MAP[rawStageId] ?? 0;
+        setHighestStageIndex(prev => Math.max(prev, rawIndex, minCompletedStage ?? 0));
+    }, [taskStatus, message, progress, isActive, minCompletedStage]);
 
     const stages: PipelineStage[] = useMemo(() => {
         if (!isActive) {
-            return STAGE_DEFINITIONS.map((s) => ({ ...s, status: "pending" as StageStatus }));
+            return STAGE_DEFINITIONS.map((s): PipelineStage => ({ ...s, status: "pending" }));
         }
 
         const isError = taskStatus?.toUpperCase() === "FAILED";
         const isComplete = taskStatus?.toUpperCase() === "COMPLETED";
 
         if (isComplete) {
-            highWaterRef.current = STAGE_DEFINITIONS.length - 1;
-            return STAGE_DEFINITIONS.map((stage) => ({
+            return STAGE_DEFINITIONS.map((stage): PipelineStage => ({
                 ...stage,
-                status: "completed" as StageStatus,
+                status: "completed",
             }));
         }
 
-        const rawStageId = resolveCurrentStage(taskStatus, message, progress);
-        const rawIndex = STAGE_INDEX_MAP[rawStageId] ?? 0;
-        const currentIndex = Math.max(rawIndex, highWaterRef.current);
-        highWaterRef.current = currentIndex;
-
-        return STAGE_DEFINITIONS.map((stage, i) => {
-            if (isError && i === currentIndex) {
-                return { ...stage, status: "error" as StageStatus };
+        return STAGE_DEFINITIONS.map((stage, i): PipelineStage => {
+            let status: StageStatus = "pending";
+            if (isError && i === highestStageIndex) {
+                status = "error";
+            } else if (i < highestStageIndex) {
+                status = "completed";
+            } else if (i === highestStageIndex) {
+                status = "active";
             }
-            if (i < currentIndex) {
-                return { ...stage, status: "completed" as StageStatus };
-            }
-            if (i === currentIndex) {
-                return { ...stage, status: "active" as StageStatus };
-            }
-            return { ...stage, status: "pending" as StageStatus };
+            return { ...stage, status };
         });
-    }, [taskStatus, message, progress, isActive]);
+    }, [taskStatus, isActive, highestStageIndex]);
 
     // Calculate realistic overall progress
     const displayProgress = useMemo(() => {
@@ -135,19 +133,15 @@ export const ProcessPipeline = ({
         if (isComplete) return 100;
         
         const rawProgress = progress || 0;
-        const currentIndex = Math.max(0, highWaterRef.current);
+        const currentIndex = Math.max(0, highestStageIndex);
         const totalStages = STAGE_DEFINITIONS.length; // 6
         
-        // If we are at stage index 4 (Insights), we are 4/6 = 66% done.
-        // We map the rawProgress (0-100) to the remaining portion (33%).
         const baseProgressPercent = (currentIndex / totalStages) * 100;
         const remainingPercent = 100 - baseProgressPercent;
-        
-        // The relative progress within the current stage(s)
         const additionalProgress = (rawProgress / 100) * remainingPercent;
         
         return Math.min(99, Math.floor(baseProgressPercent + additionalProgress));
-    }, [progress, taskStatus, highWaterRef.current]);
+    }, [progress, taskStatus, highestStageIndex]);
 
     if (!isActive) return null;
 
@@ -254,10 +248,10 @@ function SaaSStepper({ stages }: { stages: PipelineStage[] }) {
                             <div className="flex-1 shrink-0 px-3">
                                 <div className="h-[2px] w-full rounded-full bg-muted/40 relative overflow-hidden">
                                     <motion.div
-                                        className="absolute inset-y-0 left-0 bg-primary"
-                                        initial={{ width: "0%" }}
+                                        className="absolute inset-y-0 left-0 w-full bg-primary origin-left"
+                                        initial={{ scaleX: 0 }}
                                         animate={{
-                                            width: getConnectorFill(stage.status, stages[i + 1]?.status),
+                                            scaleX: getConnectorScale(stage.status, stages[i + 1]?.status),
                                         }}
                                         transition={{ duration: 0.6, ease: "easeInOut" }}
                                     />
@@ -393,11 +387,11 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
                         
                         {/* Fill line for mobile */}
                         {!isLast && (
-                            <div className="ml-[11px] h-6 w-[2px] relative -mt-2 -mb-2 z-0">
+                            <div className="ml-[11px] h-6 w-[2px] relative -mt-2 -mb-2 z-0 overflow-hidden">
                                 <motion.div
-                                    className="absolute inset-x-0 top-0 bg-primary"
-                                    initial={{ height: "0%" }}
-                                    animate={{ height: getConnectorFill(stage.status, stages[i + 1]?.status) }}
+                                    className="absolute inset-x-0 top-0 h-full bg-primary origin-top"
+                                    initial={{ scaleY: 0 }}
+                                    animate={{ scaleY: getConnectorScale(stage.status, stages[i + 1]?.status) }}
                                     transition={{ duration: 0.6, ease: "easeInOut" }}
                                 />
                             </div>
@@ -409,17 +403,14 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
     );
 }
 
-// Helper to determine fill percentage of the connector line
-function getConnectorFill(currentStatus: StageStatus, nextStatus?: StageStatus): string {
-    if (!nextStatus) return "0%";
+// Helper to determine scale factor of the connector line
+function getConnectorScale(currentStatus: StageStatus, nextStatus?: StageStatus): number {
+    if (!nextStatus) return 0;
     if (currentStatus === "completed" && (nextStatus === "completed" || nextStatus === "active")) {
-        return "100%";
+        return 1;
     }
     if (currentStatus === "active") {
-        return "50%";
+        return 0.5;
     }
-    if (currentStatus === "completed") {
-        return "100%";
-    }
-    return "0%";
+    return 0;
 }

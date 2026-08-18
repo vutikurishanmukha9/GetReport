@@ -54,7 +54,7 @@ const statusColors = {
     modified: 'bg-primary/5 text-primary border-primary/20',
 };
 
-const issueTypeLabels: Record<string, string> = {
+const issueTypeLabels = {
     missing_values: 'Missing Values',
     duplicates: 'Duplicates',
     type_mismatch: 'Type Mismatch',
@@ -64,7 +64,15 @@ const issueTypeLabels: Record<string, string> = {
     empty_column: 'Empty Column',
     constant_column: 'Constant Column',
     encoding_issue: 'Encoding Issue',
-};
+} as const;
+
+function formatIssueType(type: string): string {
+    if (type in issueTypeLabels) {
+        // SAFETY: 'in' operator check narrows type to valid keyof issueTypeLabels
+        return issueTypeLabels[type as keyof typeof issueTypeLabels];
+    }
+    return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
 
 export const IssueLedger: React.FC<IssueLedgerProps> = ({
     taskId,
@@ -109,7 +117,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             onRefresh();
         } catch (e) {
             setOptimisticIssues(previous); // Rollback on failure
-            setError((e as Error).message);
+            setError(e instanceof Error ? e.message : String(e));
         } finally {
             setLoading(null);
         }
@@ -130,7 +138,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             onRefresh();
         } catch (e) {
             setOptimisticIssues(previous); // Rollback on failure
-            setError((e as Error).message);
+            setError(e instanceof Error ? e.message : String(e));
         } finally {
             setLoading(null);
         }
@@ -150,7 +158,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             onRefresh();
         } catch (e) {
             setOptimisticIssues(previous);
-            setError((e as Error).message);
+            setError(e instanceof Error ? e.message : String(e));
         } finally {
             setLoading(null);
         }
@@ -170,7 +178,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             onRefresh();
         } catch (e) {
             setOptimisticIssues(previous);
-            setError((e as Error).message);
+            setError(e instanceof Error ? e.message : String(e));
         } finally {
             setLoading(null);
         }
@@ -183,7 +191,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             await api.lockIssues(taskId);
             onProceed();
         } catch (e) {
-            setError((e as Error).message);
+            setError(e instanceof Error ? e.message : String(e));
         } finally {
             setLoading(null);
         }
@@ -376,7 +384,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                         )}
                                         <div>
                                             <span className="font-display font-semibold text-sm text-foreground tracking-tight block">
-                                                {issueTypeLabels[issue.issue_type] || issue.issue_type}
+                                                {formatIssueType(issue.issue_type)}
                                             </span>
                                             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed max-w-sm font-sans">
                                                 {issue.description}

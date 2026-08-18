@@ -1,6 +1,4 @@
-import { BookOpen, FileSpreadsheet, AlertTriangle, Gauge, Brain, CheckCircle2, ShieldCheck, Lock, Layers, Terminal, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { FileSpreadsheet, Gauge, ShieldCheck, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";

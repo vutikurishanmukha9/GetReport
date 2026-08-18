@@ -3,7 +3,7 @@ import {
   CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight, 
   AlertTriangle, ArrowRight, BarChart3, PieChart, Activity, 
   FileSpreadsheet, TrendingUp, ChevronDown, ChevronUp, ShieldCheck, 
-  BookOpen, Table2, Grid, Brain, Sparkles
+  BookOpen, Table2, Grid, Brain
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ export const ReportGeneration = ({
   info,
   analysis,
   charts,
-  insights,
+  insights: _insights,
   onComplete,
   onReset
 }: ReportGenerationProps) => {
@@ -79,7 +79,7 @@ export const ReportGeneration = ({
   };
 
   // Use WebSocket Hook for Real-Time Updates
-  const { status: taskStatus, progress: taskProgress, message: taskMessage, isConnected } = useTaskStatus(taskId || undefined);
+  const { status: taskStatus, progress: taskProgress, message: taskMessage, isConnected: _isConnected } = useTaskStatus(taskId || undefined);
 
   useEffect(() => {
     let mounted = true;
@@ -95,6 +95,7 @@ export const ReportGeneration = ({
           await api.generatePersistentReport(taskId);
           // WebSocket hook (via taskId prop) automatically connects and updates state
         } catch (error) {
+          if (!mounted) return;
           console.error("Report generation trigger failed:", error);
           setStatus("Failed to start generation.");
           toast({ title: "Error", description: "Could not start report generation.", variant: "destructive" });
@@ -127,10 +128,13 @@ export const ReportGeneration = ({
               toast({ title: "Report Ready", description: "PDF downloaded successfully." });
             })
             .catch(e => {
+              if (!mounted) return;
               console.error("Download failed:", e);
               setStatus("Download failed.");
             })
-            .finally(() => setIsGenerating(false));
+            .finally(() => {
+              if (mounted) setIsGenerating(false);
+            });
         }
       } else if (taskStatus === 'FAILED') {
         setStatus("Report generation failed.");
@@ -140,7 +144,7 @@ export const ReportGeneration = ({
     }
 
     return () => { mounted = false; };
-  }, [step, taskId, taskStatus, taskProgress, taskMessage]);
+  }, [step, taskId, taskStatus, taskProgress, taskMessage, isGenerating, downloadUrl, onComplete, toast]);
 
   // Handle Manual Download
   /* Handle Manual Download */
@@ -185,7 +189,7 @@ export const ReportGeneration = ({
       dataset_confidence: 81.5,
       high_confidence_count: info.columns.length,
       low_confidence_count: 0,
-      critical_issues: [] as string[],
+      critical_issues: [],
       ml_readiness: undefined,
       columns: info.columns.map(col => {
         const missing = info.missing_values[col] || { count: 0, percentage: 0 };
@@ -539,22 +543,26 @@ export const ReportGeneration = ({
               {activeChartTab === "correlation" && charts.correlation_heatmap && (
                 <div className="space-y-6 animate-in fade-in duration-300">
                   <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                    <SafeChartImage 
-                      base64Src={
-                        typeof charts.correlation_heatmap === "object" 
-                          ? charts.correlation_heatmap.image 
-                          : charts.correlation_heatmap
-                      } 
-                      alt="Correlation Heatmap" 
-                      className="max-h-[380px] w-auto object-contain rounded-lg"
-                    />
+                    {(() => {
+                      // SAFETY: correlation_heatmap union type is safely narrowed to image property or raw string
+                      const imgSrc = (charts.correlation_heatmap as { image?: string })?.image ?? (charts.correlation_heatmap as string);
+                      return (
+                        <SafeChartImage 
+                          base64Src={imgSrc} 
+                          alt="Correlation Heatmap" 
+                          className="max-h-[380px] w-auto object-contain rounded-lg"
+                        />
+                      );
+                    })()}
                   </div>
                   <div className="bg-muted/20 border border-border/60 p-4 rounded-xl max-w-2xl mx-auto space-y-2">
                     <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-primary">Correlation Analysis Summary</div>
                     <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed font-sans italic">
-                      {typeof charts.correlation_heatmap === "object"
-                        ? charts.correlation_heatmap.narrative
-                        : "Pearson correlation coefficient matrix. Deep blue represents strong negative correlations, and orange indicates strong positive relationships."}
+                      {(() => {
+                        // SAFETY: correlation_heatmap union type is safely narrowed to narrative property or default string
+                        const narrativeText = (charts.correlation_heatmap as { narrative?: string })?.narrative ?? "Pearson correlation coefficient matrix. Deep blue represents strong negative correlations, and orange indicates strong positive relationships.";
+                        return narrativeText;
+                      })()}
                     </p>
                   </div>
                 </div>

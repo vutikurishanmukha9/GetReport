@@ -1,13 +1,18 @@
+import type { IssueLedgerData, ApiResponse, InspectionResult, CleaningRulesMap } from "@/types/api";
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const REQUEST_TIMEOUT_MS = 45_000;
 
 // ─── Response Types ─────────────────────────────────────────────────────────
+
+export type JobTaskResult = ApiResponse | InspectionResult | { message?: string; stage?: string };
 
 export interface StatusResponse {
     task_id: string;
     status: string;
     progress: number;
     message: string;
-    result?: Record<string, any> | null;
+    result?: JobTaskResult | null;
     error?: string | null;
     report_download_url?: string | null;
 }
@@ -21,15 +26,24 @@ export interface ReportStatusResponse {
 
 async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    const headers = {
-        "Content-Type": "application/json",
-        ...options.headers,
-    };
+    const headers = new Headers(options.headers);
+    if (!headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+    }
 
-    const response = await fetch(url, {
-        ...options,
-        headers,
-    });
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let response: Response;
+    try {
+        response = await fetch(url, { ...options, headers, signal: options.signal || controller.signal });
+    } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+            throw new Error("The request timed out. Please check the service and try again.");
+        }
+        throw new Error("Unable to reach the analysis service. Please check your connection and try again.");
+    } finally {
+        window.clearTimeout(timeout);
+    }
 
     if (!response.ok) {
         let errorMessage = `HTTP Error ${response.status}`;
@@ -38,7 +52,7 @@ async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Prom
             try {
                 const errorData = await response.json();
                 errorMessage = errorData.detail || errorData.message || errorMessage;
-            } catch (e) {
+            } catch {
                 errorMessage = response.statusText || errorMessage;
             }
         } else {
@@ -49,17 +63,11 @@ async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Prom
                 } else {
                     errorMessage = response.statusText || errorMessage;
                 }
-            } catch (e) {
+            } catch {
                 errorMessage = response.statusText || errorMessage;
             }
         }
         throw new Error(errorMessage);
-    }
-
-    // Handle Blob responses specially
-    if (options.headers && (options.headers as any)["Content-Type"] === undefined && endpoint.includes("/report") && options.method === "GET") {
-         // This is a bit hacky but covers the downloadReportBlob case where we shouldn't parse JSON
-         // Actually, let's handle it in the specific method
     }
 
     return response.json();
@@ -76,7 +84,6 @@ export const api = {
         const response = await fetch(`${API_BASE_URL}/upload`, {
             method: "POST",
             body: formData,
-            // Fetch automatically sets Content-Type for FormData, do NOT set it manually
         });
 
         if (!response.ok) {
@@ -86,14 +93,14 @@ export const api = {
                 try {
                     const data = await response.json();
                     errorMessage = data.detail || errorMessage;
-                } catch (e) {}
+                } catch {}
             } else {
                 try {
                     const text = await response.text();
                     if (text && text.length < 200) {
                         errorMessage = text;
                     }
-                } catch (e) {}
+                } catch {}
             }
             throw new Error(errorMessage);
         }
@@ -171,14 +178,14 @@ export const api = {
                             onError(new Error(parsed.error || "Streaming error"));
                             return;
                         }
-                    } catch (e) {
+                    } catch {
                         console.warn("Failed to parse chat stream chunk:", trimmed);
                     }
                 }
             }
             onDone();
         } catch (err) {
-            onError(err as Error);
+            onError(err instanceof Error ? err : new Error(String(err)));
         }
     },
 
@@ -226,7 +233,7 @@ export const api = {
             try {
                 const data = await response.json();
                 errorMessage = data.detail || errorMessage;
-            } catch (e) {}
+            } catch {}
             throw new Error(errorMessage);
         }
         return response.json();
@@ -244,7 +251,7 @@ export const api = {
     /**
      * Stage 2: Resume analysis with cleaning rules.
      */
-    startAnalysis: async (taskId: string, rules: Record<string, any>): Promise<{ message: string }> => {
+    startAnalysis: async (taskId: string, rules: CleaningRulesMap): Promise<{ message: string }> => {
         return fetchClient<{ message: string }>(`/jobs/${taskId}/analyze`, {
             method: "POST",
             body: JSON.stringify({ rules }),
@@ -254,15 +261,15 @@ export const api = {
     /**
      * Get issues ledger for a job.
      */
-    getIssues: async (taskId: string): Promise<any> => {
-        return fetchClient<any>(`/jobs/${taskId}/issues`);
+    getIssues: async (taskId: string): Promise<IssueLedgerData> => {
+        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues`);
     },
 
     /**
      * Approve a single issue.
      */
-    approveIssue: async (taskId: string, issueId: string): Promise<any> => {
-        return fetchClient<any>(`/jobs/${taskId}/issues/${issueId}/approve`, {
+    approveIssue: async (taskId: string, issueId: string): Promise<IssueLedgerData> => {
+        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/${issueId}/approve`, {
             method: "POST",
             body: JSON.stringify({}),
         });
@@ -271,8 +278,8 @@ export const api = {
     /**
      * Reject a single issue.
      */
-    rejectIssue: async (taskId: string, issueId: string): Promise<any> => {
-        return fetchClient<any>(`/jobs/${taskId}/issues/${issueId}/reject`, {
+    rejectIssue: async (taskId: string, issueId: string): Promise<IssueLedgerData> => {
+        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/${issueId}/reject`, {
             method: "POST",
             body: JSON.stringify({}),
         });
@@ -281,8 +288,8 @@ export const api = {
     /**
      * Approve all pending issues.
      */
-    approveAllIssues: async (taskId: string): Promise<any> => {
-        return fetchClient<any>(`/jobs/${taskId}/issues/approve-all`, {
+    approveAllIssues: async (taskId: string): Promise<IssueLedgerData> => {
+        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/approve-all`, {
             method: "POST",
         });
     },
@@ -290,8 +297,8 @@ export const api = {
     /**
      * Reject all pending issues.
      */
-    rejectAllIssues: async (taskId: string): Promise<any> => {
-        return fetchClient<any>(`/jobs/${taskId}/issues/reject-all`, {
+    rejectAllIssues: async (taskId: string): Promise<IssueLedgerData> => {
+        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/reject-all`, {
             method: "POST",
         });
     },
@@ -299,8 +306,8 @@ export const api = {
     /**
      * Lock the issue ledger.
      */
-    lockIssues: async (taskId: string): Promise<any> => {
-        return fetchClient<any>(`/jobs/${taskId}/issues/lock`, {
+    lockIssues: async (taskId: string): Promise<IssueLedgerData> => {
+        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/lock`, {
             method: "POST",
         });
     },

@@ -330,9 +330,9 @@ interface SourcesExpanderProps {
 }
 
 const SourcesExpander = ({ 
-  messageId, 
+  messageId: _messageId, 
   sources, 
-  activeSourceId, 
+  activeSourceId: _activeSourceId, 
   highlightedIdx, 
   onSelectSource 
 }: SourcesExpanderProps) => {

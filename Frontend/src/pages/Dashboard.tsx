@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FileSpreadsheet, Search, Download, ExternalLink, Calendar, CheckCircle2, AlertCircle } from "lucide-react";
+import { FileSpreadsheet, Search, Download, Calendar, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuditHistoryItem {
   task_id: string;
@@ -21,6 +22,7 @@ interface AuditHistoryItem {
 }
 
 export const Dashboard = () => {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [historyItems, setHistoryItems] = useState<AuditHistoryItem[]>([]);
 
@@ -162,8 +164,9 @@ export const Dashboard = () => {
                               a.href = url;
                               a.download = `${item.task_id}_${item.filename}.pdf`;
                               a.click();
-                            } catch (e) {
-                              alert("Report PDF not found for this task ID.");
+                              URL.revokeObjectURL(url);
+                            } catch {
+                              toast({ title: "PDF unavailable", description: "This report is no longer available. Try running a new audit.", variant: "destructive" });
                             }
                           }}
                         >

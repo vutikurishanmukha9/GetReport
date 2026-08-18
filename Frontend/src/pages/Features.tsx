@@ -1,4 +1,4 @@
-import { BarChart3, Brain, FileText, Layout, Wand2, ShieldCheck, ShieldAlert, Gauge, HelpCircle, Zap, Target, ArrowRight, Sparkles, Layers, Cpu, Database, CheckCircle2 } from "lucide-react";
+import { Brain, FileText, ShieldCheck, ShieldAlert, Gauge, Zap, ArrowRight, Layers, Cpu, Database, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -137,7 +137,7 @@ export const Features = () => {
                 <div className="space-y-2">
                   <h3 className="text-lg font-display font-bold text-foreground">Multi-Dataset Relational Joins</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    Merge up to 5 CSV/Excel datasets on key columns (`inner`, `left`, `right`, `outer`, `semi`, `anti`) with automatic column collision handling.
+                    Merge up to 5 CSV/Excel datasets on key columns with supported join strategies and automatic column collision handling.
                   </p>
                 </div>
               </div>

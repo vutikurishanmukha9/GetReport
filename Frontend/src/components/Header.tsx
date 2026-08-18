@@ -1,7 +1,7 @@
-import { FileSpreadsheet, RotateCcw, Menu, Sparkles } from "lucide-react";
+import { FileSpreadsheet, RotateCcw, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import {
   Sheet,
   SheetContent,
@@ -19,7 +19,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
 
   return (
     <header className="fixed top-4 left-0 right-0 z-50 w-full max-w-7xl mx-auto px-4 sm:px-6">
-      <div className="border border-border/80 bg-background/90 backdrop-blur-xl shadow-premium rounded-full px-4 sm:px-6 transition-all duration-200">
+      <div className="border border-border/80 bg-white/95 backdrop-blur-xl shadow-premium rounded-2xl px-4 sm:px-6 transition-all duration-200">
         <div className="flex h-14 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2">
@@ -35,36 +35,11 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            <Link 
-              to="/features" 
-              className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
-            >
-              Features
-            </Link>
-            <Link 
-              to="/how-it-works" 
-              className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
-            >
-              How It Works
-            </Link>
-            <Link 
-              to="/pricing" 
-              className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
-            >
-              Pricing
-            </Link>
-            <Link 
-              to="/documentation" 
-              className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
-            >
-              Docs
-            </Link>
-            <Link 
-              to="/examples" 
-              className="text-xs font-display font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-primary after:transition-all after:duration-200"
-            >
-              Examples
-            </Link>
+            {[['/features', 'Features'], ['/how-it-works', 'How it works'], ['/pricing', 'Pricing'], ['/documentation', 'Docs'], ['/examples', 'Examples']].map(([to, label]) => (
+              <NavLink key={to} to={to} className={({ isActive }) => `text-xs font-display font-semibold transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:bg-primary after:transition-all after:duration-200 ${isActive ? 'text-foreground after:w-full' : 'text-muted-foreground hover:text-foreground after:w-0 hover:after:w-full'}`}>
+                {label}
+              </NavLink>
+            ))}
 
             {showReset ? (
               <>
@@ -141,7 +116,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                     className="text-sm font-display font-semibold uppercase tracking-wider hover:text-primary transition-colors py-2 border-b border-border/60"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Pricing ($0 Free)
+                    Pricing
                   </Link>
                   <Link
                     to="/documentation"

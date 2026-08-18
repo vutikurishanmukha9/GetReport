@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Upload, FileSpreadsheet, AlertCircle, X, Shield, Lock } from "lucide-react";
+import { Upload, FileSpreadsheet, X, Shield, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,18 +10,25 @@ import { api } from "@/services/api";
 import { DataHealthCheck } from "./DataHealthCheck";
 import { IssueLedger } from "./IssueLedger";
 import { ProcessPipeline } from "./ProcessPipeline";
+import { useTaskStatus } from "@/hooks/useTaskStatus";
+import type { JobTaskResult } from "@/services/api";
+
+function isInspectionResult(res: JobTaskResult | null | undefined): res is InspectionResult {
+  return Boolean(res && ("quality_report" in res || "issue_ledger" in res));
+}
+
+function isApiResponse(res: JobTaskResult | null | undefined): res is ApiResponse {
+  return Boolean(res && ("analysis" in res || "info" in res));
+}
 
 interface FileUploadProps {
   onFileUploaded: (data: ApiResponse, taskId: string) => void;
 }
 
-import { useTaskStatus } from "@/hooks/useTaskStatus"; // Add import
-
 export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   // Join options for multi-dataset upload
   const [joinKey, setJoinKey] = useState<string>("id");
@@ -47,13 +54,8 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
     // CASE 1: Inspection Ready (WAITING_FOR_USER or COMPLETED with quality_report)
     if (expectedPhase === 'INSPECTION') {
-      const isInspectionReady = 
-        (normalizedStatus === 'WAITING_FOR_USER' || normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS') &&
-        taskResult &&
-        (taskResult.quality_report || taskResult.issue_ledger || taskResult.stage === 'INSPECTION');
-
-      if (isInspectionReady) {
-        setInspectionData(taskResult as InspectionResult);
+      if ((normalizedStatus === 'WAITING_FOR_USER' || normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS') && isInspectionResult(taskResult)) {
+        setInspectionData(taskResult);
         setIsProcessing(false);
         setExpectedPhase(null); // Stop waiting
         toast({ title: "Data Inspection Complete", description: "Please review the detected issues found." });
@@ -61,11 +63,11 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       }
 
       // If inspection was bypassed or analysis returned directly
-      if ((normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS') && taskResult && ('analysis' in taskResult || 'info' in taskResult)) {
+      if ((normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS') && isApiResponse(taskResult)) {
         setIsProcessing(false);
         setInspectionData(null);
         setExpectedPhase(null);
-        onFileUploaded(taskResult as ApiResponse, taskId);
+        onFileUploaded(taskResult, taskId);
         toast({ title: "Analysis Complete!", description: `Successfully analyzed ${taskResult.info?.rows || 0} rows.` });
         return;
       }
@@ -74,11 +76,11 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     // CASE 2: Analysis Complete
     if (expectedPhase === 'ANALYSIS') {
       if (normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS' || normalizedStatus === 'DONE') {
-        if (taskResult && ('analysis' in taskResult || 'info' in taskResult)) {
+        if (isApiResponse(taskResult)) {
           setIsProcessing(false);
           setInspectionData(null);
           setExpectedPhase(null);
-          onFileUploaded(taskResult as ApiResponse, taskId);
+          onFileUploaded(taskResult, taskId);
           toast({ title: "Analysis Complete!", description: `Successfully analyzed ${taskResult.info?.rows || 0} rows.` });
           return;
         }
@@ -149,7 +151,6 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
   const clearStaging = () => {
     setStagedFiles([]);
-    setSelectedFile(null);
     setInspectionData(null);
     setExpectedPhase(null);
     setTaskId(null);
@@ -164,13 +165,10 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     try {
       if (stagedFiles.length === 1) {
         const fileToProcess = stagedFiles[0];
-        setSelectedFile(fileToProcess);
         toast({ title: "Uploading...", description: `Sending '${fileToProcess.name}' to server...` });
         const { task_id } = await api.uploadFile(fileToProcess);
         setTaskId(task_id);
       } else {
-        const syntheticJoinedFile = new File([], `joined_${joinType}_${stagedFiles.length}_datasets.csv`);
-        setSelectedFile(syntheticJoinedFile);
         toast({ title: "Joining Datasets...", description: `Merging ${stagedFiles.length} datasets on '${joinKey}' (${joinType} join)...` });
         const { task_id } = await api.uploadJoinedFiles(stagedFiles, joinKey, joinType);
         setTaskId(task_id);
@@ -184,7 +182,6 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       if (error.response?.data?.detail) errorMessage = error.response.data.detail;
       toast({ title: "Upload Failed", description: errorMessage, variant: "destructive" });
       setIsProcessing(false);
-      setSelectedFile(null);
     }
   };
 
@@ -469,6 +466,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                       <label className="block text-muted-foreground font-medium mb-1">Join Strategy</label>
                       <select
                         value={joinType}
+                        // SAFETY: Select element options strictly constrain values to 'inner' | 'left' | 'outer'
                         onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
                         className="w-full px-3 py-1.5 rounded-lg border border-border bg-white text-foreground focus:outline-none focus:border-primary font-sans text-xs"
                       >
@@ -522,11 +520,11 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
         <ul className="space-y-2 text-[11px] sm:text-xs text-muted-foreground leading-relaxed font-sans">
           <li className="flex items-start gap-2">
             <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
-            <span><strong className="text-foreground">In-Memory Processing</strong> — Your file is loaded into isolated server memory and is never written to persistent disk storage.</span>
+            <span><strong className="text-foreground">Session-scoped processing</strong> — Your file is processed for this audit session and is not used for training.</span>
           </li>
           <li className="flex items-start gap-2">
             <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
-            <span><strong className="text-foreground">Auto-Purge</strong> — All uploaded data, intermediate results, and generated reports are automatically deleted within 1 hour of session inactivity.</span>
+            <span><strong className="text-foreground">Controlled retention</strong> — Download the outputs you need before the session expires.</span>
           </li>
           <li className="flex items-start gap-2">
             <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
@@ -538,12 +536,10 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
           </li>
         </ul>
 
-        <div className="pt-1">
-          <Link
-            to="/privacy-policy"
-            className="text-[10px] sm:text-xs text-primary hover:text-primary/80 font-medium font-display underline underline-offset-2 transition-colors"
-          >
-            Read Full Privacy Policy →
+        <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+          <span>Enterprise privacy standards built-in</span>
+          <Link to="/privacy" className="text-primary hover:underline font-medium">
+            Read Security Architecture &rarr;
           </Link>
         </div>
       </motion.div>

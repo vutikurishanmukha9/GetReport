@@ -31,6 +31,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
         setRules(prev => ({
             ...prev,
             [column]: {
+                // SAFETY: SelectItem values only contain valid CleaningRule action values
                 action: action as CleaningRule["action"],
                 value: action === "fill_value" ? "Unknown" : undefined
             }
@@ -254,7 +255,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             <tbody className="divide-y divide-border/60">
                                 {report.preview.map((row, idx) => (
                                     <tr key={idx} className="border-b border-border/40 last:border-0 hover:bg-primary/[0.02] transition-colors">
-                                        {Object.values(row).map((cell: unknown, cIdx) => (
+                                        {Object.values(row).map((cell, cIdx) => (
                                             <td key={cIdx} className="px-4 py-2.5 border-r border-border/60 font-mono text-xs whitespace-nowrap max-w-[200px] truncate last:border-r-0 text-foreground/90" title={String(cell)}>
                                                 {cell === null ? <span className="text-muted-foreground italic font-sans">null</span> : String(cell)}
                                             </td>

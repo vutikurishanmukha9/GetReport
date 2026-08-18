@@ -1,8 +1,8 @@
-import { Mail, MessageSquare, Github, Linkedin, Send, ShieldCheck, Clock, CheckCircle2, ArrowRight } from "lucide-react";
+import { Mail, Github, Linkedin, Send, ShieldCheck, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";

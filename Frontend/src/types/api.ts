@@ -1,9 +1,12 @@
+export type PrimitiveValue = string | number | boolean | null;
+export type DataRow = Record<string, PrimitiveValue>;
+
 export interface DatasetInfo {
   rows: number;
   columns: string[];
   dtypes: Record<string, string>;
-  summary: Record<string, unknown>;
-  preview: Record<string, unknown>[];
+  summary: Record<string, Record<string, PrimitiveValue>>;
+  preview: DataRow[];
   missing_values: Record<string, { count: number; percentage: number }>;
   duplicate_rows: number;
   numeric_columns: string[];
@@ -28,7 +31,7 @@ export interface AnalysisSummary {
     std?: number;
     min?: number;
     max?: number;
-    [key: string]: unknown;
+    [statKey: string]: number | string | undefined;
   };
 }
 
@@ -88,7 +91,7 @@ export interface ConfidenceScores {
 }
 
 export interface AnalysisResult {
-  metadata: Record<string, unknown>;
+  metadata: Record<string, PrimitiveValue>;
   summary: AnalysisSummary;
   correlation: Record<string, Record<string, number>>;
   strong_correlations: StrongCorrelation[];
@@ -103,7 +106,7 @@ export interface AnalysisResult {
     drift_detected?: Array<{ column: string; shift_pct: number; mean_p1: number; mean_p2: number }>;
     has_time_series?: boolean;
     time_column?: string;
-    analyses?: Record<string, unknown>;
+    analyses?: Record<string, PrimitiveValue>;
   };
   confidence_scores?: ConfidenceScores;
   ml_readiness?: MLReadiness;
@@ -134,7 +137,6 @@ export interface Charts {
   boxplots?: ChartItem[];
   scatter_plot?: { columns: string; image: string; narrative: string };
   donut_chart?: { column: string; image: string; narrative: string };
-  [key: string]: unknown;
 }
 
 export interface InsightResult {
@@ -171,7 +173,7 @@ export interface QualityIssue {
   column: string;
   count: number;
   severity: "low" | "medium" | "high" | "none";
-  suggestion: string; // Simplification since suggestions are growing
+  suggestion: string;
 }
 
 export interface ColumnProfile {
@@ -187,7 +189,7 @@ export interface InspectionReport {
   total_rows: number;
   columns: ColumnProfile[];
   issues: QualityIssue[];
-  preview: Record<string, unknown>[];
+  preview: DataRow[];
 }
 
 export interface CleaningRule {
@@ -231,8 +233,8 @@ export interface IssueLedgerData {
 export interface InspectionResult {
   filename: string;
   quality_report: InspectionReport;
-  issue_ledger?: IssueLedgerData;  // NEW: Issue Ledger
-  preview: Record<string, unknown>[];
+  issue_ledger?: IssueLedgerData;
+  preview: DataRow[];
   raw_file_path: string;
   stage: "INSPECTION";
 }

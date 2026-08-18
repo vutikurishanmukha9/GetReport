@@ -1,4 +1,4 @@
-import { FileText, Shield, Scale, AlertCircle, CheckCircle2 } from "lucide-react";
+import { FileText, Shield, Scale, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Header } from "@/components/Header";

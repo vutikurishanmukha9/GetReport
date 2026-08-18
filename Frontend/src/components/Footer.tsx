@@ -1,6 +1,5 @@
-import { FileSpreadsheet, ArrowUpRight, ShieldCheck, CheckCircle2, ArrowUp } from "lucide-react";
+import { FileSpreadsheet, ArrowUpRight, ShieldCheck, ArrowUp } from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 
 export const Footer = () => {
   const scrollToTop = () => {
@@ -129,7 +128,7 @@ export const Footer = () => {
         <div className="pt-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono text-[11px] text-muted-foreground">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
-            <span>© {new Date().getFullYear()} GetReport Inc. Zero permanent disk storage — all calculations run in ephemeral memory.</span>
+            <span>© {new Date().getFullYear()} GetReport. Session-scoped processing for every audit.</span>
           </div>
 
           <div className="flex items-center gap-4">
