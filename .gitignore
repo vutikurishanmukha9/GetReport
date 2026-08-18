@@ -85,3 +85,9 @@ stats.json
 test_data.csv
 vector_stores/
 chroma_db/
+
+# ─── AI Agents & Local Customizations ─────────────────────
+.agents/
+.claude/
+.gemini/
+
