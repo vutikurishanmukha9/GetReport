@@ -58,10 +58,10 @@ const examples = [
   },
 ];
 
+const DOMAINS = ["All", "Sales & E-Commerce", "Education", "SaaS & Retention", "Finance & Banking", "Healthcare", "HR & People Analytics"] as const;
+
 export const Examples = () => {
   const [selectedDomain, setSelectedDomain] = useState<string>("All");
-
-  const domains = ["All", "Sales & E-Commerce", "Education", "SaaS & Retention", "Finance & Banking", "Healthcare", "HR & People Analytics"];
 
   const filteredExamples = selectedDomain === "All"
     ? examples
@@ -92,7 +92,7 @@ export const Examples = () => {
           
           {/* Domain Filter Pills */}
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {domains.map((domain) => (
+            {DOMAINS.map((domain) => (
               <button
                 key={domain}
                 onClick={() => setSelectedDomain(domain)}
@@ -109,10 +109,10 @@ export const Examples = () => {
 
           {/* Examples Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredExamples.map((example, index) => {
+            {filteredExamples.map((example) => {
               const Icon = example.icon;
               return (
-                <Card key={index} className="hover:shadow-xl transition-all duration-300 group rounded-2xl border border-border/80 bg-card p-6 flex flex-col justify-between hover:border-primary/30">
+                <Card key={example.title} className="hover:shadow-xl transition-all duration-300 group rounded-2xl border border-border/80 bg-card p-6 flex flex-col justify-between hover:border-primary/30">
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-105 transition-transform">

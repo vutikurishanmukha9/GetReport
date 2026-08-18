@@ -1,0 +1,24 @@
+{
+  "ignore": {
+    "tags": ["design"]
+  },
+  "rules": {
+    "react-doctor/no-transition-all": "off",
+    "deslop/unused-file": "off",
+    "deslop/unused-dependency": "off",
+    "react-doctor/only-export-components": "off",
+    "react-doctor/no-giant-component": "off",
+    "react-doctor/prefer-tag-over-role": "off",
+    "react-doctor/no-redundant-roles": "off",
+    "react-doctor/use-lazy-motion": "off",
+    "react-doctor/jsx-no-constructed-context-values": "off",
+    "react-doctor/prefer-dynamic-import": "off",
+    "react-doctor/no-adjust-state-on-prop-change": "off",
+    "react-doctor/no-pass-data-to-parent": "off",
+    "react-doctor/no-pass-live-state-to-parent": "off",
+    "react-doctor/no-prop-callback-in-effect": "off",
+    "react-doctor/no-event-handler": "off",
+    "react-doctor/rerender-state-only-in-handlers": "off",
+    "react-doctor/no-loading-flag-reset-outside-finally": "off"
+  }
+}

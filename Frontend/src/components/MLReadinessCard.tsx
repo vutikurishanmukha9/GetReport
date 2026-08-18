@@ -70,8 +70,8 @@ export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness })
           <div className="pt-6">
             <h4 className="text-sm font-display font-bold text-foreground mb-3">Detected Issues & Constraints</h4>
             <ul className="space-y-2.5">
-              {reasons.map((reason, idx) => (
-                <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-muted-foreground font-sans">
+              {reasons.map((reason) => (
+                <li key={reason} className="flex items-start gap-2.5 text-xs sm:text-sm text-muted-foreground font-sans">
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-2 shrink-0" />
                   <span className="leading-relaxed">{reason}</span>
                 </li>

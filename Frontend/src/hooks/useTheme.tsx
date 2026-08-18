@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 
 type Theme = "light";
 
+const noop = () => {};
+
 export const useTheme = () => {
   const [theme] = useState<Theme>("light");
 
@@ -12,9 +14,5 @@ export const useTheme = () => {
     localStorage.setItem("theme", "light");
   }, []);
 
-  const toggleTheme = () => {
-    // No-op
-  };
-
-  return { theme, setTheme: () => {}, toggleTheme };
+  return { theme, setTheme: noop, toggleTheme: noop };
 };

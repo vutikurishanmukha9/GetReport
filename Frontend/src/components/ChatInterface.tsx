@@ -138,7 +138,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
     if (!sources || sources.length === 0) return <span>{content}</span>;
 
     const parts = content.split(/(\[\d+\])/g);
-    return parts.map((part, index) => {
+    return parts.map((part, partOffset) => {
       const match = part.match(/^\[(\d+)\]$/);
       if (match) {
         const num = parseInt(match[1], 10);
@@ -146,7 +146,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
         const hasSource = sourceIdx >= 0 && sourceIdx < sources.length;
         
         return (
-          <sup key={index} className="mx-0.5 select-none align-baseline">
+          <sup key={`fn_${msgId}_${num}_${partOffset}`} className="mx-0.5 select-none align-baseline">
             <button
               onClick={() => {
                 if (hasSource) {
@@ -166,7 +166,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
           </sup>
         );
       }
-      return <span key={index}>{part}</span>;
+      return <span key={`part_${msgId}_${part.slice(0, 10)}_${partOffset}`}>{part}</span>;
     });
   };
 
@@ -353,14 +353,15 @@ const SourcesExpander = ({
 
       {expanded && (
         <div className="mt-2 space-y-2 pl-3 border-l border-border animate-in slide-in-from-top-1 duration-200">
-          {sources.map((src, i) => {
-            const isHighlighted = highlightedIdx === i;
+          {sources.map((src, pos) => {
+            const isHighlighted = highlightedIdx === pos;
             return (
-              <div 
-                key={i} 
-                onClick={() => onSelectSource(i)}
+              <button 
+                type="button"
+                key={`citation_${src.slice(0, 30)}`} 
+                onClick={() => onSelectSource(pos)}
                 className={cn(
-                  "p-2.5 rounded-lg border text-[11px] font-mono leading-relaxed transition-all duration-200 cursor-pointer select-none",
+                  "w-full text-left p-2.5 rounded-lg border text-[11px] font-mono leading-relaxed transition-all duration-200 cursor-pointer select-none",
                   isHighlighted 
                     ? "bg-primary/5 border-primary text-foreground ring-1 ring-primary/20 scale-[1.01]" 
                     : "bg-muted/30 border-border text-muted-foreground hover:text-foreground hover:border-border"
@@ -368,12 +369,12 @@ const SourcesExpander = ({
               >
                 <div className="flex items-center gap-1.5 font-bold text-[9px] uppercase tracking-wider text-primary mb-1">
                   <Quote className="h-2.5 w-2.5" />
-                  <span>Citation Reference [{i + 1}]</span>
+                  <span>Citation Reference [{pos + 1}]</span>
                 </div>
                 <div className="line-clamp-3 hover:line-clamp-none transition-all duration-300">
                   {src}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

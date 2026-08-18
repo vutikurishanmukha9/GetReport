@@ -49,21 +49,25 @@ export const FeaturesSection = () => {
                 <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 flex flex-col items-center justify-center transition-all hover:shadow-sm">
                   <div className="relative flex items-center justify-center w-16 h-16 mb-2">
                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                      <path
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.9"
                         className="text-emerald-200"
                         strokeWidth="3"
                         stroke="currentColor"
                         fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       />
-                      <path
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.9"
                         className="text-emerald-500"
                         strokeDasharray="92, 100"
                         strokeWidth="3"
                         strokeLinecap="round"
                         stroke="currentColor"
                         fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center flex-col">

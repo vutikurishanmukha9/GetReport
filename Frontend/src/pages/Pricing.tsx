@@ -94,8 +94,8 @@ export const Pricing = () => {
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm text-foreground font-sans">
-                {currentOfferingFeatures.map((feature, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-muted/40 border border-border/40">
+                {currentOfferingFeatures.map((feature) => (
+                  <div key={feature} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-muted/40 border border-border/40">
                     <Check className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span className="leading-snug">{feature}</span>
                   </div>
@@ -130,8 +130,8 @@ export const Pricing = () => {
             </div>
 
             <Accordion type="single" collapsible className="space-y-4">
-              {faqs.map((faq, idx) => (
-                <AccordionItem key={idx} value={`item-${idx}`} className="border border-border/80 bg-card rounded-2xl px-6 shadow-xs">
+              {faqs.map((faq) => (
+                <AccordionItem key={faq.question} value={faq.question} className="border border-border/80 bg-card rounded-2xl px-6 shadow-xs">
                   <AccordionTrigger className="text-sm font-display font-bold text-foreground py-4 hover:no-underline hover:text-primary">
                     {faq.question}
                   </AccordionTrigger>

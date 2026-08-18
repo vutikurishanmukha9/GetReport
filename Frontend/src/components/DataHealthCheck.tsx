@@ -61,28 +61,32 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             </div>
 
             {/* ─── Global Warnings ─── */}
-            {(report?.issues || []).filter(i => i.column === "Multiple").map((issue, idx) => (
-                <div key={idx} className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 p-5 rounded-2xl flex items-start gap-4 shadow-sm animate-in fade-in duration-300">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-700 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-2xs">
-                        <AlertTriangle className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-display font-bold text-amber-900 uppercase tracking-wide">
-                                {issue.type === 'partial_duplicates' ? "Ambiguous Data Detected" : "Quality Warning"}
-                            </h4>
-                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 border border-amber-500/30">
-                                {issue.count} rows
-                            </span>
+            {(report?.issues || []).flatMap((issue) => {
+                if (issue.column !== "Multiple") return [];
+                return [
+                    <div key={`global-warning-${issue.type}-${issue.count}`} className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 p-5 rounded-2xl flex items-start gap-4 shadow-sm animate-in fade-in duration-300">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-700 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-2xs">
+                            <AlertTriangle className="h-5 w-5" />
                         </div>
-                        <p className="text-xs text-amber-800/90 mt-1 font-sans leading-relaxed">
-                            {issue.type === 'partial_duplicates'
-                                ? `Found ${issue.count} rows that look identical but have different IDs (Partial Duplicates). Review rules below.`
-                                : issue.suggestion}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                                <h4 className="text-sm font-display font-bold text-amber-900 uppercase tracking-wide">
+                                    {issue.type === 'partial_duplicates' ? "Ambiguous Data Detected" : "Quality Warning"}
+                                </h4>
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 border border-amber-500/30">
+                                    {issue.count} rows
+                                </span>
+                            </div>
+                            <p className="text-xs text-amber-800/90 mt-1 font-sans leading-relaxed">
+                                {issue.type === 'partial_duplicates'
+                                    ? `Found ${issue.count} rows that look identical but have different IDs (Partial Duplicates). Review rules below.`
+                                    : `System detected ${issue.count} potential quality conflicts across multiple attributes.`
+                                }
+                            </p>
+                        </div>
                     </div>
-                </div>
-            ))}
+                ];
+            })}
 
             {/* Column Health Grid */}
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -253,10 +257,10 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/60">
-                                {report.preview.map((row, idx) => (
-                                    <tr key={idx} className="border-b border-border/40 last:border-0 hover:bg-primary/[0.02] transition-colors">
-                                        {Object.values(row).map((cell, cIdx) => (
-                                            <td key={cIdx} className="px-4 py-2.5 border-r border-border/60 font-mono text-xs whitespace-nowrap max-w-[200px] truncate last:border-r-0 text-foreground/90" title={String(cell)}>
+                                {report.preview.map((row, rowPos) => (
+                                    <tr key={`row_pos_${rowPos}`} className="border-b border-border/40 last:border-0 hover:bg-primary/[0.02] transition-colors">
+                                        {Object.entries(row).map(([header, cell]) => (
+                                            <td key={`cell_${header}_${rowPos}`} className="px-4 py-2.5 border-r border-border/60 font-mono text-xs whitespace-nowrap max-w-[200px] truncate last:border-r-0 text-foreground/90" title={String(cell)}>
                                                 {cell === null ? <span className="text-muted-foreground italic font-sans">null</span> : String(cell)}
                                             </td>
                                         ))}
@@ -305,8 +309,8 @@ const SparklineHistogram = ({ data }: { data: { count: number; label: string }[]
                 <span className="text-[10px] font-mono">{data.length} bins</span>
             </div>
             <div className="flex items-end h-14 gap-[3px] w-full bg-muted/20 p-2 rounded-xl border border-border/50">
-                {data.map((d, i) => (
-                    <TooltipProvider key={i}>
+                {data.map((d) => (
+                    <TooltipProvider key={`hist_bin_${d.label}`}>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div

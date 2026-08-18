@@ -1,11 +1,11 @@
 import { FileSpreadsheet, ArrowUpRight, ShieldCheck, ArrowUp } from "lucide-react";
 import { Link } from "react-router-dom";
 
-export const Footer = () => {
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
 
+export const Footer = () => {
   return (
     <footer className="border-t border-border bg-card/80 backdrop-blur-md pt-16 pb-12 mt-auto text-foreground">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">

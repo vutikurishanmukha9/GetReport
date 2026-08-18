@@ -138,8 +138,9 @@ export const Contact = () => {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-foreground">First Name</label>
+                      <label htmlFor="contact-first-name" className="text-xs font-medium text-foreground">First Name</label>
                       <Input
+                        id="contact-first-name"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         placeholder="Jane"
@@ -147,8 +148,9 @@ export const Contact = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-foreground">Last Name</label>
+                      <label htmlFor="contact-last-name" className="text-xs font-medium text-foreground">Last Name</label>
                       <Input
+                        id="contact-last-name"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Doe"
@@ -158,8 +160,9 @@ export const Contact = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Email Address *</label>
+                    <label htmlFor="contact-email" className="text-xs font-medium text-foreground">Email Address *</label>
                     <Input
+                      id="contact-email"
                       required
                       type="email"
                       value={email}
@@ -170,8 +173,9 @@ export const Contact = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Subject</label>
+                    <label htmlFor="contact-subject" className="text-xs font-medium text-foreground">Subject</label>
                     <Input
+                      id="contact-subject"
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
                       placeholder="Enterprise Plan / Multi-Dataset Support"
@@ -180,8 +184,9 @@ export const Contact = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Message *</label>
+                    <label htmlFor="contact-message" className="text-xs font-medium text-foreground">Message *</label>
                     <Textarea
+                      id="contact-message"
                       required
                       rows={5}
                       value={message}

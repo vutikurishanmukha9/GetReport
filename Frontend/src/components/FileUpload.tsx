@@ -21,6 +21,17 @@ function isApiResponse(res: JobTaskResult | null | undefined): res is ApiRespons
   return Boolean(res && ("analysis" in res || "info" in res));
 }
 
+const VALID_EXTENSIONS = [
+  ".csv", ".xlsx", ".xls", ".parquet", ".json", 
+  ".jsonl", ".ndjson", ".tsv", ".feather", ".arrow", ".gz"
+] as const;
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 interface FileUploadProps {
   onFileUploaded: (data: ApiResponse, taskId: string) => void;
 }
@@ -96,13 +107,8 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
   }, [taskId, expectedPhase, taskStatus, taskResult, taskError, onFileUploaded, toast]);
 
-  const validateFile = (file: File): boolean => {
-    const validExtensions = [
-      ".csv", ".xlsx", ".xls", ".parquet", ".json", 
-      ".jsonl", ".ndjson", ".tsv", ".feather", ".arrow", ".gz"
-    ];
-
-    const hasValidExtension = validExtensions.some(ext =>
+  const validateFile = useCallback((file: File): boolean => {
+    const hasValidExtension = VALID_EXTENSIONS.some(ext =>
       file.name.toLowerCase().endsWith(ext)
     );
 
@@ -124,9 +130,9 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       return false;
     }
     return true;
-  };
+  }, [toast]);
 
-  const addFilesToStaging = (files: File[]) => {
+  const addFilesToStaging = useCallback((files: File[]) => {
     const valid = files.filter(validateFile);
     if (valid.length === 0) return;
 
@@ -143,7 +149,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       title: "File Staged",
       description: `${valid.length} file(s) added to staging. Click 'Start Analysis' when ready!`,
     });
-  };
+  }, [validateFile, toast]);
 
   const removeFileFromStaging = (index: number) => {
     setStagedFiles(prev => prev.filter((_, i) => i !== index));
@@ -161,6 +167,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
     setIsProcessing(true);
     setInspectionData(null);
+    let success = false;
 
     try {
       if (stagedFiles.length === 1) {
@@ -175,28 +182,38 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       }
       
       setExpectedPhase('INSPECTION');
+      success = true;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error initiating upload:", error);
-      let errorMessage = error.message || "Could not start upload.";
-      if (error.response?.data?.detail) errorMessage = error.response.data.detail;
+      let errorMessage = "Could not start upload.";
+      if (error instanceof Error) errorMessage = error.message;
       toast({ title: "Upload Failed", description: errorMessage, variant: "destructive" });
-      setIsProcessing(false);
+    } finally {
+      if (!success) {
+        setIsProcessing(false);
+      }
     }
   };
 
   const handleCleaningRules = async (rules: CleaningRulesMap) => {
     if (!taskId) return;
     setIsProcessing(true);
+    let success = false;
 
     try {
       await api.startAnalysis(taskId, rules);
       setExpectedPhase('ANALYSIS'); // Start waiting for analysis
-    } catch (error: any) {
+      success = true;
+    } catch (error: unknown) {
       console.error("Failed to start analysis:", error);
-      const errorMsg = error.response?.data?.message || "Failed to apply rules.";
+      let errorMsg = "Failed to apply rules.";
+      if (error instanceof Error) errorMsg = error.message;
       toast({ title: "Error", description: errorMsg, variant: "destructive" });
-      setIsProcessing(false);
+    } finally {
+      if (!success) {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -208,7 +225,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     if (droppedFiles.length > 0) {
       addFilesToStaging(droppedFiles);
     }
-  }, []);
+  }, [addFilesToStaging]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files ? Array.from(e.target.files) : [];
@@ -216,12 +233,6 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       addFilesToStaging(selected);
     }
     e.target.value = ""; // Reset input
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   // ─── RENDER: HEALTH CHECK + ISSUE LEDGER UI ─────────────────────────────────
@@ -403,7 +414,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   const ext = extIndex !== -1 ? file.name.slice(extIndex).toLowerCase() : "";
                   return (
                     <motion.div
-                      key={`${file.name}-${idx}`}
+                      key={`${file.name}-${file.size}-${file.lastModified}`}
                       className="flex items-center justify-between p-3 rounded-xl bg-white border border-border/80 shadow-2xs hover:border-primary/30 transition-all"
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -453,8 +464,9 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
-                      <label className="block text-muted-foreground font-medium mb-1">Primary Join Key Column</label>
+                      <label htmlFor="primary-join-key" className="block text-muted-foreground font-medium mb-1">Primary Join Key Column</label>
                       <input
+                        id="primary-join-key"
                         type="text"
                         value={joinKey}
                         onChange={(e) => setJoinKey(e.target.value)}
@@ -463,8 +475,10 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                       />
                     </div>
                     <div>
-                      <label className="block text-muted-foreground font-medium mb-1">Join Strategy</label>
+                      <label htmlFor="join-strategy-select" className="block text-muted-foreground font-medium mb-1">Join Strategy</label>
                       <select
+                        id="join-strategy-select"
+                        aria-label="Join Strategy"
                         value={joinType}
                         // SAFETY: Select element options strictly constrain values to 'inner' | 'left' | 'outer'
                         onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}

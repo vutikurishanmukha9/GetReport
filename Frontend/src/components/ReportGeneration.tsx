@@ -49,6 +49,17 @@ interface ReportGenerationProps {
   onReset: () => void;
 }
 
+const getGradeColorClass = (g: string) => {
+  switch (g.toUpperCase()) {
+    case 'A': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'B': return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'C': return 'bg-amber-50 text-amber-700 border-amber-200';
+    case 'D': return 'bg-orange-50 text-orange-700 border-orange-200';
+    case 'F': return 'bg-red-50 text-red-750 border-red-200';
+    default: return 'bg-muted text-muted-foreground border-border';
+  }
+};
+
 export const ReportGeneration = ({
   step,
   taskId,
@@ -215,17 +226,6 @@ export const ReportGeneration = ({
     const confidence = analysis.confidence_scores || fallbackConfidenceScores;
     const datasetGrade = confidence.dataset_grade || "B";
     const datasetConfidence = confidence.dataset_confidence || 80;
-
-    const getGradeColorClass = (g: string) => {
-      switch (g.toUpperCase()) {
-        case 'A': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-        case 'B': return 'bg-blue-50 text-blue-700 border-blue-200';
-        case 'C': return 'bg-amber-50 text-amber-700 border-amber-200';
-        case 'D': return 'bg-orange-50 text-orange-700 border-orange-200';
-        case 'F': return 'bg-red-50 text-red-750 border-red-200';
-        default: return 'bg-muted text-muted-foreground border-border';
-      }
-    };
 
     // Build lists for visual insights tabs
     const chartTabsList = [];
@@ -405,9 +405,10 @@ export const ReportGeneration = ({
                       className={`border rounded-xl transition-all duration-200 ${isExpanded ? 'border-primary bg-primary/5' : 'border-border bg-white hover:bg-muted/10'}`}
                     >
                       {/* Column Summary Line */}
-                      <div 
+                      <button 
+                        type="button"
                         onClick={() => toggleColumnExpand(c.column)}
-                        className="flex items-center justify-between p-3 cursor-pointer select-none gap-2"
+                        className="w-full flex items-center justify-between p-3 cursor-pointer select-none gap-2 text-left bg-transparent border-0"
                       >
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                           <Badge className={`h-6 w-6 rounded-md flex items-center justify-center p-0 font-bold shrink-0 ${getGradeColorClass(c.grade)}`}>
@@ -433,7 +434,7 @@ export const ReportGeneration = ({
                             <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                           )}
                         </div>
-                      </div>
+                      </button>
 
                       {/* Column Expandable Metrics Drawer */}
                       {isExpanded && (
@@ -465,8 +466,8 @@ export const ReportGeneration = ({
                                 <span>Quality Flags:</span>
                               </div>
                               <ul className="list-disc pl-3.5 space-y-0.5 font-sans">
-                                {c.issues.map((issueStr, index) => (
-                                  <li key={index}>{issueStr}</li>
+                                {c.issues.map((issueStr) => (
+                                  <li key={`col-issue-${c.column}-${issueStr}`}>{issueStr}</li>
                                 ))}
                               </ul>
                             </div>
@@ -486,8 +487,8 @@ export const ReportGeneration = ({
                 <div className="space-y-1 font-mono text-[10px] text-red-750">
                   <span className="font-bold uppercase tracking-wider block">CRITICAL DATA CHECKS INCOMPLETE</span>
                   <ul className="list-disc pl-3.5 space-y-0.5 font-sans">
-                    {confidence.critical_issues.map((ci: string, idx: number) => (
-                      <li key={idx}>{ci}</li>
+                    {confidence.critical_issues.map((ci: string) => (
+                      <li key={`critical-issue-${ci}`}>{ci}</li>
                     ))}
                   </ul>
                 </div>
@@ -575,7 +576,7 @@ export const ReportGeneration = ({
                   <div className="flex overflow-x-auto gap-1 justify-start sm:justify-center py-1 scrollbar-none snap-x whitespace-nowrap">
                     {charts.distributions.map((item, idx) => (
                       <button
-                        key={idx}
+                        key={`dist-tab-${item.column}`}
                         onClick={() => setActiveDistIndex(idx)}
                         className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
                           activeDistIndex === idx
@@ -615,7 +616,7 @@ export const ReportGeneration = ({
                     <div className="flex overflow-x-auto gap-1 justify-start sm:justify-center py-1 scrollbar-none snap-x whitespace-nowrap">
                       {charts.bar_charts.map((item, idx) => (
                         <button
-                          key={idx}
+                          key={`bar-tab-${item.column}`}
                           onClick={() => setActiveBarIndex(idx)}
                           className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
                             activeBarIndex === idx
@@ -686,7 +687,7 @@ export const ReportGeneration = ({
                   <div className="flex overflow-x-auto gap-1 justify-start sm:justify-center py-1 scrollbar-none snap-x whitespace-nowrap">
                     {charts.boxplots && charts.boxplots.map((item, idx) => (
                       <button
-                        key={idx}
+                        key={`box-tab-${item.column}`}
                         onClick={() => setActiveBoxIndex(idx)}
                         className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
                           activeBoxIndex === idx
@@ -806,8 +807,8 @@ export const ReportGeneration = ({
                 </CardHeader>
                 <CardContent className="space-y-2 max-h-[300px] overflow-y-auto text-sm pt-4">
                   {analysis.multicollinearity.length > 0 ? (
-                    analysis.multicollinearity.map((item, i) => (
-                      <div key={i} className="flex flex-col py-2.5 border-b border-border last:border-0">
+                    analysis.multicollinearity.map((item) => (
+                      <div key={`mc-${item.features.join('-')}`} className="flex flex-col py-2.5 border-b border-border last:border-0">
                         <div className="flex justify-between font-mono text-xs text-foreground font-semibold">
                           <span className="truncate max-w-[120px]">{item.features[0]}</span>
                           <ArrowRight className="h-3.5 w-3.5 text-muted-foreground mx-2 self-center shrink-0" />
@@ -908,8 +909,8 @@ export const ReportGeneration = ({
                           <span>Conceptual Drift Shift &gt; 30%:</span>
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
-                          {analysis.time_series_analysis.drift_detected.map((d: any, i: number) => (
-                            <div key={i} className="bg-amber-50 p-3 rounded-xl border border-amber-200 flex justify-between items-center">
+                          {analysis.time_series_analysis.drift_detected.map((d: any) => (
+                            <div key={`drift-${d.column}`} className="bg-amber-50 p-3 rounded-xl border border-amber-200 flex justify-between items-center">
                               <span className="font-bold text-foreground truncate max-w-[120px]">{d.column}</span>
                               <div className="text-right shrink-0">
                                 <span className="block text-amber-750 font-bold">swap: {d.shift_pct}%</span>
