@@ -97,7 +97,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     if (!hasIssue) return null;
 
                     return (
-                        <Card key={col.name} className="border border-border/80 bg-card hover:border-primary/30 hover:shadow-lg transition-all duration-300 rounded-2xl shadow-premium overflow-hidden flex flex-col justify-between">
+                        <Card key={col.name} className="border border-border/80 bg-card rounded-2xl shadow-premium overflow-hidden flex flex-col justify-between t-card-lift">
                             <CardHeader className="pb-3 bg-muted/10 border-b border-border/40">
                                 <div className="flex justify-between items-start gap-2">
                                     <CardTitle className="text-base font-display font-bold text-foreground truncate" title={col.name}>

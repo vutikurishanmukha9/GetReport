@@ -118,3 +118,68 @@ All colors MUST be HSL.
     inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
 }
 
+/* ─── Transitions.dev & beUI Semantic Motion Tokens ────────────────────── */
+.t-card-lift {
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease;
+}
+.t-card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+}
+
+.t-spring-press {
+  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.t-spring-press:active {
+  transform: scale(0.97);
+}
+
+.t-badge-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.t-badge-shimmer::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%);
+  animation: t-shimmer-sweep 4s infinite ease-in-out;
+}
+
+@keyframes t-shimmer-sweep {
+  0%, 60% {
+    transform: translateX(-100%) rotate(15deg);
+  }
+  100% {
+    transform: translateX(100%) rotate(15deg);
+  }
+}
+
+.t-pulse-dot {
+  position: relative;
+}
+.t-pulse-dot::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.4;
+  animation: t-dot-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes t-dot-ping {
+  75%, 100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}

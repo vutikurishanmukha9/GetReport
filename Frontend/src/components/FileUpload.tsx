@@ -415,7 +415,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   return (
                     <motion.div
                       key={`${file.name}-${file.size}-${file.lastModified}`}
-                      className="flex items-center justify-between p-3 rounded-xl bg-white border border-border/80 shadow-2xs hover:border-primary/30 transition-all"
+                      className="flex items-center justify-between p-3 rounded-xl bg-white border border-border/80 shadow-2xs hover:border-primary/30 t-card-lift"
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
@@ -442,7 +442,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                       {!isProcessing && (
                         <button
                           onClick={() => removeFileFromStaging(idx)}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors t-spring-press cursor-pointer"
                           title="Remove file from staging"
                         >
                           <X className="h-4 w-4" />

@@ -32,10 +32,10 @@ export const FeaturesSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           
           {/* Tile 1: Auto Data Cleaning (lg:col-span-2 lg:row-span-2) */}
-          <Card className="lg:col-span-2 lg:row-span-2 border bg-card flex flex-col justify-between transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+          <Card className="lg:col-span-2 lg:row-span-2 border bg-card flex flex-col justify-between t-card-lift">
             <CardContent className="p-6 sm:p-8 flex flex-col h-full justify-between gap-6">
               <div className="space-y-3 text-left">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/5 text-primary t-spring-press">
                   <Wand2 className="h-5 w-5" />
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold">Interactive Data Cleaning</h3>
@@ -144,10 +144,10 @@ export const FeaturesSection = () => {
           </Card>
 
           {/* Tile 3: RAG Insights (lg:col-span-1) */}
-          <Card className="border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+          <Card className="border bg-card t-card-lift">
             <CardContent className="p-6 flex flex-col justify-between h-full gap-4">
               <div className="space-y-2 text-left">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary t-spring-press">
                   <MessageSquareCode className="h-5 w-5" />
                 </div>
                 <h3 className="text-base sm:text-lg font-bold">RAG Insights Chat</h3>
@@ -167,10 +167,10 @@ export const FeaturesSection = () => {
           </Card>
 
           {/* Tile 4: Secure Ingestion (lg:col-span-1) */}
-          <Card className="border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+          <Card className="border bg-card t-card-lift">
             <CardContent className="p-6 flex flex-col justify-between h-full gap-4">
               <div className="space-y-2 text-left">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary t-spring-press">
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <h3 className="text-base sm:text-lg font-bold">Secure Processing</h3>
@@ -191,10 +191,10 @@ export const FeaturesSection = () => {
           </Card>
 
           {/* Tile 5: Dual-Engine PDF Pipeline (lg:col-span-2) */}
-          <Card className="lg:col-span-2 border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+          <Card className="lg:col-span-2 border bg-card t-card-lift">
             <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between">
               <div className="space-y-2 text-left max-w-sm">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary t-spring-press">
                   <FileText className="h-5 w-5" />
                 </div>
                 <h3 className="text-base sm:text-lg font-bold">Dual-Engine PDF Output</h3>
@@ -218,10 +218,10 @@ export const FeaturesSection = () => {
           </Card>
 
           {/* Tile 6: ML Readiness Assessment (lg:col-span-3) */}
-          <Card className="lg:col-span-3 border bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xs">
+          <Card className="lg:col-span-3 border bg-card t-card-lift">
             <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between">
               <div className="space-y-2 text-left max-w-xl">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary t-spring-press">
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
                 <h3 className="text-base sm:text-lg font-bold">Machine Learning Readiness Assessment</h3>

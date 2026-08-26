@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, RefreshCw, ChevronDown, ChevronUp, Sparkles, BookOpen, Quote } from "lucide-react";
+import { Send, Bot, User, RefreshCw, ChevronDown, ChevronUp, Sparkles, BookOpen, Quote, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -256,7 +256,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                             key={qIdx}
                             onClick={() => handleSendQuery(qText)}
                             disabled={isLoading}
-                            className="text-left text-xs font-sans bg-white hover:bg-primary/5 border border-border/80 hover:border-primary/40 text-foreground rounded-xl px-3.5 py-1.5 transition-all duration-150 shadow-2xs hover:shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer"
+                            className="text-left text-xs font-sans bg-white hover:bg-primary/5 border border-border/80 hover:border-primary/40 text-foreground rounded-xl px-3.5 py-1.5 shadow-2xs disabled:opacity-50 cursor-pointer t-card-lift t-spring-press"
                           >
                             {qText}
                           </button>
@@ -295,14 +295,14 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
         </div>
 
         {/* Input Textbox bar */}
-        <div className="p-4 border-t border-border/60 bg-muted/10">
+        <div className="p-2.5 sm:p-4 border-t border-border/60 bg-muted/10">
           <div className="flex items-center gap-2 bg-white border border-border/80 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20 rounded-2xl p-1.5 transition-all duration-200 shadow-2xs">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about trends, anomaly causes, schema corrections…"
-              className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-xs sm:text-sm placeholder:text-muted-foreground/60 h-10 px-3 font-sans"
+              placeholder="Ask about trends, anomalies, columns…"
+              className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-xs sm:text-sm placeholder:text-muted-foreground/60 h-9 sm:h-10 px-2 sm:px-3 font-sans"
               disabled={isLoading}
               maxLength={2000}
             />
@@ -337,14 +337,22 @@ const SourcesExpander = ({
   onSelectSource 
 }: SourcesExpanderProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   if (!sources || sources.length === 0) return null;
+
+  const handleCopyCitation = (e: React.MouseEvent, text: string, idx: number) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
+  };
 
   return (
     <div className="text-xs space-y-1">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground font-mono text-[10px] tracking-tight transition-colors duration-150 uppercase"
+        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground font-mono text-[10px] tracking-tight transition-colors duration-150 uppercase t-spring-press"
       >
         {expanded ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />}
         <BookOpen className="h-3 w-3" />
@@ -355,26 +363,43 @@ const SourcesExpander = ({
         <div className="mt-2 space-y-2 pl-3 border-l border-border animate-in slide-in-from-top-1 duration-200">
           {sources.map((src, pos) => {
             const isHighlighted = highlightedIdx === pos;
+            const isCopied = copiedIdx === pos;
             return (
-              <button 
-                type="button"
+              <div
                 key={`citation_${src.slice(0, 30)}`} 
-                onClick={() => onSelectSource(pos)}
                 className={cn(
-                  "w-full text-left p-2.5 rounded-lg border text-[11px] font-mono leading-relaxed transition-all duration-200 cursor-pointer select-none",
+                  "w-full text-left p-2.5 rounded-lg border text-[11px] font-mono leading-relaxed transition-all duration-200 select-none relative group t-card-lift",
                   isHighlighted 
                     ? "bg-primary/5 border-primary text-foreground ring-1 ring-primary/20 scale-[1.01]" 
                     : "bg-muted/30 border-border text-muted-foreground hover:text-foreground hover:border-border"
                 )}
               >
-                <div className="flex items-center gap-1.5 font-bold text-[9px] uppercase tracking-wider text-primary mb-1">
-                  <Quote className="h-2.5 w-2.5" />
-                  <span>Citation Reference [{pos + 1}]</span>
+                <div className="flex items-center justify-between font-bold text-[9px] uppercase tracking-wider text-primary mb-1">
+                  <button
+                    type="button"
+                    onClick={() => onSelectSource(pos)}
+                    className="flex items-center gap-1.5 hover:underline cursor-pointer"
+                  >
+                    <Quote className="h-2.5 w-2.5" />
+                    <span>Citation Reference [{pos + 1}]</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyCitation(e, src, pos)}
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-background/80 transition-opacity text-muted-foreground hover:text-foreground cursor-pointer"
+                    title="Copy citation"
+                  >
+                    {isCopied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                  </button>
                 </div>
-                <div className="line-clamp-3 hover:line-clamp-none transition-all duration-300">
+                <button
+                  type="button"
+                  onClick={() => onSelectSource(pos)}
+                  className="w-full text-left line-clamp-3 hover:line-clamp-none transition-all duration-300 cursor-pointer font-mono text-[11px] text-inherit"
+                >
                   {src}
-                </div>
-              </button>
+                </button>
+              </div>
             );
           })}
         </div>

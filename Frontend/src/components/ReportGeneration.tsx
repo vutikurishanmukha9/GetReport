@@ -539,11 +539,11 @@ export const ReportGeneration = ({
               </div>
             </CardHeader>
 
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               {/* Correlation Heatmap Viewer */}
               {activeChartTab === "correlation" && charts.correlation_heatmap && (
                 <div className="space-y-6 animate-in fade-in duration-300">
-                  <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
+                  <div className="flex justify-center border border-border/45 bg-background rounded-xl p-2 sm:p-3 max-w-2xl mx-auto">
                     {(() => {
                       // SAFETY: correlation_heatmap union type is safely narrowed to image property or raw string
                       const imgSrc = (charts.correlation_heatmap as { image?: string })?.image ?? (charts.correlation_heatmap as string);
@@ -551,7 +551,7 @@ export const ReportGeneration = ({
                         <SafeChartImage 
                           base64Src={imgSrc} 
                           alt="Correlation Heatmap" 
-                          className="max-h-[380px] w-auto object-contain rounded-lg"
+                          className="max-h-[260px] sm:max-h-[380px] w-full object-contain rounded-lg"
                         />
                       );
                     })()}

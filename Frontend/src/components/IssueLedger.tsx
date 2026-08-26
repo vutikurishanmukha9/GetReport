@@ -263,14 +263,14 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     return (
         <div className="bg-card border border-border/80 shadow-premium rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-400">
             {/* Header */}
-            <div className="border-b border-border/60 px-6 py-5 bg-gradient-to-r from-muted/20 via-card to-card">
+            <div className="border-b border-border/60 px-4 sm:px-6 py-4 sm:py-5 bg-gradient-to-r from-muted/20 via-card to-card">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-start gap-3.5">
                         <div className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center shrink-0 shadow-2xs">
                             <AlertTriangle className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-display font-bold text-foreground tracking-tight flex items-center gap-2">
+                            <h3 className="text-lg sm:text-xl font-display font-bold text-foreground tracking-tight flex items-center gap-2">
                                 Issue Ledger
                             </h3>
                             <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 font-sans">
@@ -292,9 +292,9 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             </div>
 
             {/* Summary Bar */}
-            <div className="bg-muted/10 border-b border-border/60 px-6 py-3.5">
-                <div className="flex flex-wrap gap-4 items-center justify-between">
-                    <div className="flex items-center gap-4 text-xs">
+            <div className="bg-muted/10 border-b border-border/60 px-4 sm:px-6 py-3 sm:py-3.5">
+                <div className="flex flex-wrap gap-3 sm:gap-4 items-center justify-between">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-800 font-medium">
                             <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
                             Pending: {summary.pending}
@@ -314,14 +314,14 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                             <button
                                 onClick={handleApproveAll}
                                 disabled={loading !== null || !hasPending}
-                                className="px-3.5 py-1.5 border border-emerald-200/80 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
+                                className="px-3.5 py-1.5 border border-emerald-200/80 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5 shadow-2xs hover:shadow-xs cursor-pointer t-spring-press"
                             >
                                 <CheckCheck className="w-4 h-4 text-emerald-600" /> Approve All
                             </button>
                             <button
                                 onClick={handleRejectAll}
                                 disabled={loading !== null || !hasPending}
-                                className="px-3.5 py-1.5 border border-rose-200/80 bg-rose-50/80 hover:bg-rose-100 text-rose-800 rounded-xl text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5 transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
+                                className="px-3.5 py-1.5 border border-rose-200/80 bg-rose-50/80 hover:bg-rose-100 text-rose-800 rounded-xl text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5 shadow-2xs hover:shadow-xs cursor-pointer t-spring-press"
                             >
                                 <XCircle className="w-4 h-4 text-rose-600" /> Reject All
                             </button>
@@ -425,7 +425,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                             <button
                                                 onClick={() => handleApprove(issue.id)}
                                                 disabled={loading !== null}
-                                                className="w-8 h-8 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-full border border-emerald-200/80 flex items-center justify-center shadow-2xs hover:shadow-xs transition-all duration-150 active:scale-90 cursor-pointer disabled:opacity-50"
+                                                className="w-8 h-8 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-full border border-emerald-200/80 flex items-center justify-center shadow-2xs hover:shadow-xs cursor-pointer disabled:opacity-50 t-spring-press"
                                                 title="Approve Fix"
                                             >
                                                 <Check className="w-4 h-4" />
@@ -433,7 +433,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                             <button
                                                 onClick={() => handleReject(issue.id)}
                                                 disabled={loading !== null}
-                                                className="w-8 h-8 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-full border border-rose-200/80 flex items-center justify-center shadow-2xs hover:shadow-xs transition-all duration-150 active:scale-90 cursor-pointer disabled:opacity-50"
+                                                className="w-8 h-8 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-full border border-rose-200/80 flex items-center justify-center shadow-2xs hover:shadow-xs cursor-pointer disabled:opacity-50 t-spring-press"
                                                 title="Reject Fix"
                                             >
                                                 <X className="w-4 h-4" />
