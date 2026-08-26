@@ -37,12 +37,23 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 _jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), trim_blocks=True, lstrip_blocks=True)
 
 # ─── Constants ───────────────────────────────────────────────────────────────
-OPENAI_MODEL: str           = "google/gemini-2.0-flash-exp"       # fallback model alias
+OPENAI_MODEL: str           = "gemini-2.5-flash"                  # default fallback model alias
 MAX_TOKENS: int             = 500
 API_TIMEOUT_SECONDS: float  = 30.0
 MAX_RETRIES: int            = 2                   # fewer retries per model, more models
 RETRY_BASE_DELAY_SEC: float = 1.0
 RETRY_MAX_DELAY_SEC: float  = 8.0
+
+# Google Gemini OpenAI-Compatible Endpoints
+GEMINI_BASE_URL: str        = "https://generativelanguage.googleapis.com/v1beta/openai/"
+GEMINI_MODELS: list[str]    = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+]
+
 OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
 
 # OpenRouter Paid Models (Quality-First priority order)
@@ -82,7 +93,27 @@ class _LLMProvider:
 
 _providers: list[_LLMProvider] = []
 
-# Register each OpenRouter model as a separate provider (auto-fallback chain)
+# 1. Register Google Gemini (Direct API Key Priority)
+gemini_key = settings.GEMINI_API_KEY or settings.GOOGLE_API_KEY
+if gemini_key:
+    _gemini_client = AsyncOpenAI(
+        api_key=gemini_key,
+        base_url=GEMINI_BASE_URL,
+    )
+    for model_name in GEMINI_MODELS:
+        _providers.append(_LLMProvider(
+            client=_gemini_client,
+            model=model_name,
+            name=f"Gemini/{model_name}",
+            is_paid=True
+        ))
+    logger.info(
+        "Google Gemini registered (%d models: %s)",
+        len(GEMINI_MODELS),
+        ", ".join(GEMINI_MODELS)
+    )
+
+# 2. Register OpenRouter models as secondary/fallback chain
 if settings.OPENROUTER_API_KEY:
     _or_client = AsyncOpenAI(
         api_key=settings.OPENROUTER_API_KEY,
@@ -108,9 +139,21 @@ if settings.OPENROUTER_API_KEY:
         len(OPENROUTER_FREE_MODELS)
     )
 
+# 3. Register direct OpenAI as fallback
+if settings.OPENAI_API_KEY:
+    _openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+    for model_name in ["gpt-4o-mini", "gpt-4o"]:
+        _providers.append(_LLMProvider(
+            client=_openai_client,
+            model=model_name,
+            name=f"OpenAI/{model_name}",
+            is_paid=True
+        ))
+    logger.info("OpenAI registered (gpt-4o-mini, gpt-4o)")
+
 # Legacy aliases
 client = _providers[0].client if _providers else None
-MODEL = _providers[0].model if _providers else "google/gemini-2.5-flash"
+MODEL = _providers[0].model if _providers else "gemini-2.5-flash"
 
 
 # ─── Custom Exceptions ───────────────────────────────────────────────────────
@@ -241,7 +284,7 @@ def _build_fallback(reason: str, analysis_data: dict[str, Any] | None = None) ->
     messages = {
         "no_api_key": (
             "1. <b>Automated Data Summary</b>: Analyzed dataset metrics.\n\n"
-            "2. <b>API Notice</b>: To enable LLM natural language narratives, configure OPENROUTER_API_KEY in your environment."
+            "2. <b>API Notice</b>: To enable LLM natural language narratives, configure GEMINI_API_KEY or OPENROUTER_API_KEY in your environment."
         ),
         "empty_data": (
             "AI Insights could not be generated — no analysis data was provided to the insight engine."
@@ -611,7 +654,7 @@ async def generate_insights(analysis_data: dict[str, Any]) -> InsightResult:
 
     # ── 1. Check for any configured provider ─────────────────────────────────
     if not _providers:
-        logger.warning("No LLM API key configured (OPENROUTER_API_KEY) — returning fallback.")
+        logger.warning("No LLM API key configured (GEMINI_API_KEY / OPENROUTER_API_KEY / OPENAI_API_KEY) — returning fallback.")
         return _build_fallback("no_api_key", analysis_data)
 
     # ── 2. Validate input ────────────────────────────────────────────────────

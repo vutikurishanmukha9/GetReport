@@ -10,7 +10,14 @@ import numpy as np
 from openai import AsyncOpenAI, OpenAI, BadRequestError, NotFoundError
 from app.core.config import settings
 from app.core.rag_utils import TextSplitter, TableAwareTextSplitter, SimpleVectorStore, PostgresVectorStore, TFIDFVectorStore
-from app.services.llm_insight import OPENROUTER_MODELS, OPENROUTER_PAID_MODELS, OPENROUTER_FREE_MODELS, OPENAI_MODEL
+from app.services.llm_insight import (
+    GEMINI_MODELS,
+    GEMINI_BASE_URL,
+    OPENROUTER_MODELS,
+    OPENROUTER_PAID_MODELS,
+    OPENROUTER_FREE_MODELS,
+    OPENAI_MODEL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -385,13 +392,10 @@ def _execute_polars_data_query(question: str, job_result: Optional[Dict[str, Any
                 if "unique_count" in st: exact_parts.append(f"Unique={st['unique_count']}")
                 if exact_parts:
                     lines.append(f"Column '{col}' Exact Verified Stats: " + ", ".join(exact_parts))
-                    
     return "\n".join(lines) if len(lines) > 1 else ""
 
 
 class EnhancedRAGService:
-    """Enhanced RAG Service using native OpenAI and Numpy"""
-    
     def __init__(self):
         self.config = RAGConfig()
         self.cache = VectorStoreCache(
@@ -401,22 +405,44 @@ class EnhancedRAGService:
         self.metrics = RAGMetrics()
         self._semaphore = None # Defer asyncio.Semaphore initialization (Issue 1)
         
-        # LLM Provider: OpenRouter
-        self.api_key = settings.OPENROUTER_API_KEY
-        self.enabled = bool(self.api_key)
-        self._base_url = "https://openrouter.ai/api/v1"
-        self._provider_name = "OpenRouter"
-        
+        # LLM Provider Hierarchy: 1. Google Gemini -> 2. OpenRouter -> 3. OpenAI
+        gemini_key = settings.GEMINI_API_KEY or settings.GOOGLE_API_KEY
+        if gemini_key:
+            self.api_key = gemini_key
+            self.enabled = True
+            self._base_url = GEMINI_BASE_URL
+            self._provider_name = "Google Gemini"
+            self._embeddings_enabled = True
+            self.embedding_model = "text-embedding-004"
+            self._models = GEMINI_MODELS
+        elif settings.OPENROUTER_API_KEY:
+            self.api_key = settings.OPENROUTER_API_KEY
+            self.enabled = True
+            self._base_url = "https://openrouter.ai/api/v1"
+            self._provider_name = "OpenRouter"
+            self._embeddings_enabled = True
+            self.embedding_model = "openai/text-embedding-3-small"
+            self._models = OPENROUTER_MODELS
+        elif settings.OPENAI_API_KEY:
+            self.api_key = settings.OPENAI_API_KEY
+            self.enabled = True
+            self._base_url = None
+            self._provider_name = "OpenAI"
+            self._embeddings_enabled = True
+            self.embedding_model = "text-embedding-3-small"
+            self._models = ["gpt-4o-mini", "gpt-4o"]
+        else:
+            self.api_key = None
+            self.enabled = False
+            self._base_url = None
+            self._provider_name = "None"
+            self._embeddings_enabled = False
+            self.embedding_model = "text-embedding-004"
+            self._models = [OPENAI_MODEL]
+
         self._client = None
         self._sync_client = None
         logger.info("RAG Service initialized (%s)", self._provider_name)
-
-        if settings.OPENROUTER_API_KEY:
-            self._embeddings_enabled = True
-            self.embedding_model = "openai/text-embedding-3-small"
-        else:
-            self._embeddings_enabled = False
-            self.embedding_model = "openai/text-embedding-3-small"
             
         self._embed_client = None
         self._embed_sync_client = None
@@ -494,7 +520,7 @@ class EnhancedRAGService:
                 last_err = e
                 logger.warning("Embedding attempt %d/2 failed: %s: %s", attempt + 1, type(e).__name__, str(e))
         
-        logger.error("All embedding attempts failed. Ensure OPENROUTER_API_KEY is configured.")
+        logger.error("All embedding attempts failed. Ensure GEMINI_API_KEY, OPENROUTER_API_KEY, or OPENAI_API_KEY is configured.")
         raise last_err
 
     def _get_embeddings_sync(self, texts: List[str]) -> List[List[float]]:
@@ -756,7 +782,7 @@ CONTEXT:
 {final_context}
 \"\"\"
 """
-                models_to_try = OPENROUTER_MODELS if settings.OPENROUTER_API_KEY else [OPENAI_MODEL]
+                models_to_try = self._models if self.enabled else [OPENAI_MODEL]
                 
                 response = None
                 skip_paid = False
@@ -899,7 +925,7 @@ CONTEXT:
             yield json.dumps(metadata_frame) + "\n"
 
             # 4. Stream LLM tokens across all models in pool
-            models_to_try = OPENROUTER_MODELS if settings.OPENROUTER_API_KEY else [OPENAI_MODEL]
+            models_to_try = self._models if self.enabled else [OPENAI_MODEL]
             
             stream_response = None
             skip_paid = False

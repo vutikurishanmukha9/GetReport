@@ -188,9 +188,9 @@ The project is optimized for deployment on **Render.com** (or any Docker-based c
 | `STORAGE_TYPE` | `local` | `db` | Storage provider: `local` (disk), `db` (database blob storage), or `s3`. |
 | `AWS_ACCESS_KEY_ID` | (optional) | (required for S3) | AWS access key for S3 file storage option. |
 | `AWS_SECRET_ACCESS_KEY` | (optional) | (required for S3) | AWS secret key for S3 file storage option. |
-| `AWS_BUCKET_NAME` | (optional) | (required for S3) | S3 Bucket name for file uploads and outputs. |
-| `OPENAI_API_KEY`| (required for AI) | (required for AI) | OpenAI API Key for GPT-4o analytics features. |
-| `OPENROUTER_API_KEY` | (optional) | (optional) | Alternative LLM provider key to use OpenRouter free model fallback chain. |
+| `GEMINI_API_KEY` | (optional / recommended) | (optional / recommended) | Google Gemini API Key for Gemini 2.5 Flash / 2.0 Flash analytics and embeddings. |
+| `OPENAI_API_KEY` | (optional) | (optional) | OpenAI API Key for GPT-4o analytics features. |
+| `OPENROUTER_API_KEY` | (optional) | (optional) | Alternative LLM provider key to use OpenRouter model fallback chain. |
 | `API_KEY` | (empty) | (optional) | Restricts client API access. If set, requires `X-API-Key` request header. |
 | `CORS_ORIGINS` | `http://localhost:5173,...` | (restrict in prod) | Comma-separated list of allowed origins. |
 | `RATE_LIMIT_ENABLED` | `True` | `True` | Set to `False` to disable API rate-limiting. |
