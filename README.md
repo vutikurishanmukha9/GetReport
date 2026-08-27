@@ -6,6 +6,7 @@
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0%2B-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev/)
+[![Google Antigravity SDK](https://img.shields.io/badge/Agent-Google%20Antigravity%20SDK-4285F4?logo=google)](https://ai.google.dev/)
 [![Celery](https://img.shields.io/badge/Celery-5.3.6%2B-37814A?logo=celery)](https://docs.celeryq.dev/)
 [![Polars](https://img.shields.io/badge/Engine-Polars%20Rust-CD412B?logo=rust)](https://pola.rs/)
 [![WeasyPrint](https://img.shields.io/badge/PDF_Engine-WeasyPrint%2061.2%2B-FF6600)](https://weasyprint.org/)
@@ -62,13 +63,18 @@ Data analysis traditionally requires:
 - **Decision Transparency**: Logs why specific tests (Correlation, Time-Series, Anova) were run or skipped.
 - **Transformation DAG**: Tracks data transformations as a directed acyclic graph for complete auditability.
 
-### Advanced Intelligence (RAG Engine)
-- **Hybrid RAG Engine**: Combines **Dense Vector Search** with **Sparse Keyword Scoring** for precise context retrieval.
+### Advanced Intelligence (Google Antigravity SDK & RAG Engine)
+- **Google Antigravity SDK Agent**: Equips conversational RAG with autonomous reasoning and dynamic Python dataset tools (`query_column_statistics`, `get_correlation_insights`, `get_data_quality_report`, `get_dataset_overview`) for grounded analytical answers without hallucinations.
+- **Real-Time Token Streaming**: Streams tokens and thoughts directly to the frontend over Server-Sent Events (SSE) and WebSockets.
+- **Hybrid RAG Engine**: Combines **Dense Vector Search** (Gemini embeddings / pgvector) with **Reciprocal Rank Fusion (RRF)** for precise context retrieval.
 - **Table-Aware Text Splitting (`TableAwareTextSplitter`)**: Splits text by paragraphs and tabular section boundaries while prefixing schema headers to prevent row-boundary fragmentation.
-- **Resilient Embedding Fallbacks (`TFIDFVectorStore`)**: If OpenAI embedding API keys are unconfigured or unavailable, the system automatically falls back to an in-memory TF-IDF + Cosine search engine, ensuring RAG chat is 100% operational.
-- **Interactive RAG Chat**: Ask questions directly about the dataset and its generated analysis using the context-aware chat interface.
+- **Resilient Multi-Provider Fallbacks**: Multi-tier hierarchy: **Google Antigravity (Gemini 2.5/3.7 Flash)** → **OpenRouter Free Chain** → **OpenAI (GPT-4o)** → **Deterministic Polars Fact Engine** (`TFIDFVectorStore`).
+- **Interactive Dataset Q&A**: Ask deep statistical questions about any column, correlation, anomaly, or transformation in natural language.
 
-### Security First Design
+### Security & Reliability First Design
+- **SQLite WAL Concurrency**: Write-Ahead Logging (`PRAGMA journal_mode=WAL;`) with 5,000ms busy timeout ensures zero database lockups during concurrent uploads and Celery tasks.
+- **End-to-End Tracing (`X-Request-ID`)**: Automatic request correlation IDs across all API requests and responses.
+- **Storage Path Traversal Sandboxing**: Strict file path resolution ensuring all disk operations are strictly sandboxed inside `base_dir`.
 - **Magic Number Validation**: Strictly verifies file signatures (`.xlsx`, `.xls`, `.parquet`, `.feather`, `.gz`) to prevent extension spoofing.
 - **Content Inspection**: Rejects binary files masquerading as text CSVs.
 - **Zip Bomb Mitigation**: Pre-validates compressed file parameters (ratio, file count, and decompressed XML size) to prevent OOM/DoS attacks during Excel file ingestion.
@@ -91,12 +97,13 @@ Data analysis traditionally requires:
 | Component | Technology |
 |-----------|------------|
 | Framework | FastAPI (Python 3.12+) |
+| AI Agent | Google Antigravity SDK (`google-antigravity`) |
+| LLM Providers | Google Gemini (2.5/3.7 Flash), OpenRouter, OpenAI |
 | Task Queue | Celery + Redis |
 | Data Processing | Polars (Rust Engine), NumPy, SciPy |
 | PDF Engine | WeasyPrint (with CSS Cache) / ReportLab |
-| Database | SQLite (Local) / PostgreSQL (Prod) |
-| Storage | Local Disk / AWS S3 (Configurable) |
-| AI | OpenRouter (Free Models Fallback Chain) + OpenAI (GPT-4o) |
+| Database | SQLite (WAL Mode) / PostgreSQL (Neon pgvector) |
+| Storage | Local Sandboxed Disk / Database BYTEA / AWS S3 |
 
 ---
 
@@ -188,11 +195,11 @@ The project is optimized for deployment on **Render.com** (or any Docker-based c
 | `STORAGE_TYPE` | `local` | `db` | Storage provider: `local` (disk), `db` (database blob storage), or `s3`. |
 | `AWS_ACCESS_KEY_ID` | (optional) | (required for S3) | AWS access key for S3 file storage option. |
 | `AWS_SECRET_ACCESS_KEY` | (optional) | (required for S3) | AWS secret key for S3 file storage option. |
-| `GEMINI_API_KEY` | (optional / recommended) | (optional / recommended) | Google Gemini API Key for Gemini 2.5 Flash / 2.0 Flash analytics and embeddings. |
+| `GEMINI_API_KEY` / `GOOGLE_API_KEY` | (optional / recommended) | (optional / recommended) | Google Gemini API Key for Google Antigravity SDK Agent (Gemini 2.5 Flash / 3.7 Flash) and embeddings. |
 | `OPENAI_API_KEY` | (optional) | (optional) | OpenAI API Key for GPT-4o analytics features. |
 | `OPENROUTER_API_KEY` | (optional) | (optional) | Alternative LLM provider key to use OpenRouter model fallback chain. |
 | `API_KEY` | (empty) | (optional) | Restricts client API access. If set, requires `X-API-Key` request header. |
-| `CORS_ORIGINS` | `http://localhost:5173,...` | (restrict in prod) | Comma-separated list of allowed origins. |
+| `CORS_ORIGINS` | `http://localhost:5173,...` | (restrict in prod) | Comma-separated list of allowed origins (supports Vercel and Render). |
 | `RATE_LIMIT_ENABLED` | `True` | `True` | Set to `False` to disable API rate-limiting. |
 | `DB_POOL_MIN_SIZE` | `1` | `1` | Minimum database connections in pool. |
 | `DB_POOL_MAX_SIZE` | `10` | `10` | Maximum database connections in pool to avoid PostgreSQL connection exhaustion. |
