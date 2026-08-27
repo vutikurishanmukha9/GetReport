@@ -231,14 +231,12 @@ def _build_fallback(reason: str, analysis_data: dict[str, Any] | None = None) ->
                     # Executive narrative translation for non-technical users
                     clean_desc = desc
                     if "Strong positive correlation" in desc or "correlation (" in desc:
-                        import re
                         m = re.search(r"between\s+([a-zA-Z0-9_]+)\s+and\s+([a-zA-Z0-9_]+)", desc)
                         if m:
                             col_a = m.group(1).replace('_', ' ').title()
                             col_b = m.group(2).replace('_', ' ').title()
                             clean_desc = f"Strong growth alignment between {col_a} and {col_b}. Operational scaling in {col_a} directly drives positive performance in {col_b}."
                     elif "trend in" in desc:
-                        import re
                         m = re.search(r"(Upward|Downward)\s+trend\s+in\s+([a-zA-Z0-9_]+)", desc)
                         if m:
                             direction = "growth trajectory" if m.group(1) == "Upward" else "declining trajectory"
@@ -365,7 +363,6 @@ def _truncate_to_budget(text: str, max_tokens: int) -> str:
 
 def _filtered_dtypes(analysis_data: dict[str, Any]) -> str:
     """Return dtypes JSON with identifier/excluded columns removed."""
-    import json
     dtypes = analysis_data.get("metadata", {}).get("dtypes", {})
     excluded = set(analysis_data.get("metadata", {}).get("excluded_columns", []))
     # Also check semantic analysis for identifier columns
@@ -721,5 +718,4 @@ def generate_insights_sync(analysis_data: dict[str, Any]) -> InsightResult:
     Celery workers run a plain sync event loop, so this avoids the
     ``run_async_wrapper`` threading hack.
     """
-    import asyncio
     return asyncio.run(generate_insights(analysis_data))

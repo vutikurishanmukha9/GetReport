@@ -91,8 +91,7 @@ def test_targeted_column_context_extraction():
     assert "total_sales" in extracted
     assert '"mean": 5000' in extracted
 
-@pytest.mark.asyncio
-async def test_lazy_proxy_chat_stream_with_report_attribute():
+def test_lazy_proxy_chat_stream_with_report_attribute():
     from app.services.rag_service import rag_service
     assert hasattr(rag_service, "chat_stream_with_report")
     assert hasattr(rag_service, "chat_with_report")

@@ -81,8 +81,10 @@ def inspect_file_task(self, task_id: str, file_ref: str, filename: str):
         title_task_manager.fail_job(task_id, str(e))
         # Cleanup storage on failure
         if file_ref:
-            try: storage.delete(file_ref)
-            except: pass
+            try:
+                storage.delete(file_ref)
+            except Exception:
+                pass
 
 # ─── Phase 2: Analysis Workflow (Granular Tasks) ─────────────────────────────
 

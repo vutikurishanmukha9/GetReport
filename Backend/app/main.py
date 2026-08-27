@@ -5,6 +5,7 @@ from slowapi.errors import RateLimitExceeded
 from app.core.config import settings
 from app.core.limiter import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
+from app.core.request_id import RequestIDMiddleware
 
 from contextlib import asynccontextmanager
 
@@ -34,6 +35,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Security Headers (VULN-10)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 # Set all CORS enabled origins (with production-aware guard)
 _cors_origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]

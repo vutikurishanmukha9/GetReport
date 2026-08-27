@@ -200,11 +200,14 @@ async def close_async_db():
 
 # ─── Sync Implementation Details ─────────────────────────────────────────────
 def _init_sqlite_sync():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10.0)
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA busy_timeout=5000;")
     cursor = conn.cursor()
     _create_schema(cursor)
     conn.commit()
     conn.close()
+    logger.info("SQLite initialized with WAL mode and busy_timeout=5000ms.")
 
 def _init_postgres_sync():
     global pg_pool
@@ -213,9 +216,9 @@ def _init_postgres_sync():
         from psycopg2 import pool
         from psycopg2.extras import RealDictCursor
         
-        # Debug: Print DB URL (Masked)
+        # Debug: Log DB URL (Masked)
         masked_url = settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else "MASKED"
-        print(f"[DB-INIT] Connecting to PostgreSQL at ...{masked_url}")
+        logger.info(f"Connecting to PostgreSQL at ...{masked_url}")
 
         if not pg_pool:
             # Enforce public schema for Sync pool too via options
@@ -225,47 +228,36 @@ def _init_postgres_sync():
                 dsn=settings.DATABASE_URL,
                 cursor_factory=RealDictCursor
             )
-            print("[DB-INIT] PostgreSQL Sync Pool created.")
+            logger.info("PostgreSQL Sync Pool created.")
             
         conn = pg_pool.getconn()
         try:
-            # DEBUG: Check Schema Environment
             cursor = conn.cursor()
             cursor.execute("SELECT current_schema(), current_user, current_database();")
             env_info = cursor.fetchone()
-            print(f"[DB-INIT] Env: Schema={env_info['current_schema']}, User={env_info['current_user']}, DB={env_info['current_database']}")
+            logger.debug(f"DB Env: Schema={env_info['current_schema']}, User={env_info['current_user']}, DB={env_info['current_database']}")
             
             cursor.execute("SHOW search_path;")
-            print(f"[DB-INIT] Search Path: {cursor.fetchone()['search_path']}")
+            logger.debug(f"Search Path: {cursor.fetchone()['search_path']}")
 
             # 1. Create Core Tables (Critical)
-            print("[DB-INIT] Creating core tables (Forcing public schema)...")
+            logger.info("Creating core tables in public schema...")
             try:
-                # Ensure schema exists (Just in case)
                 cursor.execute("CREATE SCHEMA IF NOT EXISTS public;")
-                
-                # Force PUBLIC schema to avoid search_path ambiguity
                 _create_core_tables_explicit(cursor)
                 conn.commit()
-                print("[DB-INIT] Core tables CREATE commands executed & COMMITTED.")
+                logger.info("Core tables created & committed.")
                 
-                # DIAGNOSTIC: List all tables in public schema
-                print("[DB-INIT] DIAGOSTIC: Listing tables in 'public' schema:")
-                cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';")
-                tables = cursor.fetchall()
-                print(f"[DB-INIT] Tables found: {[t['table_name'] for t in tables]}")
-
-                # VERIFICATION: Check jobs
                 cursor.execute("SELECT to_regclass('jobs');")
                 result = cursor.fetchone()
                 if result and result['to_regclass']:
-                     print(f"[DB-INIT] VERIFIED: Table 'jobs' exists! OID: {result['to_regclass']}")
+                     logger.info(f"Verified: Table 'jobs' exists (OID: {result['to_regclass']})")
                 else:
-                     print("[DB-INIT] CRITICAL ERROR: Table 'jobs' DOES NOT EXIST after commit!")
+                     logger.error("Critical: Table 'jobs' does not exist after commit!")
                      
             except Exception as e:
                 conn.rollback()
-                print(f"[DB-INIT] Failed to create core tables: {e}")
+                logger.error(f"Failed to create core tables: {e}")
                 raise e
 
             # 2. Enable Extensions (Optional/Risky)
@@ -273,24 +265,23 @@ def _init_postgres_sync():
                 cursor = conn.cursor()
                 _enable_vector_extension(cursor)
                 conn.commit()
-                print("[DB-INIT] Vector extension verified/enabled.")
+                logger.info("Vector extension verified/enabled.")
             except Exception as e:
                 conn.rollback()
-                print(f"[DB-INIT] Vector extension init failed: {e}. Attempting standard fallback (no pgvector)...")
+                logger.warning(f"Vector extension init failed: {e}. Attempting standard fallback (no pgvector)...")
                 try:
                     cursor = conn.cursor()
                     _create_fallback_rag_table(cursor)
                     conn.commit()
-                    print("[DB-INIT] Fallback standard RAG tables created successfully.")
+                    logger.info("Fallback standard RAG tables created successfully.")
                 except Exception as fallback_err:
                     conn.rollback()
-                    print(f"[DB-INIT] CRITICAL: Fallback table creation failed: {fallback_err}")
+                    logger.error(f"Critical: Fallback table creation failed: {fallback_err}")
 
         finally:
             pg_pool.putconn(conn)
     except Exception as e:
-        print(f"[DB-INIT] PostgreSQL Init FATAL Error: {e}")
-        logger.error(f"Postgres Init Failed: {e}")
+        logger.error(f"PostgreSQL Init Fatal Error: {e}")
         raise e
 
 def _create_schema(cursor):
@@ -320,10 +311,12 @@ def _create_schema(cursor):
     )
     """)
     
-    # Migrations
+    # Migrations with specific exception catching
     for col in ["result_path TEXT", "version INTEGER DEFAULT 0", "batch_id TEXT", "file_hash TEXT", "report_status TEXT DEFAULT 'not_started'"]:
-        try: cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
-        except: pass
+        try:
+            cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
 
 def _create_core_tables_explicit(cursor):
     """Postgres Core Schema (Explicit Public Schema)"""
@@ -373,11 +366,11 @@ def _create_core_tables_explicit(cursor):
             exists = cursor.fetchone()
             if not exists:
                 cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col_name} {col_def}")
-                print(f"[DB-INIT] Added column '{col_name}' to jobs table.")
+                logger.info(f"Added column '{col_name}' to jobs table.")
             else:
-                print(f"[DB-INIT] Column '{col_name}' already exists, skipping.")
+                logger.debug(f"Column '{col_name}' already exists, skipping.")
         except Exception as col_err:
-            print(f"[DB-INIT] Warning: Could not add column '{col_name}': {col_err}")
+            logger.warning(f"Could not add column '{col_name}': {col_err}")
 
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)")
@@ -399,11 +392,13 @@ def _enable_vector_extension(cursor):
     """)
     try:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding ON document_chunks USING hnsw (embedding vector_cosine_ops)")
-    except: pass
+    except Exception as e:
+        logger.debug(f"HNSW vector index not supported or already exists: {e}")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_task_id ON document_chunks(task_id)")
     try:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_content_fts ON document_chunks USING gin (to_tsvector('english', content))")
-    except: pass
+    except Exception as e:
+        logger.debug(f"GIN text search index creation error: {e}")
 
 def _create_fallback_rag_table(cursor):
     cursor.execute("""
@@ -420,7 +415,8 @@ def _create_fallback_rag_table(cursor):
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_task_id ON document_chunks(task_id)")
     try:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_chunks_content_fts ON document_chunks USING gin (to_tsvector('english', content))")
-    except: pass
+    except Exception as e:
+        logger.debug(f"Fallback GIN text search index error: {e}")
 
 # ─── Context Factories ───────────────────────────────────────────────────────
 @contextmanager
@@ -460,7 +456,8 @@ def get_db_connection():
         finally: pg_conn.close()
     else:
         # SQLite Sync
-        conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=10.0)
+        conn.execute("PRAGMA busy_timeout=5000;")
         conn.row_factory = sqlite3.Row
         try: yield conn
         finally: conn.close()
@@ -501,6 +498,7 @@ async def get_async_db_connection():
     else:
         # SQLite Async
         import aiosqlite
-        async with aiosqlite.connect(DB_PATH) as conn:
+        async with aiosqlite.connect(DB_PATH, timeout=10.0) as conn:
+            await conn.execute("PRAGMA busy_timeout=5000;")
             conn.row_factory = aiosqlite.Row
             yield AsyncSqliteConnection(conn)

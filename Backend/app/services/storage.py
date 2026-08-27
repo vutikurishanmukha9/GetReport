@@ -61,14 +61,23 @@ class LocalStorageProvider(StorageProvider):
         return str(target_path)
 
     def get_absolute_path(self, file_ref: str) -> str:
-        # In local storage, the ref is the path
-        return os.path.abspath(file_ref)
+        # Strictly sanitize and resolve path within base_dir
+        base_resolved = self.base_dir.resolve()
+        # Strip directory components to avoid path traversal
+        safe_filename = Path(file_ref).name
+        target_path = (self.base_dir / safe_filename).resolve()
+
+        if not str(target_path).startswith(str(base_resolved)):
+            raise ValueError(f"Path traversal detected in file reference: {file_ref}")
+
+        return str(target_path)
 
     def delete(self, file_ref: str) -> bool:
         try:
-            os.remove(file_ref)
-            return True
-        except FileNotFoundError:
+            abs_path = self.get_absolute_path(file_ref)
+            if os.path.exists(abs_path):
+                os.remove(abs_path)
+                return True
             return False
         except Exception:
             return False

@@ -21,6 +21,9 @@ UUID_PATTERN = re.compile(
     re.IGNORECASE
 )
 
+if settings.DATABASE_URL and not settings.API_KEY:
+    logger.warning("⚠ Production database is configured (DATABASE_URL) but API_KEY is unset! Endpoints are open to public access.")
+
 
 async def verify_api_key(api_key: str = Security(_api_key_header)) -> None:
     """
