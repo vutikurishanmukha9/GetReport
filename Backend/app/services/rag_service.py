@@ -19,6 +19,14 @@ from app.services.llm_insight import (
     OPENAI_MODEL,
 )
 
+try:
+    from google.antigravity import Agent as AntigravityAgent, LocalAgentConfig
+    ANTIGRAVITY_AVAILABLE = True
+except ImportError:
+    ANTIGRAVITY_AVAILABLE = False
+    AntigravityAgent = None
+    LocalAgentConfig = None
+
 logger = logging.getLogger(__name__)
 
 # Absolute base directory for absolute path resolution (Issue 3)
@@ -395,6 +403,113 @@ def _execute_polars_data_query(question: str, job_result: Optional[Dict[str, Any
     return "\n".join(lines) if len(lines) > 1 else ""
 
 
+def _build_structured_job_context(job_result: Optional[Dict[str, Any]]) -> str:
+    """Build a comprehensive structured summary of the dataset and analysis results."""
+    if not job_result:
+        return ""
+    
+    sections = []
+    filename = job_result.get("filename", "Dataset")
+    sections.append(f"--- DATASET: {filename} ---")
+    
+    analysis = job_result.get("analysis", {})
+    if analysis:
+        meta = analysis.get("metadata", {})
+        if meta:
+            sections.append(
+                f"Rows: {meta.get('total_rows', 'N/A')}, "
+                f"Columns: {meta.get('total_columns', 'N/A')}, "
+                f"Completeness: {100 - meta.get('missing_value_pct', 0):.1f}%"
+            )
+        
+        domain = analysis.get("domain")
+        if domain:
+            sections.append(f"Domain Classification: {domain}")
+            
+        summary = analysis.get("summary", {})
+        if summary:
+            sections.append(f"Numeric Columns: {list(summary.keys())}")
+            
+        cat_dist = analysis.get("categorical_distribution", {})
+        if cat_dist:
+            sections.append(f"Categorical Columns: {list(cat_dist.keys())}")
+            
+    insights = job_result.get("insights", {})
+    if insights:
+        if isinstance(insights, dict):
+            text = insights.get("insights_text", "")
+            if text:
+                sections.append(f"Key Insights:\n{text}")
+        elif isinstance(insights, str):
+            sections.append(f"Key Insights:\n{insights}")
+            
+    cleaning = job_result.get("cleaning_report", {})
+    if cleaning and isinstance(cleaning, dict):
+        sections.append(
+            f"Data Cleaning: {cleaning.get('total_changes', 0)} changes applied "
+            f"(dropped {cleaning.get('empty_rows_dropped', 0)} empty rows, "
+            f"{cleaning.get('duplicate_rows_removed', 0)} duplicate rows)"
+        )
+        
+    return "\n".join(sections)
+
+
+def _build_antigravity_tools(job_result: Optional[Dict[str, Any]]):
+    """
+    Build custom tools for the Google Antigravity Agent to interact dynamically with dataset facts.
+    """
+    tools = []
+    
+    def get_dataset_overview() -> str:
+        """Returns the high-level dataset overview including row/column counts, completeness, and executive summary."""
+        if not job_result:
+            return "No dataset details loaded."
+        return _build_structured_job_context(job_result) or "Overview unavailable."
+    tools.append(get_dataset_overview)
+
+    def query_column_statistics(column_name: str) -> str:
+        """
+        Retrieves detailed statistical metrics (mean, median, standard deviation, min, max, missing count, outliers)
+        for a specific column in the dataset.
+        
+        Args:
+            column_name: The name of the column to look up.
+        """
+        if not job_result:
+            return f"Dataset not loaded to query {column_name}."
+        facts = _extract_targeted_structured_context(column_name, job_result)
+        exact = _execute_polars_data_query(column_name, job_result)
+        combined = []
+        if facts: combined.append(facts)
+        if exact: combined.append(exact)
+        return "\n".join(combined) if combined else f"No specific statistical facts recorded for column '{column_name}'."
+    tools.append(query_column_statistics)
+
+    def get_correlation_insights() -> str:
+        """Returns the strongest feature correlations, collinearity flags, and feature associations in the dataset."""
+        if not job_result:
+            return "No correlation data available."
+        analysis = job_result.get("analysis", {})
+        corrs = analysis.get("strong_correlations", [])
+        if corrs:
+            return f"Strong Correlations: {json.dumps(corrs)}"
+        return "No strong correlations (|r| >= 0.70) detected."
+    tools.append(get_correlation_insights)
+
+    def get_data_quality_report() -> str:
+        """Returns data quality health score, data issues, duplicate rows removed, and missing value imputations."""
+        if not job_result:
+            return "No quality data available."
+        cleaning = job_result.get("cleaning_report", {})
+        analysis = job_result.get("analysis", {})
+        flags = analysis.get("column_quality_flags", {})
+        issues = job_result.get("issue_ledger", {})
+        return f"Cleaning Report: {json.dumps(cleaning)}\nQuality Flags: {json.dumps(flags)}\nIssue Ledger: {json.dumps(issues)}"
+    tools.append(get_data_quality_report)
+
+    return tools
+
+
 class EnhancedRAGService:
     def __init__(self):
         self.config = RAGConfig()
@@ -649,6 +764,56 @@ class EnhancedRAGService:
             logger.error(f"Ingest (Blocking) failed: {e}")
             return {"success": False, "error": str(e)}
 
+    async def _hybrid_retrieve_rrf(self, task_id: str, query: str, k: int = 6) -> Tuple[List[str], str]:
+        """Retrieve relevant context chunks using hybrid vector search and return (sources_list, context_string)."""
+        sources_list = []
+        context_chunk_str = "No specific chunk context found."
+        try:
+            if settings.DATABASE_URL:
+                store = PostgresVectorStore(task_id)
+            else:
+                store = await self.cache.get(task_id)
+                if not store:
+                    store = self._load_local_vector_store(task_id)
+                    if store:
+                        await self.cache.set(task_id, store)
+
+            if store:
+                queries = _generate_query_variations(query)
+                all_results = []
+                for q_variant in queries:
+                    try:
+                        q_embed = (await self._get_embeddings([q_variant]))[0]
+                        if settings.DATABASE_URL:
+                            res = await store.hybrid_search_async(q_variant, q_embed, k=k)
+                        else:
+                            res = store.similarity_search_with_score(q_embed, k=k)
+                        all_results.extend(res)
+                    except Exception as err:
+                        logger.warning("Retrieval failed for variant '%s': %s", q_variant, err)
+
+                seen_content = set()
+                relevant_docs = []
+                for doc, score in all_results:
+                    c = doc.get("content", "").strip()
+                    if c and c not in seen_content:
+                        seen_content.add(c)
+                        relevant_docs.append((doc, score))
+
+                relevant_docs.sort(key=lambda x: x[1], reverse=True)
+                relevant_docs = relevant_docs[:k]
+
+                formatted_chunks = []
+                for idx, (d, score) in enumerate(relevant_docs, 1):
+                    formatted_chunks.append(f"[{idx}] {d['content']}")
+                    sources_list.append(f"[{idx}] {d['content'][:120]}…")
+
+                if formatted_chunks:
+                    context_chunk_str = "\n\n".join(formatted_chunks)
+        except Exception as e:
+            logger.warning(f"Hybrid retrieval error: {e}")
+        return sources_list, context_chunk_str
+
     async def chat_with_report(
         self,
         task_id: str,
@@ -658,7 +823,7 @@ class EnhancedRAGService:
         job_result: Optional[Dict[str, Any]] = None,
         chat_history: Optional[List[Dict[str, str]]] = None
     ) -> Dict[str, Any]:
-        """Chat with the report context (Advanced Multi-Query & HyDE RAG)"""
+        """Chat with the report context (Google Antigravity Agent + Advanced Multi-Query RAG)"""
         async with self.semaphore:
             sanitized_q = SecurityGuard.sanitize_input(question)
             if not sanitized_q:
@@ -668,54 +833,8 @@ class EnhancedRAGService:
                 return {"success": True, "answer": _generate_smart_dataset_answer(sanitized_q, job_result), "sources": []}
             
             try:
-                # 1. Get Vector Store
-                sources_list = []
-                context_chunk_str = "No specific chunk context found."
-                try:
-                    if settings.DATABASE_URL:
-                        store = PostgresVectorStore(task_id)
-                    else:
-                        store = await self.cache.get(task_id)
-                        if not store:
-                            store = self._load_local_vector_store(task_id)
-                            if store:
-                                await self.cache.set(task_id, store)
-
-                    if store:
-                        queries = _generate_query_variations(sanitized_q)
-                        all_results = []
-
-                        for q_variant in queries:
-                            try:
-                                q_embed = (await self._get_embeddings([q_variant]))[0]
-                                if settings.DATABASE_URL:
-                                    res = await store.hybrid_search_async(q_variant, q_embed, k=k)
-                                else:
-                                    res = store.similarity_search_with_score(q_embed, k=k)
-                                all_results.extend(res)
-                            except Exception as err:
-                                logger.warning("Retrieval failed for variant '%s': %s", q_variant, err)
-
-                        seen_content = set()
-                        relevant_docs = []
-                        for doc, score in all_results:
-                            c = doc.get("content", "").strip()
-                            if c and c not in seen_content:
-                                seen_content.add(c)
-                                relevant_docs.append((doc, score))
-
-                        relevant_docs.sort(key=lambda x: x[1], reverse=True)
-                        relevant_docs = relevant_docs[:k]
-
-                        formatted_chunks = []
-                        for idx, (d, score) in enumerate(relevant_docs, 1):
-                            formatted_chunks.append(f"[{idx}] {d['content']}")
-                            sources_list.append(f"[{idx}] {d['content'][:120]}…")
-
-                        if formatted_chunks:
-                            context_chunk_str = "\n\n".join(formatted_chunks)
-                except Exception as store_err:
-                    logger.warning(f"Vector store retrieval warning: {store_err}")
+                # 1. Retrieve hybrid context chunks via RRF
+                sources_list, context_chunk_str = await self._hybrid_retrieve_rrf(task_id, sanitized_q, k=k)
 
                 # 2. Build Structured Context, Conversation History & Polars Facts
                 structured_context = []
@@ -724,35 +843,9 @@ class EnhancedRAGService:
                     structured_context.append(history_ctx)
 
                 if job_result:
-                    analysis = job_result.get("analysis", {})
-                    insights = job_result.get("insights", {})
-
-                    if analysis:
-                        structured_context.append("--- DATASET SUMMARY (Statistical Overview) ---")
-                        stats = analysis.get("basic_stats", {})
-                        if stats:
-                            structured_context.append(f"Rows: {stats.get('rows', 'N/A')}, Columns: {stats.get('cols', 'N/A')}")
-                        
-                        cols = analysis.get("columns", {})
-                        for col_name, info in cols.items():
-                            missing = info.get('missing', 0)
-                            structured_context.append(f"Column '{col_name}' ({info.get('type')}): {missing} missing.")
-                    
-                    if insights:
-                        structured_context.append("\n--- KEY FINDINGS & INSIGHTS ---")
-                        if isinstance(insights, dict):
-                            summary = insights.get('executive_summary', '')
-                            if summary: structured_context.append(f"Executive Summary: {summary}")
-                            key_findings = insights.get('key_findings', [])
-                            if isinstance(key_findings, list) and key_findings:
-                                for f_idx, f in enumerate(key_findings, 1):
-                                    structured_context.append(f"Finding {f_idx}: {f}")
-                            elif 'insights_text' in insights:
-                                structured_context.append(insights['insights_text'])
-                            else:
-                                structured_context.append(json.dumps(insights, indent=2))
-                        else:
-                            structured_context.append(str(insights)[:2000])
+                    overview = _build_structured_job_context(job_result)
+                    if overview:
+                        structured_context.append(overview)
 
                     targeted_facts = _extract_targeted_structured_context(sanitized_q, job_result)
                     if targeted_facts:
@@ -782,8 +875,35 @@ CONTEXT:
 {final_context}
 \"\"\"
 """
+                # 3. Try Google Antigravity Agent when enabled and configured with Gemini
+                gemini_key = settings.GEMINI_API_KEY or settings.GOOGLE_API_KEY
+                if ANTIGRAVITY_AVAILABLE and gemini_key:
+                    try:
+                        tools = _build_antigravity_tools(job_result)
+                        antigravity_config = LocalAgentConfig(
+                            model="gemini-2.5-flash",
+                            api_key=gemini_key,
+                            tools=tools,
+                            system_instructions=system_prompt,
+                        )
+                        async with AntigravityAgent(config=antigravity_config) as agent:
+                            agy_resp = await agent.chat(sanitized_q)
+                            agy_text = await agy_resp.text()
+                            if agy_text and agy_text.strip():
+                                formatted_answer = _format_answer_for_ui(agy_text)
+                                self.metrics.record_query(True)
+                                return {
+                                    "success": True,
+                                    "answer": formatted_answer,
+                                    "sources": sources_list if include_sources else [],
+                                    "task_id": task_id,
+                                    "suggested_followups": _generate_suggested_followups(job_result)
+                                }
+                    except Exception as agy_err:
+                        logger.warning("Google Antigravity Agent chat failed (%s) — falling back to LLM pool.", agy_err)
+
+                # 4. Standard LLM Chain Fallback
                 models_to_try = self._models if self.enabled else [OPENAI_MODEL]
-                
                 response = None
                 skip_paid = False
                 for model_name in models_to_try:
@@ -854,7 +974,7 @@ CONTEXT:
         chat_history: Optional[List[Dict[str, str]]] = None
     ):
         """
-        Stream LLM answer tokens in real time for RAG conversation.
+        Stream LLM answer tokens in real time for RAG conversation using Google Antigravity Agent.
         Yields JSON string chunks:
           1. {"type": "metadata", "sources": [...], "suggested_followups": [...]}
           2. {"type": "token", "token": "..."}
@@ -868,12 +988,7 @@ CONTEXT:
                 return
 
             # 1. Retrieve hybrid context chunks via RRF
-            sources_list = []
-            context_chunk_str = "No specific chunk context found."
-            try:
-                sources_list, context_chunk_str = await self._hybrid_retrieve_rrf(task_id, sanitized_q)
-            except Exception as rrf_err:
-                logger.warning(f"RRF retrieval warning: {rrf_err}")
+            sources_list, context_chunk_str = await self._hybrid_retrieve_rrf(task_id, sanitized_q)
 
             # 2. Extract targeted column metrics & Polars exact calculations
             targeted_facts = _extract_targeted_structured_context(sanitized_q, job_result)
@@ -924,7 +1039,32 @@ CONTEXT:
             }
             yield json.dumps(metadata_frame) + "\n"
 
-            # 4. Stream LLM tokens across all models in pool
+            # 4. Stream via Google Antigravity Agent if enabled and configured
+            gemini_key = settings.GEMINI_API_KEY or settings.GOOGLE_API_KEY
+            if ANTIGRAVITY_AVAILABLE and gemini_key:
+                try:
+                    tools = _build_antigravity_tools(job_result)
+                    antigravity_config = LocalAgentConfig(
+                        model="gemini-2.5-flash",
+                        api_key=gemini_key,
+                        tools=tools,
+                        system_instructions=system_prompt,
+                    )
+                    async with AntigravityAgent(config=antigravity_config) as agent:
+                        agy_resp = await agent.chat(sanitized_q)
+                        has_tokens = False
+                        async for token in agy_resp:
+                            if token:
+                                has_tokens = True
+                                yield json.dumps({"type": "token", "token": token}) + "\n"
+                        if has_tokens:
+                            yield json.dumps({"type": "done"}) + "\n"
+                            self.metrics.record_query(True)
+                            return
+                except Exception as agy_stream_err:
+                    logger.warning("Google Antigravity Agent stream failed (%s) — falling back to standard LLM stream.", agy_stream_err)
+
+            # 5. Fallback Stream across LLM pool
             models_to_try = self._models if self.enabled else [OPENAI_MODEL]
             
             stream_response = None
@@ -949,7 +1089,7 @@ CONTEXT:
                     break
                 except Exception as e:
                     err_msg = str(e).lower()
-                    if "402" in err_msg or "credit" in err_msg or getattr(e, "status_code", 0) == 402:
+                    if "402" in err_msg or "credit" in err_msg or getattr(e, "status_code", 400) == 402:
                         logger.warning(
                             "RAG Stream Model %s credit balance exhausted (HTTP 402). Bypassing paid models...",
                             model_name
