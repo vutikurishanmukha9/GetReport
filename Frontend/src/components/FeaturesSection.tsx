@@ -46,48 +46,28 @@ export const FeaturesSection = () => {
 
               {/* Data Health Dashboard Mockup to fill the gap */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 mt-auto">
-                <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 flex flex-col items-center justify-center transition-all hover:shadow-sm">
-                  <div className="relative flex items-center justify-center w-16 h-16 mb-2">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="15.9"
-                        className="text-emerald-200"
-                        strokeWidth="3"
-                        stroke="currentColor"
-                        fill="none"
-                      />
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="15.9"
-                        className="text-emerald-500"
-                        strokeDasharray="92, 100"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        stroke="currentColor"
-                        fill="none"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center flex-col">
-                      <span className="text-sm font-bold text-emerald-700">92%</span>
-                    </div>
+                <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 flex flex-col justify-between space-y-3 transition-all hover:shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider font-mono">Dataset Health Score</span>
+                    <span className="text-xl font-display font-extrabold text-emerald-700">92%</span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-800/70 uppercase tracking-wider">Health Score</span>
+                  <div className="w-full bg-emerald-100 rounded-full h-2 overflow-hidden">
+                    <div className="bg-emerald-500 h-full rounded-full w-[92%]" />
+                  </div>
+                  <span className="text-[11px] text-emerald-800/80 font-sans">14 of 14 quality tests passed</span>
                 </div>
                 
-                <div className="bg-card border rounded-xl p-4 flex flex-col justify-center space-y-3 shadow-xs">
+                <div className="bg-card border rounded-xl p-4 flex flex-col justify-center space-y-2.5 shadow-xs">
                   <div className="flex justify-between items-center text-xs font-mono">
-                    <span className="text-muted-foreground flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/>Completeness</span>
+                    <span className="text-muted-foreground flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"/>Completeness</span>
                     <span className="text-foreground font-semibold">100%</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-mono">
-                    <span className="text-muted-foreground flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/>Uniqueness</span>
+                    <span className="text-muted-foreground flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"/>Uniqueness</span>
                     <span className="text-foreground font-semibold">100%</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-mono">
-                    <span className="text-muted-foreground flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"/>Validity</span>
+                    <span className="text-muted-foreground flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"/>Validity</span>
                     <span className="text-foreground font-semibold">89%</span>
                   </div>
                 </div>

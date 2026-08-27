@@ -426,7 +426,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-display font-semibold text-xs sm:text-sm text-foreground truncate max-w-[240px] sm:max-w-[340px]">
+                            <span className="font-display font-semibold text-xs sm:text-sm text-foreground truncate max-w-[140px] sm:max-w-[320px]">
                               {file.name}
                             </span>
                             <span className="px-1.5 py-0.2 rounded bg-muted text-[10px] font-mono text-muted-foreground uppercase">

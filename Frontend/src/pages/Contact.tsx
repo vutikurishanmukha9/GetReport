@@ -1,21 +1,40 @@
-import { Mail, Github, Linkedin, Send, ShieldCheck, Clock } from "lucide-react";
+import { useState } from "react";
+import { 
+  Mail, Linkedin, Send, Clock, 
+  Copy, Check, MessageSquare, ArrowRight
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+
+const TOPICS = [
+  "Technical Support",
+  "Feature Request",
+  "On-Premise Docker Deployment",
+  "Security / Bug Bounty",
+  "General Inquiry"
+] as const;
 
 export const Contact = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState<string>("Technical Support");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [copiedEmail, setCopiedEmail] = useState(false);
   const { toast } = useToast();
+
+  const handleCopyEmail = () => {
+    navigator.clipboard.writeText("vutikurishanmukha@gmail.com");
+    setCopiedEmail(true);
+    toast({ title: "Email Copied", description: "vutikurishanmukha@gmail.com copied to clipboard." });
+    setTimeout(() => setCopiedEmail(false), 2000);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,13 +43,13 @@ export const Contact = () => {
       return;
     }
 
-    const mailtoSubject = encodeURIComponent(subject || "GetReport Sales & Support Inquiry");
+    const mailtoSubject = encodeURIComponent(`[${selectedTopic}] ${subject || "GetReport Inquiry"}`);
     const mailtoBody = encodeURIComponent(
-      `Name: ${firstName} ${lastName}\nEmail: ${email}\n\nMessage:\n${message}`
+      `Name: ${firstName} ${lastName}\nEmail: ${email}\nTopic: ${selectedTopic}\n\nMessage:\n${message}`
     );
     window.location.href = `mailto:vutikurishanmukha@gmail.com?subject=${mailtoSubject}&body=${mailtoBody}`;
     
-    toast({ title: "Message Triggered", description: "Opening your default email app..." });
+    toast({ title: "Message Triggered", description: "Opening your default email client..." });
     setFirstName("");
     setLastName("");
     setEmail("");
@@ -42,163 +61,219 @@ export const Contact = () => {
     <div className="min-h-screen flex flex-col bg-background animate-in fade-in duration-500">
       <Header onReset={() => {}} showReset={false} />
 
-      <main className="flex-1 pt-20">
+      <main className="flex-1 pt-16 sm:pt-20">
         {/* Header */}
-        <div className="border-b border-border/60 bg-gradient-to-b from-muted/30 to-background py-16 md:py-24">
-          <div className="container mx-auto px-4 text-center space-y-4 max-w-4xl">
-            <Badge variant="outline" className="font-mono text-xs uppercase tracking-wider text-primary border-primary/30 px-3 py-1">
-              Sales & Enterprise Support
-            </Badge>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.05]">
+        <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20 t-badge-shimmer">
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span>Engineering & Community Support</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.08]">
               Get in Touch with Our Team.
             </h1>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Have questions about multi-dataset joins, custom threshold controls, or on-premise Docker deployments? We'd love to assist.
+            
+            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
+              Have questions regarding custom Polars transformation DAGs, on-premise Docker deployments, or security audits? We are here to help.
             </p>
           </div>
         </div>
 
-        {/* Form & Support Cards Grid */}
-        <div className="container mx-auto px-4 py-16 max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Section: Main Contact Grid */}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             
-            {/* Left Col: Info Cards (Col 1-4) */}
-            <div className="lg:col-span-4 space-y-6">
-              <Card className="border border-border bg-card shadow-premium p-6 rounded-2xl space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                    <Mail className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-display font-bold text-base text-foreground">Direct Email</h3>
-                    <p className="text-xs text-muted-foreground">Engineering & Support</p>
+            {/* Left Column: Direct Info Cards (Col 1-5) */}
+            <div className="lg:col-span-5 space-y-4">
+              
+              {/* Direct Email Card with Copy Button */}
+              <Card className="border border-border bg-card shadow-premium p-4 sm:p-5 rounded-2xl space-y-3 t-card-lift">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                      <Mail className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-display font-bold text-sm sm:text-base text-foreground">Direct Engineering Inbox</h3>
+                      <p className="text-xs text-muted-foreground font-sans">Fast-response developer inbox</p>
+                    </div>
                   </div>
                 </div>
-                <div className="pt-2 font-mono text-xs text-foreground bg-muted/60 p-3 rounded-xl border border-border/40 select-all">
-                  vutikurishanmukha@gmail.com
+
+                <div className="flex items-center justify-between gap-2 p-2.5 bg-muted/40 rounded-xl border border-border/60 font-mono text-xs text-foreground select-all">
+                  <span className="truncate">vutikurishanmukha@gmail.com</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyEmail}
+                    className="h-7 px-2 font-mono text-[11px] gap-1 shrink-0"
+                  >
+                    {copiedEmail ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                    <span>{copiedEmail ? "Copied" : "Copy"}</span>
+                  </Button>
                 </div>
               </Card>
 
-              <Card className="border border-border bg-card shadow-premium p-6 rounded-2xl space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                    <Clock className="h-5 w-5" />
+              {/* Response SLA Card */}
+              <Card className="border border-border bg-card shadow-premium p-4 sm:p-5 rounded-2xl space-y-2 t-card-lift">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-700">
+                    <Clock className="h-4 w-4" />
                   </div>
                   <div>
-                    <h3 className="font-display font-bold text-base text-foreground">Response SLA</h3>
-                    <p className="text-xs text-muted-foreground">Guaranteed turnaround</p>
+                    <h3 className="font-display font-bold text-sm sm:text-base text-foreground">Response SLA</h3>
+                    <p className="text-xs text-muted-foreground font-sans">Guaranteed turnaround timeline</p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  We respond to all technical and sales inquiries within <strong className="text-foreground">24 business hours</strong>. For critical processing issues, include "URGENT" in subject line.
+                <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                  We reply to all inquiries within <strong className="text-foreground">24 business hours</strong>. For urgent processing or security issues, include &quot;URGENT&quot; in the subject line.
                 </p>
               </Card>
 
-              <Card className="border border-border bg-card shadow-premium p-6 rounded-2xl space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                    <ShieldCheck className="h-5 w-5 text-emerald-600" />
+              {/* Open Source Community Card */}
+              <Card className="border border-border bg-card shadow-premium p-4 sm:p-5 rounded-2xl space-y-3 t-card-lift">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-700">
+                    <MessageSquare className="h-4 w-4" />
                   </div>
                   <div>
-                    <h3 className="font-display font-bold text-base text-foreground">Social & Code</h3>
-                    <p className="text-xs text-muted-foreground">Open repositories</p>
+                    <h3 className="font-display font-bold text-sm sm:text-base text-foreground">Open Source & Community</h3>
+                    <p className="text-xs text-muted-foreground font-sans">Contribute, file issues, or star</p>
                   </div>
                 </div>
-                <div className="flex gap-3 pt-2">
+                <div className="flex flex-col gap-2 font-mono text-xs">
                   <a
                     href="https://github.com/vutikurishanmukha9/GetReport"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-2.5 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center gap-2 text-xs font-mono text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors"
                   >
-                    <Github className="h-4 w-4" />
-                    <span>GitHub</span>
+                    <span className="truncate pr-2">github.com/vutikurishanmukha9/GetReport</span>
+                    <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0" />
                   </a>
                   <a
-                    href="https://linkedin.com/in/vutikurishanmukha9"
+                    href="https://www.linkedin.com/in/vutikuri-shanmukha-sai-19946824a"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-2.5 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center gap-2 text-xs font-mono text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors"
                   >
-                    <Linkedin className="h-4 w-4" />
-                    <span>LinkedIn</span>
+                    <span>LinkedIn Profile</span>
+                    <Linkedin className="h-3.5 w-3.5 text-blue-600" />
                   </a>
                 </div>
               </Card>
+
             </div>
 
-            {/* Right Col: Contact Form (Col 5-12) */}
-            <div className="lg:col-span-8">
-              <Card className="border border-border bg-card shadow-premium p-8 rounded-2xl">
-                <div className="mb-6 space-y-2">
-                  <h2 className="text-2xl font-display font-bold text-foreground uppercase tracking-tight">Send Us a Message</h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Fill out the fields below to send an instant message directly to our core engineering team.</p>
+            {/* Right Column: Contact Form (Col 6-12) */}
+            <div className="lg:col-span-7">
+              <Card className="border border-border bg-card shadow-premium rounded-2xl sm:rounded-3xl p-5 sm:p-7 space-y-4 sm:space-y-5">
+                <div className="space-y-1 border-b border-border/60 pb-3">
+                  <h2 className="text-lg sm:text-xl font-display font-bold text-foreground uppercase tracking-tight">
+                    Send a Message
+                  </h2>
+                  <p className="text-xs text-muted-foreground font-sans">
+                    Fill out the form below and we will route your inquiry to the appropriate engineering team.
+                  </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label htmlFor="contact-first-name" className="text-xs font-medium text-foreground">First Name</label>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Topic Pill Selector */}
+                  <div className="space-y-1.5">
+                    <span id="topic-label" className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground block">
+                      Inquiry Topic:
+                    </span>
+                    <div role="group" aria-labelledby="topic-label" className="flex flex-wrap gap-1.5">
+                      {TOPICS.map((topic) => (
+                        <button
+                          key={topic}
+                          type="button"
+                          onClick={() => setSelectedTopic(topic)}
+                          className={`px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer border ${
+                            selectedTopic === topic
+                              ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
+                              : "bg-muted/30 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                          }`}
+                        >
+                          {topic}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Name Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label htmlFor="firstName" className="text-xs font-mono font-medium text-foreground block">First Name</label>
                       <Input
-                        id="contact-first-name"
+                        id="firstName"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="Jane"
-                        className="rounded-xl border-border bg-white text-xs"
+                        placeholder="Ada"
+                        className="rounded-xl border-border bg-muted/10 text-xs sm:text-sm h-9"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label htmlFor="contact-last-name" className="text-xs font-medium text-foreground">Last Name</label>
+                    <div className="space-y-1">
+                      <label htmlFor="lastName" className="text-xs font-mono font-medium text-foreground block">Last Name</label>
                       <Input
-                        id="contact-last-name"
+                        id="lastName"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Doe"
-                        className="rounded-xl border-border bg-white text-xs"
+                        placeholder="Lovelace"
+                        className="rounded-xl border-border bg-muted/10 text-xs sm:text-sm h-9"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label htmlFor="contact-email" className="text-xs font-medium text-foreground">Email Address *</label>
+                  {/* Email & Subject */}
+                  <div className="space-y-1">
+                    <label htmlFor="email" className="text-xs font-mono font-medium text-foreground block">Your Email *</label>
                     <Input
-                      id="contact-email"
-                      required
+                      id="email"
                       type="email"
+                      required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="jane@company.com"
-                      className="rounded-xl border-border bg-white text-xs"
+                      placeholder="ada@example.com"
+                      className="rounded-xl border-border bg-muted/10 text-xs sm:text-sm h-9"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label htmlFor="contact-subject" className="text-xs font-medium text-foreground">Subject</label>
+                  <div className="space-y-1">
+                    <label htmlFor="subject" className="text-xs font-mono font-medium text-foreground block">Subject</label>
                     <Input
-                      id="contact-subject"
+                      id="subject"
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
-                      placeholder="Enterprise Plan / Multi-Dataset Support"
-                      className="rounded-xl border-border bg-white text-xs"
+                      placeholder="e.g. Custom Polars Transformation Rule Question"
+                      className="rounded-xl border-border bg-muted/10 text-xs sm:text-sm h-9"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label htmlFor="contact-message" className="text-xs font-medium text-foreground">Message *</label>
+                  {/* Message */}
+                  <div className="space-y-1">
+                    <label htmlFor="message" className="text-xs font-mono font-medium text-foreground block">Message *</label>
                     <Textarea
-                      id="contact-message"
+                      id="message"
                       required
-                      rows={5}
+                      rows={4}
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Tell us about your dataset workload, security requirements, or enterprise feature needs..."
-                      className="rounded-xl border-border bg-white text-xs leading-relaxed"
+                      placeholder="Describe your dataset requirements or technical inquiry in detail..."
+                      className="rounded-xl border-border bg-muted/10 text-xs sm:text-sm resize-none"
                     />
                   </div>
 
-                  <Button type="submit" size="lg" className="w-full rounded-xl h-12 font-display font-semibold text-sm shadow-premium">
-                    <Send className="mr-2 h-4 w-4" />
-                    <span>Send Message to Engineering</span>
+                  {/* Submit Button */}
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full h-11 rounded-xl shadow-premium t-card-lift t-spring-press font-display font-semibold text-sm gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    <span>Send Inquiry</span>
                   </Button>
                 </form>
               </Card>
