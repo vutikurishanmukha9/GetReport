@@ -26,6 +26,8 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY
@@ -35,7 +37,7 @@ services:
       - key: PDF_ENGINE
         value: weasyprint
       - key: CORS_ORIGINS
-        value: https://getreport-frontend.onrender.com,https://getreport.vercel.app,http://localhost:5173
+        value: https://get-report.vercel.app,https://getreport.vercel.app,https://getreport-frontend.onrender.com,http://localhost:5173
       - key: SKEWNESS_THRESHOLD
         value: "0.75"
       - key: STORAGE_TYPE
