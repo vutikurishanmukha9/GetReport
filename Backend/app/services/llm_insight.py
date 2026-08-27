@@ -37,7 +37,7 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 _jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), trim_blocks=True, lstrip_blocks=True)
 
 # ─── Constants ───────────────────────────────────────────────────────────────
-OPENAI_MODEL: str           = "gemini-2.5-flash"                  # default fallback model alias
+OPENAI_MODEL: str           = "gemini-3.7-flash"                  # default fallback model alias
 MAX_TOKENS: int             = 500
 API_TIMEOUT_SECONDS: float  = 30.0
 MAX_RETRIES: int            = 2                   # fewer retries per model, more models
@@ -47,6 +47,7 @@ RETRY_MAX_DELAY_SEC: float  = 8.0
 # Google Gemini OpenAI-Compatible Endpoints
 GEMINI_BASE_URL: str        = "https://generativelanguage.googleapis.com/v1beta/openai/"
 GEMINI_MODELS: list[str]    = [
+    "gemini-3.7-flash",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
     "gemini-2.0-flash-lite",

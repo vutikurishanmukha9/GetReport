@@ -881,7 +881,7 @@ CONTEXT:
                     try:
                         tools = _build_antigravity_tools(job_result)
                         antigravity_config = LocalAgentConfig(
-                            model="gemini-2.5-flash",
+                            model="gemini-3.7-flash",
                             api_key=gemini_key,
                             tools=tools,
                             system_instructions=system_prompt,
@@ -1045,7 +1045,7 @@ CONTEXT:
                 try:
                     tools = _build_antigravity_tools(job_result)
                     antigravity_config = LocalAgentConfig(
-                        model="gemini-2.5-flash",
+                        model="gemini-3.7-flash",
                         api_key=gemini_key,
                         tools=tools,
                         system_instructions=system_prompt,
