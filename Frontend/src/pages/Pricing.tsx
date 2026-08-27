@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
   Check, ArrowRight, Heart, 
-  Github, ChevronDown, ChevronUp, HelpCircle
+  ChevronDown, ChevronUp, HelpCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -174,24 +174,13 @@ export const Pricing = () => {
             </div>
 
             {/* Launch CTA Bar */}
-            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <Link to="/workspace" className="flex-1">
+            <div className="pt-2 flex items-center">
+              <Link to="/workspace" className="w-full">
                 <Button size="lg" className="w-full h-11 rounded-xl shadow-premium t-card-lift t-spring-press font-display font-semibold text-sm">
                   <span>Launch Free Audit Workspace</span>
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <a 
-                href="https://github.com/vutikurishanmukha9/GetReport" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="sm:w-auto"
-              >
-                <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-6 rounded-xl border-border bg-card hover:bg-muted/20 shadow-premium t-card-lift t-spring-press font-display text-sm gap-2">
-                  <Github className="h-4 w-4" />
-                  <span>Star on GitHub</span>
-                </Button>
-              </a>
             </div>
 
           </Card>
