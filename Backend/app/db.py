@@ -457,6 +457,10 @@ def get_db_connection():
     else:
         # SQLite Sync
         conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=10.0)
+        try:
+            conn.execute("PRAGMA journal_mode=WAL;")
+        except Exception:
+            pass
         conn.execute("PRAGMA busy_timeout=5000;")
         conn.row_factory = sqlite3.Row
         try: yield conn

@@ -498,3 +498,149 @@ def analyze_feature_engineering(
         feature_extraction_suggestions=extraction_suggs,
         feature_importance=feature_importance
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ADVANCED MATHEMATICAL FEATURE GENERATORS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def empirical_bayes_target_encoding(
+    df: pl.DataFrame,
+    cat_col: str,
+    target_col: str,
+    m_smooth: float = 10.0,
+    n_splits: int = 5
+) -> pl.DataFrame:
+    """
+    Compute Empirical Bayes smoothed target encoding with Out-Of-Fold (OOF) K-Fold regularization.
+    Formula: S_c = (n_c * y_c_bar + m * mu_global) / (n_c + m)
+    Prevents target leakage and handles high cardinality gracefully.
+    """
+    if cat_col not in df.columns or target_col not in df.columns:
+        return df
+    
+    valid_df = df.filter(pl.col(target_col).is_not_null())
+    if valid_df.height == 0:
+        return df
+    
+    global_mean = float(valid_df[target_col].mean() or 0.0)
+    encoded_col_name = f"{cat_col}_target_enc"
+    
+    # If dataset is small (< 50 rows), compute direct smoothed global prior
+    if df.height < 50 or n_splits <= 1:
+        stats = (
+            valid_df.group_by(cat_col)
+            .agg([
+                pl.col(target_col).count().alias("n_c"),
+                pl.col(target_col).mean().alias("y_c_bar")
+            ])
+            .with_columns([
+                ((pl.col("n_c") * pl.col("y_c_bar") + m_smooth * global_mean) / (pl.col("n_c") + m_smooth))
+                .alias(encoded_col_name)
+            ])
+            .select([cat_col, encoded_col_name])
+        )
+        return df.join(stats, on=cat_col, how="left").with_columns(
+            pl.col(encoded_col_name).fill_null(global_mean)
+        )
+    
+    # Out-Of-Fold K-Fold Partitioning
+    n = df.height
+    fold_size = n // n_splits
+    indices = np.arange(n)
+    
+    fold_dfs = []
+    for fold in range(n_splits):
+        val_start = fold * fold_size
+        val_end = n if fold == n_splits - 1 else (fold + 1) * fold_size
+        
+        train_idx = np.concatenate([indices[:val_start], indices[val_end:]])
+        val_idx = indices[val_start:val_end]
+        
+        train_sub = df[train_idx.tolist()]
+        val_sub = df[val_idx.tolist()]
+        
+        train_valid = train_sub.filter(pl.col(target_col).is_not_null())
+        fold_global_mean = float(train_valid[target_col].mean() or global_mean)
+        
+        stats = (
+            train_valid.group_by(cat_col)
+            .agg([
+                pl.col(target_col).count().alias("n_c"),
+                pl.col(target_col).mean().alias("y_c_bar")
+            ])
+            .with_columns([
+                ((pl.col("n_c") * pl.col("y_c_bar") + m_smooth * fold_global_mean) / (pl.col("n_c") + m_smooth))
+                .alias(encoded_col_name)
+            ])
+            .select([cat_col, encoded_col_name])
+        )
+        
+        encoded_val = val_sub.join(stats, on=cat_col, how="left").with_columns(
+            pl.col(encoded_col_name).fill_null(fold_global_mean)
+        )
+        fold_dfs.append(encoded_val)
+        
+    return pl.concat(fold_dfs)
+
+
+def cyclical_fourier_encoding(
+    df: pl.DataFrame,
+    time_col: str,
+    period: float
+) -> pl.DataFrame:
+    """
+    Encode periodic / cyclical time attributes into continuous Fourier (sin/cos) coordinates.
+    sin(2 * pi * t / period), cos(2 * pi * t / period).
+    Preserves distance metrics across boundary wrap-arounds (e.g., 23:59 to 00:00).
+    """
+    if time_col not in df.columns or period <= 0:
+        return df
+    
+    import math
+    rad_expr = (2.0 * math.pi * pl.col(time_col).cast(pl.Float64)) / period
+    
+    return df.with_columns([
+        rad_expr.sin().round(4).alias(f"{time_col}_sin"),
+        rad_expr.cos().round(4).alias(f"{time_col}_cos"),
+    ])
+
+
+def synthesize_interaction_features(
+    df: pl.DataFrame,
+    numeric_cols: list[str],
+    max_pairs: int = 5
+) -> pl.DataFrame:
+    """
+    Synthesize non-linear interaction terms (products and safe ratios) for top feature pairs.
+    """
+    if len(numeric_cols) < 2:
+        return df
+    
+    exprs = []
+    count = 0
+    
+    for i in range(len(numeric_cols)):
+        for j in range(i + 1, len(numeric_cols)):
+            if count >= max_pairs:
+                break
+            col_a = numeric_cols[i]
+            col_b = numeric_cols[j]
+            
+            # Product interaction
+            prod_name = f"{col_a}_x_{col_b}"
+            exprs.append((pl.col(col_a) * pl.col(col_b)).alias(prod_name))
+            
+            # Safe Ratio interaction (A / (B + epsilon))
+            ratio_name = f"{col_a}_div_{col_b}"
+            exprs.append(
+                (pl.col(col_a) / (pl.when(pl.col(col_b).abs() < 1e-6).then(1e-6).otherwise(pl.col(col_b))))
+                .round(4)
+                .alias(ratio_name)
+            )
+            count += 1
+            
+    if exprs:
+        return df.with_columns(exprs)
+    return df
+

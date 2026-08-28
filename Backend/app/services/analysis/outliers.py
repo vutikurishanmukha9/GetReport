@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+import math
 import polars as pl
 from app.core.config import settings
 
@@ -13,15 +14,16 @@ NON_NEGATIVE_KEYWORDS = {"price", "cost", "age", "count", "quantity", "revenue",
 
 def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict]:
     """
-    Ensemble Outlier & Anomaly Detection Subsystem.
+    Ensemble Outlier & Anomaly Detection Subsystem with Skewness-Adjusted Bounds.
     
     Combines:
-    1. Adaptive IQR Bounds (Mild 1.5x, Severe 3.0x)
-    2. Log-Transformed IQR Bounds for heavy right-skewed business metrics (skew > 2.0)
-    3. Modified Z-Score via Median Absolute Deviation (MAD) for non-normal distributions
-    4. Standard Z-Score (|Z| > 3.0)
-    5. Domain boundary anomalies (e.g. negative prices/ages, percentages > 100%)
-    6. Multivariate Anomaly Detection via Isolation Forest & Local Outlier Factor (LOF)
+    1. Standard Adaptive Tukey IQR Bounds (Mild 1.5x, Severe 3.0x)
+    2. Hubert-Vandervieren Skewness-Adjusted Bounds for Asymmetric Distributions
+    3. Log-Transformed IQR Bounds for heavy right-skewed business metrics (skew > 2.0)
+    4. Modified Z-Score via Median Absolute Deviation (MAD) for non-normal distributions
+    5. Standard Z-Score (|Z| > 3.0)
+    6. Domain boundary anomalies (e.g. negative prices/ages, percentages > 100%)
+    7. Multivariate Anomaly Detection via Isolation Forest & Local Outlier Factor (LOF)
     """
     if not numeric_cols or df.height == 0:
         return {}
@@ -29,7 +31,7 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
     outliers: dict[str, dict] = {}
     n_rows = df.height
 
-    # 1. Pre-calculate aggregations in a single Lazy query for efficiency
+    # 1. Pre-calculate aggregations in a single Lazy query for maximum execution efficiency
     lazy_df = df.lazy()
     aggs = []
     for col in numeric_cols:
@@ -60,14 +62,24 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
             if iqr == 0 and (std_val is None or std_val == 0):
                 continue
 
-            # Check skewness for log-transformation recommendation
-            is_heavy_skew = skew_val is not None and skew_val > 2.0
+            # Check skewness for log-transformation & adjusted bounds
+            raw_skew = float(skew_val) if skew_val is not None else 0.0
+            is_heavy_skew = raw_skew > 2.0
             
-            # Mild & Severe IQR Bounds
+            # Standard Mild & Severe IQR Bounds
             lower_mild = q1 - IQR_LOWER_MULTIPLIER * iqr
             upper_mild = q3 + IQR_UPPER_MULTIPLIER * iqr
             lower_severe = q1 - 3.0 * iqr
             upper_severe = q3 + 3.0 * iqr
+
+            # ── Skewness-Adjusted Boxplot Multipliers (Hubert & Vandervieren approximation) ──
+            clamped_skew = max(min(raw_skew, 3.0), -3.0)
+            if clamped_skew >= 0:
+                adj_lower = q1 - 1.5 * math.exp(-0.35 * clamped_skew) * iqr
+                adj_upper = q3 + 1.5 * math.exp(0.35 * clamped_skew) * iqr
+            else:
+                adj_lower = q1 - 1.5 * math.exp(0.35 * abs(clamped_skew)) * iqr
+                adj_upper = q3 + 1.5 * math.exp(-0.35 * abs(clamped_skew)) * iqr
 
             # Log-transformed IQR for heavy right skew
             log_outlier_count = 0
@@ -87,11 +99,12 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
             mad_val = None
             mad_outlier_count = 0
             try:
-                dev_series = df.select((pl.col(col).cast(pl.Float64) - median_val).abs().alias("dev"))["dev"]
-                mad_val = dev_series.median()
+                non_null_s = df[col].drop_nulls().cast(pl.Float64)
+                dev_series = (non_null_s - median_val).abs()
+                mad_val = float(dev_series.median() or 0.0)
                 if mad_val and mad_val > 0:
                     # Modified Z-score: 0.6745 * |x - median| / MAD > 3.5
-                    mod_z = (0.6745 * (df[col].cast(pl.Float64) - median_val).abs() / mad_val)
+                    mod_z = (0.6745 * (non_null_s - median_val).abs() / mad_val)
                     mad_outlier_count = int((mod_z > 3.5).sum())
             except Exception as e:
                 logger.debug("MAD calculation skipped for %s: %s", col, e)
@@ -116,6 +129,13 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
                 if pct_violations > 0 and max(df[col].drop_nulls(), default=0) > 1.0:
                     domain_anomalies.append(f"{pct_violations} percentage values outside [0, 100%]")
 
+            # Consensus Agreement
+            consensus_rating = "none"
+            if count > 0 and mad_outlier_count > 0:
+                consensus_rating = "high" if count == mad_outlier_count else "moderate"
+            elif count > 0 or mad_outlier_count > 0:
+                consensus_rating = "low"
+
             if count > 0 or mad_outlier_count > 0 or domain_anomalies:
                 vals = outlier_rows[col].head(20).to_list() if count > 0 else []
                 severe_count = int(df.filter(severe_filter).height) if iqr > 0 else 0
@@ -127,13 +147,16 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
                     "mad_outlier_count": mad_outlier_count,
                     "log_outlier_count": log_outlier_count,
                     "is_heavy_skew": is_heavy_skew,
-                    "skewness": round(skew_val, 2) if skew_val is not None else 0.0,
+                    "skewness": round(raw_skew, 2),
                     "min_outlier": outlier_rows[col].min() if count > 0 else None,
                     "max_outlier": outlier_rows[col].max() if count > 0 else None,
                     "lower_bound": round(lower_mild, 4),
                     "upper_bound": round(upper_mild, 4),
                     "lower_bound_severe": round(lower_severe, 4),
                     "upper_bound_severe": round(upper_severe, 4),
+                    "skew_adjusted_lower": round(adj_lower, 4),
+                    "skew_adjusted_upper": round(adj_upper, 4),
+                    "consensus_rating": consensus_rating,
                     "sample_values": vals,
                     "domain_anomalies": domain_anomalies,
                 }

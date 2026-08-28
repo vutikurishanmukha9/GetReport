@@ -16,7 +16,7 @@ if sys.platform == "win32" and "WEASYPRINT_DLL_DIRECTORIES" not in os.environ:
                     pass
             break
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "GetReport API"
@@ -65,7 +65,6 @@ class Settings(BaseSettings):
     # ─── PDF Engine ──────────────────────────────────────────────────────
     PDF_ENGINE: str = "reportlab"  # "weasyprint" or "reportlab" (default for local dev)
     
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

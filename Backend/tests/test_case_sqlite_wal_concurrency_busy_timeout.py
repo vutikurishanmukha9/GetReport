@@ -1,9 +1,10 @@
 import pytest
 import sqlite3
-from app.db import get_db_connection
+from app.db import init_db, get_db_connection
 
 def test_sqlite_wal_mode_and_busy_timeout_pragmas():
     """Verify that SQLite connection enables Write-Ahead Logging (WAL) and 5000ms busy timeout."""
+    init_db()
     with get_db_connection() as conn:
         cursor = conn.cursor()
         

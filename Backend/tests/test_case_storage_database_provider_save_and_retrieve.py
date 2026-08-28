@@ -1,10 +1,12 @@
 import io
 import os
 import pytest
+from app.db import init_db
 from app.services.storage import DatabaseStorageProvider
 
 def test_database_storage_provider_lifecycle():
     """Verify DatabaseStorageProvider saves file bytes to DB and retrieves them correctly."""
+    init_db()  # Ensure database schema and file_store table exist
     provider = DatabaseStorageProvider()
     content = b"COL_A,COL_B\n10,20\n30,40"
     file_obj = io.BytesIO(content)

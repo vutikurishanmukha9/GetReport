@@ -569,6 +569,151 @@ def _detect_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
     return issues
 
 
+def jaro_winkler_similarity(s1: str, s2: str, p: float = 0.1) -> float:
+    """Computes Jaro-Winkler similarity between two strings (0.0 to 1.0)."""
+    s1, s2 = str(s1).strip().lower(), str(s2).strip().lower()
+    if s1 == s2:
+        return 1.0
+    len1, len2 = len(s1), len(s2)
+    if len1 == 0 or len2 == 0:
+        return 0.0
+        
+    match_distance = max(len1, len2) // 2 - 1
+    s1_matches = [False] * len1
+    s2_matches = [False] * len2
+    matches = 0
+    transpositions = 0
+    
+    for i in range(len1):
+        start = max(0, i - match_distance)
+        end = min(i + match_distance + 1, len2)
+        for j in range(start, end):
+            if s2_matches[j]:
+                continue
+            if s1[i] == s2[j]:
+                s1_matches[i] = True
+                s2_matches[j] = True
+                matches += 1
+                break
+                
+    if matches == 0:
+        return 0.0
+        
+    k = 0
+    for i in range(len1):
+        if not s1_matches[i]:
+            continue
+        while not s2_matches[k]:
+            k += 1
+        if s1[i] != s2[k]:
+            transpositions += 1
+        k += 1
+        
+    transpositions //= 2
+    jaro = (matches / len1 + matches / len2 + (matches - transpositions) / matches) / 3.0
+    
+    # Common prefix up to 4 chars
+    prefix = 0
+    for i in range(min(4, len1, len2)):
+        if s1[i] == s2[i]:
+            prefix += 1
+        else:
+            break
+            
+    return jaro + prefix * p * (1.0 - jaro)
+
+
+def disambiguate_categorical_entities(
+    df: pl.DataFrame,
+    col: str,
+    threshold: float = 0.80
+) -> dict[str, Any]:
+    """
+    Cluster misspelled or variant string values using Jaro-Winkler similarity.
+    Replaces variants with the highest-frequency canonical cluster representative.
+    """
+    if col not in df.columns or df[col].dtype != pl.Utf8:
+        return {"replacements": {}, "clusters": []}
+        
+    counts_df = df[col].drop_nulls().value_counts()
+    if counts_df.height < 2 or counts_df.height > 500:
+        return {"replacements": {}, "clusters": []}
+        
+    val_counts = [(row[0], row[1]) for row in counts_df.iter_rows()]
+    n_vals = len(val_counts)
+    
+    clusters = []
+    visited = set()
+    replacements = {}
+    
+    for i in range(n_vals):
+        val_i, cnt_i = val_counts[i]
+        if val_i in visited:
+            continue
+            
+        cluster = [(val_i, cnt_i)]
+        visited.add(val_i)
+        
+        for j in range(i + 1, n_vals):
+            val_j, cnt_j = val_counts[j]
+            if val_j in visited:
+                continue
+                
+            sim = jaro_winkler_similarity(val_i, val_j)
+            if sim >= threshold:
+                cluster.append((val_j, cnt_j))
+                visited.add(val_j)
+                
+        if len(cluster) > 1:
+            cluster.sort(key=lambda x: x[1], reverse=True)
+            canonical = cluster[0][0]
+            clusters.append([v[0] for v in cluster])
+            for v, _ in cluster[1:]:
+                replacements[v] = canonical
+                
+    return {
+        "column": col,
+        "replacements": replacements,
+        "clusters": clusters
+    }
+
+
+def _detect_fuzzy_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
+    """Detect near-duplicate entities and typographical variations in string columns."""
+    issues = []
+    n_rows = df.height
+    if n_rows < 2:
+        return issues
+        
+    for col in df.columns:
+        if df[col].dtype != pl.Utf8:
+            continue
+            
+        res = disambiguate_categorical_entities(df, col, threshold=0.80)
+        reps = res.get("replacements", {})
+        
+        if reps:
+            affected = sum(int((df[col] == old_val).sum()) for old_val in reps.keys())
+            pct = (affected / n_rows * 100) if n_rows > 0 else 0
+            
+            mapping_str = ", ".join(f"'{k}' -> '{v}'" for k, v in list(reps.items())[:3])
+            fix_dict_repr = repr(reps)
+            
+            issues.append(Issue(
+                id=_generate_id(),
+                issue_type="duplicates",
+                severity="medium",
+                column=col,
+                affected_rows=affected,
+                affected_pct=pct,
+                description=f"Fuzzy entity near-duplicates detected in '{col}': {len(reps)} variants ({mapping_str})",
+                suggested_fix=f"Standardize near-duplicate variants in '{col}' to canonical values",
+                fix_code=f"df = df.with_columns(pl.col('{col}').replace({fix_dict_repr}).alias('{col}'))",
+            ))
+            
+    return issues
+
+
 def _detect_empty_column_issues(df: pl.DataFrame) -> list[Issue]:
     """Detect columns that are entirely empty."""
     issues = []

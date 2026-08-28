@@ -108,19 +108,46 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
     # Tier 1: Missing Value Patterns
     missing_patterns = analyze_missing_patterns(df)
     
-    # Categorical Distrib (Top 10)
+    # Categorical Distribution (Top 10 + Information Theoretic Diversity)
     cat_dist = {}
+    import math
     for c in cat_cols:
-        counts = df[c].value_counts(sort=True).head(top_categories)
+        full_counts = df[c].value_counts(sort=True)
+        counts = full_counts.head(top_categories)
         cats = {}
+        total_valid = df.height - df[c].null_count()
+        
+        # Information Theoretic calculations over full frequency distribution
+        entropy = 0.0
+        simpson_sum = 0.0
+        rare_categories_count = 0
+        n_unique_categories = full_counts.height
+        
+        if total_valid > 0:
+            for row in full_counts.iter_rows():
+                cnt = row[1]
+                prob = cnt / total_valid
+                if prob > 0:
+                    entropy -= prob * math.log2(prob)
+                    simpson_sum += prob ** 2
+                if prob < 0.01:
+                    rare_categories_count += 1
+                    
+        normalized_entropy = round(entropy / math.log2(n_unique_categories), 4) if n_unique_categories > 1 else 0.0
+        simpson_diversity = round(1.0 - simpson_sum, 4)
+        
         for row in counts.iter_rows():
             val, cnt = row
-            cats[str(val)] = {"count": cnt, "percentage": round(cnt/df.height*100, 2)}
+            cats[str(val)] = {"count": cnt, "percentage": round(cnt / df.height * 100, 2)}
             
         cat_dist[c] = {
             "categories": cats,
             "total_unique": df[c].n_unique(),
-            "missing_pct": round(df[c].null_count()/df.height*100, 2)
+            "missing_pct": round(df[c].null_count() / df.height * 100, 2),
+            "shannon_entropy": round(entropy, 4),
+            "normalized_evenness": normalized_entropy,
+            "simpson_diversity": simpson_diversity,
+            "rare_categories_count": rare_categories_count,
         }
         
     # Tier 5: Insight Ranking

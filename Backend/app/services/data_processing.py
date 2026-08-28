@@ -878,3 +878,76 @@ def get_dataset_info(df: pl.DataFrame) -> dict[str, Any]:
         "categorical_columns": cat_cols,
         "memory_usage_mb": round(df.estimated_size() / (1024*1024), 2)
     }
+
+
+def impute_multivariate_mice(
+    df: pl.DataFrame,
+    numeric_cols: list[str] | None = None,
+    max_iter: int = 5,
+    ridge_alpha: float = 1e-3
+) -> pl.DataFrame:
+    """
+    Multivariate Imputation by Chained Equations (MICE).
+    Performs iterative linear/ridge regression to impute missing values in numeric columns,
+    preserving joint feature covariances and correlations without variance deflation.
+    """
+    if numeric_cols is None:
+        numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.UInt64, pl.UInt32)]
+        
+    if len(numeric_cols) < 2 or df.height < 3:
+        return df
+        
+    has_nulls = any(df[c].null_count() > 0 for c in numeric_cols)
+    if not has_nulls:
+        return df
+        
+    num_df = df.select([pl.col(c).cast(pl.Float64) for c in numeric_cols])
+    data = num_df.to_numpy().copy()
+    
+    missing_masks = np.isnan(data)
+    if not missing_masks.any():
+        return df
+        
+    # Initial median imputation
+    for j in range(data.shape[1]):
+        col_vals = data[:, j]
+        nan_mask = missing_masks[:, j]
+        if nan_mask.any():
+            valid_vals = col_vals[~nan_mask]
+            med_val = float(np.median(valid_vals)) if len(valid_vals) > 0 else 0.0
+            data[nan_mask, j] = med_val
+            
+    # Iterative MICE chained regression
+    n_samples, n_features = data.shape
+    for _ in range(max_iter):
+        for j in range(n_features):
+            nan_mask = missing_masks[:, j]
+            if not nan_mask.any():
+                continue
+                
+            obs_mask = ~nan_mask
+            if obs_mask.sum() < 2:
+                continue
+                
+            feature_indices = [idx for idx in range(n_features) if idx != j]
+            X_obs = data[obs_mask][:, feature_indices]
+            y_obs = data[obs_mask, j]
+            X_miss = data[nan_mask][:, feature_indices]
+            
+            X_obs_bias = np.c_[np.ones(X_obs.shape[0]), X_obs]
+            X_miss_bias = np.c_[np.ones(X_miss.shape[0]), X_miss]
+            
+            XtX = X_obs_bias.T @ X_obs_bias
+            reg = ridge_alpha * np.eye(XtX.shape[0])
+            try:
+                beta = np.linalg.solve(XtX + reg, X_obs_bias.T @ y_obs)
+                y_pred = X_miss_bias @ beta
+                data[nan_mask, j] = y_pred
+            except Exception:
+                pass
+                
+    imputed_exprs = [
+        pl.Series(col_name, data[:, idx]).alias(col_name)
+        for idx, col_name in enumerate(numeric_cols)
+    ]
+    return df.with_columns(imputed_exprs)

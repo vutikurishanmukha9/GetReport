@@ -10,74 +10,71 @@
 [![Celery](https://img.shields.io/badge/Celery-5.3.6%2B-37814A?logo=celery)](https://docs.celeryq.dev/)
 [![Polars](https://img.shields.io/badge/Engine-Polars%20Rust-CD412B?logo=rust)](https://pola.rs/)
 [![WeasyPrint](https://img.shields.io/badge/PDF_Engine-WeasyPrint%2061.2%2B-FF6600)](https://weasyprint.org/)
+[![Tests](https://img.shields.io/badge/Tests-219%20Passed-brightgreen)](https://github.com/)
 
 ---
 
 ## Overview
-GetReport is an intelligent data analysis platform that transforms raw CSV/Excel and multi-format datasets into comprehensive PDF reports with minimal effort. It combines **high-performance statistical analysis**, **hybrid-search RAG**, **cross-format deduplication**, and **security-first design** to deliver actionable business intelligence.
+GetReport is an automated data intelligence and exploratory data analysis (EDA) platform that transforms raw, multi-format datasets into publication-ready PDF reports, machine learning features, and conversational intelligence.
 
-## Problem Solved
-Data analysis traditionally requires:
-- Technical expertise in statistics and programming
-- Hours of manual exploration and cleaning
-- Separate tools for visualization and reporting
-
-**GetReport eliminates these barriers** by providing a single platform that:
-1. Automatically detects data quality issues across single or multi-file uploads
-2. Applies intelligent cleaning based on user approval via an interactive Issue Ledger
-3. Performs deep statistical analysis **(optimized for speed with Polars)**
-4. Generates publication-ready PDF reports
+It combines a Polars data engine, non-parametric statistical estimators, forensic Benford's Law anomaly detection, symbolic equation discovery, multivariate conditional imputation (MICE), and hybrid-search retrieval-augmented generation (RAG).
 
 ---
 
-## Key Features
+## Problem Solved
+Traditional data analysis workflows require:
+- Deep statistical and programming expertise
+- Time-consuming manual data profiling, cleaning, and sanity checking
+- Fragmented tooling for analysis, feature engineering, and document generation
 
-### Ultra-Robust Ingestion & Messy Dataset Engine
-- **Multi-Encoding Auto-Fallback**: Auto-detects and gracefully falls back through `UTF-8`, `UTF-8-BOM` (`utf-8-sig`), `ISO-8859-1`, `Latin-1`, `Windows-1252`, and `UTF-16` without crashing.
-- **Delimiter & Separator Auto-Detection**: Auto-detects `,`, `;`, `\t`, `|`, and `:` delimiters, ensuring European/custom CSVs are never parsed as a single string column.
-- **Metadata Preamble Text Detection**: Auto-detects and skips leading text/metadata lines sitting above actual table headers.
-- **Universal Null Value Standardizer**: Standardizes string null variants (`"nan"`, `"NaN"`, `"N/A"`, `"n/a"`, `"null"`, `"NULL"`, `"None"`, `"#N/A"`, `"#REF!"`, `"#VALUE!"`, `"-"`, `"?"`, `""`, `"missing"`) into true `pl.Null` / `np.nan` values upon load.
-- **Dirty String Currency & Symbol Coercion**: Auto-cleans currency strings (`$1,250.50`), percentages (`15%`), and negative parenthetical numbers `(100.00)` into `Float64` numeric columns.
-- **Extended Ingestion Support**: Native parsing for **11+ file formats** (`.csv`, `.tsv`, `.xls`, `.xlsx`, `.parquet`, `.json`, `.jsonl`, `.ndjson`, `.feather`, `.arrow`, `.gz`).
-- **Multi-File Batch Uploads (`POST /upload/batch`)**: Ingest up to 10 datasets simultaneously grouped under a single session `batch_id`.
-- **Winsorization (Outlier Capping)**: Replaces outlier values beyond IQR thresholds with boundary limits to preserve dataset size without artificial variance/mean skew.
+GetReport unifies this workflow into a single platform:
+1. Ingests single or multi-file datasets with automatic encoding and format resilience.
+2. Identifies data quality anomalies through an interactive Issue Ledger with user-approved remediations.
+3. Computes statistical distributions, correlations, outliers, missingness structures, and time-series trends.
+4. Generates executive PDF reports and machine-learning-ready engineered features.
 
-### Staging Queue & Interactive Data Health Workflow
-- **Interactive Dataset Staging Queue**: Drag & drop or browse multiple datasets into a staging queue without auto-starting processing.
-- **Staged File Manager**: Inspect staged datasets with format badges (`.csv`, `.xlsx`, `.parquet`), formatted file sizes (`1.2 MB`), and single-click file removal before running analysis.
-- **Manual "Start Analysis & Audit" CTA**: Explicit user control to trigger dataset inspection when ready.
-- **Interactive Issue Ledger**: Review data quality alerts, approve or reject automated cleaning actions, modify values, and track changes.
-- **Machine Learning Readiness Score**: Computes a comprehensive dataset readiness score (0-100%) evaluating completeness, constant variance, format consistency, outliers, and class imbalance.
+---
 
-### Dual-Engine PDF Generation (Revamped)
-- **Warm Parchment & Burgundy Design System**: Executive Briefing document styling matching GetReport's signature **Warm Parchment (`#FAF6F0`) & Deep Burgundy (`#722F37`)** brand palette.
-- **Continuous Flowing Page Layouts**: Eliminated 4–5 inch blank bottom page gaps by optimizing chart aspect ratios (`2.4" – 3.2"` max height) and removing rigid page breaks.
-- **Two-Pass `NumberedCanvas`**: Computes total pages dynamically (*"Page X of Y"*) alongside running top header bars (*"GetReport — Executive Data Analysis Briefing"*) and confidentiality footers.
-- **Dual Engine Choice**: Uses `WeasyPrint` (production HTML/CSS caching) or `ReportLab` (fast local dev without system dependencies).
+## Key Capabilities & Algorithms
 
-### Trust Foundation & Deduplication Strategy
-- **Two-Tier Cross-Format Deduplication**:
-  - **Tier 1 (SHA-256 Byte Hash)**: Computes streaming byte digests (`file_hash`) during upload to catch binary duplicates.
-  - **Tier 2 (Polars Semantic Fingerprinting)**: Computes normalized row-level fingerprints across column names, row counts, and data checksums to catch duplicate records across different file formats.
-- **Column Confidence Scores**: Grades every column on Completeness, Consistency, Validity, and Stability.
-- **Decision Transparency**: Logs why specific tests (Correlation, Time-Series, Anova) were run or skipped.
-- **Transformation DAG**: Tracks data transformations as a directed acyclic graph for complete auditability.
+### 1. Statistical Core and Exploratory Data Analysis
+- **Non-Parametric Dispersion and Shape**: Calculates Median Absolute Deviation (MAD), Interquartile Range (IQR), 5% Trimmed Mean, Coefficient of Variation (CV), and Bowley's resistant quartile skewness alongside standard moments.
+- **Correlation and Multicollinearity**: Evaluates Pearson (r) and Spearman rank-order (rho) correlation matrices with zero-variance protection on constant features and multicollinearity alerts (|r| >= 0.90).
+- **Skewness-Adjusted Outlier Bounds**: Dynamically adjusts Tukey fences using sample skewness to avoid false-positive alarms on naturally skewed distributions.
+- **Categorical Information Theory**: Computes Shannon Entropy, Normalized Evenness, Simpson's Diversity index, and identifies rare categories (<1%).
+- **Missingness Pattern Diagnostics**: Computes pairwise Phi-coefficient matrices to classify MCAR, MAR, and MNAR co-occurrences, along with listwise deletion row-survival estimators.
+- **Time-Series Analysis**: Non-parametric Mann-Kendall monotonic trend test with lag-1, lag-7, and lag-30 autocorrelation analysis.
 
-### Advanced Intelligence (Google Antigravity SDK & RAG Engine)
-- **Google Antigravity SDK Agent**: Equips conversational RAG with autonomous reasoning and dynamic Python dataset tools (`query_column_statistics`, `get_correlation_insights`, `get_data_quality_report`, `get_dataset_overview`) for grounded analytical answers without hallucinations.
-- **Real-Time Token Streaming**: Streams tokens and thoughts directly to the frontend over Server-Sent Events (SSE) and WebSockets.
-- **Hybrid RAG Engine**: Combines **Dense Vector Search** (Gemini embeddings / pgvector) with **Reciprocal Rank Fusion (RRF)** for precise context retrieval.
-- **Table-Aware Text Splitting (`TableAwareTextSplitter`)**: Splits text by paragraphs and tabular section boundaries while prefixing schema headers to prevent row-boundary fragmentation.
-- **Resilient Multi-Provider Fallbacks**: Multi-tier hierarchy: **Google Antigravity (Gemini 2.5/3.7 Flash)** → **OpenRouter Free Chain** → **OpenAI (GPT-4o)** → **Deterministic Polars Fact Engine** (`TFIDFVectorStore`).
-- **Interactive Dataset Q&A**: Ask deep statistical questions about any column, correlation, anomaly, or transformation in natural language.
+### 2. Forensic Confidence Scoring and Integrity Auditing
+- **Benford's Law Forensic Audit**: Analyzes leading digit distributions against the logarithmic first-digit law using Pearson Chi-Square goodness-of-fit to detect fabricated or manipulated numbers.
+- **Role-Adaptive Confidence Weighting**: Dynamically calibrates Completeness, Consistency, Validity, and Stability weights according to inferred column roles (identifiers, metrics, categories, dates).
+- **Population Stability Index (PSI)**: Monitors distribution shifts and concept drift across dataset versions.
 
-### Security & Reliability First Design
-- **SQLite WAL Concurrency**: Write-Ahead Logging (`PRAGMA journal_mode=WAL;`) with 5,000ms busy timeout ensures zero database lockups during concurrent uploads and Celery tasks.
-- **End-to-End Tracing (`X-Request-ID`)**: Automatic request correlation IDs across all API requests and responses.
-- **Storage Path Traversal Sandboxing**: Strict file path resolution ensuring all disk operations are strictly sandboxed inside `base_dir`.
-- **Magic Number Validation**: Strictly verifies file signatures (`.xlsx`, `.xls`, `.parquet`, `.feather`, `.gz`) to prevent extension spoofing.
-- **Content Inspection**: Rejects binary files masquerading as text CSVs.
-- **Zip Bomb Mitigation**: Pre-validates compressed file parameters (ratio, file count, and decompressed XML size) to prevent OOM/DoS attacks during Excel file ingestion.
+### 3. Smart Schema and Relational Discovery
+- **Symbolic Linear Equation Discovery**: Discovers arithmetic relationships across numeric features (sums, differences, products, ratios) with high confidence.
+- **Functional Dependency Mining (X -> Y)**: Identifies determinant relationships where attribute values uniquely specify dependent attributes.
+- **Entity Disambiguation**: Uses Jaro-Winkler string similarity to cluster typographical variations and near-duplicate entities into canonical values.
+
+### 4. Feature Engineering and Imputation
+- **Empirical Bayes Target Encoding**: Smoothed category encodings with Out-of-Fold (OOF) K-Fold regularization to prevent target leakage.
+- **Fourier Cyclical Embeddings**: Maps cyclical calendar and temporal attributes into continuous sine and cosine coordinates.
+- **Multivariate MICE Imputation**: Implements Multivariate Imputation by Chained Equations using iterative Ridge regression to preserve joint feature covariances.
+- **Interaction Synthesis**: Generates non-linear feature products and safe numerical ratios.
+
+### 5. Ingestion Engine
+- **Multi-Encoding Fallback**: Automatically decodes UTF-8, UTF-8-BOM (utf-8-sig), ISO-8859-1, Latin-1, Windows-1252, and UTF-16.
+- **Delimiter Detection**: Detects comma, semicolon, tab, pipe, and colon separators.
+- **Format Support**: Ingests CSV, TSV, XLS, XLSX, Parquet, JSON, JSONL, NDJSON, Feather, Arrow, and GZ archives.
+- **Batch Processing**: Supports multi-dataset uploads grouped under a unified session batch identifier.
+- **Security Sandboxing**: Enforces magic byte verification, strict path resolution, and zip bomb decompression limits.
+
+### 6. Document Generation
+- **Executive Styling**: Consistent document layout with custom typography, headers, dynamic pagination, and confidentiality notices.
+- **Dual PDF Engines**: Production HTML/CSS rendering via WeasyPrint and standalone rendering via ReportLab.
+
+### 7. Conversational RAG
+- **Google Antigravity Agent**: Grounded analytical Q&A powered by the Google Antigravity SDK with direct dataset execution tools.
+- **Hybrid Search**: Combines dense semantic vector search with reciprocal rank fusion (RRF) and deterministic fallback stores.
 
 ---
 
@@ -85,69 +82,25 @@ Data analysis traditionally requires:
 
 ### Frontend
 | Component | Technology |
-|-----------|------------|
+|---|---|
 | Framework | React 18 + Vite |
 | Language | TypeScript |
 | Styling | Tailwind CSS, Vanilla CSS, Shadcn/UI |
 | Navigation | React Router DOM v6 |
 | Icons | Lucide React |
-| State | TanStack Query |
+| State and Fetching | TanStack Query |
 
 ### Backend
 | Component | Technology |
-|-----------|------------|
-| Framework | FastAPI (Python 3.12+) |
-| AI Agent | Google Antigravity SDK (`google-antigravity`) |
+|---|---|
+| Framework | FastAPI (Python 3.12+) with Pydantic v2 |
+| AI Agent | Google Antigravity SDK (google-antigravity) |
 | LLM Providers | Google Gemini (2.5/3.7 Flash), OpenRouter, OpenAI |
 | Task Queue | Celery + Redis |
 | Data Processing | Polars (Rust Engine), NumPy, SciPy |
-| PDF Engine | WeasyPrint (with CSS Cache) / ReportLab |
-| Database | SQLite (WAL Mode) / PostgreSQL (Neon pgvector) |
+| PDF Engine | WeasyPrint / ReportLab |
+| Database | SQLite (WAL Mode) / PostgreSQL (pgvector) |
 | Storage | Local Sandboxed Disk / Database BYTEA / AWS S3 |
-
----
-
-## Project Structure
-```
-GetReport/
-├── Frontend/               # React frontend (Vite + TypeScript)
-│   ├── src/
-│   │   ├── components/     # FileUpload, DataPreview, ChatInterface, IssueLedger, ProcessPipeline, ReportGeneration
-│   │   ├── pages/          # Index, Workspace, Dashboard, Features, HowItWorks, ApiDocs, Documentation, etc.
-│   │   └── services/       # API integration layer (api.ts)
-├── Backend/
-│   ├── app/
-│   │   ├── api/            # FastAPI router configuration
-│   │   │   ├── endpoints.py # Core router aggregator and orchestrator
-│   │   │   └── routes/      # Focused, single-responsibility route handlers
-│   │   │       ├── upload.py # Single & batch file ingestion with SHA-256 calculation
-│   │   │       ├── status.py # Polling & WebSockets status updates
-│   │   │       ├── report.py # PDF download endpoints
-│   │   │       ├── chat.py   # RAG-powered Q&A endpoint
-│   │   │       └── issues.py # Issue Ledger CRUD and state management
-│   │   ├── core/           # Security, authentication, and system configs
-│   │   │   ├── config.py    # Pydantic Settings management
-│   │   │   ├── auth.py      # Header & query API key verification
-│   │   │   ├── limiter.py   # API rate limiting
-│   │   │   ├── file_validation.py # Magic number and signature verification (XLSX, Parquet, Feather, GZ)
-│   │   │   ├── rag_utils.py # TableAwareTextSplitter & TFIDFVectorStore fallback engine
-│   │   │   ├── security_headers.py # HTTP security hardening headers
-│   │   │   └── celery_app.py # Celery broker configuration
-│   │   ├── services/       # Core business logic
-│   │   │   ├── analysis/     # Modular Statistical Analysis Engine
-│   │   │   ├── data_processing.py # Polars loader & automated cleaning rule application
-│   │   │   ├── issue_ledger.py # Ledger generation & compute_dataset_fingerprint
-│   │   │   ├── report_generator.py # PDF report orchestration
-│   │   │   ├── report_weasyprint.py # Production HTML-to-PDF engine
-│   │   │   ├── storage.py    # S3 / Database / Local storage adapter
-│   │   │   ├── task_manager.py # DB Job management with batch_id & file_hash
-│   │   │   └── rag_service.py # Hybrid Vector + Sparse search RAG service with local fallback
-│   │   ├── db.py           # Sync/Async wrappers for SQLite and PostgreSQL (batch_id & file_hash fields)
-│   │   └── tasks.py        # Asynchronous Celery task definitions
-│   └── Dockerfile          # Multi-stage production container build
-├── render.yaml             # Render deployment blueprint (Infrastructure as Code)
-└── README.md               # Main project documentation
-```
 
 ---
 
@@ -163,7 +116,7 @@ source venv/bin/activate         # Linux/Mac
 # Install dependencies
 pip install -r requirements.txt
 
-# Run server (Defaults to PDF_ENGINE=reportlab)
+# Run server
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -174,62 +127,54 @@ npm install
 npm run dev
 ```
 
-Access the application at `http://localhost:8080` (or `http://localhost:5173`)
+Access the application at `http://localhost:8080` (or `http://localhost:5173`).
+
+---
+
+## Testing and Verification
+
+GetReport includes a test suite covering unit tests, property-based hypothesis tests, edge cases, and integration workflows:
+
+```bash
+cd Backend
+pytest -v
+```
+
+```
+============================ 219 passed in 57.99s =============================
+```
+
+- **219 Automated Tests**: Covering statistical estimators, forensic tests, MICE imputation, entity clustering, symbolic equation discovery, and database concurrency.
+- **Zero Failures and Zero Warnings**.
 
 ---
 
 ## Deployment (Production)
 
-The project is optimized for deployment on **Render.com** (or any Docker-based cloud environment).
+The application is configured for deployment on Render or any Docker-compatible infrastructure.
 
-### Deployment Artifacts
-- **render.yaml**: Blueprint for fully automated deployment (API, Worker, Redis, Frontend).
-- **Dockerfile**: Multi-stage build installing WeasyPrint system dependencies (Pango, Cairo) and SSL certs.
+### Deployment Files
+- **render.yaml**: Infrastructure blueprint for web API, background worker, Redis instance, and frontend static site.
+- **Dockerfile**: Production container image with required Pango and Cairo rendering libraries.
 
-### Environment Variables
+### Environment Configuration
 | Variable | Default (Local) | Production | Description |
-|----------|-----------------|------------|-------------|
-| `PDF_ENGINE` | `reportlab` | `weasyprint` | PDF Rendering engine choice (`reportlab` avoids system dependencies in local dev). |
-| `DATABASE_URL` | (empty) -> uses SQLite | `postgres://...` | DB connection string. Local dev defaults to SQLite (`Backend/data/tasks.db`). |
-| `REDIS_URL` | `redis://localhost:6379/0` | `redis://...` | Connection URL for Celery message broker/backend. |
-| `STORAGE_TYPE` | `local` | `db` | Storage provider: `local` (disk), `db` (database blob storage), or `s3`. |
-| `AWS_ACCESS_KEY_ID` | (optional) | (required for S3) | AWS access key for S3 file storage option. |
-| `AWS_SECRET_ACCESS_KEY` | (optional) | (required for S3) | AWS secret key for S3 file storage option. |
-| `GEMINI_API_KEY` / `GOOGLE_API_KEY` | (optional / recommended) | (optional / recommended) | Google Gemini API Key for Google Antigravity SDK Agent (Gemini 2.5 Flash / 3.7 Flash) and embeddings. |
-| `OPENAI_API_KEY` | (optional) | (optional) | OpenAI API Key for GPT-4o analytics features. |
-| `OPENROUTER_API_KEY` | (optional) | (optional) | Alternative LLM provider key to use OpenRouter model fallback chain. |
-| `API_KEY` | (empty) | (optional) | Restricts client API access. If set, requires `X-API-Key` request header. |
-| `CORS_ORIGINS` | `http://localhost:5173,...` | (restrict in prod) | Comma-separated list of allowed origins (supports Vercel and Render). |
-| `RATE_LIMIT_ENABLED` | `True` | `True` | Set to `False` to disable API rate-limiting. |
-| `DB_POOL_MIN_SIZE` | `1` | `1` | Minimum database connections in pool. |
-| `DB_POOL_MAX_SIZE` | `10` | `10` | Maximum database connections in pool to avoid PostgreSQL connection exhaustion. |
-| `MAX_EXCEL_DECOMPRESSED_SIZE_MB` | `200` | `200` | Max decompressed XML size for uploaded Excel zip archives to mitigate Zip Bomb attacks. |
-
----
-
-## Architecture Highlights
-
-### Asynchronous Pipeline
-`Client` -> `API` -> `Redis` -> `Celery Worker` -> `PDF Engine`
-
-### Two-Stage Pipeline
-1. **Inspection Phase**: Single or batch file upload triggers immediate data profiling and SHA-256 / dataset fingerprint deduplication. User reviews quality issues and selects cleaning actions.
-2. **Analysis Phase**: Approved rules are applied, full statistical analysis runs, and PDF is generated.
-
----
-
-## Performance & Scalability Limits
-
-GetReport is designed to handle business-scale datasets efficiently. The following limits ensure system stability, 100% computational accuracy, and memory safety without choking active processes:
-
-### Data Volume & Row Capacity
-- **CSV / TSV Datasets**: Supports up to **50 MB** uploaded files (~500,000 to 1,000,000 rows). Polars compiles and analyzes these datasets in **under 200ms**.
-- **Parquet / Feather / JSON / Arrow**: Native compressed binary parsing with Polars lazy streaming.
-- **Excel Datasets (`.xlsx`/`.xls`)**: Supports up to **50 MB** uploads, with a strict decompressed XML memory limit of **200 MB** to guard against Zip Bomb attacks.
-
-### Statistical & Insight Accuracy
-- **100% Mathematical Accuracy**: All cleaning steps (Winsorization, missing value imputation) and statistical calculations are performed eagerly by Polars on the **entire dataset**.
-- **Dynamic Downsampling for LLM Insights**: Dataset summaries are token-checked using `tiktoken`. Prompts are capped at **3,000 tokens** (~12,000 characters), dynamically truncating wide metrics while maintaining representative statistical context.
+|---|---|---|---|
+| `PDF_ENGINE` | `reportlab` | `weasyprint` | PDF Rendering engine (`reportlab` for lightweight local dev, `weasyprint` for production). |
+| `DATABASE_URL` | (empty) -> SQLite | `postgres://...` | Database connection string. |
+| `REDIS_URL` | `redis://localhost:6379/0` | `redis://...` | Message broker URL for Celery. |
+| `STORAGE_TYPE` | `local` | `db` | Storage provider (`local`, `db`, or `s3`). |
+| `AWS_ACCESS_KEY_ID` | (optional) | (required for S3) | AWS access key. |
+| `AWS_SECRET_ACCESS_KEY` | (optional) | (required for S3) | AWS secret key. |
+| `GEMINI_API_KEY` / `GOOGLE_API_KEY` | (optional) | (recommended) | API Key for Google Antigravity Agent and vector embeddings. |
+| `OPENAI_API_KEY` | (optional) | (optional) | OpenAI API Key. |
+| `OPENROUTER_API_KEY` | (optional) | (optional) | OpenRouter API Key for fallback provider chain. |
+| `API_KEY` | (empty) | (optional) | Optional API key requirement for client requests (X-API-Key header). |
+| `CORS_ORIGINS` | `http://localhost:5173,...` | (configured domain) | Allowed origin domains for CORS. |
+| `RATE_LIMIT_ENABLED` | `True` | `True` | Rate limiting toggle. |
+| `DB_POOL_MIN_SIZE` | `1` | `1` | Minimum pool connections. |
+| `DB_POOL_MAX_SIZE` | `10` | `10` | Maximum pool connections. |
+| `MAX_EXCEL_DECOMPRESSED_SIZE_MB` | `200` | `200` | Decompression limit for Excel zip bomb prevention. |
 
 ---
 

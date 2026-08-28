@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import polars as pl
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -413,6 +414,8 @@ class SmartSchemaResult:
     type_corrections: list[TypeCorrection]
     relationships: list[RelationshipDetection]
     schema_issues: list[SchemaIssue]
+    symbolic_equations: list[dict[str, Any]] = field(default_factory=list)
+    functional_dependencies: list[dict[str, Any]] = field(default_factory=list)
     
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -446,8 +449,142 @@ class SmartSchemaResult:
                     "suggestion": s.suggestion
                 }
                 for s in self.schema_issues
-            ]
+            ],
+            "symbolic_equations": self.symbolic_equations,
+            "functional_dependencies": self.functional_dependencies
         }
+
+
+def discover_symbolic_equations(df: pl.DataFrame, numeric_cols: list[str] | None = None) -> list[dict[str, Any]]:
+    """
+    Search for exact symbolic arithmetic equations between numeric columns.
+    E.g., C = A + B, C = A - B, C = A * B, C = A / B, C = A * (1 - B).
+    """
+    if numeric_cols is None:
+        numeric_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.UInt64, pl.UInt32)]
+        
+    if len(numeric_cols) < 3 or df.height < 5:
+        return []
+        
+    clean_df = df.select([pl.col(c).cast(pl.Float64) for c in numeric_cols]).drop_nulls()
+    if clean_df.height < 5:
+        return []
+        
+    equations = []
+    
+    for i, target_col in enumerate(numeric_cols):
+        other_cols = [c for j, c in enumerate(numeric_cols) if j != i]
+        target_series = clean_df[target_col].to_numpy()
+        
+        for a_idx, col_a in enumerate(other_cols):
+            for col_b in other_cols[a_idx + 1:]:
+                a_vals = clean_df[col_a].to_numpy()
+                b_vals = clean_df[col_b].to_numpy()
+                
+                # Formula 1: C = A + B
+                sum_diff = np.abs((a_vals + b_vals) - target_series)
+                if np.max(sum_diff) < 1e-4:
+                    equations.append({
+                        "target_column": target_col,
+                        "formula": f"{target_col} = {col_a} + {col_b}",
+                        "equation_type": "additive_sum",
+                        "variables": [col_a, col_b],
+                        "confidence": 1.0
+                    })
+                    continue
+                    
+                # Formula 2: C = A - B
+                sub_diff_1 = np.abs((a_vals - b_vals) - target_series)
+                if np.max(sub_diff_1) < 1e-4:
+                    equations.append({
+                        "target_column": target_col,
+                        "formula": f"{target_col} = {col_a} - {col_b}",
+                        "equation_type": "subtraction",
+                        "variables": [col_a, col_b],
+                        "confidence": 1.0
+                    })
+                    continue
+                    
+                # Formula 3: C = B - A
+                sub_diff_2 = np.abs((b_vals - a_vals) - target_series)
+                if np.max(sub_diff_2) < 1e-4:
+                    equations.append({
+                        "target_column": target_col,
+                        "formula": f"{target_col} = {col_b} - {col_a}",
+                        "equation_type": "subtraction",
+                        "variables": [col_b, col_a],
+                        "confidence": 1.0
+                    })
+                    continue
+                    
+                # Formula 4: C = A * B
+                prod_diff = np.abs((a_vals * b_vals) - target_series)
+                if np.max(prod_diff) < 1e-4:
+                    equations.append({
+                        "target_column": target_col,
+                        "formula": f"{target_col} = {col_a} * {col_b}",
+                        "equation_type": "multiplication",
+                        "variables": [col_a, col_b],
+                        "confidence": 1.0
+                    })
+                    continue
+                    
+                # Formula 5: C = A / B (where B != 0 and finite)
+                if (np.abs(b_vals) > 1e-6).all():
+                    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+                        div_diff = np.abs((a_vals / b_vals) - target_series)
+                        if np.isfinite(div_diff).all() and np.max(div_diff) < 1e-4:
+                            equations.append({
+                                "target_column": target_col,
+                                "formula": f"{target_col} = {col_a} / {col_b}",
+                                "equation_type": "division_ratio",
+                                "variables": [col_a, col_b],
+                                "confidence": 1.0
+                            })
+                            continue
+                        
+    return equations
+
+
+def mine_functional_dependencies(df: pl.DataFrame, max_cols: int = 15) -> list[dict[str, Any]]:
+    """
+    Mine exact and near-exact functional dependencies (X -> Y).
+    If every unique value of X maps to a single value of Y, X functionally determines Y.
+    """
+    candidate_cols = df.columns[:max_cols]
+    if len(candidate_cols) < 2 or df.height < 10:
+        return []
+        
+    dependencies = []
+    clean_df = df.select(candidate_cols).drop_nulls()
+    if clean_df.height < 10:
+        return []
+        
+    for col_x in candidate_cols:
+        x_unique = clean_df[col_x].n_unique()
+        if x_unique == 1 or x_unique >= clean_df.height:
+            continue  # Constant or surrogate key
+            
+        for col_y in candidate_cols:
+            if col_x == col_y:
+                continue
+            y_unique = clean_df[col_y].n_unique()
+            if y_unique == 1:
+                continue
+                
+            xy_unique = clean_df.select([col_x, col_y]).n_unique()
+            
+            # Exact functional dependency: n_unique(X, Y) == n_unique(X)
+            if xy_unique == x_unique:
+                dependencies.append({
+                    "determinant_x": col_x,
+                    "dependent_y": col_y,
+                    "strength": 1.0,
+                    "is_exact": True,
+                    "explanation": f"Column '{col_x}' uniquely determines '{col_y}'"
+                })
+                
+    return dependencies
 
 
 def analyze_smart_schema(df: pl.DataFrame) -> SmartSchemaResult:
@@ -455,7 +592,7 @@ def analyze_smart_schema(df: pl.DataFrame) -> SmartSchemaResult:
     Perform smart schema inference on a DataFrame.
     
     Returns:
-        SmartSchemaResult with type corrections, relationships, and issues
+        SmartSchemaResult with type corrections, relationships, issues, and discovered equations
     """
     logger.info("Starting smart schema analysis...")
     
@@ -550,11 +687,18 @@ def analyze_smart_schema(df: pl.DataFrame) -> SmartSchemaResult:
     # Detect schema issues
     schema_issues = _detect_schema_issues(df)
     
+    # Advanced Symbolic Equations and Functional Dependencies
+    symbolic_eqs = discover_symbolic_equations(df)
+    func_deps = mine_functional_dependencies(df)
+    
     logger.info(f"Schema analysis complete: {len(type_corrections)} corrections, "
-                f"{len(relationships)} relationships, {len(schema_issues)} issues")
+                f"{len(relationships)} relationships, {len(schema_issues)} issues, "
+                f"{len(symbolic_eqs)} equations, {len(func_deps)} functional dependencies")
     
     return SmartSchemaResult(
         type_corrections=type_corrections,
         relationships=relationships,
-        schema_issues=schema_issues
+        schema_issues=schema_issues,
+        symbolic_equations=symbolic_eqs,
+        functional_dependencies=func_deps
     )
