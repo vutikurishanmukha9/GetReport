@@ -926,13 +926,20 @@ def impute_multivariate_mice(
                 continue
                 
             obs_mask = ~nan_mask
-            if obs_mask.sum() < 2:
+            obs_count = int(obs_mask.sum())
+            if obs_count < 2:
                 continue
                 
             feature_indices = [idx for idx in range(n_features) if idx != j]
             X_obs = data[obs_mask][:, feature_indices]
             y_obs = data[obs_mask, j]
             X_miss = data[nan_mask][:, feature_indices]
+            
+            # Subsample training data if very large to prevent memory ballooning
+            if obs_count > 10000:
+                sample_idx = np.random.choice(obs_count, size=10000, replace=False)
+                X_obs = X_obs[sample_idx]
+                y_obs = y_obs[sample_idx]
             
             X_obs_bias = np.c_[np.ones(X_obs.shape[0]), X_obs]
             X_miss_bias = np.c_[np.ones(X_miss.shape[0]), X_miss]
@@ -950,4 +957,5 @@ def impute_multivariate_mice(
         pl.Series(col_name, data[:, idx]).alias(col_name)
         for idx, col_name in enumerate(numeric_cols)
     ]
+    del data, missing_masks
     return df.with_columns(imputed_exprs)

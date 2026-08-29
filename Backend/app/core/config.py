@@ -62,9 +62,19 @@ class Settings(BaseSettings):
     DB_POOL_MAX_SIZE: int = 10
     MAX_EXCEL_DECOMPRESSED_SIZE_MB: int = 200
 
+    # ─── Memory & Resource Limits ────────────────────────────────────────
+    POLARS_MAX_THREADS: int = 2
+    MAX_CHARTS_PER_REPORT: int = 8
+    CHART_DPI: int = 96
+
     # ─── PDF Engine ──────────────────────────────────────────────────────
     PDF_ENGINE: str = "reportlab"  # "weasyprint" or "reportlab" (default for local dev)
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
+
+# Ensure Polars does not exceed thread limit on multi-core VMs
+if "POLARS_MAX_THREADS" not in os.environ:
+    os.environ["POLARS_MAX_THREADS"] = str(settings.POLARS_MAX_THREADS)
+

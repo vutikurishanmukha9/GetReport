@@ -13,8 +13,11 @@ from app.services.analysis import classify_numeric_columns
 
 logger = logging.getLogger(__name__)
 
+import gc
+from app.core.config import settings
+
 # ─── Brand-Consistent Chart Theme ────────────────────────────────────────────
-CHART_DPI = 130
+CHART_DPI = getattr(settings, "CHART_DPI", 96)
 BRAND_PRIMARY   = "#6366f1"
 BRAND_SECONDARY = "#4338ca"
 BRAND_ACCENT    = "#a5b4fc"
@@ -44,12 +47,16 @@ plt.rcParams.update({
 })
 
 def _fig_to_base64(fig) -> str:
-    """Convert Matplotlib figure to Base64 string with PNG compression optimization."""
+    """Convert Matplotlib figure to Base64 string with PNG compression optimization and immediate memory reclamation."""
     buf = io.BytesIO()
     fig.savefig(buf, format="png", bbox_inches="tight", dpi=CHART_DPI, pil_kwargs={"optimize": True})
+    fig.clf()
     plt.close(fig)
+    plt.close("all")
     buf.seek(0)
-    return base64.b64encode(buf.read()).decode("utf-8")
+    b64 = base64.b64encode(buf.read()).decode("utf-8")
+    del buf
+    return b64
 
 def _fmt(val, precision=1) -> str:
     """Format a number with commas and decimal places."""
@@ -485,9 +492,8 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     # Log summary
     chart_summary = {k: len(v) if isinstance(v, list) else 1 for k, v in charts.items()}
     logger.info(f"Visualization: Generated charts summary: {chart_summary}")
-    if not charts:
-        logger.warning("Visualization: No charts were generated!")
-    
+    plt.close("all")
+    gc.collect()
     return charts, warnings
 
 

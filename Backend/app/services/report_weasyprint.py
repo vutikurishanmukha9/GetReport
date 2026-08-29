@@ -114,6 +114,10 @@ def generate_pdf_weasyprint(
         stylesheets=[CSSCache.get()],
     )
 
+    import gc
+    del html_content
+    gc.collect()
+
     buffer = BytesIO(pdf_bytes)
 
     # ── 3. Finalize metadata ────────────────────────────────────────────────

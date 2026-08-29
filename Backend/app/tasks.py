@@ -3,6 +3,7 @@ import logging
 from typing import Dict, Any, Optional, List
 from io import BytesIO
 import json
+import gc
 
 try:
     from celery import chain, group
@@ -75,6 +76,8 @@ def inspect_file_task(self, task_id: str, file_ref: str, filename: str):
         # Update status to WAITING_FOR_USER
         title_task_manager.update_status(task_id, TaskStatus.WAITING_FOR_USER, partial_result)
         title_task_manager.update_progress(task_id, 40, f"Review {issue_count} detected issues")
+        del df
+        gc.collect()
         
     except Exception as e:
         logger.error(f"Inspection failed: {e}")
@@ -106,6 +109,9 @@ def clean_data_task(self, task_id: str, file_ref: str, rules: Dict[str, Any], fi
         cleaned_df.write_parquet(buffer)
         buffer.seek(0)
         cleaned_file_ref = storage.save_upload(buffer, f"cleaned_{task_id}.parquet")
+        
+        del df, cleaned_df
+        gc.collect()
         
         return {
             "task_id": task_id,
@@ -156,6 +162,9 @@ def analyze_data_task(self, context: Dict[str, Any], analysis_config_dict: Optio
         original_df = load_dataframe(original_path)
         comparison_report = comparison_service.compare(original_df, df)
         
+        del df, original_df
+        gc.collect()
+        
         # Pass references, not data, to prevent Redis "fat payload" issue
         analysis_bytes = json.dumps(analysis_result).encode("utf-8")
         analysis_ref = storage.save_upload(BytesIO(analysis_bytes), f"analysis_{task_id}.json")
@@ -190,6 +199,8 @@ def generate_charts_task(self, context: Dict[str, Any]):
         cleaned_path = storage.get_absolute_path(context["cleaned_file_ref"])
         df = load_dataframe(cleaned_path)
         charts, _ = generate_charts(df)
+        del df
+        gc.collect()
         return {"charts": charts}
     except Exception as e:
         logger.error(f"Charts failed: {e}")
@@ -300,6 +311,9 @@ def compile_report_task(self, results: List[Dict[str, Any]], context: Dict[str, 
              storage.delete(context["comparison_report_ref"])
              storage.delete(context["issue_ledger_ref"])
         except: pass
+        
+        del analysis_data, pdf_buffer
+        gc.collect()
         
         return final_result
         

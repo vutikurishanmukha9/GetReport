@@ -466,20 +466,26 @@ def discover_symbolic_equations(df: pl.DataFrame, numeric_cols: list[str] | None
     if len(numeric_cols) < 3 or df.height < 5:
         return []
         
-    clean_df = df.select([pl.col(c).cast(pl.Float64) for c in numeric_cols]).drop_nulls()
+    # Cap to top 15 columns and subsample rows to prevent RAM spikes on large tables
+    eval_cols = numeric_cols[:15]
+    clean_df = df.select([pl.col(c).cast(pl.Float64) for c in eval_cols]).drop_nulls()
     if clean_df.height < 5:
         return []
+    if clean_df.height > 3000:
+        clean_df = clean_df.sample(3000)
         
+    # Pre-extract numpy arrays once to avoid tens of thousands of duplicate allocations in the loop
+    col_arrays = {c: clean_df[c].to_numpy() for c in eval_cols}
     equations = []
     
-    for i, target_col in enumerate(numeric_cols):
-        other_cols = [c for j, c in enumerate(numeric_cols) if j != i]
-        target_series = clean_df[target_col].to_numpy()
+    for i, target_col in enumerate(eval_cols):
+        other_cols = [c for j, c in enumerate(eval_cols) if j != i]
+        target_series = col_arrays[target_col]
         
         for a_idx, col_a in enumerate(other_cols):
+            a_vals = col_arrays[col_a]
             for col_b in other_cols[a_idx + 1:]:
-                a_vals = clean_df[col_a].to_numpy()
-                b_vals = clean_df[col_b].to_numpy()
+                b_vals = col_arrays[col_b]
                 
                 # Formula 1: C = A + B
                 sum_diff = np.abs((a_vals + b_vals) - target_series)
@@ -542,7 +548,8 @@ def discover_symbolic_equations(df: pl.DataFrame, numeric_cols: list[str] | None
                                 "confidence": 1.0
                             })
                             continue
-                        
+                            
+    del col_arrays
     return equations
 
 
