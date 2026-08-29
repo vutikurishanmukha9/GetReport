@@ -58,6 +58,20 @@ def _fig_to_base64(fig) -> str:
     del buf
     return b64
 
+def _fig_to_svg(fig) -> str:
+    """Convert Matplotlib figure to clean vector SVG XML with immediate memory reclamation."""
+    buf = io.StringIO()
+    fig.savefig(buf, format="svg", bbox_inches="tight")
+    fig.clf()
+    plt.close(fig)
+    plt.close("all")
+    buf.seek(0)
+    svg_str = buf.getvalue()
+    del buf
+    if "<svg" in svg_str:
+        svg_str = "<svg" + svg_str.split("<svg", 1)[1]
+    return svg_str.strip()
+
 def _fmt(val, precision=1) -> str:
     """Format a number with commas and decimal places."""
     if isinstance(val, (int, np.integer)):

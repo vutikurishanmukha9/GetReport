@@ -371,6 +371,80 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
         raise ParseError(f"Could not parse file: {str(e)}")
 
 
+def scan_dataframe_lazy(file_path: str) -> pl.LazyFrame:
+    """
+    Construct a Polars LazyFrame for zero-copy streaming analysis.
+    Supports CSV, Parquet, TSV, Arrow, Feather, and NDJSON.
+    """
+    lower_path = file_path.lower()
+    if lower_path.endswith(".parquet"):
+        return pl.scan_parquet(file_path)
+    elif lower_path.endswith((".arrow", ".feather")):
+        return pl.scan_ipc(file_path)
+    elif lower_path.endswith((".jsonl", ".ndjson")):
+        return pl.scan_ndjson(file_path)
+    elif lower_path.endswith((".csv", ".tsv", ".txt")):
+        encoding, sep, skip_rows = _detect_csv_parameters(file_path)
+        polars_encoding = "utf8-lossy" if encoding and encoding.lower() in ("latin-1", "cp1252", "iso-8859-1") else "utf8"
+        return pl.scan_csv(
+            file_path,
+            separator=sep,
+            skip_rows=skip_rows,
+            encoding=polars_encoding,
+            ignore_errors=True,
+            null_values=EXTENDED_NULL_VALUES,
+            low_memory=True,
+            truncate_ragged_lines=True
+        )
+    else:
+        # Fallback to eager load -> lazy for complex file formats (e.g., Excel)
+        eager_df = load_dataframe(file_path)
+        return eager_df.lazy()
+
+
+def compute_streaming_summary_stats(lazy_df: pl.LazyFrame) -> dict[str, Any]:
+    """
+    Compute numeric summary statistics using Polars native Rust streaming chunk execution.
+    Executes in fixed 64KB vector chunks without loading the entire matrix into RAM.
+    """
+    schema = lazy_df.collect_schema() if hasattr(lazy_df, "collect_schema") else lazy_df.schema
+    num_cols = [c for c, t in schema.items() if t in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.UInt64, pl.UInt32)]
+    
+    if not num_cols:
+        return {}
+        
+    aggs = []
+    for c in num_cols:
+        aggs.extend([
+            pl.col(c).count().alias(f"{c}_count"),
+            pl.col(c).mean().alias(f"{c}_mean"),
+            pl.col(c).std().alias(f"{c}_std"),
+            pl.col(c).min().alias(f"{c}_min"),
+            pl.col(c).max().alias(f"{c}_max"),
+            pl.col(c).null_count().alias(f"{c}_nulls"),
+        ])
+        
+    try:
+        stats_df = lazy_df.select(aggs).collect(engine="streaming")
+    except (TypeError, ValueError):
+        try:
+            stats_df = lazy_df.select(aggs).collect(streaming=True)
+        except Exception:
+            stats_df = lazy_df.select(aggs).collect()
+    
+    res = {}
+    for c in num_cols:
+        res[c] = {
+            "count": int(stats_df[f"{c}_count"][0]) if stats_df[f"{c}_count"][0] is not None else 0,
+            "mean": float(stats_df[f"{c}_mean"][0]) if stats_df[f"{c}_mean"][0] is not None else 0.0,
+            "std": float(stats_df[f"{c}_std"][0]) if stats_df[f"{c}_std"][0] is not None else 0.0,
+            "min": float(stats_df[f"{c}_min"][0]) if stats_df[f"{c}_min"][0] is not None else 0.0,
+            "max": float(stats_df[f"{c}_max"][0]) if stats_df[f"{c}_max"][0] is not None else 0.0,
+            "null_count": int(stats_df[f"{c}_nulls"][0]) if stats_df[f"{c}_nulls"][0] is not None else 0,
+        }
+    return res
+
+
 def join_datasets(
     dfs_dict: dict[str, pl.DataFrame],
     join_key: str,

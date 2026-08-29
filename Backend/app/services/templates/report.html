@@ -858,10 +858,19 @@
         <div class="section-accent-line"></div>
     </div>
     <div class="section-body">
+        {% macro render_chart_image(img_data, alt_text) %}
+            {% if '<svg' in img_data %}
+                <div class="chart-card__svg-wrapper">{{ img_data | safe }}</div>
+            {% elif img_data.startswith('data:image') %}
+                <img src="{{ img_data }}" alt="{{ alt_text }}">
+            {% else %}
+                <img src="data:image/png;base64,{{ img_data }}" alt="{{ alt_text }}">
+            {% endif %}
+        {% endmacro %}
         <div class="chart-grid">
         {% if charts.get('correlation_heatmap') and charts.correlation_heatmap.get('image') %}
         <div class="chart-card no-break">
-            <img src="data:image/png;base64,{{ charts.correlation_heatmap.image }}" alt="Correlation Heatmap">
+            {{ render_chart_image(charts.correlation_heatmap.image, "Correlation Heatmap") }}
             <div class="chart-card__caption">Correlation Matrix — Numeric Columns</div>
             {% if charts.correlation_heatmap.get('narrative') %}
             <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ charts.correlation_heatmap.narrative }}</div>
@@ -870,7 +879,7 @@
         {% endif %}
         {% if charts.get('scatter_plot') and charts.scatter_plot.get('image') %}
         <div class="chart-card no-break">
-            <img src="data:image/png;base64,{{ charts.scatter_plot.image }}" alt="Relationship Scatter Plot">
+            {{ render_chart_image(charts.scatter_plot.image, "Relationship Scatter Plot") }}
             <div class="chart-card__caption">Relationship: {{ charts.scatter_plot.get('columns', '') }}</div>
             {% if charts.scatter_plot.get('narrative') %}
             <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ charts.scatter_plot.narrative }}</div>
@@ -880,7 +889,7 @@
         {% for chart in charts.get('distributions', []) %}
         {% if chart.get('image') %}
         <div class="chart-card no-break">
-            <img src="data:image/png;base64,{{ chart.image }}" alt="Distribution Chart">
+            {{ render_chart_image(chart.image, "Distribution Chart") }}
             <div class="chart-card__caption">Distribution of {{ chart.get('column', '') }}</div>
             {% if chart.get('narrative') %}
             <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ chart.narrative }}</div>
@@ -891,7 +900,7 @@
         {% for chart in charts.get('bar_charts', []) %}
         {% if chart.get('image') %}
         <div class="chart-card no-break">
-            <img src="data:image/png;base64,{{ chart.image }}" alt="Bar Chart">
+            {{ render_chart_image(chart.image, "Bar Chart") }}
             <div class="chart-card__caption">Category Breakdown: {{ chart.get('column', '') }}</div>
             {% if chart.get('narrative') %}
             <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ chart.narrative }}</div>
@@ -901,7 +910,7 @@
         {% endfor %}
         {% if charts.get('donut_chart') and charts.donut_chart.get('image') %}
         <div class="chart-card no-break">
-            <img src="data:image/png;base64,{{ charts.donut_chart.image }}" alt="Composition Chart">
+            {{ render_chart_image(charts.donut_chart.image, "Composition Chart") }}
             <div class="chart-card__caption">Composition: {{ charts.donut_chart.get('column', '') }}</div>
             {% if charts.donut_chart.get('narrative') %}
             <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ charts.donut_chart.narrative }}</div>
@@ -911,7 +920,7 @@
         {% for chart in charts.get('boxplots', []) %}
         {% if chart.get('image') %}
         <div class="chart-card no-break">
-            <img src="data:image/png;base64,{{ chart.image }}" alt="Boxplot">
+            {{ render_chart_image(chart.image, "Boxplot") }}
             <div class="chart-card__caption">Comparison: {{ chart.get('column', '') }}</div>
             {% if chart.get('narrative') %}
             <div class="chart-card__narrative"><strong>Key Takeaway:</strong> {{ chart.narrative }}</div>

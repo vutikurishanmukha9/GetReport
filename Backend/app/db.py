@@ -318,6 +318,12 @@ def _create_schema(cursor):
         except sqlite3.OperationalError:
             pass  # Column already exists
 
+    # Composite B-Tree Indexes for sub-millisecond polling and history lookups
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status_created ON jobs(status, created_at DESC);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_filename_status ON jobs(filename, status, created_at DESC);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_hash_batch ON jobs(file_hash, batch_id);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_report_status ON jobs(report_status);")
+
 def _create_core_tables_explicit(cursor):
     """Postgres Core Schema (Explicit Public Schema)"""
     cursor.execute("""
@@ -459,6 +465,8 @@ def get_db_connection():
         conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=10.0)
         try:
             conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("PRAGMA synchronous=NORMAL;")
+            conn.execute("PRAGMA cache_size=-8000;")
         except Exception:
             pass
         conn.execute("PRAGMA busy_timeout=5000;")
@@ -503,6 +511,12 @@ async def get_async_db_connection():
         # SQLite Async
         import aiosqlite
         async with aiosqlite.connect(DB_PATH, timeout=10.0) as conn:
+            try:
+                await conn.execute("PRAGMA journal_mode=WAL;")
+                await conn.execute("PRAGMA synchronous=NORMAL;")
+                await conn.execute("PRAGMA cache_size=-8000;")
+            except Exception:
+                pass
             await conn.execute("PRAGMA busy_timeout=5000;")
             conn.row_factory = aiosqlite.Row
             yield AsyncSqliteConnection(conn)

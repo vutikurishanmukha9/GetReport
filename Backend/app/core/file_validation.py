@@ -23,21 +23,15 @@ SIGNATURES = {
     "gz": b"\x1f\x8b",
 }
 
-async def validate_file_signature(file: UploadFile) -> None:
+def verify_header_bytes(header: bytes, filename: str) -> None:
     """
-    Validate file content matches its extension using magic numbers.
-    Raises HTTPException(400) if invalid.
-    Resets file pointer to 0 after checking.
+    Synchronously validate raw initial bytes match the extension signature.
+    Raises HTTPException(400) on mismatch.
     """
-    filename = file.filename.lower()
-    
-    # Read start of file
-    await file.seek(0)
-    header = await file.read(8)
-    await file.seek(0)  # Reset immediately
+    fn_lower = filename.lower()
     
     # 1. Excel (XLSX)
-    if filename.endswith(".xlsx"):
+    if fn_lower.endswith(".xlsx"):
         if not header.startswith(SIGNATURES["xlsx"]):
             logger.warning(f"Validation failed: {filename} claims to be XLSX but lacks ZIP signature.")
             raise HTTPException(
@@ -46,7 +40,7 @@ async def validate_file_signature(file: UploadFile) -> None:
             )
 
     # 2. Excel 97-2003 (XLS)
-    elif filename.endswith(".xls"):
+    elif fn_lower.endswith(".xls"):
         if not header.startswith(SIGNATURES["xls"]):
             logger.warning(f"Validation failed: {filename} claims to be XLS but lacks OLE2 signature.")
             raise HTTPException(
@@ -55,7 +49,7 @@ async def validate_file_signature(file: UploadFile) -> None:
             )
 
     # 3. Parquet
-    elif filename.endswith(".parquet"):
+    elif fn_lower.endswith(".parquet"):
         if not header.startswith(SIGNATURES["parquet"]):
             logger.warning(f"Validation failed: {filename} claims to be Parquet but lacks PAR1 magic number.")
             raise HTTPException(
@@ -64,7 +58,7 @@ async def validate_file_signature(file: UploadFile) -> None:
             )
 
     # 4. Feather / Arrow
-    elif filename.endswith((".feather", ".arrow")):
+    elif fn_lower.endswith((".feather", ".arrow")):
         if not header.startswith(SIGNATURES["feather"]):
             logger.warning(f"Validation failed: {filename} claims to be Feather/Arrow but lacks ARROW1 signature.")
             raise HTTPException(
@@ -73,7 +67,7 @@ async def validate_file_signature(file: UploadFile) -> None:
             )
 
     # 5. GZIP
-    elif filename.endswith(".gz"):
+    elif fn_lower.endswith(".gz"):
         if not header.startswith(SIGNATURES["gz"]):
             logger.warning(f"Validation failed: {filename} claims to be GZIP but lacks GZIP magic number.")
             raise HTTPException(
@@ -81,12 +75,8 @@ async def validate_file_signature(file: UploadFile) -> None:
                 detail="Invalid file content. GZIP compression header signature missing."
             )
 
-    # 3. CSV (Text-based)
-    elif filename.endswith(".csv"):
-        # CSVs don't have magic numbers. We check for text content.
-        # Fix: Valid UTF-16/32 files contain null bytes used as padding.
-        # Strategy: Try decoding common encodings first. If valid text, accept.
-        
+    # 6. CSV (Text-based)
+    elif fn_lower.endswith(".csv"):
         is_text = False
         for encoding in ["utf-8", "utf-16", "latin-1"]:
             try:
@@ -97,17 +87,22 @@ async def validate_file_signature(file: UploadFile) -> None:
                 continue
                 
         if not is_text and b"\x00" in header:
-             logger.warning(f"Validation failed: {filename} contains null bytes and failed text decoding.")
-             raise HTTPException(
+            logger.warning(f"Validation failed: {filename} contains null bytes and failed text decoding.")
+            raise HTTPException(
                 status_code=400,
                 detail="Invalid file content. CSV file appears to be binary."
             )
-            
-        # Optional: Try decoding to catch non-text garbage if no nulls
-        try:
-            header.decode("utf-8")
-        except UnicodeDecodeError:
-            # If not UTF-8, it might be Latin-1/Windows-1252.
-            # But since we already checked for nulls, we can be more lenient here 
-            # or just accept it if we want to support legacy encodings.
-            pass
+
+
+async def validate_file_signature(file: UploadFile) -> None:
+    """
+    Validate file content matches its extension using magic numbers.
+    Raises HTTPException(400) if invalid.
+    Resets file pointer to 0 after checking.
+    """
+    # Read start of file
+    await file.seek(0)
+    header = await file.read(8)
+    await file.seek(0)  # Reset immediately
+    
+    verify_header_bytes(header, file.filename)

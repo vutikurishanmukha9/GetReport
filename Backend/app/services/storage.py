@@ -2,11 +2,14 @@ import abc
 import os
 import shutil
 import uuid
+import hashlib
 from pathlib import Path
 from tempfile import mkstemp
 from typing import BinaryIO, Optional
+from fastapi import UploadFile, HTTPException
 
 from app.core.config import settings
+from app.core.file_validation import verify_header_bytes
 
 class StorageProvider(abc.ABC):
     """
@@ -19,6 +22,45 @@ class StorageProvider(abc.ABC):
         Save an uploaded file and return a reference path/ID.
         """
         pass
+
+    async def save_upload_streaming(
+        self,
+        file: UploadFile,
+        filename: str,
+        max_bytes: int
+    ) -> tuple[str, str, int]:
+        """
+        Stream file in 64KB chunks in a single pass:
+        - Validates magic header signature on first chunk.
+        - Calculates SHA-256 binary hash.
+        - Enforces size limit without secondary file read passes.
+        - Writes directly to storage destination.
+        
+        Returns: (file_ref, file_hash, total_bytes)
+        """
+        hasher = hashlib.sha256()
+        total_bytes = 0
+        first_chunk = True
+        
+        from io import BytesIO
+        mem_buf = BytesIO()
+        
+        while chunk := await file.read(64 * 1024):
+            total_bytes += len(chunk)
+            if total_bytes > max_bytes:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB"
+                )
+            if first_chunk:
+                verify_header_bytes(chunk[:16], filename)
+                first_chunk = False
+            hasher.update(chunk)
+            mem_buf.write(chunk)
+            
+        mem_buf.seek(0)
+        file_ref = self.save_upload(mem_buf, filename)
+        return file_ref, hasher.hexdigest(), total_bytes
 
     @abc.abstractmethod
     def get_absolute_path(self, file_ref: str) -> str:
@@ -59,6 +101,49 @@ class LocalStorageProvider(StorageProvider):
             shutil.copyfileobj(file_obj, buffer)
             
         return str(target_path)
+
+    async def save_upload_streaming(
+        self,
+        file: UploadFile,
+        filename: str,
+        max_bytes: int
+    ) -> tuple[str, str, int]:
+        ext = Path(filename).suffix
+        unique_name = f"{uuid.uuid4()}{ext}"
+        target_path = self.base_dir / unique_name
+        
+        hasher = hashlib.sha256()
+        total_bytes = 0
+        first_chunk = True
+        
+        try:
+            with open(target_path, "wb") as out_file:
+                while chunk := await file.read(64 * 1024):
+                    total_bytes += len(chunk)
+                    if total_bytes > max_bytes:
+                        out_file.close()
+                        if target_path.exists():
+                            target_path.unlink(missing_ok=True)
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB"
+                        )
+                    
+                    if first_chunk:
+                        verify_header_bytes(chunk[:16], filename)
+                        first_chunk = False
+                    
+                    hasher.update(chunk)
+                    out_file.write(chunk)
+        except Exception:
+            if target_path.exists():
+                try:
+                    target_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
+            raise
+            
+        return str(target_path), hasher.hexdigest(), total_bytes
 
     def get_absolute_path(self, file_ref: str) -> str:
         # Strictly sanitize and resolve path within base_dir

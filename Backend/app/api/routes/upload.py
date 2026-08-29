@@ -1,5 +1,5 @@
 """
-Upload Route — File ingestion endpoint.
+Upload Route — Single-Pass Zero-Copy Ingestion Endpoint.
 """
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Request, Depends
 from pydantic import BaseModel
@@ -15,7 +15,6 @@ from app.core.auth import verify_api_key
 from app.services.task_manager import title_task_manager
 from app.services.storage import get_storage_provider
 from app.tasks import inspect_file_task
-from app.core.file_validation import validate_file_signature
 
 storage = get_storage_provider()
 logger = logging.getLogger(__name__)
@@ -38,49 +37,37 @@ class BatchTaskResponse(BaseModel):
     tasks: list[dict]
     message: str
 
-async def _compute_file_hash(file: UploadFile) -> str:
-    """Compute SHA-256 hash of file content without consuming buffer."""
-    hasher = hashlib.sha256()
-    await file.seek(0)
-    chunk = await file.read(64 * 1024)
-    while chunk:
-        hasher.update(chunk)
-        chunk = await file.read(64 * 1024)
-    await file.seek(0)
-    return hasher.hexdigest()
 
 async def _ensure_file_size(file: UploadFile) -> int:
-    """Reject uploads that exceed the configured per-file limit and reset the stream."""
+    """Validate per-file size limit and return total bytes."""
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
     size = getattr(file, "size", None)
     if size is None:
         try:
-            # Starlette's async UploadFile.seek accepts only an offset; use its
-            # underlying seekable object for an O(1) size check.
             file.file.seek(0, 2)
             size = file.file.tell()
             file.file.seek(0)
-        except Exception as seek_err:
-            logger.warning("Size check failed (%s); reading the stream instead.", seek_err)
+        except Exception:
             size = 0
             while chunk := await file.read(64 * 1024):
                 size += len(chunk)
                 if size > max_bytes:
                     raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
             await file.seek(0)
-
     if size > max_bytes:
         raise HTTPException(413, f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
     return size
 
+
 async def _validate_upload_sizes(files: list[UploadFile]) -> None:
-    """Apply per-file and aggregate limits before data is persisted."""
+    """Apply aggregate file size limits before batch operations."""
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
     total_size = 0
     for file in files:
         total_size += await _ensure_file_size(file)
         if total_size > max_bytes:
             raise HTTPException(413, f"Combined upload too large. Max total size: {settings.MAX_UPLOAD_SIZE_MB}MB")
+
 
 @router.post("/upload", response_model=TaskResponse)
 @limiter.limit(UPLOAD_LIMIT)
@@ -91,56 +78,52 @@ async def upload_file(
     _auth: None = Depends(verify_api_key),
 ):
     """
-    Initiates processing using Streaming Upload (RAM Safe).
+    Initiates processing using Single-Pass Streaming Ingestion (Zero-Copy & RAM Safe).
     Returns Task ID immediately.
     """
     try:
         # Pre-validate extension
         if not file.filename.lower().endswith(ALLOWED_EXTENSIONS_TUPLE):
-             raise HTTPException(400, "Invalid file type. Supported formats: CSV, TSV, Excel, Parquet, JSON, JSONL, Feather, GZ.")
-             
-        # Content Validation (Phase 4 Security Hardening)
-        await validate_file_signature(file)
-        file_hash = await _compute_file_hash(file)
-         
-        await _ensure_file_size(file)
+            raise HTTPException(400, "Invalid file type. Supported formats: CSV, TSV, Excel, Parquet, JSON, JSONL, Feather, GZ.")
 
-             
-        # Sanitize Filename (Security Fix)
+        # Sanitize Filename
         base_name = os.path.basename(file.filename)
         safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', base_name)
-        
         if not safe_filename:
             safe_filename = "unnamed_file.csv"
-             
+
+        # Stream upload in single pass (calculates hash, validates magic bytes, bounds size, saves to storage)
+        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        file_ref, file_hash, total_bytes = await storage.save_upload_streaming(
+            file,
+            safe_filename,
+            max_bytes
+        )
+
         # Create Task
         task_id = await title_task_manager.create_job_async(safe_filename, file_hash=file_hash)
-        
-        # Save file via Storage Service
-        file_ref = storage.save_upload(file.file, safe_filename)
-        
+
         # Start Inspection Task (Phase 1) - VIA CELERY
         inspect_file_task.delay(task_id, file_ref, safe_filename)
-        
+
         # Schedule cleanup for old reports (Lazy Cleanup: Max once per hour)
-        # Prevents separate thread per request (DoS mitigation)
         from app.services.cleanup import cleanup_old_files
         import time
-        
+
         global _last_cleanup_time
         try:
             _last_cleanup_time
         except NameError:
             _last_cleanup_time = 0
-            
+
         now = time.time()
         if now - _last_cleanup_time > 3600:
             output_dir = os.path.join(os.getcwd(), "outputs")
             background_tasks.add_task(cleanup_old_files, output_dir, 86400)
             _last_cleanup_time = now
-        
+
         return TaskResponse(
-            task_id=task_id, 
+            task_id=task_id,
             message="File uploaded. Processing started."
         )
 
@@ -160,7 +143,7 @@ async def upload_files_batch(
     _auth: None = Depends(verify_api_key),
 ):
     """
-    Ingests multiple datasets at once (Batch Upload).
+    Ingests multiple datasets at once using Single-Pass Streaming.
     Returns list of Task IDs immediately.
     """
     if not files or len(files) == 0:
@@ -169,24 +152,25 @@ async def upload_files_batch(
     if len(files) > 10:
         raise HTTPException(400, "Batch upload limit is 10 files per request.")
 
-    await _validate_upload_sizes(files)
-
     task_ids = []
     task_details = []
     batch_id = f"batch_{uuid.uuid4().hex[:12]}"
+    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
     for file in files:
         if not file.filename.lower().endswith(ALLOWED_EXTENSIONS_TUPLE):
             raise HTTPException(400, f"Invalid file type for '{file.filename}'.")
 
-        await validate_file_signature(file)
-        file_hash = await _compute_file_hash(file)
-
         base_name = os.path.basename(file.filename)
         safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', base_name) or "unnamed_file.csv"
 
+        file_ref, file_hash, total_bytes = await storage.save_upload_streaming(
+            file,
+            safe_filename,
+            max_bytes
+        )
+
         task_id = await title_task_manager.create_job_async(safe_filename, batch_id=batch_id, file_hash=file_hash)
-        file_ref = storage.save_upload(file.file, safe_filename)
         inspect_file_task.delay(task_id, file_ref, safe_filename)
 
         task_ids.append(task_id)
@@ -224,8 +208,7 @@ async def upload_and_join_files(
     if join_type not in {"inner", "left", "full", "outer", "semi", "anti", "cross"}:
         raise HTTPException(400, "Invalid join type.")
 
-    await _validate_upload_sizes(files)
-
+    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
     dfs_map = {}
     temp_files_to_remove = []
 
@@ -234,12 +217,14 @@ async def upload_and_join_files(
             if not file.filename.lower().endswith(ALLOWED_EXTENSIONS_TUPLE):
                 raise HTTPException(400, f"Invalid file type for '{file.filename}'.")
 
-            await validate_file_signature(file)
             base_name = os.path.basename(file.filename)
             safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', base_name) or "unnamed_file.csv"
-            
-            # Save temporary file to disk for load_dataframe
-            file_ref = storage.save_upload(file.file, safe_filename)
+
+            file_ref, file_hash, total_bytes = await storage.save_upload_streaming(
+                file,
+                safe_filename,
+                max_bytes
+            )
             temp_files_to_remove.append(file_ref)
 
             df = load_dataframe(storage.get_absolute_path(file_ref))
@@ -259,7 +244,7 @@ async def upload_and_join_files(
 
         file_hash = hashlib.sha256(csv_bytes.getvalue()).hexdigest()
         task_id = await title_task_manager.create_job_async(joined_filename, file_hash=file_hash)
-        
+
         joined_file_ref = storage.save_upload(csv_bytes, joined_filename)
         inspect_file_task.delay(task_id, joined_file_ref, joined_filename)
 
@@ -282,5 +267,3 @@ async def upload_and_join_files(
                 storage.delete(tmp_ref)
             except Exception:
                 pass
-
-
