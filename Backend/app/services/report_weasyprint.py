@@ -28,6 +28,14 @@ _JINJA_ENV = Environment(
     autoescape=True,
 )
 
+def _domain_label_filter(val: Any) -> str:
+    """Format machine domain names to clean human-readable titles."""
+    if not val or val == "Unknown":
+        return "General Business / Generic"
+    return str(val).replace("_", " ").title()
+
+_JINJA_ENV.filters["domain_label"] = _domain_label_filter
+
 
 class CSSCache:
     """

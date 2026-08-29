@@ -617,10 +617,51 @@ class EnhancedRAGService:
             self._semaphore = asyncio.Semaphore(self.config.MAX_CONCURRENT_REQUESTS)
         return self._semaphore
 
+    async def _get_gemini_embeddings_rest(self, texts: List[str]) -> List[List[float]]:
+        """Fetch embeddings directly from Google's Generative Language REST API."""
+        import httpx
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
+        requests = [
+            {"model": "models/text-embedding-004", "content": {"parts": [{"text": t}]}}
+            for t in texts
+        ]
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, json={"requests": requests})
+            if resp.status_code != 200:
+                raise RuntimeError(f"Gemini REST embedding returned status {resp.status_code}: {resp.text[:200]}")
+            data = resp.json()
+            return [emb["values"] for emb in data.get("embeddings", [])]
+
+    def _get_gemini_embeddings_rest_sync(self, texts: List[str]) -> List[List[float]]:
+        """Fetch embeddings synchronously from Google's Generative Language REST API."""
+        import httpx
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
+        requests = [
+            {"model": "models/text-embedding-004", "content": {"parts": [{"text": t}]}}
+            for t in texts
+        ]
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.post(url, json={"requests": requests})
+            if resp.status_code != 200:
+                raise RuntimeError(f"Gemini REST sync embedding returned status {resp.status_code}: {resp.text[:200]}")
+            data = resp.json()
+            return [emb["values"] for emb in data.get("embeddings", [])]
+
     async def _get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Get embeddings — tries up to 2 times with a short timeout each."""
-        if not self.embed_client:
+        """Get embeddings via native Gemini REST API or OpenAI-compatible endpoint."""
+        if not self.enabled:
             raise RuntimeError("RAG Embeddings Disabled (no API key)")
+
+        if self._provider_name == "Google Gemini":
+            for attempt in range(2):
+                try:
+                    return await self._get_gemini_embeddings_rest(texts)
+                except Exception as e:
+                    logger.warning("Gemini REST embedding attempt %d/2 failed: %s", attempt + 1, e)
+            raise RuntimeError("All Gemini REST embedding attempts failed.")
+
+        if not self.embed_client:
+            raise RuntimeError("RAG Embeddings Disabled (no embed client)")
         
         last_err = None
         for attempt in range(2):
@@ -639,7 +680,17 @@ class EnhancedRAGService:
         raise last_err
 
     def _get_embeddings_sync(self, texts: List[str]) -> List[List[float]]:
-        """Get embeddings using Sync OpenAI Client (for Celery)"""
+        """Get embeddings synchronously for Celery workers."""
+        if not self.enabled:
+            raise RuntimeError("RAG Embeddings Disabled (no API key)")
+
+        if self._provider_name == "Google Gemini":
+            try:
+                return self._get_gemini_embeddings_rest_sync(texts)
+            except Exception as e:
+                logger.warning("Gemini REST sync embedding failed: %s", e)
+                raise
+
         if not self.embed_sync_client:
             raise RuntimeError("RAG Embeddings Disabled (no OpenAI key)")
         try:
@@ -652,16 +703,17 @@ class EnhancedRAGService:
             logger.error(f"Embedding generation failed: {e}")
             raise
 
-    def _save_local_vector_store(self, task_id: str, store: SimpleVectorStore):
+    def _save_local_vector_store(self, task_id: str, store: Any):
         try:
             # Absolute path reference based on project directory (Issue 3)
             temp_cache_dir = os.path.join(BASE_DIR, "temp_cache")
             os.makedirs(temp_cache_dir, exist_ok=True)
             cache_path = os.path.join(temp_cache_dir, f"{task_id}_vector_store.json")
             
+            matrix = getattr(store, "_embeddings_matrix", None)
             store_data = {
-                "documents": store.documents,
-                "embeddings_matrix": store._embeddings_matrix.tolist() if store._embeddings_matrix is not None else []
+                "documents": getattr(store, "documents", []),
+                "embeddings_matrix": matrix.tolist() if matrix is not None else []
             }
             with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(store_data, f)
@@ -669,17 +721,20 @@ class EnhancedRAGService:
         except Exception as e:
             logger.error(f"Failed to save local vector store to disk: {e}")
 
-    def _load_local_vector_store(self, task_id: str) -> Optional[SimpleVectorStore]:
+    def _load_local_vector_store(self, task_id: str) -> Optional[Any]:
         try:
             # Absolute path reference based on project directory (Issue 3)
             cache_path = os.path.join(BASE_DIR, "temp_cache", f"{task_id}_vector_store.json")
             if os.path.exists(cache_path):
                 with open(cache_path, "r", encoding="utf-8") as f:
                     store_data = json.load(f)
-                store = SimpleVectorStore()
-                store.documents = store_data["documents"]
-                if store_data.get("embeddings_matrix"):
+                if store_data.get("embeddings_matrix") and len(store_data["embeddings_matrix"]) > 0:
+                    store = SimpleVectorStore()
+                    store.documents = store_data["documents"]
                     store._embeddings_matrix = np.array(store_data["embeddings_matrix"], dtype=np.float32)
+                else:
+                    store = TFIDFVectorStore()
+                    store.documents = store_data.get("documents", [])
                 logger.info(f"Loaded local vector store from disk cache: {cache_path}")
                 return store
         except Exception as e:
@@ -783,14 +838,21 @@ class EnhancedRAGService:
                 all_results = []
                 for q_variant in queries:
                     try:
-                        q_embed = (await self._get_embeddings([q_variant]))[0]
-                        if settings.DATABASE_URL:
-                            res = await store.hybrid_search_async(q_variant, q_embed, k=k)
+                        if isinstance(store, TFIDFVectorStore) or getattr(store, "_embeddings_matrix", None) is None:
+                            res = store.similarity_search_with_score(q_variant, k=k)
                         else:
-                            res = store.similarity_search_with_score(q_embed, k=k)
+                            q_embed = (await self._get_embeddings([q_variant]))[0]
+                            if settings.DATABASE_URL:
+                                res = await store.hybrid_search_async(q_variant, q_embed, k=k)
+                            else:
+                                res = store.similarity_search_with_score(q_embed, k=k)
                         all_results.extend(res)
                     except Exception as err:
-                        logger.warning("Retrieval failed for variant '%s': %s", q_variant, err)
+                        try:
+                            res = store.similarity_search(q_variant, k=k) if hasattr(store, "similarity_search") else []
+                            all_results.extend(res)
+                        except Exception:
+                            logger.warning("Retrieval failed for variant '%s': %s", q_variant, err)
 
                 seen_content = set()
                 relevant_docs = []

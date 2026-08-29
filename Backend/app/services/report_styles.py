@@ -304,6 +304,7 @@ def _footer_callback(canvas, doc) -> None:
     canvas.drawRightString(letter[0] - 0.6 * inch, 0.3 * inch, f"Page {doc.page}")
     canvas.restoreState()
 
+
 def _page_callback(canvas, doc) -> None:
     """Apply both header and footer to the page."""
     _header_callback(canvas, doc)
@@ -340,19 +341,36 @@ def _validate_inputs(
 
 # ─── Safe Base64 Image Decoder ───────────────────────────────────────────────
 def _decode_image(
-    b64_string: str,
+    b64_string: Any,
     width: float,
     height: float,
     label: str,
     meta: ReportMetadata,
 ) -> Image | None:
     """
-    Safely decode a base64 string into a ReportLab Image.
+    Safely decode a base64 string or chart dictionary into a ReportLab Image.
 
     Returns:
         A ReportLab Image object, or None if decoding failed.
     """
     try:
+        if isinstance(b64_string, dict):
+            b64_string = b64_string.get("image", "")
+
+        if not b64_string or not isinstance(b64_string, str):
+            meta.charts_skipped += 1
+            return None
+
+        # Clean base64 URI prefixes if present
+        if b64_string.startswith("data:image/") and "," in b64_string:
+            b64_string = b64_string.split(",", 1)[1]
+
+        # If image is raw SVG XML, ReportLab cannot rasterize directly
+        if b64_string.strip().startswith("<svg") or b64_string.strip().startswith("<?xml"):
+            meta.charts_skipped += 1
+            logger.info("SVG vector image '%s' skipped for ReportLab rasterizer.", label)
+            return None
+
         img_data = base64.b64decode(b64_string)
         img_io   = BytesIO(img_data)
         img      = Image(img_io, width=width, height=height)

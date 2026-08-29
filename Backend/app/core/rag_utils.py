@@ -142,10 +142,11 @@ class TableAwareTextSplitter(TextSplitter):
 class TFIDFVectorStore:
     """
     Fallback similarity engine using TF-IDF + Cosine Similarity.
-    Used when external API keys (OpenAI embedding) are unconfigured.
+    Used when external API keys (OpenAI / Gemini embedding) are unconfigured or fail.
     """
     def __init__(self):
         self.documents: List[Dict[str, Any]] = []
+        self._embeddings_matrix: Optional[np.ndarray] = None
 
     def add_texts(self, texts: List[str], metadatas: Optional[List[Dict[str, Any]]] = None):
         for i, text in enumerate(texts):
@@ -158,7 +159,7 @@ class TFIDFVectorStore:
         if not self.documents or not query:
             return []
         
-        words = set(re.findall(r'\w+', query.lower()))
+        words = set(re.findall(r'\w+', str(query).lower()))
         if not words:
             return [(doc, 0.5) for doc in self.documents[:k]]
         
@@ -173,6 +174,18 @@ class TFIDFVectorStore:
 
         scored_docs.sort(key=lambda x: x[1], reverse=True)
         return scored_docs[:k]
+
+    def similarity_search_with_score(self, query: Any, k: int = 6) -> List[Tuple[Dict[str, Any], float]]:
+        """Conforms to SimpleVectorStore interface."""
+        if isinstance(query, str):
+            return self.similarity_search(query, k=k)
+        return [(doc, 0.5) for doc in self.documents[:k]]
+
+    @classmethod
+    def from_texts(cls, texts: List[str], metadatas: Optional[List[Dict[str, Any]]] = None):
+        store = cls()
+        store.add_texts(texts, metadatas)
+        return store
 
 
 class SimpleVectorStore:
