@@ -10,7 +10,7 @@
 [![Celery](https://img.shields.io/badge/Celery-5.3.6%2B-37814A?logo=celery)](https://docs.celeryq.dev/)
 [![Polars](https://img.shields.io/badge/Engine-Polars%20Rust-CD412B?logo=rust)](https://pola.rs/)
 [![WeasyPrint](https://img.shields.io/badge/PDF_Engine-WeasyPrint%2061.2%2B-FF6600)](https://weasyprint.org/)
-[![Tests](https://img.shields.io/badge/Tests-226%20Passed-brightgreen)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-234%20Passed-brightgreen)](https://github.com/)
 
 ---
 
@@ -141,10 +141,10 @@ pytest -v
 ```
 
 ```
-============================ 226 passed in 33.23s =============================
+============================ 234 passed in 38.51s =============================
 ```
 
-- **226 Automated Tests**: Covering statistical estimators, forensic tests, single-pass streaming ingestion, database composite indexes, vector SVG charting, Polars lazy streaming execution, MICE imputation, entity clustering, symbolic equation discovery, memory allocation bounds, and database concurrency.
+- **234 Automated Tests**: Covering statistical estimators, forensic tests, single-pass streaming ingestion, database composite indexes, vector SVG charting, Polars lazy streaming execution, MICE covariance preservation, WAL concurrency, entity clustering, symbolic equation discovery, memory allocation bounds, and database concurrency.
 - **Zero Failures and Zero Warnings**.
 
 ---
