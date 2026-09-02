@@ -130,8 +130,8 @@ async def upload_file(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Upload failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+        logger.error(f"Upload failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Upload failed due to an internal server error.")
 
 
 @router.post("/upload/batch", response_model=BatchTaskResponse)
@@ -151,6 +151,9 @@ async def upload_files_batch(
 
     if len(files) > 10:
         raise HTTPException(400, "Batch upload limit is 10 files per request.")
+
+    # Enforce aggregate file size limit across all files in batch
+    await _validate_upload_sizes(files)
 
     task_ids = []
     task_details = []
@@ -205,8 +208,12 @@ async def upload_and_join_files(
     if len(files) > 5:
         raise HTTPException(400, "Maximum 5 files allowed for joined analysis.")
 
-    if join_type not in {"inner", "left", "full", "outer", "semi", "anti", "cross"}:
-        raise HTTPException(400, "Invalid join type.")
+    # Disallow 'cross' join to prevent denial of service via memory exhaustion
+    if join_type not in {"inner", "left", "full", "outer", "semi", "anti"}:
+        raise HTTPException(400, "Invalid join type. Note: Cartesian 'cross' joins are disabled for resource protection.")
+
+    # Enforce aggregate file size limit across all files being joined
+    await _validate_upload_sizes(files)
 
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
     dfs_map = {}
@@ -258,8 +265,8 @@ async def upload_and_join_files(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Joined upload failed: {str(e)}")
-        raise HTTPException(500, f"Joined upload failed: {str(e)}")
+        logger.error(f"Joined upload failed: {str(e)}", exc_info=True)
+        raise HTTPException(500, "Joined upload failed due to an internal server error.")
     finally:
         # Clean up intermediate staged component files
         for tmp_ref in temp_files_to_remove:

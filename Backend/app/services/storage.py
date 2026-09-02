@@ -38,28 +38,40 @@ class StorageProvider(abc.ABC):
         
         Returns: (file_ref, file_hash, total_bytes)
         """
+        import tempfile
         hasher = hashlib.sha256()
         total_bytes = 0
         first_chunk = True
         
-        from io import BytesIO
-        mem_buf = BytesIO()
+        # Stream chunks directly to a temporary file on disk (zero heap accumulation)
+        temp_dir = os.path.abspath("temp_uploads")
+        os.makedirs(temp_dir, exist_ok=True)
         
-        while chunk := await file.read(64 * 1024):
-            total_bytes += len(chunk)
-            if total_bytes > max_bytes:
-                raise HTTPException(
-                    status_code=413,
-                    detail=f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB"
-                )
-            if first_chunk:
-                verify_header_bytes(chunk[:16], filename)
-                first_chunk = False
-            hasher.update(chunk)
-            mem_buf.write(chunk)
+        fd, temp_file_path = tempfile.mkstemp(dir=temp_dir, prefix="stream_", suffix=Path(filename).suffix)
+        try:
+            with open(fd, "wb") as disk_file:
+                while chunk := await file.read(64 * 1024):
+                    total_bytes += len(chunk)
+                    if total_bytes > max_bytes:
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB"
+                        )
+                    if first_chunk:
+                        verify_header_bytes(chunk[:16], filename)
+                        first_chunk = False
+                    hasher.update(chunk)
+                    disk_file.write(chunk)
             
-        mem_buf.seek(0)
-        file_ref = self.save_upload(mem_buf, filename)
+            with open(temp_file_path, "rb") as disk_reader:
+                file_ref = self.save_upload(disk_reader, filename)
+        finally:
+            if os.path.exists(temp_file_path):
+                try:
+                    os.remove(temp_file_path)
+                except Exception:
+                    pass
+
         return file_ref, hasher.hexdigest(), total_bytes
 
     @abc.abstractmethod

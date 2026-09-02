@@ -9,6 +9,7 @@ Falls back gracefully with a clear error if WeasyPrint is not installed.
 from __future__ import annotations
 
 import logging
+import os
 import time
 from datetime import datetime
 from io import BytesIO
@@ -58,6 +59,64 @@ class CSSCache:
         return cls._css
 
 
+
+
+def safe_url_fetcher(url: str, *args, **kwargs) -> dict:
+    """
+    Security URL fetcher for WeasyPrint to defeat SSRF (CWE-918) and LFI (CWE-73).
+    - Allows data: URIs (inline images, fonts, charts).
+    - Allows local files strictly within _TEMPLATE_DIR.
+    - Blocks all remote network protocols (http://, https://, ftp://) and external file paths.
+    """
+    from urllib.parse import urlparse
+    import base64
+
+    parsed = urlparse(url)
+    scheme = parsed.scheme.lower()
+
+    # On Windows, drive letters (e.g. D:, C:) are parsed as 1-char schemes by urlparse
+    is_windows_drive = len(scheme) == 1 and scheme.isalpha() and len(url) > 1 and url[1] == ":"
+    if is_windows_drive:
+        scheme = "file"
+
+    if scheme not in ("data", "file", ""):
+        logger.warning(f"WeasyPrint SSRF attempt blocked: {url}")
+        raise ValueError(f"External network request to '{url}' is forbidden for security.")
+
+    if scheme in ("file", ""):
+        if is_windows_drive:
+            raw_path = url
+        elif scheme == "file":
+            raw_path = parsed.path
+            if raw_path.startswith("/") and os.name == "nt" and len(raw_path) > 2 and raw_path[2] == ":":
+                raw_path = raw_path[1:]
+        else:
+            raw_path = url
+        target_path = os.path.realpath(raw_path)
+        template_dir_real = os.path.realpath(str(_TEMPLATE_DIR))
+        try:
+            is_subpath = os.path.commonpath([template_dir_real, target_path]) == template_dir_real
+        except ValueError:
+            is_subpath = False
+
+        if not (is_subpath and os.path.exists(target_path)):
+            logger.warning(f"WeasyPrint local file access blocked: {url}")
+            raise ValueError(f"Access to local file '{url}' is forbidden for security.")
+
+    # URL is verified safe (data: or allowed local file).
+    try:
+        import weasyprint
+        return weasyprint.default_url_fetcher(url, *args, **kwargs)
+    except (ImportError, OSError):
+        # Fallback when WeasyPrint C-libraries are not loaded locally
+        if scheme == "data":
+            header, _, data_part = url.partition(",")
+            mime_type = header[5:].split(";")[0] if ";" in header else (header[5:] or "text/plain")
+            content = base64.b64decode(data_part) if ";base64" in header else data_part.encode("utf-8")
+            return {"string": content, "mime_type": mime_type}
+        else:
+            with open(target_path, "rb") as f:
+                return {"string": f.read(), "mime_type": "text/css" if target_path.endswith(".css") else "application/octet-stream"}
 
 
 def generate_pdf_weasyprint(
@@ -118,6 +177,7 @@ def generate_pdf_weasyprint(
     pdf_bytes = HTML(
         string=html_content,
         base_url=str(_TEMPLATE_DIR),
+        url_fetcher=safe_url_fetcher,
     ).write_pdf(
         stylesheets=[CSSCache.get()],
     )

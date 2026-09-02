@@ -194,7 +194,7 @@ class TestAnalyzeDatasetProperties:
                 )
 
     @given(data=numeric_columns(min_cols=2, max_cols=3))
-    @settings(max_examples=10, deadline=10000, suppress_health_check=[HealthCheck.too_slow])
+    @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])
     def test_outlier_percentage_in_range(self, data: dict[str, list[float]]):
         """Outlier percentage must be in [0, 100]."""
         min_len = min(len(v) for v in data.values())

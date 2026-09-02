@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional
 import logging
 import os
 import re
+import html
 
 from app.core.limiter import limiter, REPORT_LIMIT
 from app.core.auth import verify_api_key, validate_task_id
@@ -127,7 +128,9 @@ async def download_report(
 # ─── Comprehensive PDF (Full Report Generator) ──────────────────────────────
 
 @router.get("/jobs/{task_id}/report/full")
+@limiter.limit(REPORT_LIMIT)
 async def download_full_report_pdf(
+    request: Request,
     task_id: str,
     _auth: None = Depends(verify_api_key),
 ):
@@ -168,8 +171,8 @@ async def download_full_report_pdf(
             headers={"Content-Disposition": f"attachment; filename=Report_{safe_filename}.pdf"}
         )
     except Exception as e:
-        logger.error(f"PDF Generation failed: {e}")
-        raise HTTPException(500, "Failed to generate PDF report.")
+        logger.error(f"PDF Generation failed: {e}", exc_info=True)
+        raise HTTPException(500, "Failed to generate PDF report due to an internal server error.")
 
 
 # ─── Transformation DAG ─────────────────────────────────────────────────────
@@ -195,7 +198,9 @@ async def get_transformation_dag(
 
 
 @router.get("/jobs/{task_id}/dag/export")
+@limiter.limit(REPORT_LIMIT)
 async def export_transformation_dag(
+    request: Request,
     task_id: str, format: str = "json",
     _auth: None = Depends(verify_api_key),
 ):
@@ -328,14 +333,16 @@ async def generate_report_direct(
             headers={"Content-Disposition": f"attachment; filename={body.filename}"}
         )
     except Exception as e:
-        logger.error(f"Direct PDF Generation failed: {str(e)}")
-        raise HTTPException(500, f"Failed to generate PDF report: {str(e)}")
+        logger.error(f"Direct PDF Generation failed: {str(e)}", exc_info=True)
+        raise HTTPException(500, "Failed to generate PDF report due to an internal server error.")
 
 
 # ─── Multi-Format Export Route (CSV / Parquet / HTML) ─────────────────────────
 
 @router.get("/jobs/{task_id}/export/{export_format}")
+@limiter.limit(REPORT_LIMIT)
 async def export_cleaned_data_or_report(
+    request: Request,
     task_id: str,
     export_format: str,
     _auth: None = Depends(verify_api_key),
@@ -388,20 +395,28 @@ async def export_cleaned_data_or_report(
                     headers={"Content-Disposition": f"attachment; filename=Cleaned_{filename_base}.parquet"}
                 )
         except Exception as e:
-            logger.error(f"Data export failed: {e}")
-            raise HTTPException(500, f"Failed to export cleaned dataset: {str(e)}")
+            logger.error(f"Data export failed: {e}", exc_info=True)
+            raise HTTPException(500, "Failed to export cleaned dataset due to an internal server error.")
 
     elif clean_fmt == "html":
         info = job.result.get("info", {})
         summary = job.result.get("analysis", {}).get("executive_summary", "No executive summary available.")
         score = job.result.get("ml_readiness", {}).get("overall_score", 100)
+
+        # Security: Escape all user-controlled data to prevent Stored XSS (SEC-01)
+        safe_filename_display = html.escape(str(filename_base))
+        safe_summary = html.escape(str(summary)).replace('\n', '<br/>')
+        safe_rows = html.escape(f"{info.get('rows', 0):,}")
+        safe_cols = html.escape(str(info.get("columns", 0)))
+        safe_health = html.escape(str(info.get("data_health_score", 100)))
+        safe_score = html.escape(str(score))
         
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GetReport — Executive Data Briefing: {filename_base}</title>
+    <title>GetReport — Executive Data Briefing: {safe_filename_display}</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #FAF6F0; color: #2C2C2C; padding: 40px; margin: 0; }}
         .card {{ background: #FFFFFF; border: 1px solid #E5DCC3; border-radius: 16px; padding: 32px; max-width: 900px; margin: 0 auto; box-shadow: 0 10px 30px rgba(114,47,55,0.08); }}
@@ -421,18 +436,18 @@ async def export_cleaned_data_or_report(
         <div class="header">
             <div>
                 <h1>Executive Data Analysis Briefing</h1>
-                <p style="margin: 4px 0 0 0; color: #666;">Dataset: {filename_base}</p>
+                <p style="margin: 4px 0 0 0; color: #666;">Dataset: {safe_filename_display}</p>
             </div>
-            <span class="badge">ML Readiness: {score}/100</span>
+            <span class="badge">ML Readiness: {safe_score}/100</span>
         </div>
         <div class="grid">
-            <div class="stat"><div class="stat-val">{info.get("rows", 0):,}</div><div class="stat-lbl">Total Rows</div></div>
-            <div class="stat"><div class="stat-val">{info.get("columns", 0)}</div><div class="stat-lbl">Total Columns</div></div>
-            <div class="stat"><div class="stat-val">{info.get("data_health_score", 100)}%</div><div class="stat-lbl">Data Health</div></div>
+            <div class="stat"><div class="stat-val">{safe_rows}</div><div class="stat-lbl">Total Rows</div></div>
+            <div class="stat"><div class="stat-val">{safe_cols}</div><div class="stat-lbl">Total Columns</div></div>
+            <div class="stat"><div class="stat-val">{safe_health}%</div><div class="stat-lbl">Data Health</div></div>
         </div>
         <h2>Executive Summary & Insights</h2>
         <div class="summary">
-            {summary.replace('\n', '<br/>')}
+            {safe_summary}
         </div>
         <div class="footer">
             Generated by GetReport Platform — Privacy Guaranteed & Isolated Processing

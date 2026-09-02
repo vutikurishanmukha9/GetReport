@@ -21,8 +21,10 @@ UUID_PATTERN = re.compile(
     re.IGNORECASE
 )
 
+import secrets
+
 if settings.DATABASE_URL and not settings.API_KEY:
-    logger.warning("⚠ Production database is configured (DATABASE_URL) but API_KEY is unset! Endpoints are open to public access.")
+    logger.warning("Production database is configured (DATABASE_URL) but API_KEY is unset! Endpoints are open to public access.")
 
 
 async def verify_api_key(api_key: str = Security(_api_key_header)) -> None:
@@ -36,7 +38,7 @@ async def verify_api_key(api_key: str = Security(_api_key_header)) -> None:
         # Auth disabled (development mode)
         return
 
-    if not api_key or api_key != settings.API_KEY:
+    if not api_key or not secrets.compare_digest(api_key, settings.API_KEY):
         logger.warning("Unauthorized API request (invalid or missing API key)")
         raise HTTPException(
             status_code=401,
@@ -54,7 +56,7 @@ def verify_ws_api_key(api_key: str | None) -> bool:
     """
     if not settings.API_KEY:
         return True  # Auth disabled
-    return api_key == settings.API_KEY
+    return bool(api_key and secrets.compare_digest(api_key, settings.API_KEY))
 
 
 # ─── Input Validation ────────────────────────────────────────────────────────

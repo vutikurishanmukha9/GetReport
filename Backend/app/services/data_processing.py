@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -153,6 +154,40 @@ def _validate_zip_bomb(file_path: str, max_uncompressed_size_mb: int | None = No
             raise
         raise ParseError(f"Error checking zip archive safety: {str(e)}")
 
+def _validate_gzip_bomb(file_path: str, max_uncompressed_size_mb: int | None = None, max_ratio: float = 100.0) -> None:
+    """
+    Validate that a .gz file is not a decompression bomb.
+    Streams through the compressed file measuring decompressed byte counts
+    against settings.MAX_EXCEL_DECOMPRESSED_SIZE_MB.
+    """
+    import gzip
+    if max_uncompressed_size_mb is None:
+        max_uncompressed_size_mb = settings.MAX_EXCEL_DECOMPRESSED_SIZE_MB
+
+    max_bytes = max_uncompressed_size_mb * 1024 * 1024
+    total_uncompressed = 0
+    compressed_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+
+    try:
+        with gzip.open(file_path, "rb") as gz:
+            while chunk := gz.read(64 * 1024):
+                total_uncompressed += len(chunk)
+                if total_uncompressed > max_bytes:
+                    raise ParseError(
+                        f"Decompressed gzip size ({total_uncompressed / (1024*1024):.1f}MB) "
+                        f"exceeds safe limit of {max_uncompressed_size_mb}MB."
+                    )
+        if compressed_size > 0:
+            ratio = total_uncompressed / compressed_size
+            if ratio > max_ratio and total_uncompressed > 10 * 1024 * 1024:
+                raise ParseError(f"High compression ratio ({ratio:.1f}x) detected in gzip archive (potential bomb).")
+    except gzip.BadGzipFile:
+        pass
+    except Exception as e:
+        if isinstance(e, ParseError):
+            raise
+        raise ParseError(f"Error checking gzip safety: {str(e)}")
+
 # Extended Null Values List for Polars CSV parsing and post-processing
 EXTENDED_NULL_VALUES: list[str] = [
     "nan", "NaN", "NAN", "N/A", "n/a", "null", "NULL", "None", "none",
@@ -304,10 +339,12 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
     """
     logger.info("═══ load_dataframe (Ultra-Robust) started — '%s' ═══", file_path)
     
-    # Pre-validate zip files (Excel) against Zip Bombs
+    # Pre-validate zip files (Excel) and gzip archives against decompression bombs
     lower_path = file_path.lower()
     if lower_path.endswith((".xls", ".xlsx")):
         _validate_zip_bomb(file_path, max_uncompressed_size_mb=settings.MAX_EXCEL_DECOMPRESSED_SIZE_MB)
+    elif lower_path.endswith(".gz"):
+        _validate_gzip_bomb(file_path, max_uncompressed_size_mb=settings.MAX_EXCEL_DECOMPRESSED_SIZE_MB)
     
     try:
         lower_path = file_path.lower()

@@ -10,7 +10,7 @@
 [![Celery](https://img.shields.io/badge/Celery-5.3.6%2B-37814A?logo=celery)](https://docs.celeryq.dev/)
 [![Polars](https://img.shields.io/badge/Engine-Polars%20Rust-CD412B?logo=rust)](https://pola.rs/)
 [![WeasyPrint](https://img.shields.io/badge/PDF_Engine-WeasyPrint%2061.2%2B-FF6600)](https://weasyprint.org/)
-[![Tests](https://img.shields.io/badge/Tests-237%20Passed-brightgreen)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-243%20Passed-brightgreen)](https://github.com/)
 
 ---
 
