@@ -28,7 +28,7 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="relative pt-24 pb-12 sm:pt-28 sm:pb-16 md:pt-32 md:pb-20 lg:pt-36 lg:pb-24 overflow-hidden">
+    <section className="relative pt-20 sm:pt-24 pb-12 sm:pb-16 md:pb-20 lg:pb-24 overflow-hidden">
       {/* Subtle tint background */}
       <div className="absolute inset-0 bg-gradient-to-b from-muted/30 to-transparent -z-10" />
 
