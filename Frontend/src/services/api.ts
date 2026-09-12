@@ -22,6 +22,14 @@ export interface ReportStatusResponse {
     download_url?: string;
 }
 
+export interface ChatStreamMetadata {
+    sources: string[];
+    suggested_followups?: string[];
+    source?: string;
+    sql?: string;
+    chart_base64?: string;
+}
+
 // ─── Client ─────────────────────────────────────────────────────────────────
 
 async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -132,7 +140,7 @@ export const api = {
         taskId: string,
         question: string,
         onToken: (token: string) => void,
-        onMetadata: (metadata: { sources: string[]; suggested_followups?: string[]; source?: string; sql?: string }) => void,
+        onMetadata: (metadata: ChatStreamMetadata) => void,
         onDone: () => void,
         onError: (err: Error) => void,
         chatHistory?: { role: string; content: string }[]
