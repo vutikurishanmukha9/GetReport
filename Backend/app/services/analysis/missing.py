@@ -98,8 +98,9 @@ def analyze_missing_patterns(df: pl.DataFrame) -> dict[str, Any]:
     row_missing_sum = missing_per_row.select(pl.sum_horizontal(pl.all())).to_series()
     
     fully_complete = int((row_missing_sum == 0).sum())
-    partial_missing = int(((row_missing_sum > 0) & (row_missing_sum < len(cols_with_missing))).sum())
-    fully_missing = int((row_missing_sum == len(cols_with_missing)).sum())
+    all_null_expr = pl.all_horizontal([pl.col(c).is_null() for c in df.columns])
+    fully_missing = int(df.select(all_null_expr.alias("all_null")).to_series().sum())
+    partial_missing = max(0, total_rows - fully_complete - fully_missing)
     
     complete_pct = round(fully_complete / total_rows * 100, 2)
     data_loss_risk = "High" if complete_pct < 60.0 else ("Moderate" if complete_pct < 85.0 else "Low")

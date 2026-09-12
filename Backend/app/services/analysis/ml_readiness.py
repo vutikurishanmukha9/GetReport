@@ -132,7 +132,7 @@ def _score_class_imbalance(df: pl.DataFrame) -> tuple[float, list[str], set[str]
         
     for col in df.columns:
         dtype = df.schema[col]
-        if dtype == pl.String or dtype == pl.Categorical:
+        if dtype in (pl.String, pl.Categorical, pl.Boolean, pl.Utf8):
             non_null_series = df[col].drop_nulls()
             non_null_len = len(non_null_series)
             if non_null_len > 0:

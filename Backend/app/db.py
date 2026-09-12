@@ -318,6 +318,19 @@ def _create_schema(cursor):
         except sqlite3.OperationalError:
             pass  # Column already exists
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS golden_queries (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        question TEXT NOT NULL,
+        sql_query TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        result_summary TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_golden_queries_task ON golden_queries(task_id);")
+
     # Composite B-Tree Indexes for sub-millisecond polling and history lookups
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status_created ON jobs(status, created_at DESC);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_filename_status ON jobs(filename, status, created_at DESC);")
@@ -382,6 +395,19 @@ def _create_core_tables_explicit(cursor):
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_batch_id ON jobs(batch_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_file_hash ON jobs(file_hash)")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS golden_queries (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        question TEXT NOT NULL,
+        sql_query TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        result_summary TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_golden_queries_task ON golden_queries(task_id)")
 
 def _enable_vector_extension(cursor):
     cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")

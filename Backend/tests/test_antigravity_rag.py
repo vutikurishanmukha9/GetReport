@@ -31,13 +31,15 @@ def test_antigravity_tools_construction():
 
     # 2. Test Tools Construction
     tools = _build_antigravity_tools(mock_job_result)
-    assert len(tools) == 4
+    assert len(tools) == 6
     
     tool_names = [t.__name__ for t in tools]
     assert "get_dataset_overview" in tool_names
     assert "query_column_statistics" in tool_names
     assert "get_correlation_insights" in tool_names
     assert "get_data_quality_report" in tool_names
+    assert "run_analytical_sql_query" in tool_names
+    assert "run_sandboxed_python_analysis" in tool_names
     
     # Test tool execution
     stats_func = next(t for t in tools if t.__name__ == "query_column_statistics")

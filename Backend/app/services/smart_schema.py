@@ -548,6 +548,20 @@ def discover_symbolic_equations(df: pl.DataFrame, numeric_cols: list[str] | None
                                 "confidence": 1.0
                             })
                             continue
+
+                # Formula 5b: C = B / A (where A != 0 and finite)
+                if (np.abs(a_vals) > 1e-6).all():
+                    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+                        div_diff_2 = np.abs((b_vals / a_vals) - target_series)
+                        if np.isfinite(div_diff_2).all() and np.max(div_diff_2) < 1e-4:
+                            equations.append({
+                                "target_column": target_col,
+                                "formula": f"{target_col} = {col_b} / {col_a}",
+                                "equation_type": "division_ratio",
+                                "variables": [col_b, col_a],
+                                "confidence": 1.0
+                            })
+                            continue
                             
     del col_arrays
     return equations

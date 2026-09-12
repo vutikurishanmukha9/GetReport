@@ -12,6 +12,7 @@ from app.services.insight_ranking import rank_insights
 from app.services.analysis.validation import validate_input, EmptyDatasetError, InsufficientDataError, AnalysisError
 from app.services.analysis.classification import classify_numeric_columns
 from app.services.analysis.statistics import compute_summary, compute_correlation
+from app.services.analysis.correlations import compute_phik_matrix
 from app.services.analysis.outliers import detect_outliers
 from app.services.analysis.time_series import analyze_time_series
 from app.services.analysis.missing import analyze_missing_patterns
@@ -24,6 +25,8 @@ class AnalysisResult:
     summary:                   dict[str, dict[str, float]]     = field(default_factory=dict)
     correlation:               dict[str, dict[str, float]]     = field(default_factory=dict)
     strong_correlations:       list[dict[str, Any]]            = field(default_factory=list)
+    phik_matrix:               dict[str, dict[str, float]]     = field(default_factory=dict)
+    phik_strong_associations:  list[dict[str, Any]]            = field(default_factory=list)
     outliers:                  dict[str, dict[str, Any]]       = field(default_factory=dict)
     categorical_distribution:  dict[str, dict[str, Any]]       = field(default_factory=dict)
     column_quality_flags:      dict[str, list[str]]            = field(default_factory=dict)
@@ -36,6 +39,8 @@ class AnalysisResult:
             "summary":                   self.summary,
             "correlation":               self.correlation,
             "strong_correlations":       self.strong_correlations,
+            "phik_matrix":               self.phik_matrix,
+            "phik_strong_associations":  self.phik_strong_associations,
             "outliers":                  self.outliers,
             "categorical_distribution":  self.categorical_distribution,
             "column_quality_flags":      self.column_quality_flags,
@@ -93,8 +98,15 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
     
     correlation = {}
     strong_pairs = []
+    phik_matrix = {}
+    phik_strong = []
     if config.enable_correlation:
         correlation, strong_pairs = compute_correlation(df, analytical_cols)
+        try:
+            phik_cols = analytical_cols + cat_cols[:6]
+            phik_matrix, phik_strong = compute_phik_matrix(df, columns=phik_cols)
+        except Exception as phik_err:
+            logger.warning("Phik correlation calculation skipped: %s", phik_err)
     
     outliers = {}
     if config.enable_outliers:
@@ -112,10 +124,11 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
     cat_dist = {}
     import math
     for c in cat_cols:
-        full_counts = df[c].value_counts(sort=True)
+        valid_series = df[c].drop_nulls()
+        total_valid = valid_series.len()
+        full_counts = valid_series.value_counts(sort=True)
         counts = full_counts.head(top_categories)
         cats = {}
-        total_valid = df.height - df[c].null_count()
         
         # Information Theoretic calculations over full frequency distribution
         entropy = 0.0
@@ -134,7 +147,7 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
                     rare_categories_count += 1
                     
         normalized_entropy = round(entropy / math.log2(n_unique_categories), 4) if n_unique_categories > 1 else 0.0
-        simpson_diversity = round(1.0 - simpson_sum, 4)
+        simpson_diversity = round(1.0 - simpson_sum, 4) if total_valid > 0 else 0.0
         
         for row in counts.iter_rows():
             val, cnt = row
@@ -169,6 +182,8 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
         summary=summary_stats,
         correlation=correlation,
         strong_correlations=strong_pairs,
+        phik_matrix=phik_matrix,
+        phik_strong_associations=phik_strong,
         outliers=outliers,
         categorical_distribution=cat_dist,
         ranked_insights=[i.to_dict() for i in ranked_insights],

@@ -75,14 +75,17 @@ def classify_numeric_columns(df: pl.DataFrame, numeric_cols: list[str]) -> dict[
         except Exception:
             pass
         
-        # Check 5: Low variance (near-constant)
+        # Check 5: Low variance (near-constant or zero variance)
         try:
             std = df[col].std()
             mean = df[col].mean()
-            if std is not None and mean is not None and mean != 0:
-                cv = abs(std / mean)
-                if cv < 0.01:
+            if std is not None:
+                if std == 0.0:
                     reasons.append("low_variance")
+                elif mean is not None and mean != 0:
+                    cv = abs(std / mean)
+                    if cv < 0.01:
+                        reasons.append("low_variance")
         except Exception:
             pass
         

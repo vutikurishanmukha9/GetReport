@@ -1,4 +1,6 @@
+import html
 import logging
+import re
 import asyncio
 import os
 import json
@@ -147,23 +149,27 @@ def _generate_suggested_followups(job_result: Optional[Dict[str, Any]]) -> List[
 def _format_answer_for_ui(text: str) -> str:
     """
     Format answer text into clean, beautiful HTML for the Chat UI.
-    Replaces markdown ##/### headers, **bold**, and `code` tags with clean HTML,
+    First escapes all raw HTML special characters to prevent XSS, then safely
+    replaces markdown ##/### headers, **bold**, and `code` tags with clean HTML,
     and ensures each bullet/paragraph renders on a new line with <br/>.
     """
     if not text:
         return ""
     
-    # 1. Convert ### Header or ## Header to <h3>...</h3>
-    text = re.sub(r'#{1,4}\s*(.*?)(?=\n|$)', r'<h3>\1</h3>', text)
+    # 1. Escape all raw HTML entities (<, >, &, ", ') to neutralize XSS injection
+    safe_text = html.escape(text)
+
+    # 2. Convert ### Header or ## Header to <h3>...</h3>
+    safe_text = re.sub(r'#{1,4}\s*(.*?)(?=\n|$)', r'<h3>\1</h3>', safe_text)
     
-    # 2. Convert **bold** to <b>bold</b>
-    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    # 3. Convert **bold** to <b>bold</b>
+    safe_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', safe_text)
     
-    # 3. Convert `code` to <code>code</code>
-    text = re.sub(r'`(.*?)`', r'<code>\1</code>', text)
+    # 4. Convert `code` to <code>code</code>
+    safe_text = re.sub(r'`(.*?)`', r'<code>\1</code>', safe_text)
     
-    # 4. Clean lines and join with <br/>
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    # 5. Clean lines and join with <br/>
+    lines = [line.strip() for line in safe_text.splitlines() if line.strip()]
     return "<br/>".join(lines)
 
 
@@ -506,6 +512,86 @@ def _build_antigravity_tools(job_result: Optional[Dict[str, Any]]):
         issues = job_result.get("issue_ledger", {})
         return f"Cleaning Report: {json.dumps(cleaning)}\nQuality Flags: {json.dumps(flags)}\nIssue Ledger: {json.dumps(issues)}"
     tools.append(get_data_quality_report)
+
+    def run_analytical_sql_query(sql_query: str) -> str:
+        """
+        Executes a read-only analytical SQL query against the dataset using in-process DuckDB.
+        Use this tool when the user asks for exact aggregations, averages, totals, sums, counts,
+        groupings, maximums, minimums, or filtered slices of the data.
+        The table name is 'dataset'.
+        
+        Args:
+            sql_query: The SQL query to execute (e.g. "SELECT department, AVG(salary) FROM dataset GROUP BY department").
+        """
+        if not job_result:
+            return "Dataset not loaded."
+        cleaned_file_ref = job_result.get("cleaned_file_ref") or job_result.get("_file_ref")
+        if not cleaned_file_ref:
+            return "Dataset file reference not found."
+        
+        try:
+            from app.services.storage import get_storage_provider
+            from app.services.duckdb_engine import DuckDBAnalyticalSession
+            from app.services.data_processing import load_dataframe
+            storage = get_storage_provider()
+            file_path = storage.get_absolute_path(cleaned_file_ref)
+            if not os.path.exists(file_path):
+                return f"Source file does not exist at {file_path}."
+                
+            session = DuckDBAnalyticalSession()
+            try:
+                if file_path.endswith(".parquet"):
+                    session.register_parquet("dataset", file_path)
+                else:
+                    df = load_dataframe(file_path)
+                    session.register_polars("dataset", df)
+                records = session.execute_read_query(sql_query)
+                return json.dumps(records[:50])
+            finally:
+                session.close()
+        except Exception as e:
+            return f"SQL execution failed: {e}"
+    tools.append(run_analytical_sql_query)
+
+    def run_sandboxed_python_analysis(python_code: str) -> str:
+        """
+        Executes Python/Polars analysis code in a secure AST-sandboxed runtime.
+        Use this tool when the user asks for complex multi-step transformations,
+        statistical tests, regressions, clustering, plotting, distributions, or calculations
+        that require Python logic on the Polars DataFrame 'df'.
+        Matplotlib charts are captured automatically.
+        
+        Args:
+            python_code: Safe Python code operating on 'df' (Polars DataFrame) or 'pl'/'np'.
+        """
+        if not job_result:
+            return "Dataset not loaded."
+        cleaned_file_ref = job_result.get("cleaned_file_ref") or job_result.get("_file_ref")
+        if not cleaned_file_ref:
+            return "Dataset file reference not found."
+
+        try:
+            from app.services.storage import get_storage_provider
+            from app.services.data_processing import load_dataframe
+            from app.services.sandboxed_analyst import SandboxedAnalystAgent
+
+            storage = get_storage_provider()
+            file_path = storage.get_absolute_path(cleaned_file_ref)
+            if not os.path.exists(file_path):
+                return f"Source file does not exist at {file_path}."
+
+            df = load_dataframe(file_path)
+            agent = SandboxedAnalystAgent(timeout_seconds=10)
+            exec_res = agent.execute_polars(python_code, df)
+            if not exec_res.success:
+                return f"Execution error: {exec_res.error or 'Unknown error'}\nOutput: {exec_res.output}"
+            summary = f"Success ({exec_res.execution_time_ms}ms)\nOutput:\n{exec_res.output}"
+            if exec_res.chart_base64:
+                summary += f"\n[Chart Generated: base64 image captured ({len(exec_res.chart_base64)} chars)]"
+            return summary
+        except Exception as e:
+            return f"Sandboxed execution failed: {e}"
+    tools.append(run_sandboxed_python_analysis)
 
     return tools
 
@@ -893,6 +979,57 @@ class EnhancedRAGService:
 
             if not self.enabled:
                 return {"success": True, "answer": _generate_smart_dataset_answer(sanitized_q, job_result), "sources": []}
+
+            # 0. Check Golden Query Context Store (Dataherald pattern: zero-latency, zero-hallucination)
+            try:
+                from app.services.golden_query_service import GoldenQueryService
+                golden = GoldenQueryService.find_matching_query(task_id, sanitized_q)
+                if golden:
+                    from app.services.duckdb_engine import DuckDBAnalyticalSession
+                    from app.services.storage import get_storage_provider
+                    from app.services.data_processing import load_dataframe
+
+                    file_ref = (job_result or {}).get("cleaned_file_ref") or (job_result or {}).get("_file_ref")
+                    if file_ref:
+                        storage = get_storage_provider()
+                        file_path = storage.get_absolute_path(file_ref)
+                        if os.path.exists(file_path):
+                            session = DuckDBAnalyticalSession()
+                            try:
+                                if file_path.endswith(".parquet"):
+                                    session.register_parquet("dataset", file_path)
+                                else:
+                                    df = load_dataframe(file_path)
+                                    session.register_polars("dataset", df)
+                                records = session.execute_read_query(golden.sql_query)
+
+                                rows_summary = []
+                                for r in records[:5]:
+                                    row_str = ", ".join(f"<b>{k}</b>: {v}" for k, v in r.items())
+                                    rows_summary.append(f"• {row_str}")
+                                summary_text = "<br/>".join(rows_summary) if rows_summary else "No rows returned."
+
+                                golden_answer = (
+                                    f"🎯 <b>Verified Golden KPI Result</b><br/>"
+                                    f"Matched verified KPI query for: <i>\"{golden.question}\"</i><br/><br/>"
+                                    f"<b>SQL Query:</b><br/><code>{golden.sql_query}</code><br/><br/>"
+                                    f"<b>Result:</b><br/>{summary_text}"
+                                )
+                                self.metrics.record_query(True)
+                                return {
+                                    "success": True,
+                                    "answer": golden_answer,
+                                    "sources": [f"[Golden KPI] Query: {golden.sql_query}"],
+                                    "source": "golden_kpi",
+                                    "sql": golden.sql_query,
+                                    "records": records[:20],
+                                    "task_id": task_id,
+                                    "suggested_followups": _generate_suggested_followups(job_result),
+                                }
+                            finally:
+                                session.close()
+            except Exception as gq_err:
+                logger.warning("Golden query matching/execution failed (%s), proceeding to LLM RAG.", gq_err)
             
             try:
                 # 1. Retrieve hybrid context chunks via RRF
@@ -1048,6 +1185,64 @@ CONTEXT:
                 yield json.dumps({"type": "token", "token": "Please enter a valid question."}) + "\n"
                 yield json.dumps({"type": "done"}) + "\n"
                 return
+
+            # 0. Check Golden Query Context Store (Dataherald pattern: zero-latency, zero-hallucination)
+            try:
+                from app.services.golden_query_service import GoldenQueryService
+                golden = GoldenQueryService.find_matching_query(task_id, sanitized_q)
+                if golden:
+                    from app.services.duckdb_engine import DuckDBAnalyticalSession
+                    from app.services.storage import get_storage_provider
+                    from app.services.data_processing import load_dataframe
+
+                    file_ref = (job_result or {}).get("cleaned_file_ref") or (job_result or {}).get("_file_ref")
+                    if file_ref:
+                        storage = get_storage_provider()
+                        file_path = storage.get_absolute_path(file_ref)
+                        if os.path.exists(file_path):
+                            session = DuckDBAnalyticalSession()
+                            try:
+                                if file_path.endswith(".parquet"):
+                                    session.register_parquet("dataset", file_path)
+                                else:
+                                    df = load_dataframe(file_path)
+                                    session.register_polars("dataset", df)
+                                records = session.execute_read_query(golden.sql_query)
+
+                                rows_summary = []
+                                for r in records[:5]:
+                                    row_str = ", ".join(f"<b>{k}</b>: {v}" for k, v in r.items())
+                                    rows_summary.append(f"• {row_str}")
+                                summary_text = "<br/>".join(rows_summary) if rows_summary else "No rows returned."
+
+                                golden_answer = (
+                                    f"🎯 <b>Verified Golden KPI Result</b><br/>"
+                                    f"Matched verified KPI query for: <i>\"{golden.question}\"</i><br/><br/>"
+                                    f"<b>SQL Query:</b><br/><code>{golden.sql_query}</code><br/><br/>"
+                                    f"<b>Result:</b><br/>{summary_text}"
+                                )
+                                metadata_frame = {
+                                    "type": "metadata",
+                                    "sources": [f"[Golden KPI] Query: {golden.sql_query}"],
+                                    "source": "golden_kpi",
+                                    "sql": golden.sql_query,
+                                    "records": records[:20],
+                                    "task_id": task_id,
+                                    "suggested_followups": _generate_suggested_followups(job_result),
+                                }
+                                yield json.dumps(metadata_frame) + "\n"
+                                words = golden_answer.split(" ")
+                                for i in range(0, len(words), 3):
+                                    chunk_text = " ".join(words[i:i+3]) + (" " if i + 3 < len(words) else "")
+                                    yield json.dumps({"type": "token", "token": chunk_text}) + "\n"
+                                    await asyncio.sleep(0.01)
+                                yield json.dumps({"type": "done"}) + "\n"
+                                self.metrics.record_query(True)
+                                return
+                            finally:
+                                session.close()
+            except Exception as gq_err:
+                logger.warning("Golden query matching/execution in stream failed (%s), proceeding to RAG stream.", gq_err)
 
             # 1. Retrieve hybrid context chunks via RRF
             sources_list, context_chunk_str = await self._hybrid_retrieve_rrf(task_id, sanitized_q)

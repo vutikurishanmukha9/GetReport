@@ -32,6 +32,7 @@ OperationType = Literal[
     "remove_duplicates",
     "replace_outliers",
     "type_conversion",
+    "concept_derivation",
     "custom",
 ]
 
@@ -74,6 +75,7 @@ def _get_reversibility(operation: str) -> tuple[ReversibilityLevel, str | None]:
         "remove_duplicates": ("partial", "Duplicate indices stored"),
         "replace_outliers": ("none", "Original values lost"),
         "type_conversion": ("partial", "Original type stored"),
+        "concept_derivation": ("full", "Drop derived column to revert"),
         "custom": ("none", "Custom operation - reversibility unknown"),
     }
     return reversibility_map.get(operation, ("none", None))

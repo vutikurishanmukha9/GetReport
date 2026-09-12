@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, RefreshCw, ChevronDown, ChevronUp, Sparkles, BookOpen, Quote, Copy, Check } from "lucide-react";
+import DOMPurify from "dompurify";
+import { Send, Bot, User, RefreshCw, ChevronDown, ChevronUp, Sparkles, BookOpen, Quote, Copy, Check, Bookmark, BookmarkCheck, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,12 +10,25 @@ import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+const sanitizeMessageHtml = (rawHtml: string): string => {
+  return DOMPurify.sanitize(rawHtml, {
+    ALLOWED_TAGS: [
+      "b", "strong", "i", "em", "code", "pre", "h3", "h4",
+      "br", "ul", "ol", "li", "span", "p"
+    ],
+    ALLOWED_ATTR: ["class"],
+  });
+};
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   sources?: string[]; // Optional sources for citations
   suggested_followups?: string[];
+  source?: string;
+  sql?: string;
+  chart_base64?: string;
   timestamp: Date;
 }
 
@@ -42,6 +56,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
   const [highlightedSourceIdx, setHighlightedSourceIdx] = useState<number | null>(null);
+  const [savedGoldenIds, setSavedGoldenIds] = useState<Set<string>>(new Set());
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -102,6 +117,9 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                   ...msg,
                   sources: metadata.sources,
                   suggested_followups: metadata.suggested_followups,
+                  source: metadata.source,
+                  sql: metadata.sql,
+                  chart_base64: metadata.chart_base64,
                 }
               : msg
           )
@@ -123,6 +141,51 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
     );
   };
 
+  const handleSaveGoldenKPI = async (msg: Message) => {
+    const msgIndex = messages.findIndex((m) => m.id === msg.id);
+    let userQuestion = "Dataset KPI Question";
+    if (msgIndex > 0) {
+      for (let i = msgIndex - 1; i >= 0; i--) {
+        if (messages[i].role === "user") {
+          userQuestion = messages[i].content;
+          break;
+        }
+      }
+    }
+
+    let sqlQuery = msg.sql || "";
+    if (!sqlQuery) {
+      const sqlMatch = msg.content.match(/(?:<code>|```sql|```)?\s*(SELECT[\s\S]+?FROM[\s\S]+?)(?:<\/code>|```|<br|$)/i);
+      if (sqlMatch) {
+        sqlQuery = sqlMatch[1].trim();
+      }
+    }
+
+    if (!sqlQuery) {
+      toast({
+        title: "No SQL Query Detected",
+        description: "Could not find a structured SQL statement in this response to bookmark.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await api.saveGoldenQuery(taskId, userQuestion, sqlQuery, "Saved via AI Chat Interface");
+      setSavedGoldenIds((prev) => new Set(prev).add(msg.id));
+      toast({
+        title: "Saved as Golden KPI",
+        description: `Verified KPI saved: "${userQuestion.slice(0, 45)}...". Future queries will return instant ground truth.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Failed to Save Golden KPI",
+        description: err.message || "An error occurred while saving the query.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSend = () => handleSendQuery(input);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -135,7 +198,9 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
   // Parses text to extract [1], [2] etc. and renders them as clickable superscript badges
   const renderMessageContent = (msg: Message) => {
     const { content, sources, id: msgId } = msg;
-    if (!sources || sources.length === 0) return <span>{content}</span>;
+    if (!sources || sources.length === 0) {
+      return <span dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(content) }} />;
+    }
 
     const parts = content.split(/(\[\d+\])/g);
     return parts.map((part, partOffset) => {
@@ -166,7 +231,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
           </sup>
         );
       }
-      return <span key={`part_${msgId}_${part.slice(0, 10)}_${partOffset}`}>{part}</span>;
+      return <span key={`part_${msgId}_${partOffset}`} dangerouslySetInnerHTML={{ __html: sanitizeMessageHtml(part) }} />;
     });
   };
 
@@ -218,6 +283,13 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
 
                 {/* Bubble container */}
                 <div className="space-y-2 max-w-full">
+                  {isBot && msg.source === "golden_kpi" && (
+                    <div className="flex items-center gap-1.5 text-amber-900 bg-amber-50 border border-amber-300/80 rounded-lg px-2.5 py-1 text-[11px] font-mono font-semibold w-fit shadow-2xs">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                      <span>Verified Golden KPI</span>
+                    </div>
+                  )}
+
                   <div
                     className={cn(
                       "p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-premium",
@@ -227,7 +299,53 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                     )}
                   >
                     {renderMessageContent(msg)}
+
+                    {msg.chart_base64 && (
+                      <div className="mt-3 rounded-xl overflow-hidden border border-border/60 bg-muted/20 p-2 shadow-2xs">
+                        <img
+                          src={`data:image/png;base64,${msg.chart_base64}`}
+                          alt="Sandboxed Analysis Chart"
+                          className="w-full h-auto max-h-[360px] object-contain rounded-lg bg-white"
+                        />
+                        <div className="mt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground px-1">
+                          <span>📊 Sandboxed Python Visualization</span>
+                          <a
+                            href={`data:image/png;base64,${msg.chart_base64}`}
+                            download="analysis_chart.png"
+                            className="text-primary hover:underline font-semibold"
+                          >
+                            Download PNG
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Bookmark Button for Assistant Analytical Queries */}
+                  {isBot && (msg.sql || /select\s+.+\s+from/i.test(msg.content)) && (
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSaveGoldenKPI(msg)}
+                        disabled={savedGoldenIds.has(msg.id)}
+                        className="h-7 text-[11px] font-mono flex items-center gap-1.5 border-amber-500/30 text-amber-800 bg-amber-500/5 hover:bg-amber-500/15 hover:border-amber-500/50 rounded-lg cursor-pointer transition-all"
+                      >
+                        {savedGoldenIds.has(msg.id) ? (
+                          <>
+                            <BookmarkCheck className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Saved as Golden KPI</span>
+                          </>
+                        ) : (
+                          <>
+                            <Bookmark className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Save as Golden KPI</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Context Citations Drawer (Bot only) */}
                   {isBot && msg.sources && msg.sources.length > 0 && (

@@ -83,7 +83,7 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
 
             # Log-transformed IQR for heavy right skew
             log_outlier_count = 0
-            if is_heavy_skew and (df[col] >= 0).all():
+            if is_heavy_skew and (df[col].drop_nulls() >= 0).all():
                 try:
                     log_series = (df[col].cast(pl.Float64) + 1.0).log()
                     l_q1 = log_series.quantile(0.25)

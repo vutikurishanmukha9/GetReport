@@ -176,9 +176,18 @@ def detect_seasonality(df: pl.DataFrame, time_col: str, value_col: str) -> dict[
         if n < 60:
             return {"detected": False, "reason": "Insufficient data for seasonality analysis"}
         
-        # Detrend (subtract mean)
-        y_detrend = y - y.mean()
+        # Detrend using linear regression residuals
+        x = np.arange(n, dtype=np.float64)
+        if np.all(y == y[0]):
+            y_detrend = y - y[0]
+        else:
+            slope, intercept = np.polyfit(x, y, 1)
+            y_detrend = y - (slope * x + intercept)
         
+        residual_std = float(np.std(y_detrend))
+        if residual_std < 1e-4:
+            return {"detected": False, "reason": "No residual variance after detrending"}
+
         seasonal_lags = {7: "weekly", 30: "monthly", 90: "quarterly", 365: "yearly"}
         detected_patterns = []
         
@@ -186,8 +195,13 @@ def detect_seasonality(df: pl.DataFrame, time_col: str, value_col: str) -> dict[
             if n < lag * 2:
                 continue
             
+            s1 = y_detrend[:-lag]
+            s2 = y_detrend[lag:]
+            if np.std(s1) < 1e-4 or np.std(s2) < 1e-4:
+                continue
+
             with np.errstate(divide="ignore", invalid="ignore"):
-                autocorr = np.corrcoef(y_detrend[:-lag], y_detrend[lag:])[0, 1]
+                autocorr = np.corrcoef(s1, s2)[0, 1]
             
             if np.isnan(autocorr):
                 continue

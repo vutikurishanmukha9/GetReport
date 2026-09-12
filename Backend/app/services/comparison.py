@@ -171,8 +171,7 @@ class ComparisonService:
         metrics.append(self._make_metric("unique_count", unique_before, unique_after, lower_is_better=False)) 
         
         # Metric: Mean (if numeric)
-        if s_after.dtype in [pl.Int8, pl.Int16, pl.Int32, pl.Int64, pl.Float32, pl.Float64] and \
-           s_before.dtype in [pl.Int8, pl.Int16, pl.Int32, pl.Int64, pl.Float32, pl.Float64]:
+        if s_after.dtype.is_numeric() and s_before.dtype.is_numeric():
             mean_before = s_before.mean() or 0.0
             mean_after = s_after.mean() or 0.0
             metrics.append(self._make_metric("mean", mean_before, mean_after, lower_is_better=None))

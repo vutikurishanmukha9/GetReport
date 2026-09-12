@@ -12,7 +12,9 @@ Features:
 """
 from __future__ import annotations
 
+import ast
 import logging
+import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -37,6 +39,10 @@ IssueType = Literal[
     "empty_column",
     "constant_column",
     "encoding_issue",
+    "zero_inflation",
+    "extreme_skewness",
+    "rare_categories",
+    "uniform_distribution",
 ]
 
 Severity = Literal["critical", "high", "medium", "low"]
@@ -1138,6 +1144,243 @@ def _detect_whitespace_and_case_issues(df: pl.DataFrame) -> list[Issue]:
     return issues
 
 
+def _detect_zero_inflation_issues(df: pl.DataFrame) -> list[Issue]:
+    """
+    Detects zero inflation in numeric columns (inspired by fg-data-profiling).
+    Identifies features where >= 40% of observations are exact zeros, which indicates
+    either structural zeros, missingness encoded as 0, or hurdle distribution behavior.
+    """
+    issues = []
+    n_rows = df.height
+    if n_rows < 10:
+        return issues
+
+    numeric_dtypes = (
+        pl.Int8, pl.Int16, pl.Int32, pl.Int64,
+        pl.Float32, pl.Float64, pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64
+    )
+
+    for col in df.columns:
+        if df[col].dtype not in numeric_dtypes:
+            continue
+
+        non_null = df[col].drop_nulls()
+        if non_null.len() < 10:
+            continue
+
+        zero_count = int((non_null == 0).sum())
+        zero_pct = (zero_count / n_rows) * 100.0
+
+        if zero_pct >= 40.0:
+            severity: Severity = "high" if zero_pct >= 70.0 else "medium"
+            desc = (
+                f"{zero_count:,} zero values detected ({zero_pct:.1f}% zero inflation). "
+                f"May indicate structural zeros, missingness encoded as 0, or hurdle distribution."
+            )
+            suggested_fix = "Flag zero-inflated column for downstream hurdle modeling or verify if 0 represents missingness"
+            fix_code = f"# Zero-inflation alert for '{col}': {zero_pct:.1f}% zeros. Consider two-part model or flag indicator"
+
+            issues.append(Issue(
+                id=_generate_id(),
+                issue_type="zero_inflation",
+                severity=severity,
+                column=col,
+                affected_rows=zero_count,
+                affected_pct=zero_pct,
+                description=desc,
+                suggested_fix=suggested_fix,
+                fix_code=fix_code,
+            ))
+
+    return issues
+
+
+def _detect_extreme_skewness_issues(df: pl.DataFrame) -> list[Issue]:
+    """
+    Detects severe distributional skewness (|skew| >= 3.0) in numeric columns (inspired by fg-data-profiling).
+    Heavy-tailed asymmetry distorts linear estimators, mean calculations, and distance metrics.
+    """
+    issues = []
+    n_rows = df.height
+    if n_rows < 20:
+        return issues
+
+    numeric_dtypes = (
+        pl.Int8, pl.Int16, pl.Int32, pl.Int64,
+        pl.Float32, pl.Float64, pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64
+    )
+
+    for col in df.columns:
+        if df[col].dtype not in numeric_dtypes:
+            continue
+
+        non_null = df[col].drop_nulls()
+        if non_null.len() < 20:
+            continue
+
+        try:
+            skew_val = non_null.skew()
+            if skew_val is None:
+                continue
+            abs_skew = abs(float(skew_val))
+            if abs_skew >= 3.0:
+                severity: Severity = "high" if abs_skew >= 5.0 else "medium"
+                direction = "right-skewed (positive tail)" if skew_val > 0 else "left-skewed (negative tail)"
+                desc = (
+                    f"Extreme distribution skewness detected (skewness = {skew_val:.2f}, {direction}). "
+                    f"Linear estimators and distance metrics will be distorted."
+                )
+                min_val = non_null.min()
+                if min_val is not None and min_val >= 0:
+                    suggested_fix = "Apply log1p transformation to stabilize variance and normalize tail"
+                    fix_code = f"df = df.with_columns(pl.col('{col}').log1p().alias('{col}_log1p'))"
+                else:
+                    suggested_fix = "Apply Box-Cox / Yeo-Johnson power or quantile transformation"
+                    fix_code = f"# Extreme skewness ({skew_val:.2f}) for '{col}': apply power or quantile transformation"
+
+                issues.append(Issue(
+                    id=_generate_id(),
+                    issue_type="extreme_skewness",
+                    severity=severity,
+                    column=col,
+                    affected_rows=n_rows,
+                    affected_pct=100.0,
+                    description=desc,
+                    suggested_fix=suggested_fix,
+                    fix_code=fix_code,
+                ))
+        except Exception:
+            continue
+
+    return issues
+
+
+def _detect_rare_category_issues(df: pl.DataFrame) -> list[Issue]:
+    """
+    Detects infrequent category levels (< 1% frequency) in categorical features (inspired by fg-data-profiling).
+    Prevents high-variance one-hot expansion and out-of-vocabulary generalization errors.
+    """
+    issues = []
+    n_rows = df.height
+    if n_rows < 50:
+        return issues
+
+    for col in df.columns:
+        if df[col].dtype != pl.Utf8:
+            continue
+
+        non_null = df[col].drop_nulls()
+        total_valid = non_null.len()
+        if total_valid < 50:
+            continue
+
+        val_counts = non_null.value_counts()
+        if val_counts.height < 3:
+            continue
+
+        rare_categories = []
+        total_rare_rows = 0
+        threshold_count = max(1, int(total_valid * 0.01))
+
+        for row in val_counts.iter_rows():
+            category, count = row[0], row[1]
+            if count <= threshold_count and category is not None:
+                rare_categories.append(str(category))
+                total_rare_rows += count
+
+        if len(rare_categories) >= 2 and total_rare_rows >= 3:
+            affected_pct = (total_rare_rows / n_rows) * 100.0
+            severity: Severity = "medium" if affected_pct >= 5.0 else "low"
+            samples = rare_categories[:3]
+            desc = (
+                f"{len(rare_categories)} rare category levels (<1% frequency each, e.g. {samples}) "
+                f"accounting for {total_rare_rows:,} rows ({affected_pct:.1f}%). "
+                f"May cause high-variance one-hot encoding or out-of-vocabulary test errors."
+            )
+            suggested_fix = "Group rare categories into an 'Other' bucket"
+            escaped_cats = [c.replace("'", "\\'") for c in rare_categories[:20]]
+            fix_code = (
+                f"df = df.with_columns(pl.when(pl.col('{col}').is_in({escaped_cats}))"
+                f".then(pl.lit('Other')).otherwise(pl.col('{col}')).alias('{col}'))"
+            )
+
+            issues.append(Issue(
+                id=_generate_id(),
+                issue_type="rare_categories",
+                severity=severity,
+                column=col,
+                affected_rows=total_rare_rows,
+                affected_pct=affected_pct,
+                description=desc,
+                suggested_fix=suggested_fix,
+                fix_code=fix_code,
+            ))
+
+    return issues
+
+
+def _detect_uniform_distribution_issues(df: pl.DataFrame) -> list[Issue]:
+    """
+    Detects discrete features with unnaturally uniform distributions (inspired by fg-data-profiling).
+    Checks if frequencies across distinct categories/integer levels exhibit a coefficient of variation < 12%,
+    which strongly signals synthetic data generation, sequential counter/hash bucketing, or balance sampling.
+    """
+    issues = []
+    n_rows = df.height
+    if n_rows < 100:
+        return issues
+
+    for col in df.columns:
+        dtype = df[col].dtype
+        is_discrete = dtype in (
+            pl.Utf8, pl.Int8, pl.Int16, pl.Int32, pl.Int64,
+            pl.UInt8, pl.UInt16, pl.UInt32, pl.UInt64
+        )
+        if not is_discrete:
+            continue
+
+        non_null = df[col].drop_nulls()
+        total_valid = non_null.len()
+        if total_valid < 100:
+            continue
+
+        n_unique = non_null.n_unique()
+        if n_unique < 5 or n_unique > 50:
+            continue
+
+        val_counts = non_null.value_counts()
+        counts_list = [row[1] for row in val_counts.iter_rows()]
+        mean_count = sum(counts_list) / len(counts_list)
+        if mean_count < 5:
+            continue
+
+        variance = sum((c - mean_count) ** 2 for c in counts_list) / len(counts_list)
+        std_count = variance ** 0.5
+        cv = std_count / mean_count if mean_count > 0 else 1.0
+
+        if cv < 0.12:
+            desc = (
+                f"Near-uniform distribution detected across {n_unique} discrete categories (count CV = {cv:.1%}). "
+                f"Frequencies are suspiciously evenly distributed, characteristic of synthetic data or balance sampling."
+            )
+            suggested_fix = "Verify whether uniform distribution aligns with domain expectations or indicates synthetic generator artifacts"
+            fix_code = f"# Uniform distribution verification for '{col}': count CV={cv:.1%} across {n_unique} categories"
+
+            issues.append(Issue(
+                id=_generate_id(),
+                issue_type="uniform_distribution",
+                severity="low",
+                column=col,
+                affected_rows=n_rows,
+                affected_pct=100.0,
+                description=desc,
+                suggested_fix=suggested_fix,
+                fix_code=fix_code,
+            ))
+
+    return issues
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1198,6 +1441,19 @@ def detect_issues(
     
     for issue in _detect_high_cardinality_issues(df):
         ledger.add_issue(issue)
+
+    # ── fg-data-profiling Extended Alerts ──
+    for issue in _detect_zero_inflation_issues(df):
+        ledger.add_issue(issue)
+
+    for issue in _detect_extreme_skewness_issues(df):
+        ledger.add_issue(issue)
+
+    for issue in _detect_rare_category_issues(df):
+        ledger.add_issue(issue)
+
+    for issue in _detect_uniform_distribution_issues(df):
+        ledger.add_issue(issue)
     
     # Sort by severity
     severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -1237,11 +1493,57 @@ def apply_remediation(
     if not issues_to_apply:
         return df
 
+    safe_builtins = {
+        "abs": abs,
+        "all": all,
+        "any": any,
+        "bool": bool,
+        "dict": dict,
+        "enumerate": enumerate,
+        "filter": filter,
+        "float": float,
+        "int": int,
+        "isinstance": isinstance,
+        "len": len,
+        "list": list,
+        "map": map,
+        "max": max,
+        "min": min,
+        "print": print,
+        "range": range,
+        "round": round,
+        "set": set,
+        "sorted": sorted,
+        "str": str,
+        "sum": sum,
+        "zip": zip,
+        "True": True,
+        "False": False,
+        "None": None,
+    }
+    safe_globals = {
+        "__builtins__": safe_builtins,
+        "pl": pl,
+        "datetime": datetime,
+        "re": re,
+    }
+
     loc_env = {"df": df, "pl": pl}
     for issue in issues_to_apply:
         try:
             if issue.fix_code and not issue.fix_code.startswith("#"):
-                exec(issue.fix_code, globals(), loc_env)
+                # Validate fix_code AST to ensure no unauthorized imports, dunders, or builtins
+                tree = ast.parse(issue.fix_code, mode="exec")
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.Import, ast.ImportFrom)):
+                        raise ValueError("Imports are prohibited in remediation fix code.")
+                    elif isinstance(node, ast.Attribute) and node.attr.startswith("__"):
+                        raise ValueError(f"Accessing private attribute '{node.attr}' is prohibited in remediation code.")
+                    elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                        if node.func.id in ("eval", "exec", "open", "compile", "__import__", "globals", "locals"):
+                            raise ValueError(f"Function '{node.func.id}' is prohibited in remediation code.")
+
+                exec(issue.fix_code, safe_globals, loc_env)
                 df = loc_env["df"]
                 logger.info("Applied remediation fix for issue %s (%s: %s)", issue.id, issue.issue_type, issue.column)
         except Exception as e:

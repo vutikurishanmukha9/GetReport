@@ -132,7 +132,7 @@ export const api = {
         taskId: string,
         question: string,
         onToken: (token: string) => void,
-        onMetadata: (metadata: { sources: string[]; suggested_followups?: string[] }) => void,
+        onMetadata: (metadata: { sources: string[]; suggested_followups?: string[]; source?: string; sql?: string }) => void,
         onDone: () => void,
         onError: (err: Error) => void,
         chatHistory?: { role: string; content: string }[]
@@ -167,7 +167,10 @@ export const api = {
                         if (parsed.type === "metadata") {
                             onMetadata({
                                 sources: parsed.sources || [],
-                                suggested_followups: parsed.suggested_followups
+                                suggested_followups: parsed.suggested_followups,
+                                source: parsed.source,
+                                sql: parsed.sql,
+                                chart_base64: parsed.chart_base64,
                             });
                         } else if (parsed.type === "token") {
                             onToken(parsed.token || "");
@@ -310,6 +313,163 @@ export const api = {
         return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/lock`, {
             method: "POST",
         });
+    },
+
+    /**
+     * Execute an analytical SQL query against the cleaned dataset using in-process DuckDB.
+     */
+    querySql: async (
+        taskId: string,
+        sql: string,
+        limit: number = 500
+    ): Promise<{
+        task_id: string;
+        sql: string;
+        columns: string[];
+        records: Record<string, any>[];
+        total_returned: number;
+        capped: boolean;
+    }> => {
+        return fetchClient(`/jobs/${taskId}/query-sql`, {
+            method: "POST",
+            body: JSON.stringify({ sql, limit }),
+        });
+    },
+
+    /**
+     * Download the Great Expectations Suite JSON contract for downstream pipelines.
+     */
+    downloadGxSuite: async (taskId: string, filename: string): Promise<void> => {
+        const url = `${API_BASE_URL}/jobs/${taskId}/export-gx`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to export Great Expectations suite: ${response.statusText}`);
+        }
+        const blob = await response.blob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = `${filename.replace(/\.[^/.]+$/, "")}_expectation_suite.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+    },
+
+    /**
+     * Save a verified analytical SQL query as a Golden KPI query.
+     */
+    saveGoldenQuery: async (
+        taskId: string,
+        question: string,
+        sqlQuery: string,
+        description?: string
+    ): Promise<{
+        id: string;
+        task_id: string;
+        question: string;
+        sql_query: string;
+        description: string;
+        created_at: string;
+    }> => {
+        return fetchClient(`/jobs/${taskId}/golden-queries`, {
+            method: "POST",
+            body: JSON.stringify({ question, sql_query: sqlQuery, description }),
+        });
+    },
+
+    /**
+     * Get all verified Golden KPI queries for a dataset.
+     */
+    getGoldenQueries: async (
+        taskId: string
+    ): Promise<
+        Array<{
+            id: string;
+            task_id: string;
+            question: string;
+            sql_query: string;
+            description: string;
+            created_at: string;
+        }>
+    > => {
+        return fetchClient(`/jobs/${taskId}/golden-queries`);
+    },
+
+    /**
+     * Delete a verified Golden KPI query.
+     */
+    deleteGoldenQuery: async (
+        taskId: string,
+        queryId: string
+    ): Promise<{ status: string; deleted: boolean; query_id: string }> => {
+        return fetchClient(`/jobs/${taskId}/golden-queries/${queryId}`, {
+            method: "DELETE",
+        });
+    },
+
+    /**
+     * Execute Python/Polars analysis code in the secure AST-sandboxed runtime.
+     */
+    executeSandboxedPython: async (
+        taskId: string,
+        code: string,
+        timeoutSeconds: number = 10
+    ): Promise<{
+        success: boolean;
+        output: string;
+        chart_base64?: string | null;
+        execution_time_ms: number;
+        error?: string | null;
+    }> => {
+        return fetchClient(`/jobs/${taskId}/sandbox-exec`, {
+            method: "POST",
+            body: JSON.stringify({ code, timeout_seconds: timeoutSeconds }),
+        });
+    },
+
+    /**
+     * Derive and synthesize a virtual analytical concept/metric into the dataset.
+     */
+    deriveVirtualConcept: async (
+        taskId: string,
+        conceptName: string,
+        formulaOrIntent: string,
+        description?: string
+    ): Promise<{
+        status: string;
+        concept_name: string;
+        node: Record<string, any>;
+        total_columns: number;
+        total_rows: number;
+    }> => {
+        return fetchClient(`/jobs/${taskId}/concepts/derive`, {
+            method: "POST",
+            body: JSON.stringify({
+                concept_name: conceptName,
+                formula_or_intent: formulaOrIntent,
+                description,
+            }),
+        });
+    },
+
+    /**
+     * Get list of all derived virtual concepts for a dataset.
+     */
+    getDerivedConcepts: async (
+        taskId: string
+    ): Promise<
+        Array<{
+            concept_name: string;
+            formula_or_intent: string;
+            description: string;
+            node_id: string;
+            timestamp: string;
+            duration_ms: number;
+            expression?: string;
+        }>
+    > => {
+        return fetchClient(`/jobs/${taskId}/concepts`);
     },
 
     /**

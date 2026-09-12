@@ -23,6 +23,24 @@ class AnalysisRulesRequest(BaseModel):
     rules: Dict[str, Any]
     analysis_config: Optional[Dict[str, Any]] = None
 
+class SQLQueryRequest(BaseModel):
+    sql: str
+    limit: Optional[int] = 500
+
+class GoldenQueryCreateRequest(BaseModel):
+    question: str
+    sql_query: str
+    description: Optional[str] = ""
+
+class SandboxExecRequest(BaseModel):
+    code: str
+    timeout_seconds: Optional[int] = 10
+
+class DeriveConceptRequest(BaseModel):
+    concept_name: str
+    formula_or_intent: str
+    description: Optional[str] = ""
+
 # ─── Path Traversal Guard (VULN-05) ─────────────────────────────────────────
 
 ALLOWED_OUTPUT_DIR = os.path.abspath("outputs")
@@ -462,4 +480,371 @@ async def export_cleaned_data_or_report(
         )
     else:
         raise HTTPException(400, "Invalid export format. Supported: 'csv', 'parquet', 'html'")
+
+
+# ─── In-Process DuckDB Analytical Query Endpoint ────────────────────────────
+
+@router.post("/jobs/{task_id}/query-sql")
+@limiter.limit(REPORT_LIMIT)
+async def query_dataset_sql(
+    request: Request,
+    task_id: str,
+    body: SQLQueryRequest,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Executes an analytical read-only SQL query against the cleaned dataset
+    using in-process DuckDB.
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found or analysis not complete")
+
+    from app.services.storage import get_storage_provider
+    from app.services.duckdb_engine import DuckDBAnalyticalSession, DuckDBSecurityError
+    from app.services.data_processing import load_dataframe
+
+    storage = get_storage_provider()
+    cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
+    if not cleaned_file_ref:
+        raise HTTPException(404, "Dataset artifact not found for this job")
+
+    file_path = storage.get_absolute_path(cleaned_file_ref)
+    if not os.path.exists(file_path):
+        raise HTTPException(404, "Dataset file does not exist on storage")
+
+    session = DuckDBAnalyticalSession()
+    try:
+        if file_path.endswith(".parquet"):
+            session.register_parquet("dataset", file_path)
+        else:
+            df = load_dataframe(file_path)
+            session.register_polars("dataset", df)
+
+        records = session.execute_read_query(body.sql)
+        columns = list(records[0].keys()) if records else []
+        capped_records = records[: body.limit] if body.limit else records
+
+        return {
+            "task_id": task_id,
+            "sql": body.sql,
+            "columns": columns,
+            "records": capped_records,
+            "total_returned": len(records),
+            "capped": len(records) > len(capped_records),
+        }
+    except DuckDBSecurityError as se:
+        raise HTTPException(403, str(se))
+    except Exception as e:
+        logger.error(f"SQL execution error for task {task_id}: {e}")
+        raise HTTPException(400, f"Query execution failed: {str(e)}")
+    finally:
+        session.close()
+
+
+# ─── Great Expectations Suite Export Endpoint ──────────────────────────────
+
+@router.get("/jobs/{task_id}/export-gx")
+@limiter.limit(REPORT_LIMIT)
+async def export_great_expectations_suite(
+    request: Request,
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Generates and exports an industry-standard Great Expectations Suite JSON
+    based on the cleaned dataset, quality scoring, and approved issue ledger actions.
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found or analysis not complete")
+
+    from app.services.storage import get_storage_provider
+    from app.services.data_processing import load_dataframe
+    from app.services.gx_exporter import GreatExpectationsSuiteExporter
+
+    storage = get_storage_provider()
+    cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
+    if not cleaned_file_ref:
+        raise HTTPException(404, "Dataset artifact not found for this job")
+
+    file_path = storage.get_absolute_path(cleaned_file_ref)
+    if not os.path.exists(file_path):
+        raise HTTPException(404, "Dataset file does not exist on storage")
+
+    df = load_dataframe(file_path)
+    filename_base = _sanitize_download_filename(job.filename or "dataset")
+    suite_name = f"{filename_base}_suite"
+
+    quality_info = job.result.get("info")
+    issue_ledger_data = job.result.get("issue_ledger", {})
+    approved_issues = [
+        issue
+        for issue in issue_ledger_data.get("issues", [])
+        if issue.get("status") == "approved"
+    ]
+
+    exporter = GreatExpectationsSuiteExporter(suite_name=suite_name)
+    suite = exporter.generate_suite_from_polars(
+        df, quality_report=quality_info, approved_issues=approved_issues
+    )
+    suite_json = exporter.export_json(suite)
+
+    return Response(
+        content=suite_json,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename_base}_expectation_suite.json"
+        },
+    )
+
+
+# ─── Golden Query Repository Endpoints (Dataherald-inspired) ───────────────
+
+@router.post("/jobs/{task_id}/golden-queries")
+@limiter.limit(REPORT_LIMIT)
+async def create_golden_query(
+    request: Request,
+    task_id: str,
+    body: GoldenQueryCreateRequest,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Saves a verified analytical SQL query as a Golden KPI for zero-latency retrieval.
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+
+    from app.services.golden_query_service import GoldenQueryService
+    try:
+        query = await GoldenQueryService.save_golden_query_async(
+            task_id=task_id,
+            question=body.question,
+            sql_query=body.sql_query,
+            description=body.description or "",
+        )
+        return query.to_dict()
+    except ValueError as ve:
+        raise HTTPException(400, str(ve))
+    except Exception as e:
+        logger.error(f"Failed to save golden query for task {task_id}: {e}")
+        raise HTTPException(500, f"Could not save golden query: {str(e)}")
+
+
+@router.get("/jobs/{task_id}/golden-queries")
+@limiter.limit(REPORT_LIMIT)
+async def list_golden_queries(
+    request: Request,
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Lists all verified Golden KPI queries saved for a job dataset.
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+
+    from app.services.golden_query_service import GoldenQueryService
+    queries = await GoldenQueryService.get_golden_queries_async(task_id)
+    return [q.to_dict() for q in queries]
+
+
+@router.delete("/jobs/{task_id}/golden-queries/{query_id}")
+@limiter.limit(REPORT_LIMIT)
+async def delete_golden_query(
+    request: Request,
+    task_id: str,
+    query_id: str,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Deletes a golden query by ID.
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+
+    from app.services.golden_query_service import GoldenQueryService
+    await GoldenQueryService.delete_golden_query_async(task_id=task_id, query_id=query_id)
+    return {"status": "success", "deleted": True, "query_id": query_id}
+
+
+# ─── Conversational Sandboxing & Virtual Concepts Endpoints (Phase 3) ───────
+
+@router.post("/jobs/{task_id}/sandbox-exec")
+@limiter.limit(REPORT_LIMIT)
+async def execute_sandboxed_python(
+    request: Request,
+    task_id: str,
+    body: SandboxExecRequest,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Executes Python/Polars analysis code in a secure AST-sandboxed runtime.
+    Captures stdout/stderr, generated plots (base64 PNG), and execution metrics.
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job or dataset result not found")
+
+    cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
+    if not cleaned_file_ref:
+        raise HTTPException(404, "Dataset artifact not found for this job")
+
+    from app.services.storage import get_storage_provider
+    from app.services.data_processing import load_dataframe
+    from app.services.sandboxed_analyst import SandboxedAnalystAgent
+
+    storage = get_storage_provider()
+    file_path = storage.get_absolute_path(cleaned_file_ref)
+    if not os.path.exists(file_path):
+        raise HTTPException(404, "Dataset file does not exist on storage")
+
+    df = await run_in_threadpool(load_dataframe, file_path)
+    agent = SandboxedAnalystAgent(timeout_seconds=body.timeout_seconds or 10)
+    result = await run_in_threadpool(agent.execute_polars, body.code, df)
+
+    return result.to_dict()
+
+
+@router.post("/jobs/{task_id}/concepts/derive")
+@limiter.limit(REPORT_LIMIT)
+async def derive_virtual_concept(
+    request: Request,
+    task_id: str,
+    body: DeriveConceptRequest,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Synthesizes and derives a virtual analytical metric/concept into the dataset,
+    audited through the TransformationDAG, persisting the augmented dataset.
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job or dataset result not found")
+
+    cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
+    if not cleaned_file_ref:
+        raise HTTPException(404, "Dataset artifact not found for this job")
+
+    from app.services.storage import get_storage_provider
+    from app.services.data_processing import load_dataframe
+    from app.services.transformation_dag import from_dict, create_dag
+    from app.services.concept_synthesizer import VirtualConceptSynthesizer, ConceptDeclaration
+    import io
+
+    storage = get_storage_provider()
+    file_path = storage.get_absolute_path(cleaned_file_ref)
+    if not os.path.exists(file_path):
+        raise HTTPException(404, "Dataset file does not exist on storage")
+
+    df = await run_in_threadpool(load_dataframe, file_path)
+
+    # Load or initialize DAG
+    dag_data = job.result.get("transformation_dag")
+    if dag_data:
+        try:
+            dag = from_dict(dag_data)
+        except Exception:
+            dag = create_dag(df, dataset_name=job.filename or "dataset")
+    else:
+        dag = create_dag(df, dataset_name=job.filename or "dataset")
+
+    synthesizer = VirtualConceptSynthesizer()
+    declaration = ConceptDeclaration(
+        concept_name=body.concept_name,
+        formula_or_intent=body.formula_or_intent,
+        description=body.description,
+    )
+
+    try:
+        new_df, node = await run_in_threadpool(
+            synthesizer.apply_and_record_concept, df, declaration, dag
+        )
+    except (ValueError, RuntimeError) as err:
+        raise HTTPException(400, str(err))
+    except Exception as err:
+        logger.error(f"Concept derivation failed for task {task_id}: {err}")
+        raise HTTPException(500, f"Concept derivation failed: {str(err)}")
+
+    # Write augmented DataFrame back to storage
+    buffer = io.BytesIO()
+    new_df.write_parquet(buffer)
+    buffer.seek(0)
+    updated_file_ref = storage.save_upload(buffer, f"cleaned_{task_id}.parquet")
+
+    # Update job result
+    job.result["cleaned_file_ref"] = updated_file_ref
+    job.result["transformation_dag"] = dag.to_dict()
+
+    # Track concept list in job result for convenience
+    concepts = job.result.setdefault("derived_concepts", [])
+    concepts.append({
+        "concept_name": body.concept_name,
+        "formula_or_intent": body.formula_or_intent,
+        "description": body.description or "",
+        "node_id": node.id,
+        "timestamp": node.timestamp,
+        "duration_ms": node.duration_ms,
+        "expression": node.parameters.get("expression"),
+    })
+
+    await title_task_manager.update_result_async(task_id, job.result)
+
+    return {
+        "status": "success",
+        "concept_name": body.concept_name,
+        "node": node.to_dict(),
+        "total_columns": new_df.width,
+        "total_rows": new_df.height,
+    }
+
+
+@router.get("/jobs/{task_id}/concepts")
+@limiter.limit(REPORT_LIMIT)
+async def list_derived_concepts(
+    request: Request,
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Lists all virtual concepts derived for this job dataset.
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found")
+
+    concepts = job.result.get("derived_concepts")
+    if concepts is not None:
+        return concepts
+
+    # Fallback: inspect DAG for concept_derivation nodes
+    dag_data = job.result.get("transformation_dag", {})
+    nodes = dag_data.get("nodes", {})
+    concept_list = []
+    for node_id, node in nodes.items():
+        if isinstance(node, dict) and node.get("operation") == "concept_derivation":
+            params = node.get("parameters", {})
+            concept_list.append({
+                "concept_name": node.get("target_column"),
+                "formula_or_intent": params.get("formula_or_intent", ""),
+                "description": params.get("description", ""),
+                "node_id": node_id,
+                "timestamp": node.get("timestamp"),
+                "duration_ms": node.get("duration_ms"),
+                "expression": params.get("expression"),
+            })
+    return concept_list
+
+
 

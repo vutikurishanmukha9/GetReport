@@ -14,6 +14,7 @@ import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { MLReadinessCard } from "./MLReadinessCard";
+import { VirtualConceptShelf } from "./VirtualConceptShelf";
 
 // Safe, memoized image container to prevent expensive base64 re-renders
 const SafeChartImage = memo(({ base64Src, alt, className }: { base64Src: string; alt: string; className?: string }) => {
@@ -283,7 +284,7 @@ export const ReportGeneration = ({
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
               <Button 
                 size="default" 
                 variant="outline" 
@@ -291,7 +292,7 @@ export const ReportGeneration = ({
                 onClick={() => downloadExport("csv")}
               >
                 <FileSpreadsheet className="h-3.5 w-3.5 text-primary" />
-                <span>Export Cleaned CSV</span>
+                <span>Export CSV</span>
               </Button>
 
               <Button 
@@ -302,6 +303,24 @@ export const ReportGeneration = ({
               >
                 <Table2 className="h-3.5 w-3.5 text-primary" />
                 <span>Export Parquet</span>
+              </Button>
+
+              <Button 
+                size="default" 
+                variant="outline" 
+                className="w-full rounded-xl border-border/80 bg-muted/10 hover:bg-white text-xs font-mono text-foreground flex items-center justify-center gap-2" 
+                onClick={async () => {
+                  if (!taskId) return;
+                  try {
+                    await api.downloadGxSuite(taskId, filename || "dataset");
+                    toast({ title: "Expectation Suite Exported", description: "Downloaded Great Expectations data contract suite (.json)" });
+                  } catch (e: any) {
+                    toast({ title: "Export Failed", description: e.message || "Could not download GX suite.", variant: "destructive" });
+                  }
+                }}
+              >
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Export GX (.json)</span>
               </Button>
             </div>
 
@@ -752,6 +771,15 @@ export const ReportGeneration = ({
             </CardContent>
           </Card>
         )}
+
+        {/* ─── Virtual Concept Shelf (Data-Formulator Provocative Derived Metrics) ─── */}
+        {taskId && (
+          <VirtualConceptShelf 
+            taskId={taskId} 
+            columns={info?.columns || []} 
+          />
+        )}
+
         {/* ─── Statistical Deep Dive (Editorial Style) ─── */}
         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
           <div className="flex items-center gap-2 border-b border-border pb-2.5">
