@@ -27,7 +27,7 @@ export interface ReportStatusResponse {
 async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const headers = new Headers(options.headers);
-    if (!headers.has("Content-Type")) {
+    if (!headers.has("Content-Type") && options.body) {
         headers.set("Content-Type", "application/json");
     }
 
