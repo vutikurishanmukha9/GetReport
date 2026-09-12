@@ -141,6 +141,13 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       ws.onopen = () => {
         setIsConnected(true);
         retryCountRef.current = 0; // Reset backoff on success
+
+        // §6: Send API key via protocol message instead of URL query parameter
+        const apiKey = import.meta.env.VITE_API_KEY;
+        if (apiKey) {
+          ws.send(JSON.stringify({ type: 'auth', api_key: apiKey }));
+        }
+
         setTaskStatus('PROCESSING');
         resetWatchdog(taskId);
       };

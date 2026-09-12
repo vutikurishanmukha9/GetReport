@@ -260,7 +260,7 @@ def test_pdf_template_renders_ml_readiness():
         }
     }
     charts = {
-        "correlation_heatmap": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNiXXXXAAEAAN0AyCj2j1sAAAAASUVORK5CYII=",
+        "correlation_heatmap": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
         "distributions": [],
         "bar_charts": [],
         "trend_charts": [],

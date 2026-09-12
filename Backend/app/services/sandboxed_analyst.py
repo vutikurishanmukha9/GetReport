@@ -4,6 +4,10 @@ Backend/app/services/sandboxed_analyst.py
 AST-Sandboxed Python Analyst Agent inspired by PandasAI.
 Enforces strict AST parsing, restricted execution namespaces,
 and headless Matplotlib chart generation against Polars DataFrames.
+
+Security: Blocks sandbox escapes via in-scope library methods (pl.read_*,
+np.load, plt.savefig), enforces output size caps, and applies thread-based
+execution timeouts to prevent DoS.
 """
 from __future__ import annotations
 
@@ -13,6 +17,7 @@ import contextlib
 from dataclasses import dataclass
 import io
 import logging
+import threading
 import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -24,9 +29,18 @@ import polars as pl
 
 logger = logging.getLogger(__name__)
 
+# ─── Constants ────────────────────────────────────────────────────────────────
+MAX_STDOUT_BYTES = 1_048_576  # 1 MB cap on captured stdout
+MAX_RESULT_ROWS = 100         # Max rows returned from DataFrame results
+
 
 class SandboxedSecurityViolation(Exception):
     """Raised when generated or user code violates AST sandbox constraints."""
+    pass
+
+
+class SandboxTimeoutError(Exception):
+    """Raised when sandboxed code exceeds the execution time limit."""
     pass
 
 
@@ -60,7 +74,10 @@ class SandboxedAnalystAgent:
     FORBIDDEN_MODULES: Set[str] = {
         "os", "sys", "subprocess", "socket", "requests", "urllib",
         "shutil", "pathlib", "http", "ftplib", "builtins", "posix",
-        "pickle", "importlib", "multiprocessing", "threading", "pty"
+        "pickle", "importlib", "multiprocessing", "threading", "pty",
+        # §1: Block low-level FFI and raw I/O escape routes
+        "ctypes", "_ctypes", "io", "signal", "gc", "inspect",
+        "code", "codeop", "compileall", "py_compile",
     }
 
     FORBIDDEN_BUILTIN_CALLS: Set[str] = {
@@ -75,6 +92,25 @@ class SandboxedAnalystAgent:
         "__class__", "__subclasses__", "__bases__", "__base__",
         "__globals__", "__code__", "__reduce__", "__reduce_ex__",
         "__mro__", "__dict__", "__builtins__", "__init__", "__new__"
+    }
+
+    # §1: Methods on in-scope objects (pl, np, plt) that allow file I/O or escape
+    FORBIDDEN_METHOD_CALLS: Set[str] = {
+        # Polars file I/O — read/write/scan
+        "read_csv", "read_parquet", "read_json", "read_ndjson", "read_ipc",
+        "read_avro", "read_excel", "read_database", "read_delta",
+        "scan_csv", "scan_parquet", "scan_ndjson", "scan_ipc", "scan_delta",
+        "from_csv", "from_pandas", "from_arrow",
+        "write_csv", "write_parquet", "write_json", "write_ndjson",
+        "write_ipc", "write_avro", "write_excel", "write_database",
+        "write_delta", "sink_csv", "sink_parquet", "sink_ndjson", "sink_ipc",
+        # Numpy file I/O
+        "load", "save", "savez", "savez_compressed", "fromfile", "tofile",
+        "savetxt", "loadtxt", "genfromtxt",
+        # Matplotlib file I/O (plt.savefig is handled by us post-execution)
+        "savefig",
+        # Generic escape vectors
+        "system", "popen", "spawn", "call", "run",
     }
 
     SAFE_BUILTINS: Dict[str, Any] = {
@@ -144,7 +180,7 @@ class SandboxedAnalystAgent:
                     if root_pkg in cls.FORBIDDEN_MODULES:
                         raise SandboxedSecurityViolation(f"Import from module '{root_pkg}' is strictly forbidden.")
 
-            # Check for forbidden builtin calls
+            # Check for forbidden builtin calls AND forbidden method calls on in-scope objects
             elif isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name):
                     if node.func.id in cls.FORBIDDEN_BUILTIN_CALLS:
@@ -152,6 +188,11 @@ class SandboxedAnalystAgent:
                 elif isinstance(node.func, ast.Attribute):
                     if node.func.attr.startswith("__"):
                         raise SandboxedSecurityViolation(f"Calling private method '{node.func.attr}' is prohibited.")
+                    # §1: Block dangerous methods on in-scope objects (pl, np, plt, df)
+                    if node.func.attr in cls.FORBIDDEN_METHOD_CALLS:
+                        raise SandboxedSecurityViolation(
+                            f"Calling method '{node.func.attr}' is prohibited in the sandbox."
+                        )
                     if node.func.attr in ("format", "__format__"):
                         if isinstance(node.func.value, ast.Constant) and isinstance(node.func.value.value, str):
                             if "__" in node.func.value.value:
@@ -181,6 +222,7 @@ class SandboxedAnalystAgent:
         """
         Executes Python code safely against Polars DataFrame.
         Captures print outputs, return results, and generated Matplotlib charts.
+        Enforces execution timeout and output size limits.
         """
         active_df = df if df is not None else self.df
         if active_df is None:
@@ -220,9 +262,37 @@ class SandboxedAnalystAgent:
             "result": None,
         }
 
+        # §1: Thread-based execution timeout
+        exec_error: List[Optional[Exception]] = [None]
+        exec_done = threading.Event()
+
+        def _run_code() -> None:
+            try:
+                with contextlib.redirect_stdout(stdout_buf):
+                    exec(code_str, {"__builtins__": self.SAFE_BUILTINS}, exec_scope)
+            except Exception as e:
+                exec_error[0] = e
+            finally:
+                exec_done.set()
+
+        thread = threading.Thread(target=_run_code, daemon=True)
+        thread.start()
+        finished = exec_done.wait(timeout=self.timeout_seconds)
+
+        if not finished:
+            elapsed_ms = (time.perf_counter() - start_time) * 1000.0
+            plt.close("all")
+            return ExecutionResult(
+                success=False,
+                output="",
+                chart_base64=None,
+                execution_time_ms=round(elapsed_ms, 2),
+                error=f"Execution timed out after {self.timeout_seconds}s.",
+            )
+
         try:
-            with contextlib.redirect_stdout(stdout_buf):
-                exec(code_str, {"__builtins__": self.SAFE_BUILTINS}, exec_scope)
+            if exec_error[0] is not None:
+                raise exec_error[0]
 
             # Check if Matplotlib created any plots
             fig = plt.gcf()
@@ -233,12 +303,22 @@ class SandboxedAnalystAgent:
                 chart_base64 = base64.b64encode(img_buf.read()).decode("utf-8")
 
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
-            output_str = stdout_buf.getvalue().strip()
+
+            # §8: Cap stdout output size to prevent memory exhaustion
+            raw_output = stdout_buf.getvalue()
+            if len(raw_output) > MAX_STDOUT_BYTES:
+                output_str = raw_output[:MAX_STDOUT_BYTES].strip() + "\n... [output truncated at 1MB]"
+            else:
+                output_str = raw_output.strip()
+
             raw_result = exec_scope.get("result")
             formatted_result = self._serialize_result(raw_result)
 
             if not output_str and raw_result is not None:
                 output_str = str(raw_result)
+                # Cap the stringified result too
+                if len(output_str) > MAX_STDOUT_BYTES:
+                    output_str = output_str[:MAX_STDOUT_BYTES] + "\n... [output truncated at 1MB]"
 
             return ExecutionResult(
                 success=True,
@@ -251,7 +331,7 @@ class SandboxedAnalystAgent:
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
             return ExecutionResult(
                 success=False,
-                output=stdout_buf.getvalue().strip(),
+                output=stdout_buf.getvalue()[:MAX_STDOUT_BYTES].strip(),
                 chart_base64=None,
                 execution_time_ms=round(elapsed_ms, 2),
                 error=str(exc),
@@ -280,14 +360,14 @@ class SandboxedAnalystAgent:
             return {
                 "type": "dataframe",
                 "columns": val.columns,
-                "rows": val.head(100).to_dicts(),
+                "rows": val.head(MAX_RESULT_ROWS).to_dicts(),
                 "total_rows": val.height,
             }
         elif isinstance(val, pl.Series):
             return {
                 "type": "series",
                 "name": val.name,
-                "values": val.head(100).to_list(),
+                "values": val.head(MAX_RESULT_ROWS).to_list(),
                 "length": val.len(),
             }
         elif isinstance(val, np.ndarray):

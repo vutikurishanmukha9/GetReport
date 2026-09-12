@@ -2,12 +2,33 @@
 Rate Limiting Module
 Uses slowapi (Token Bucket) to protect API endpoints from abuse.
 """
+import ipaddress
 import logging
+from starlette.requests import Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _get_real_client_ip(request: Request) -> str:
+    """
+    §5: Extract the real client IP from X-Forwarded-For when behind a reverse proxy
+    (Render, Cloudflare, etc.). Falls back to request.client.host if header is absent
+    or contains an invalid IP.
+    """
+    xff = request.headers.get("X-Forwarded-For", "")
+    if xff:
+        # Take the leftmost (client-facing) IP
+        candidate = xff.split(",")[0].strip()
+        try:
+            ipaddress.ip_address(candidate)  # Validate it's a real IP
+            return candidate
+        except ValueError:
+            pass
+    return get_remote_address(request)
+
 
 # Check if Redis is available
 storage_uri = "memory://"
@@ -23,9 +44,9 @@ if settings.REDIS_URL:
         storage_uri = "memory://"
 
 # Create limiter instance
-# Key function: rate limit per client IP address
+# Key function: rate limit per real client IP address (proxy-aware)
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=_get_real_client_ip,
     enabled=settings.RATE_LIMIT_ENABLED,
     default_limits=[settings.RATE_LIMIT_DEFAULT],
     storage_uri=storage_uri,

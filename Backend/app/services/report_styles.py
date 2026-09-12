@@ -372,6 +372,11 @@ def _decode_image(
             return None
 
         img_data = base64.b64decode(b64_string)
+        # Validate that image data is parseable and complete (catches truncated/corrupt images)
+        from PIL import Image as PILImage
+        test_img = PILImage.open(BytesIO(img_data))
+        test_img.load()
+
         img_io   = BytesIO(img_data)
         img      = Image(img_io, width=width, height=height)
         meta.charts_included += 1

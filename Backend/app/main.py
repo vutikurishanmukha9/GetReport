@@ -61,7 +61,8 @@ _allow_all = "*" in _cors_origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if _allow_all else _cors_origins,
-    allow_origin_regex=None if _allow_all else r"https://get-report(?:-[a-zA-Z0-9_-]+)?\.vercel\.app",
+    # §3: Scoped to project owner's Vercel preview deploys only (not arbitrary forks)
+    allow_origin_regex=None if _allow_all else r"https://get-report-[a-z0-9]+-vutikurishanmukha9s-projects\.vercel\.app",
     allow_credentials=not _allow_all,
     allow_methods=["*"],
     allow_headers=["*"],

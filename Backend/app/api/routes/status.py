@@ -10,6 +10,7 @@ import json
 import time
 
 from app.core.limiter import limiter, STATUS_LIMIT
+from app.core.config import settings
 from app.core.auth import verify_api_key, verify_ws_api_key, validate_task_id
 from app.services.task_manager import title_task_manager, TaskStatus
 
@@ -59,31 +60,44 @@ async def get_task_status(
 
 
 @router.websocket("/ws/status/{task_id}")
-async def websocket_status(websocket: WebSocket, task_id: str, api_key: str = Query(default=None)):
+async def websocket_status(websocket: WebSocket, task_id: str):
     """
     Enterprise-grade WebSocket status stream with Redis PubSub / DB polling,
     immediate initial hydration, and 15s ping/pong heartbeats to prevent proxy timeouts.
     """
-    # VULN-06: WebSocket authentication
-    if not verify_ws_api_key(api_key):
-        await websocket.close(code=4001, reason="Unauthorized")
-        return
+    # §6: Protocol-level authentication — accept key via first message, not URL query
+    await websocket.accept()
     
+    if settings.API_KEY:
+        try:
+            # Wait up to 5s for the auth message
+            auth_msg = await asyncio.wait_for(websocket.receive_text(), timeout=5.0)
+            auth_data = json.loads(auth_msg)
+            if auth_data.get("type") != "auth" or not verify_ws_api_key(auth_data.get("api_key")):
+                await websocket.send_json({"type": "error", "message": "Unauthorized"})
+                await websocket.close(code=4001, reason="Unauthorized")
+                return
+        except (asyncio.TimeoutError, json.JSONDecodeError, Exception):
+            await websocket.send_json({"type": "error", "message": "Auth timeout or invalid format"})
+            await websocket.close(code=4001, reason="Unauthorized")
+            return
+
     # Validate task_id format
     try:
         validate_task_id(task_id)
     except HTTPException:
+        await websocket.send_json({"type": "error", "message": "Invalid task ID"})
         await websocket.close(code=4000, reason="Invalid task ID")
         return
     
     # VULN-06: Connection limit guard
     global _active_ws_connections
     if _active_ws_connections >= MAX_WS_CONNECTIONS:
+        await websocket.send_json({"type": "error", "message": "Too many connections"})
         await websocket.close(code=4002, reason="Too many connections")
         return
     
     _active_ws_connections += 1
-    await websocket.accept()
     logger.info(f"WebSocket connected for task {task_id} (active: {_active_ws_connections})")
     
     # Background task to drain incoming client frames (pings, pongs, close)
@@ -124,7 +138,7 @@ async def websocket_status(websocket: WebSocket, task_id: str, api_key: str = Qu
         async_redis = None
         pubsub = None
 
-        from app.core.config import settings
+
 
         if settings.REDIS_URL:
             try:

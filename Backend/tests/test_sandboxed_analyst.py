@@ -101,3 +101,38 @@ print("MAX_MARGIN=", augmented["margin"].max())
     res = agent.execute_polars(code, df)
     assert res.success is True
     assert "MAX_MARGIN= 0.45" in res.output or "0.45" in res.output
+
+
+def test_sandboxed_analyst_blocks_in_scope_file_io():
+    agent = SandboxedAnalystAgent(timeout_seconds=5)
+    df = pl.DataFrame({"a": [1, 2, 3]})
+
+    io_scripts = [
+        "pl.read_csv('/etc/passwd')",
+        "pl.read_parquet('secret.parquet')",
+        "df.write_csv('out.csv')",
+        "df.write_parquet('out.parquet')",
+        "np.save('test.npy', np.array([1, 2]))",
+        "np.load('test.npy')",
+        "plt.savefig('chart.png')",
+    ]
+
+    for script in io_scripts:
+        res = agent.execute_polars(script, df)
+        assert res.success is False
+        assert "prohibited in the sandbox" in (res.error or "")
+
+
+def test_sandboxed_analyst_enforces_timeout():
+    agent = SandboxedAnalystAgent(timeout_seconds=1)
+    df = pl.DataFrame({"a": [1, 2, 3]})
+
+    infinite_loop = """
+x = 0
+while True:
+    x = (x + 1) % 1000000
+"""
+    res = agent.execute_polars(infinite_loop, df)
+    assert res.success is False
+    assert "timed out" in (res.error or "").lower()
+

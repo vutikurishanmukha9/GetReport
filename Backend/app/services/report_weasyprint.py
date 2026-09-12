@@ -104,19 +104,17 @@ def safe_url_fetcher(url: str, *args, **kwargs) -> dict:
             raise ValueError(f"Access to local file '{url}' is forbidden for security.")
 
     # URL is verified safe (data: or allowed local file).
-    try:
-        import weasyprint
-        return weasyprint.default_url_fetcher(url, *args, **kwargs)
-    except (ImportError, OSError):
-        # Fallback when WeasyPrint C-libraries are not loaded locally
-        if scheme == "data":
-            header, _, data_part = url.partition(",")
-            mime_type = header[5:].split(";")[0] if ";" in header else (header[5:] or "text/plain")
-            content = base64.b64decode(data_part) if ";base64" in header else data_part.encode("utf-8")
-            return {"string": content, "mime_type": mime_type}
-        else:
-            with open(target_path, "rb") as f:
-                return {"string": f.read(), "mime_type": "text/css" if target_path.endswith(".css") else "application/octet-stream"}
+    if scheme == "data":
+        header, _, data_part = url.partition(",")
+        mime_type = header[5:].split(";")[0] if ";" in header else (header[5:] or "text/plain")
+        content = base64.b64decode(data_part) if ";base64" in header else data_part.encode("utf-8")
+        return {"string": content, "mime_type": mime_type}
+    else:
+        with open(target_path, "rb") as f:
+            return {
+                "string": f.read(),
+                "mime_type": "text/css" if target_path.endswith(".css") else "application/octet-stream",
+            }
 
 
 def generate_pdf_weasyprint(

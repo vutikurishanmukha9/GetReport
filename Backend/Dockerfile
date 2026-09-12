@@ -44,13 +44,18 @@ COPY Backend/ .
 RUN mkdir -p /app/temp_uploads /app/outputs /app/temp_cache /app/data && \
     chmod -R 777 /app/temp_uploads /app/outputs /app/temp_cache /app/data
 
+# Start script
+RUN dos2unix ./start.sh && chmod +x ./start.sh
+
+# §7: Non-root container user — limits blast radius of container escapes
+RUN useradd --create-home --shell /bin/bash appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 # ─── Environment ─────────────────────────────────────────────────────────────
 ENV PDF_ENGINE=weasyprint
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-
-# Start script
-RUN dos2unix ./start.sh && chmod +x ./start.sh
 
 # ─── Health check ────────────────────────────────────────────────────────────
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

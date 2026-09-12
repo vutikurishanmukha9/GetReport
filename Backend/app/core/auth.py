@@ -31,11 +31,19 @@ async def verify_api_key(api_key: str = Security(_api_key_header)) -> None:
     """
     FastAPI dependency that enforces API key authentication.
     
-    - If settings.API_KEY is empty/unset → auth is DISABLED (dev mode).
+    - If settings.API_KEY is empty/unset AND no DATABASE_URL → auth is DISABLED (dev mode).
+    - If settings.DATABASE_URL is set but API_KEY is empty → REJECT (fail closed in production).
     - Otherwise, the request must include a valid X-API-Key header.
     """
     if not settings.API_KEY:
-        # Auth disabled (development mode)
+        if settings.DATABASE_URL:
+            # §2: Fail closed — production database is configured but no API_KEY set
+            logger.critical("SECURITY: DATABASE_URL is set but API_KEY is empty. Rejecting all requests.")
+            raise HTTPException(
+                status_code=503,
+                detail="Service misconfigured: authentication is required but not configured.",
+            )
+        # Auth disabled (development mode — no DATABASE_URL)
         return
 
     if not api_key or not secrets.compare_digest(api_key, settings.API_KEY):
