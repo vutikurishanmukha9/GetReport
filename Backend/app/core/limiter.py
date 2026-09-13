@@ -14,16 +14,23 @@ logger = logging.getLogger(__name__)
 
 def _get_real_client_ip(request: Request) -> str:
     """
-    §5: Extract the real client IP from X-Forwarded-For when behind a reverse proxy
-    (Render, Cloudflare, etc.). Falls back to request.client.host if header is absent
-    or contains an invalid IP.
+    Extract client IP safely from trusted proxy headers (Cloudflare CF-Connecting-IP
+    or validated X-Forwarded-For). Falls back to request.client.host if absent or invalid.
     """
+    cf_ip = request.headers.get("CF-Connecting-IP")
+    if cf_ip:
+        candidate = cf_ip.strip()
+        try:
+            ipaddress.ip_address(candidate)
+            return candidate
+        except ValueError:
+            pass
+
     xff = request.headers.get("X-Forwarded-For", "")
     if xff:
-        # Take the leftmost (client-facing) IP
         candidate = xff.split(",")[0].strip()
         try:
-            ipaddress.ip_address(candidate)  # Validate it's a real IP
+            ipaddress.ip_address(candidate)
             return candidate
         except ValueError:
             pass

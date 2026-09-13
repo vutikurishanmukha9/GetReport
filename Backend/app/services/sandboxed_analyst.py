@@ -167,9 +167,24 @@ class SandboxedAnalystAgent:
         except SyntaxError as se:
             raise SandboxedSecurityViolation(f"Syntax error in code: {se}")
 
+        # Check loop nesting depth
+        def _check_nesting(curr_node, loop_depth=0):
+            if loop_depth > 3:
+                raise SandboxedSecurityViolation("Excessive loop nesting detected (maximum permitted depth is 3).")
+            for child in ast.iter_child_nodes(curr_node):
+                if isinstance(child, (ast.For, ast.While)):
+                    _check_nesting(child, loop_depth + 1)
+                else:
+                    _check_nesting(child, loop_depth)
+
+        _check_nesting(tree, 0)
+
         for node in ast.walk(tree):
+            if isinstance(node, (ast.AsyncFor, ast.AsyncWith)):
+                raise SandboxedSecurityViolation("Asynchronous operations are prohibited in the sandbox.")
+
             # Check for forbidden module imports
-            if isinstance(node, ast.Import):
+            elif isinstance(node, ast.Import):
                 for alias in node.names:
                     root_pkg = alias.name.split(".")[0]
                     if root_pkg in cls.FORBIDDEN_MODULES:
@@ -270,7 +285,7 @@ class SandboxedAnalystAgent:
             try:
                 with contextlib.redirect_stdout(stdout_buf):
                     exec(code_str, {"__builtins__": self.SAFE_BUILTINS}, exec_scope)
-            except Exception as e:
+            except (Exception, SystemExit) as e:
                 exec_error[0] = e
             finally:
                 exec_done.set()
@@ -280,6 +295,14 @@ class SandboxedAnalystAgent:
         finished = exec_done.wait(timeout=self.timeout_seconds)
 
         if not finished:
+            # Terminate spinning thread asynchronously to prevent CPU starvation
+            if thread.ident:
+                try:
+                    import ctypes
+                    tid = ctypes.c_long(thread.ident)
+                    ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(SystemExit))
+                except Exception:
+                    pass
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
             plt.close("all")
             return ExecutionResult(

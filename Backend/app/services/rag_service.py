@@ -11,7 +11,18 @@ import numpy as np
 
 from openai import AsyncOpenAI, OpenAI, BadRequestError, NotFoundError
 from app.core.config import settings
-from app.core.rag_utils import TextSplitter, TableAwareTextSplitter, SimpleVectorStore, PostgresVectorStore, TFIDFVectorStore
+from app.core.rag_utils import (
+    TextSplitter,
+    TableAwareTextSplitter,
+    TableSemanticChunker,
+    CrossEncoderReranker,
+    SimpleVectorStore,
+    PostgresVectorStore,
+    TFIDFVectorStore
+)
+from app.core.graph_store import DatasetGraphStore
+from app.services.dataset_graph_builder import build_dataset_graph
+from app.services.query_router import QueryRouter
 from app.services.llm_insight import (
     GEMINI_MODELS,
     GEMINI_BASE_URL,
@@ -648,10 +659,59 @@ class EnhancedRAGService:
         self._embed_client = None
         self._embed_sync_client = None
 
-        self.text_splitter = TableAwareTextSplitter(
+        # RAGFlow-inspired Tabular Semantic Chunker (preserves table headers & key-value records)
+        self.text_splitter = TableSemanticChunker(
             chunk_size=self.config.CHUNK_SIZE,
             chunk_overlap=self.config.CHUNK_OVERLAP
         )
+        # RAGFlow / LightRAG-inspired Cross-Encoder Reranker
+        self.reranker = CrossEncoderReranker()
+        # LightRAG Dataset Knowledge Graph Cache & Query Router
+        self._graph_cache: Dict[str, Tuple[DatasetGraphStore, datetime]] = {}
+        self._query_router: Optional[QueryRouter] = None
+
+    @property
+    def query_router(self) -> QueryRouter:
+        if self._query_router is None:
+            self._query_router = QueryRouter(
+                llm_client=self.client if self.enabled else None,
+                model=self._models[0] if self._models else None
+            )
+        return self._query_router
+
+    def _get_graph_path(self, task_id: str) -> str:
+        temp_cache_dir = os.path.join(BASE_DIR, "temp_cache")
+        os.makedirs(temp_cache_dir, exist_ok=True)
+        return os.path.join(temp_cache_dir, f"{task_id}_graph.json")
+
+    def _get_or_load_graph_store(self, task_id: str, job_result: Optional[Dict[str, Any]] = None) -> Optional[DatasetGraphStore]:
+        """Load or build the Dataset Knowledge Graph for the task (LightRAG Pattern)."""
+        if hasattr(self, "_graph_cache") and task_id in self._graph_cache:
+            store, ts = self._graph_cache[task_id]
+            if datetime.now() - ts < timedelta(seconds=self.config.CACHE_TTL_SECONDS):
+                return store
+
+        graph_path = self._get_graph_path(task_id)
+        store = DatasetGraphStore.load_from_file(task_id, graph_path)
+        if store:
+            if not hasattr(self, "_graph_cache"):
+                self._graph_cache = {}
+            self._graph_cache[task_id] = (store, datetime.now())
+            return store
+
+        if job_result:
+            try:
+                ledger_issues = job_result.get("ledger_issues", job_result.get("issues", []))
+                store = build_dataset_graph(task_id, job_result, ledger_issues)
+                store.save_to_file(graph_path)
+                if not hasattr(self, "_graph_cache"):
+                    self._graph_cache = {}
+                self._graph_cache[task_id] = (store, datetime.now())
+                return store
+            except Exception as e:
+                logger.warning(f"Failed to build graph store dynamically for {task_id}: {e}")
+
+        return None
 
     # Lazy Properties for Client & Lock Initialization (Issue 1)
     @property
@@ -829,17 +889,22 @@ class EnhancedRAGService:
 
     async def ingest_report(self, task_id: str, text_content: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Ingest report text into vector store (Async)"""
-        if not self.enabled:
-            return {"success": False, "error": "Disabled"}
-
         try:
-            # Split
+            # Split with TableSemanticChunker
             text_content = SecurityGuard.sanitize_input(text_content)
             chunks = self.text_splitter.split_text(text_content)
             if not chunks:
                 return {"success": False, "error": "No text chunks"}
 
             metadatas = [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
+
+            if not self.enabled:
+                # Fallback to local TFIDFVectorStore when no external LLM/embedding API is configured
+                store = TFIDFVectorStore()
+                store.add_texts(chunks, metadatas)
+                await self.cache.set(task_id, store)
+                self._save_local_vector_store(task_id, store)
+                return {"success": True, "num_chunks": len(chunks), "mode": "tfidf_offline"}
 
             # Embed (Try API embeddings first, fallback to TF-IDF if credits exhausted)
             try:
@@ -869,17 +934,20 @@ class EnhancedRAGService:
         Synchronous version of ingest_report for Celery workers.
         Avoids asyncio.run() entirely.
         """
-        if not self.enabled:
-            return {"success": False, "error": "Disabled"}
-
         try:
-            # Split
+            # Split with TableSemanticChunker
             text_content = SecurityGuard.sanitize_input(text_content)
             chunks = self.text_splitter.split_text(text_content)
             if not chunks:
                  return {"success": False, "error": "No text chunks"}
             
             metadatas = [{"task_id": task_id, "chunk_index": i, **(metadata or {})} for i in range(len(chunks))]
+
+            if not self.enabled:
+                store = TFIDFVectorStore()
+                store.add_texts(chunks, metadatas)
+                self._save_local_vector_store(task_id, store)
+                return {"success": True, "num_chunks": len(chunks), "mode": "tfidf_offline"}
 
             # Embed (Sync) - Try API embeddings first, fallback to TF-IDF if credits exhausted
             try:
@@ -949,12 +1017,15 @@ class EnhancedRAGService:
                         relevant_docs.append((doc, score))
 
                 relevant_docs.sort(key=lambda x: x[1], reverse=True)
-                relevant_docs = relevant_docs[:k]
+                # Two-stage retrieval: pool candidates then apply Cross-Encoder Reranker
+                candidate_docs = [d for d, _ in relevant_docs[:24]]
+                reranked_docs = self.reranker.rerank(query, candidate_docs, top_n=k)
 
                 formatted_chunks = []
-                for idx, (d, score) in enumerate(relevant_docs, 1):
+                for idx, d in enumerate(reranked_docs, 1):
+                    score_info = f" [Score: {d['rerank_score']:.2f}]" if "rerank_score" in d else ""
                     formatted_chunks.append(f"[{idx}] {d['content']}")
-                    sources_list.append(f"[{idx}] {d['content'][:120]}…")
+                    sources_list.append(f"[{idx}] {d['content'][:120]}…{score_info}")
 
                 if formatted_chunks:
                     context_chunk_str = "\n\n".join(formatted_chunks)
@@ -978,7 +1049,35 @@ class EnhancedRAGService:
                 return {"success": False, "answer": "Please enter a valid question.", "sources": []}
 
             if not self.enabled:
-                return {"success": True, "answer": _generate_smart_dataset_answer(sanitized_q, job_result), "sources": []}
+                # Offline/Local Mode: retrieve sources via TFIDF/Graph and return smart dataset answer
+                sources_list, _ = await self._hybrid_retrieve_rrf(task_id, sanitized_q, k=k)
+                graph_store = self._get_or_load_graph_store(task_id, job_result)
+                if graph_store:
+                    available_cols = []
+                    if job_result:
+                        analysis = job_result.get("analysis", {})
+                        available_cols = list(analysis.get("summary", {}).keys()) + list(analysis.get("columns", {}).keys())
+                    routing = await self.query_router.route_query(sanitized_q, available_cols)
+                    ll_kws = routing.get("ll_keywords", [])
+                    entity_ids = []
+                    for kw in ll_kws:
+                        col_id = f"col:{kw}"
+                        if graph_store.graph.has_node(col_id):
+                            entity_ids.append(col_id)
+                        elif graph_store.graph.has_node(kw):
+                            entity_ids.append(kw)
+                    if entity_ids:
+                        subgraph = graph_store.get_local_subgraph(entity_ids, max_hops=1)
+                        for n in subgraph.get("nodes", []):
+                            if n.get("entity_type") in ("FeatureColumn", "DataQualityIssue"):
+                                sources_list.insert(0, f"[Knowledge Graph] {n.get('entity_type')}: {n.get('name', n.get('id'))}")
+                return {
+                    "success": True,
+                    "answer": _generate_smart_dataset_answer(sanitized_q, job_result),
+                    "sources": sources_list if include_sources else [],
+                    "task_id": task_id,
+                    "suggested_followups": _generate_suggested_followups(job_result)
+                }
 
             # 0. Check Golden Query Context Store (Dataherald pattern: zero-latency, zero-hallucination)
             try:
@@ -1032,10 +1131,49 @@ class EnhancedRAGService:
                 logger.warning("Golden query matching/execution failed (%s), proceeding to LLM RAG.", gq_err)
             
             try:
-                # 1. Retrieve hybrid context chunks via RRF
+                # 1. Route query & extract low/high-level keywords (LightRAG Pattern)
+                available_cols = []
+                if job_result:
+                    analysis = job_result.get("analysis", {})
+                    available_cols = list(analysis.get("summary", {}).keys()) + list(analysis.get("columns", {}).keys())
+
+                routing = await self.query_router.route_query(sanitized_q, available_cols)
+
+                # 2. Retrieve hybrid context chunks via two-stage RRF + Cross-Encoder Reranker
                 sources_list, context_chunk_str = await self._hybrid_retrieve_rrf(task_id, sanitized_q, k=k)
 
-                # 2. Build Structured Context, Conversation History & Polars Facts
+                # 3. Knowledge Graph Traversal (LightRAG Dual-Level Local/Global Mode)
+                graph_store = self._get_or_load_graph_store(task_id, job_result)
+                graph_context_blocks = []
+                if graph_store:
+                    # Local 1-hop traversal for specific entity/column queries
+                    ll_kws = routing.get("ll_keywords", [])
+                    entity_ids = []
+                    for kw in ll_kws:
+                        col_id = f"col:{kw}"
+                        if graph_store.graph.has_node(col_id):
+                            entity_ids.append(col_id)
+                        elif graph_store.graph.has_node(kw):
+                            entity_ids.append(kw)
+                    if entity_ids:
+                        local_subgraph = graph_store.get_local_subgraph(entity_ids, max_hops=1)
+                        subgraph_md = graph_store.format_subgraph_markdown(local_subgraph)
+                        if subgraph_md:
+                            graph_context_blocks.append(subgraph_md)
+                        for n in local_subgraph.get("nodes", []):
+                            if n.get("entity_type") in ("FeatureColumn", "DataQualityIssue"):
+                                sources_list.insert(0, f"[Knowledge Graph] {n.get('entity_type')}: {n.get('name', n.get('id'))}")
+
+                    # Global thematic relation retrieval for dataset-wide questions
+                    hl_kws = routing.get("hl_keywords", [])
+                    if hl_kws:
+                        global_rels = graph_store.get_global_relations(hl_kws)
+                        if global_rels:
+                            relations_md = graph_store.format_global_relations_markdown(global_rels)
+                            if relations_md:
+                                graph_context_blocks.append(relations_md)
+
+                # 4. Build Structured Context, Conversation History & Polars Facts
                 structured_context = []
                 history_ctx = _format_chat_history(chat_history)
                 if history_ctx:
@@ -1054,6 +1192,9 @@ class EnhancedRAGService:
                     if polars_facts:
                         structured_context.append(f"\n{polars_facts}")
 
+                if graph_context_blocks:
+                    structured_context.append("\n" + "\n\n".join(graph_context_blocks))
+
                 structured_context.append("\n--- RETRIEVED CONTEXT (Numbered Source Chunks) ---")
                 structured_context.append(context_chunk_str)
 
@@ -1062,8 +1203,8 @@ class EnhancedRAGService:
                 system_prompt = f"""You are an elite Lead Data Scientist & Business Intelligence AI. Answer the user's question based strictly on the provided dataset context below.
 
 <INSTRUCTIONS>
-1. Synthesize insights using 'DATASET SUMMARY', 'KEY FINDINGS', 'TARGETED COLUMN METRICS', 'VERIFIED EXACT POLARS CALCULATIONS', and 'RETRIEVED CONTEXT'.
-2. Use inline footnote citations like [1], [2] when referencing facts, numbers, or conclusions from RETRIEVED CONTEXT chunks.
+1. Synthesize insights using 'DATASET SUMMARY', 'KNOWLEDGE GRAPH LOCAL ENTITY TOPOLOGY', 'KNOWLEDGE GRAPH GLOBAL THEMATIC RELATIONSHIPS', 'TARGETED COLUMN METRICS', 'VERIFIED EXACT POLARS CALCULATIONS', and 'RETRIEVED CONTEXT'.
+2. Use inline footnote citations like [1], [2] when referencing facts, numbers, or conclusions from RETRIEVED CONTEXT chunks, and cite Knowledge Graph nodes when explaining relationships.
 3. Keep your response professional, precise, clear, and action-oriented.
 4. Use bolding and structured lists to highlight key metrics or findings.
 5. If the answer cannot be determined from the provided dataset context, clearly say so without making up numbers.
@@ -1244,15 +1385,54 @@ CONTEXT:
             except Exception as gq_err:
                 logger.warning("Golden query matching/execution in stream failed (%s), proceeding to RAG stream.", gq_err)
 
-            # 1. Retrieve hybrid context chunks via RRF
+            # 1. Route query & extract low/high-level keywords (LightRAG Pattern)
+            available_cols = []
+            if job_result:
+                analysis = job_result.get("analysis", {})
+                available_cols = list(analysis.get("summary", {}).keys()) + list(analysis.get("columns", {}).keys())
+
+            routing = await self.query_router.route_query(sanitized_q, available_cols)
+
+            # 2. Retrieve hybrid context chunks via two-stage RRF + Cross-Encoder Reranker
             sources_list, context_chunk_str = await self._hybrid_retrieve_rrf(task_id, sanitized_q)
 
-            # 2. Extract targeted column metrics & Polars exact calculations
+            # 3. Knowledge Graph Traversal (LightRAG Dual-Level Local/Global Mode)
+            graph_store = self._get_or_load_graph_store(task_id, job_result)
+            graph_context_blocks = []
+            if graph_store:
+                # Local 1-hop traversal for specific entity/column queries
+                ll_kws = routing.get("ll_keywords", [])
+                entity_ids = []
+                for kw in ll_kws:
+                    col_id = f"col:{kw}"
+                    if graph_store.graph.has_node(col_id):
+                        entity_ids.append(col_id)
+                    elif graph_store.graph.has_node(kw):
+                        entity_ids.append(kw)
+                if entity_ids:
+                    local_subgraph = graph_store.get_local_subgraph(entity_ids, max_hops=1)
+                    subgraph_md = graph_store.format_subgraph_markdown(local_subgraph)
+                    if subgraph_md:
+                        graph_context_blocks.append(subgraph_md)
+                    for n in local_subgraph.get("nodes", []):
+                        if n.get("entity_type") in ("FeatureColumn", "DataQualityIssue"):
+                            sources_list.insert(0, f"[Knowledge Graph] {n.get('entity_type')}: {n.get('name', n.get('id'))}")
+
+                # Global thematic relation retrieval for dataset-wide questions
+                hl_kws = routing.get("hl_keywords", [])
+                if hl_kws:
+                    global_rels = graph_store.get_global_relations(hl_kws)
+                    if global_rels:
+                        relations_md = graph_store.format_global_relations_markdown(global_rels)
+                        if relations_md:
+                            graph_context_blocks.append(relations_md)
+
+            # 4. Extract targeted column metrics & Polars exact calculations
             targeted_facts = _extract_targeted_structured_context(sanitized_q, job_result)
             polars_facts = _execute_polars_data_query(sanitized_q, job_result)
             history_ctx = _format_chat_history(chat_history)
             
-            # 3. Assemble structured system context
+            # 5. Assemble structured system context
             structured_context = []
             if history_ctx:
                 structured_context.append(history_ctx)
@@ -1268,6 +1448,9 @@ CONTEXT:
             if polars_facts:
                 structured_context.append(f"\n{polars_facts}")
 
+            if graph_context_blocks:
+                structured_context.append("\n" + "\n\n".join(graph_context_blocks))
+
             structured_context.append("\n--- RETRIEVED CONTEXT (Numbered Source Chunks) ---")
             structured_context.append(context_chunk_str)
 
@@ -1277,8 +1460,8 @@ CONTEXT:
                 "You are an elite Lead Data Scientist & Business Intelligence AI. "
                 "Answer the user's question based strictly on the provided dataset context below.\n\n"
                 "<INSTRUCTIONS>\n"
-                "1. Synthesize insights using 'DATASET SUMMARY', 'KEY FINDINGS', 'TARGETED COLUMN METRICS', 'VERIFIED EXACT POLARS CALCULATIONS', and 'RETRIEVED CONTEXT'.\n"
-                "2. Use inline footnote citations like [1], [2] when referencing facts, numbers, or conclusions from RETRIEVED CONTEXT chunks.\n"
+                "1. Synthesize insights using 'DATASET SUMMARY', 'KNOWLEDGE GRAPH LOCAL ENTITY TOPOLOGY', 'KNOWLEDGE GRAPH GLOBAL THEMATIC RELATIONSHIPS', 'KEY FINDINGS', 'TARGETED COLUMN METRICS', 'VERIFIED EXACT POLARS CALCULATIONS', and 'RETRIEVED CONTEXT'.\n"
+                "2. Use inline footnote citations like [1], [2] when referencing facts, numbers, or conclusions from RETRIEVED CONTEXT chunks, and cite Knowledge Graph entities when explaining relationships.\n"
                 "3. Keep your response professional, precise, clear, and action-oriented.\n"
                 "4. Use bolding and structured lists to highlight key metrics or findings.\n"
                 "5. If the answer cannot be determined from the provided dataset context, clearly say so without making up numbers.\n"

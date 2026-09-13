@@ -44,7 +44,19 @@ class VirtualConceptSynthesizer:
     as Polars expressions while maintaining audit-grade DAG lineage.
     """
 
-    ALLOWED_POLARS_ROOTS: Set[str] = {"pl", "col", "lit", "when", "coalesce", "concat_str"}
+    ALLOWED_POLARS_ROOTS: Set[str] = {
+        "col", "lit", "when", "coalesce", "concat_str", "min", "max",
+        "sum", "mean", "median", "all", "any", "count", "duration",
+        "date", "datetime", "int_range", "date_range"
+    }
+
+    FORBIDDEN_EXPR_METHODS: Set[str] = {
+        "map_elements", "pipe", "apply", "to_pandas", "to_numpy", "to_arrow",
+        "write_csv", "write_parquet", "write_json", "write_ndjson", "write_ipc",
+        "sink_csv", "sink_parquet", "sink_ipc", "sink_ndjson", "read_csv",
+        "read_parquet", "read_json", "read_ndjson", "read_ipc", "scan_csv",
+        "scan_parquet", "scan_ndjson", "scan_ipc"
+    }
 
     FORBIDDEN_ATTRIBUTES: Set[str] = {
         "__class__", "__subclasses__", "__bases__", "__base__",
@@ -90,6 +102,8 @@ class VirtualConceptSynthesizer:
         for node in ast.walk(tree):
             if isinstance(node, (ast.Import, ast.ImportFrom)):
                 raise ConceptSynthesizerSecurityViolation("Imports are forbidden in concept expressions.")
+            elif isinstance(node, (ast.Lambda, ast.FunctionDef, ast.AsyncFunctionDef)):
+                raise ConceptSynthesizerSecurityViolation("Defining functions or lambdas is prohibited.")
             elif isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name):
                     if node.func.id in cls.FORBIDDEN_BUILTINS:
@@ -97,9 +111,19 @@ class VirtualConceptSynthesizer:
                 elif isinstance(node.func, ast.Attribute):
                     if node.func.attr.startswith("__"):
                         raise ConceptSynthesizerSecurityViolation(f"Calling private method '{node.func.attr}' is prohibited.")
+                    if node.func.attr in cls.FORBIDDEN_EXPR_METHODS:
+                        raise ConceptSynthesizerSecurityViolation(f"Calling '{node.func.attr}' is prohibited.")
+                    # If call is directly on pl (e.g. pl.read_csv or pl.col), enforce whitelist
+                    if isinstance(node.func.value, ast.Name) and node.func.value.id == "pl":
+                        if node.func.attr not in cls.ALLOWED_POLARS_ROOTS:
+                            raise ConceptSynthesizerSecurityViolation(
+                                f"Polars function 'pl.{node.func.attr}' is not permitted in concept expressions."
+                            )
             elif isinstance(node, ast.Attribute):
                 if node.attr.startswith("__") or node.attr in cls.FORBIDDEN_ATTRIBUTES:
                     raise ConceptSynthesizerSecurityViolation(f"Accessing private attribute '{node.attr}' is prohibited.")
+                if node.attr in cls.FORBIDDEN_EXPR_METHODS:
+                    raise ConceptSynthesizerSecurityViolation(f"Accessing method '{node.attr}' is prohibited.")
             elif isinstance(node, ast.Subscript):
                 if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str):
                     if node.slice.value.startswith("__"):
@@ -150,7 +174,7 @@ class VirtualConceptSynthesizer:
         try:
             self.validate_expression_ast(candidate_expr)
             # Test compile in evaluation scope to verify validity
-            test_scope = {"pl": pl, "np": np}
+            test_scope = {"pl": pl}
             eval(candidate_expr, {"__builtins__": self.SAFE_EVAL_BUILTINS}, test_scope)
             return candidate_expr
         except Exception:
@@ -198,7 +222,7 @@ STRICT REQUIREMENTS:
         expr_str = self.synthesize_polars_expression(schema_dict, declaration)
 
         # Evaluate expression safely in scoped namespace
-        eval_scope = {"pl": pl, "np": np}
+        eval_scope = {"pl": pl}
         try:
             compiled_expr = eval(expr_str, {"__builtins__": self.SAFE_EVAL_BUILTINS}, eval_scope)
         except Exception as eval_err:

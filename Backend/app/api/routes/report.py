@@ -4,7 +4,7 @@ Report Routes — PDF generation, status, download, and DAG endpoints.
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse, Response
 from fastapi.concurrency import run_in_threadpool
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional
 import logging
 import os
@@ -25,7 +25,7 @@ class AnalysisRulesRequest(BaseModel):
 
 class SQLQueryRequest(BaseModel):
     sql: str
-    limit: Optional[int] = 500
+    limit: Optional[int] = Field(default=500, ge=1, le=1000)
 
 class GoldenQueryCreateRequest(BaseModel):
     question: str
@@ -395,8 +395,10 @@ async def export_cleaned_data_or_report(
             df = load_dataframe(file_path)
             
             if clean_fmt == "csv":
+                from app.services.data_processing import sanitize_df_for_csv_export
+                safe_df = sanitize_df_for_csv_export(df)
                 buffer = io.BytesIO()
-                df.write_csv(buffer)
+                safe_df.write_csv(buffer)
                 buffer.seek(0)
                 return Response(
                     content=buffer.getvalue(),
@@ -522,9 +524,10 @@ async def query_dataset_sql(
             df = load_dataframe(file_path)
             session.register_polars("dataset", df)
 
-        records = session.execute_read_query(body.sql)
+        query_limit = min(body.limit or 500, 1000)
+        records = session.execute_read_query(body.sql, max_rows=query_limit)
         columns = list(records[0].keys()) if records else []
-        capped_records = records[: body.limit] if body.limit else records
+        capped_records = records[:query_limit]
 
         return {
             "task_id": task_id,

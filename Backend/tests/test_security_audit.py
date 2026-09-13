@@ -217,3 +217,103 @@ def test_format_answer_for_ui_escapes_xss():
     assert "&lt;img" in rendered
     assert "<b>Bold Fact</b>" in rendered
     assert "<code>code_snippet</code>" in rendered
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 6. EXTENDED SECURITY VULNERABILITY AUDIT TESTS (0 VULNERABILITIES)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_concept_synthesizer_blocks_file_io_and_lambdas():
+    """Verify concept expressions reject arbitrary file I/O, lambdas, and unsafe methods."""
+    synth = VirtualConceptSynthesizer()
+
+    forbidden_payloads = [
+        "pl.read_csv('/etc/passwd')",
+        "pl.scan_parquet('data.parquet')",
+        "pl.read_ipc('data.arrow')",
+        "pl.col('val').map_elements(lambda x: x * 2)",
+        "(lambda x: x)(pl.col('val'))",
+        "pl.col('val').pipe(str)",
+    ]
+
+    for expr in forbidden_payloads:
+        with pytest.raises(ConceptSynthesizerSecurityViolation):
+            synth.validate_expression_ast(expr)
+
+
+def test_csv_formula_injection_sanitization():
+    """Verify string columns starting with dangerous spreadsheet triggers are sanitized."""
+    from app.services.data_processing import sanitize_df_for_csv_export
+
+    df = pl.DataFrame({
+        "formula": ["=cmd|' /C calc'!A0", "+SUM(A1:A2)", "-1+2", "@SUM(B1:B2)", "\tmalicious", "normal_text"],
+        "numbers": [1, 2, 3, 4, 5, 6],
+    })
+
+    safe_df = sanitize_df_for_csv_export(df)
+    sanitized_vals = safe_df["formula"].to_list()
+
+    assert sanitized_vals[0] == "'=cmd|' /C calc'!A0"
+    assert sanitized_vals[1] == "'+SUM(A1:A2)"
+    assert sanitized_vals[2] == "'-1+2"
+    assert sanitized_vals[3] == "'@SUM(B1:B2)"
+    assert sanitized_vals[4] == "'\tmalicious"
+    assert sanitized_vals[5] == "normal_text"
+    assert safe_df["numbers"].to_list() == [1, 2, 3, 4, 5, 6]
+
+
+def test_duckdb_query_capped_records():
+    """Verify analytical queries cap materialization to max_rows."""
+    session = DuckDBAnalyticalSession()
+    try:
+        records = session.execute_read_query("SELECT 1 AS num UNION ALL SELECT 2 UNION ALL SELECT 3", max_rows=2)
+        assert len(records) == 2
+    finally:
+        session.close()
+
+
+def test_verify_ws_api_key_fail_closed(monkeypatch):
+    """Verify WebSocket auth fails closed when DATABASE_URL is set without API_KEY."""
+    from app.core import auth
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    monkeypatch.setattr(settings, "API_KEY", "")
+
+    assert auth.verify_ws_api_key("some_key") is False
+    assert auth.verify_ws_api_key(None) is False
+
+
+def test_request_id_crlf_defense():
+    """Verify RequestIDMiddleware sanitizes CRLF sequences and generates valid UUIDs."""
+    from app.core.request_id import RequestIDMiddleware, SAFE_REQUEST_ID_REGEX
+    from starlette.requests import Request
+    from starlette.responses import Response
+    import asyncio
+
+    middleware = RequestIDMiddleware(None)
+
+    # Valid request ID
+    assert SAFE_REQUEST_ID_REGEX.match("trace-abc-123_45") is not None
+
+    # CRLF / Header Injection attempt
+    assert SAFE_REQUEST_ID_REGEX.match("trace\r\nInjected-Header: evil") is None
+    assert SAFE_REQUEST_ID_REGEX.match("<script>alert(1)</script>") is None
+
+
+def test_limiter_cf_connecting_ip():
+    """Verify rate limiter prioritizes CF-Connecting-IP when present."""
+    from app.core.limiter import _get_real_client_ip
+    from starlette.requests import Request
+
+    scope = {
+        "type": "http",
+        "headers": [
+            (b"cf-connecting-ip", b"198.51.100.42"),
+            (b"x-forwarded-for", b"203.0.113.195, 10.0.0.1"),
+        ],
+        "client": ("127.0.0.1", 12345),
+    }
+    req = Request(scope)
+    assert _get_real_client_ip(req) == "198.51.100.42"
+

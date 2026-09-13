@@ -578,7 +578,7 @@
             {% for block in blocks %}
                 {% if block | strip | length > 0 %}
                 <div class="insight-card mb-8">
-                    <div class="insight-card__text" style="white-space: pre-line;">{{ block | safe }}</div>
+                    <div class="insight-card__text" style="white-space: pre-line;">{{ block }}</div>
                 </div>
                 {% endif %}
             {% endfor %}
@@ -587,7 +587,7 @@
             {% if key not in ['model_used', 'prompt_tokens', 'completion_tokens', 'total_tokens', 'response_time_ms', 'retries_attempted', 'success'] %}
             <div class="insight-card mb-8">
                 <div class="insight-card__title">{{ key | replace('_', ' ') | title }}</div>
-                <div class="insight-card__text" style="white-space: pre-line;">{{ (value if value is string else value | tojson) | replace('**', '') | safe }}</div>
+                <div class="insight-card__text" style="white-space: pre-line;">{{ (value if value is string else value | tojson) | replace('**', '') }}</div>
             </div>
             {% endif %}
             {% endfor %}
@@ -859,7 +859,7 @@
     </div>
     <div class="section-body">
         {% macro render_chart_image(img_data, alt_text) %}
-            {% if '<svg' in img_data %}
+            {% if '<svg' in img_data and '<script' not in img_data | lower and '<foreignobject' not in img_data | lower %}
                 <div class="chart-card__svg-wrapper">{{ img_data | safe }}</div>
             {% elif img_data.startswith('data:image') %}
                 <img src="{{ img_data }}" alt="{{ alt_text }}">

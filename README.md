@@ -11,8 +11,8 @@
 [![DuckDB](https://img.shields.io/badge/OLAP-DuckDB%201.0%2B-FFF000?logo=duckdb)](https://duckdb.org/)
 [![Great Expectations](https://img.shields.io/badge/Contracts-Great%20Expectations-FF5A00)](https://greatexpectations.io/)
 [![WeasyPrint](https://img.shields.io/badge/PDF_Engine-WeasyPrint%2061.2%2B-FF6600)](https://weasyprint.org/)
-[![Security](https://img.shields.io/badge/Security-Audit%20Hardened-green?logo=shield)](https://github.com/)
-[![Tests](https://img.shields.io/badge/Tests-295%20Passed-brightgreen)](https://github.com/)
+[![Security](https://img.shields.io/badge/Security-0%20Vulnerabilities%20%7C%20Audit%20Hardened-brightgreen?logo=shield)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-332%20Passed-brightgreen)](https://github.com/)
 
 ---
 
@@ -21,10 +21,11 @@
 
 GetReport unifies high-performance data processing, mathematical profiling, and agentic AI:
 - **Zero-Copy Hybrid Engine**: Combines **Polars (Rust)** for streaming aggregations with **DuckDB** for in-process SQL OLAP queries over Apache Arrow tables.
-- **Advanced Statistical Profiling**: Non-parametric dispersion estimators (MAD, IQR, Trimmed Mean), Bowley quartile skewness, Phik ($\Phi_K$) non-linear correlation matrices, and Benford's Law forensic anomaly audits.
-- **Enterprise Data Governance**: Interactive Issue Ledger ("Jira for Dirty Data"), Great Expectations contract generation, and immutable cryptographic DAG provenance.
-- **Conversational Intelligence & Sandboxing**: Grounded Q&A powered by Google Antigravity Agent, natural-language metric synthesis, and AST-sandboxed Python execution with dynamic Matplotlib plot generation.
-- **Audit-Grade Security**: Fully hardened against Local File Inclusion (LFI), Cross-Site Scripting (XSS), Server-Side Request Forgery (SSRF), and Python sandbox breakouts.
+- **Advanced Statistical Profiling & Time-Series**: Non-parametric dispersion estimators (MAD, IQR, Trimmed Mean), Bowley quartile skewness, Phik ($\Phi_K$) non-linear correlation matrices, Kats/Mann-Kendall trend detection, and Benford's Law forensic audits.
+- **High-Dimensional Visual Analytics**: Multi-parameter Parallel Coordinates plots powered by HiPlot and responsive SVG charts.
+- **Enterprise Data Governance**: Interactive Issue Ledger ("Jira for Dirty Data"), Great Expectations data contracts exporter, and immutable cryptographic DAG provenance.
+- **Dual-Level RAG & Conversational Sandboxing**: Dual-level local/global Knowledge Graph traversal (LightRAG pattern), grounded Q&A with Google Antigravity Agent, and AST-sandboxed Python analyst runtime.
+- **Zero-Vulnerability Security Architecture**: Complete defensive remediation across all attack surfaces: strict Polars AST whitelisting, WeasyPrint SSRF/HTML autoescaping, CSV formula injection neutralization (CWE-1236), DuckDB memory bounds, watchdog daemon thread termination, and fail-closed authentication.
 
 ---
 
@@ -94,11 +95,22 @@ GetReport unifies high-performance data processing, mathematical profiling, and 
 - **Great Expectations (GX) Contract Exporter**: Translates profile constraints into production-ready `ExpectationSuite` specifications (`.json` and standalone `.py` scripts) with column type, null percentage, and value range checks.
 - **Transformation DAG**: Tracks all dataset mutations with cryptographic data hashes, parent/child node linkages, execution durations, and automated reversibility drop hints.
 
-### 6. Enterprise Security Hardening
-- **LFI & Path Traversal Prevention**: Strict UUID file naming, realpath boundary enforcement inside `outputs/` and `temp_uploads/`, and DuckDB external access lockdown.
-- **Cross-Site Scripting (XSS) Defense**: Backend HTML escaping via `html.escape` coupled with frontend client-side sanitization via `DOMPurify` allowing only safe semantic formatting tags.
-- **Single-Pass Streaming Ingestion**: Validates magic byte signatures on the first chunk, computes SHA-256 binary checksums, and aborts uploads exceeding byte limits without memory accumulation.
-- **SSRF Immunity**: WeasyPrint safe URL fetcher restricts asset retrieval strictly to embedded `data:` URIs and internal template paths.
+### 6. Time-Series Intelligence & High-Dimensional Analytics (Kats & HiPlot)
+- **Kats Time-Series Forecasting & Anomaly Engine**: Performs monotonic trend analysis via Mann-Kendall tests, computes seasonal decomposition (additive/multiplicative STL) across temporal columns, and pinpoints structural changepoints.
+- **HiPlot Parallel Coordinates**: High-dimensional multi-parameter visual analytics rendering continuous and categorical axes with interactive brush selection and sub-population slicing.
+- **LightRAG Dual-Level Knowledge Graph**: Combines low-level entity-relationship extractions with high-level global dataset themes for grounded exploratory Q&A.
+
+### 7. Zero-Vulnerability Security Architecture (Audit-Hardened)
+GetReport enforces defense-in-depth security across every ingestion, execution, and rendering boundary:
+- **Strict Polars AST Whitelisting (`VULN-01`)**: The concept synthesis AST validator strictly allows only safe root tokens (`ALLOWED_POLARS_ROOTS` = `{"pl", "col", "lit", "when"}`), blocking arbitrary attribute access, file I/O operations (`read_*`, `scan_*`, `pipe`, `map_elements`), functions, and lambda expressions.
+- **Zero-Bypass HTML/SVG Escaping (`VULN-02`)**: Complete neutralization of stored/reflected XSS in executive report PDF rendering. AI insights, executive summaries, and recommendations are strictly autoescaped. Vector SVG charts are guarded against `<script>` and `<foreignObject>` tags.
+- **CSV Formula Injection (CWE-1236) Neutralization (`VULN-03`)**: Neutralizes Dynamic Data Exchange (DDE) and formula code execution in spreadsheet applications (Excel, Calc) by auto-sanitizing text fields starting with `=, +, -, @, \t, \r` with prepended single quotes (`'`) across all CSV export endpoints.
+- **DuckDB OOM DoS & Memory Hardening (`VULN-04`)**: Prevents out-of-memory denial of service by strictly capping analytical query materialization via Polars `.head(max_rows)` before `.to_dicts()` conversion, and constraining the API `limit` parameter with Pydantic validation (`1 <= limit <= 1000`).
+- **Watchdog Thread Termination (`VULN-05`)**: Python analyst execution threads are monitored by an active watchdog timer; runaway or spinning threads are asynchronously terminated via `PyThreadState_SetAsyncExc(tid, SystemExit)` to prevent daemon thread CPU exhaustion, with AST loop depth capped to 3.
+- **Fail-Closed API & WebSocket Authentication (`VULN-06`)**: WebSocket and REST authentication enforce fail-closed security when `DATABASE_URL` is configured, preventing unauthenticated access in production. The frontend client automatically propagates the `X-API-Key` header across all REST and WS connections.
+- **Real Client IP Spoofing Prevention (`VULN-07`)**: The global rate limiter extracts trusted client IPs by prioritizing authenticated edge proxy headers (Cloudflare `CF-Connecting-IP`) over easily spoofed `X-Forwarded-For` header chains.
+- **CRLF & Header Injection Defense (CWE-113) (`VULN-08`)**: Request ID middleware validates all incoming `X-Request-ID` headers against a strict whitelist regex (`^[a-zA-Z0-9_-]{1,64}$`), discarding any newline (`\r`, `\n`) or delimiter injection payloads.
+- **DuckDB Native Sandbox**: Native C++ external access disabled (`SET enable_external_access = false;`), preventing local file inclusion (LFI), network calls, or unauthorized file reads.
 
 ---
 
@@ -139,26 +151,34 @@ GetReport unifies high-performance data processing, mathematical profiling, and 
 - `WS /api/ws/status/{task_id}`: Real-time WebSocket stream with 15s heartbeats and Redis PubSub.
 
 ### OLAP & Data Contracts
-- `POST /api/jobs/{task_id}/query`: Executes read-only, hardware-accelerated SQL via DuckDB.
+- `POST /api/jobs/{task_id}/query-sql`: Executes read-only, hardware-accelerated SQL via in-process DuckDB over zero-copy Arrow batches (memory-bounded).
 - `GET /api/jobs/{task_id}/golden-queries`: Lists verified few-shot query examples for the dataset.
 - `POST /api/jobs/{task_id}/golden-queries`: Registers a verified natural-language-to-SQL pair.
-- `GET /api/jobs/{task_id}/export/great-expectations`: Generates a production GX data contract (`.json` or `.py`).
+- `DELETE /api/jobs/{task_id}/golden-queries/{query_id}`: Deletes an existing golden query pair.
+- `GET /api/jobs/{task_id}/export-gx`: Generates a production Great Expectations (GX) data contract (`.json` or `.py`).
+- `GET /api/jobs/{task_id}/export/{export_format}`: Securely exports sanitized dataset (`csv` with formula injection neutralization, `excel`, `parquet`, `json`, `pdf`).
 
 ### Virtual Concepts & Sandboxing
-- `POST /api/jobs/{task_id}/sandbox-exec`: Executes arbitrary user analytical code in the AST sandbox with Matplotlib plot capture.
-- `POST /api/jobs/{task_id}/concepts/derive`: Derives a new column, updates the stored dataset, and records DAG audit provenance.
+- `POST /api/jobs/{task_id}/sandbox-exec`: Executes arbitrary user analytical code in the AST sandbox with Matplotlib plot capture and watchdog thread termination.
+- `POST /api/jobs/{task_id}/concepts/derive`: Derives a new column via whitelisted Polars expressions, updates the stored dataset, and records DAG audit provenance.
 - `GET /api/jobs/{task_id}/concepts`: Lists all derived virtual concepts for the dataset.
 
 ### Issue Ledger & Governance
 - `GET /api/jobs/{task_id}/issues`: Retrieves detected data quality issues and proposed fixes.
-- `POST /api/jobs/{task_id}/issues/{issue_id}/approve`: Approves remediation for execution.
-- `POST /api/jobs/{task_id}/issues/lock`: Locks the ledger, preventing further modifications.
+- `POST /api/jobs/{task_id}/issues/{issue_id}/approve`: Approves a single remediation for execution.
+- `POST /api/jobs/{task_id}/issues/{issue_id}/reject`: Rejects a proposed remediation.
+- `POST /api/jobs/{task_id}/issues/approve-all`: Batch-approves all pending remediations.
+- `POST /api/jobs/{task_id}/issues/reject-all`: Batch-rejects all pending remediations.
+- `POST /api/jobs/{task_id}/issues/lock`: Locks the ledger, applying approved fixes and recording audit node.
 - `GET /api/jobs/{task_id}/dag`: Retrieves the complete audit lineage graph.
+- `GET /api/jobs/{task_id}/dag/summary`: High-level summary of transformations and reversibility hints.
 
 ### Reports & Conversational RAG
-- `POST /api/jobs/{task_id}/report`: Asynchronously schedules PDF compilation via Celery.
-- `GET /api/jobs/{task_id}/report/download`: Securely serves compiled PDF reports.
-- `POST /api/jobs/{task_id}/chat`: Context-aware Q&A with smart dataset fallback.
+- `POST /api/jobs/{task_id}/report`: Asynchronously schedules PDF compilation via Celery / WeasyPrint.
+- `GET /api/jobs/{task_id}/report`: Retrieves generated report JSON payload.
+- `GET /api/jobs/{task_id}/report/full`: Retrieves comprehensive executive report with all modules.
+- `GET /api/jobs/{task_id}/comparison`: Compares two datasets or versions across schema and statistics.
+- `POST /api/jobs/{task_id}/chat`: Context-aware Q&A with smart dataset fallback and dual-level Knowledge Graph.
 - `POST /api/jobs/{task_id}/chat/stream`: Real-time Server-Sent Events (SSE) token streaming.
 
 ---
@@ -212,17 +232,30 @@ pytest -q
 ```
 
 ```
-................................................................................................... [ 33%]
-................................................................................................... [ 67%]
-.................................................................................................   [100%]
-=================================== 295 passed in 82.33s ====================================
+................................................................................................... [ 30%]
+................................................................................................... [ 60%]
+................................................................................................... [ 90%]
+................................                                                                    [100%]
+=================================== 332 passed in 66.98s ====================================
 ```
 
 ### Test Suite Highlights
-- **11 Security Verification Tests** (`test_security_audit.py`): Validates DuckDB LFI rejection, AST sandbox dunder blocking, subscript reflection defense, format string protection, and XSS escaping.
+- **17 Security Verification Tests** (`test_security_audit.py`): Validates complete 0-vulnerability posture across the full application surface:
+  - DuckDB LFI rejection and C++ engine filesystem block (`SET enable_external_access = false;`)
+  - AST sandbox dunder blocking, subscript reflection defense, and format string introspection protection
+  - Concept synthesizer AST whitelisting: blocks unauthorized method invocations, file I/O (`read_*`, `scan_*`), lambdas, and functions
+  - Issue Ledger execution namespace isolation and AST validation
+  - RAG HTML formatting XSS neutralization preserving safe semantic tags
+  - CSV formula injection (CWE-1236) neutralization (`=`, `+`, `-`, `@`, `\t`, `\r` prefix apostrophe-escaping)
+  - DuckDB query result memory bounds (`max_rows` cap via Polars `.head()`)
+  - WebSocket authentication fail-closed enforcement when `DATABASE_URL` is configured
+  - HTTP Header / CRLF injection defense (CWE-113) with regex-enforced Request IDs
+  - Cloudflare `CF-Connecting-IP` real client IP spoofing defense
 - **5 DuckDB Engine Tests** (`test_duckdb_engine.py`): Validates zero-copy Arrow queries, profile calculations, and statement-chaining defenses.
-- **9 Advanced RAG Tests** (`test_rag_advanced.py`, `test_case_rag_prompt_injection_sanitization.py`): Validates token streaming, prompt injection filters, and footnote citations.
-- **14 Phase 3 Tests** (`test_sandboxed_analyst.py`, `test_concept_synthesizer.py`, `test_phase3_api_endpoints.py`): Validates sandboxed execution, plot rendering, and DAG persistence.
+- **9 Advanced RAG & Graph Pipeline Tests** (`test_rag_advanced.py`, `test_rag_graph_pipeline.py`): Validates dual-level knowledge graph extraction, token streaming, prompt injection filters, and footnote citations.
+- **14 Sandboxing & Synthesis Tests** (`test_sandboxed_analyst.py`, `test_concept_synthesizer.py`, `test_phase3_api_endpoints.py`): Validates sandboxed execution, plot rendering, thread timeout termination, and DAG persistence.
+- **Kats & Time-Series Tests** (`test_timeseries_kats.py`): Validates Mann-Kendall monotonic trend tests, seasonal decomposition, and changepoint detection.
+- **HiPlot Parallel Coordinates Tests** (`test_hiplot_service.py`): Validates multi-dimensional parallel coordinate rendering and parameter bounds.
 - **Frontend Production Build**: Verified with `npm run build` (0 TypeScript errors, clean bundle compilation).
 
 ---

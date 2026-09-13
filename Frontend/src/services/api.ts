@@ -38,6 +38,10 @@ async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Prom
     if (!headers.has("Content-Type") && options.body) {
         headers.set("Content-Type", "application/json");
     }
+    const apiKey = import.meta.env.VITE_API_KEY;
+    if (apiKey && !headers.has("X-API-Key")) {
+        headers.set("X-API-Key", apiKey);
+    }
 
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);

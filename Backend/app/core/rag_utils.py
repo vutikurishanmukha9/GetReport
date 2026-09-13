@@ -114,6 +114,9 @@ class TextSplitter:
             return None
 
 
+from collections import defaultdict, Counter
+import math
+
 class TableAwareTextSplitter(TextSplitter):
     """
     Structure-aware text splitter that preserves tabular headers and section breaks.
@@ -137,6 +140,221 @@ class TableAwareTextSplitter(TextSplitter):
             else:
                 contextual_chunks.append(chunk)
         return contextual_chunks
+
+
+class TableSemanticChunker(TextSplitter):
+    """
+    RAGFlow-inspired Tabular Semantic Chunker.
+    Solves the 'Tabular Context Amnesia' trap where table headers get separated
+    from numerical cell values during standard chunking.
+    
+    Capabilities:
+    1. Row-level Key-Value Binding: Serializes table rows with explicit column
+       headers (e.g., `- Column: Value`), ensuring dense vector embeddings retain
+       the exact header-attribute relationship.
+    2. Structured Profiling Chunking: Directly transforms Polars profiling summaries,
+       column metrics, and Issue Ledger records into self-contained semantic entities.
+    3. Markdown Table Preservation: Identifies markdown tables in raw text, extracting
+       and anchoring headers to every row block before chunking.
+    """
+    def __init__(self, chunk_size: int = 600, chunk_overlap: int = 100):
+        separators = ["\n\n### ", "\n\n## ", "\n\n# ", "\n\n---", "\n\n", "\n", ". "]
+        super().__init__(chunk_size=chunk_size, chunk_overlap=chunk_overlap, separators=separators)
+
+    def _convert_markdown_table_to_semantic_rows(self, table_lines: List[str]) -> List[str]:
+        """Convert a markdown table into header-bound key-value rows."""
+        if len(table_lines) < 3:
+            return table_lines
+
+        # Extract headers from first line
+        header_line = table_lines[0].strip().strip("|")
+        headers = [h.strip() for h in header_line.split("|")]
+        
+        # Second line is separator (e.g., |---|---|), skip it
+        semantic_rows = []
+        for line in table_lines[2:]:
+            clean_line = line.strip().strip("|")
+            if not clean_line:
+                continue
+            cells = [c.strip() for c in clean_line.split("|")]
+            # Pair each cell with its corresponding header
+            row_items = []
+            for idx, cell in enumerate(cells):
+                h = headers[idx] if idx < len(headers) else f"Col_{idx+1}"
+                if cell:
+                    row_items.append(f"{h}: {cell}")
+            if row_items:
+                semantic_rows.append("- " + " | ".join(row_items))
+                
+        return semantic_rows
+
+    def _transform_text_with_table_anchors(self, text: str) -> str:
+        """Scan text for markdown tables and replace them with semantic header-bound lines."""
+        lines = text.split("\n")
+        transformed = []
+        table_buffer = []
+        in_table = False
+
+        for line in lines:
+            stripped = line.strip()
+            # Detect markdown table row
+            if stripped.startswith("|") and stripped.endswith("|"):
+                in_table = True
+                table_buffer.append(line)
+            else:
+                if in_table:
+                    # Process accumulated table
+                    converted = self._convert_markdown_table_to_semantic_rows(table_buffer)
+                    transformed.extend(converted)
+                    table_buffer = []
+                    in_table = False
+                transformed.append(line)
+
+        if in_table and table_buffer:
+            converted = self._convert_markdown_table_to_semantic_rows(table_buffer)
+            transformed.extend(converted)
+
+        return "\n".join(transformed)
+
+    def split_text(self, text: str) -> List[str]:
+        """Split text with table header anchoring applied."""
+        if not text or not text.strip():
+            return []
+        anchored_text = self._transform_text_with_table_anchors(text)
+        return super().split_text(anchored_text)
+
+    def chunk_dataset_profile(
+        self,
+        profiling_result: Dict[str, Any],
+        ledger_issues: Optional[List[Dict[str, Any]]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Directly chunk structured profiling results and Issue Ledger records
+        into self-contained semantic entity chunks with rich metadata.
+        """
+        chunks = []
+        filename = profiling_result.get("filename", "Dataset")
+        analysis = profiling_result.get("analysis", {})
+        metadata = analysis.get("metadata", {})
+        summary = analysis.get("summary", {})
+        columns_info = analysis.get("columns", {})
+        confidence = profiling_result.get("confidence", {})
+        correlations = analysis.get("correlation", {}).get("strong_correlations", [])
+        cleaning_report = profiling_result.get("cleaning_report", {})
+        
+        # 1. Dataset Overview Document
+        overview_lines = [
+            f"[Entity: Dataset Overview]",
+            f"- File Name: {filename}",
+            f"- Total Rows: {metadata.get('total_rows', 'Unknown')}",
+            f"- Total Columns: {metadata.get('total_columns', 'Unknown')}",
+            f"- Completeness Rate: {100 - metadata.get('missing_value_pct', 0):.2f}%",
+            f"- Overall Confidence: {confidence.get('dataset_confidence', 'N/A')}% (Grade: {confidence.get('dataset_grade', 'N/A')})",
+            f"- Domain Classification: {analysis.get('domain', 'General Data')}",
+            f"- Total Cleaning Operations: {cleaning_report.get('total_changes', 0)}",
+        ]
+        chunks.append({
+            "content": "\n".join(overview_lines),
+            "metadata": {
+                "type": "dataset_overview",
+                "entity": "dataset",
+                "filename": filename
+            }
+        })
+
+        # 2. Group Issue Ledger by column
+        issues_by_col = defaultdict(list)
+        general_issues = []
+        if ledger_issues:
+            for iss in ledger_issues:
+                col = iss.get("column")
+                if col and col in summary:
+                    issues_by_col[col].append(iss)
+                else:
+                    general_issues.append(iss)
+
+        # 3. Column-Level Semantic Documents (RAGFlow Table Pattern)
+        for col_name, stats in summary.items():
+            info = columns_info.get(col_name, {})
+            col_issues = issues_by_col.get(col_name, [])
+            
+            lines = [
+                f"[Entity: Column Profile - {col_name}]",
+                f"- Column Name: {col_name}",
+                f"- Physical Type: {info.get('data_type', stats.get('data_type', 'Unknown'))}",
+                f"- Semantic Category: {info.get('semantic_type', 'General')}",
+                f"- Null Count: {stats.get('null_count', 0)} ({stats.get('null_percentage', 0.0):.2f}%)",
+                f"- Unique Values: {stats.get('unique_count', 'N/A')}",
+            ]
+            if "mean" in stats and stats["mean"] is not None:
+                lines.extend([
+                    f"- Mean: {stats.get('mean')}",
+                    f"- Min: {stats.get('min')} | Max: {stats.get('max')}",
+                    f"- Std Dev: {stats.get('std')}",
+                    f"- Skewness: {stats.get('skewness', 'N/A')}",
+                ])
+            if "benford_status" in stats:
+                lines.append(f"- Forensic Audit (Benford): {stats.get('benford_status')}")
+
+            if col_issues:
+                issue_bullets = [
+                    f"{iss.get('issue_type', 'Issue')}: {iss.get('description', '')} (Action: {iss.get('suggested_action', 'Review')})"
+                    for iss in col_issues
+                ]
+                lines.append(f"- Active Quality Alerts: {'; '.join(issue_bullets)}")
+            else:
+                lines.append("- Active Quality Alerts: 0 Critical Alerts (Clean)")
+
+            chunks.append({
+                "content": "\n".join(lines),
+                "metadata": {
+                    "type": "column_profile",
+                    "column_name": col_name,
+                    "has_issues": len(col_issues) > 0,
+                    "issue_count": len(col_issues)
+                }
+            })
+
+        # 4. Feature Dependencies & Correlations Document
+        if correlations:
+            corr_lines = [f"[Entity: Feature Relationships & Correlations - {filename}]"]
+            for c in correlations[:12]:
+                if isinstance(c, dict):
+                    c1 = c.get("column_a", c.get("col1", "ColA"))
+                    c2 = c.get("column_b", c.get("col2", "ColB"))
+                    val = c.get("r_value", c.get("correlation", 0.0))
+                    corr_lines.append(f"- {c1} <--> {c2}: Pearson r = {val:.3f}")
+                elif isinstance(c, (list, tuple)) and len(c) >= 3:
+                    corr_lines.append(f"- {c[0]} <--> {c[1]}: Pearson r = {float(c[2]):.3f}")
+            
+            chunks.append({
+                "content": "\n".join(corr_lines),
+                "metadata": {
+                    "type": "feature_correlations",
+                    "entity": "correlations"
+                }
+            })
+
+        # 5. Issue Ledger Summary Document
+        if ledger_issues:
+            ledger_lines = [f"[Entity: Issue Ledger & Data Remediation Actions - {filename}]"]
+            for iss in ledger_issues[:15]:
+                col = iss.get("column", "Dataset")
+                itype = iss.get("issue_type", "QualityAlert")
+                desc = iss.get("description", "")
+                action = iss.get("suggested_action", "Remediated")
+                status = iss.get("status", "pending")
+                ledger_lines.append(f"- [{status.upper()}] Column '{col}': {itype} -> {desc} | Recommended Action: {action}")
+            
+            chunks.append({
+                "content": "\n".join(ledger_lines),
+                "metadata": {
+                    "type": "issue_ledger",
+                    "entity": "remediations"
+                }
+            })
+
+        return chunks
 
 
 class TFIDFVectorStore:
@@ -569,3 +787,104 @@ class PostgresVectorStore:
             results.append((docs[idx], float(similarities[idx])))
             
         return results
+
+
+class CrossEncoderReranker:
+    """
+    RAGFlow / LightRAG-inspired Cross-Encoder Reranker.
+    Performs second-stage precision reranking on top candidate passages retrieved from
+    first-stage dense vector search and sparse BM25/TF-IDF.
+    
+    If FlashRank is installed, uses it for sub-15ms CPU-based cross-encoder inference.
+    Otherwise, uses an optimized token-interaction + BM25-style frequency scoring
+    fallback that guarantees deterministic, high-precision ranking without heavy dependencies.
+    """
+    def __init__(self, model_name: str = "ms-marco-MiniLM-L-12-v2"):
+        self.model_name = model_name
+        self._ranker = None
+        self._checked_flashrank = False
+
+    def _get_flashrank(self):
+        if not self._checked_flashrank:
+            self._checked_flashrank = True
+            try:
+                from flashrank import Ranker
+                self._ranker = Ranker(model_name=self.model_name)
+                logger.info(f"Initialized FlashRank reranker with model {self.model_name}")
+            except Exception:
+                self._ranker = None
+        return self._ranker
+
+    def _fallback_rerank(self, query: str, candidate_docs: List[Dict[str, Any]], top_n: int = 6) -> List[Dict[str, Any]]:
+        """
+        High-performance lexical-semantic interaction scoring fallback.
+        Considers query term coverage, exact phrase hits, and length normalization.
+        """
+        if not candidate_docs:
+            return []
+
+        q_terms = [w.lower() for w in re.findall(r"\w+", query) if len(w) > 2]
+        if not q_terms:
+            return candidate_docs[:top_n]
+
+        scored_docs = []
+        for doc in candidate_docs:
+            text = (doc.get("content") or "").lower()
+            if not text:
+                continue
+
+            # Exact phrase match bonus
+            exact_bonus = 2.5 if query.lower() in text else 0.0
+            
+            # Term overlap and frequency scoring
+            term_matches = 0
+            tf_score = 0.0
+            for term in q_terms:
+                count = text.count(term)
+                if count > 0:
+                    term_matches += 1
+                    tf_score += math.log(1 + count)
+
+            # Ratio of query terms present
+            coverage = term_matches / len(q_terms)
+            
+            # Combine scores
+            final_score = exact_bonus + (coverage * 3.0) + (tf_score * 0.5)
+            
+            scored_docs.append({
+                **doc,
+                "rerank_score": float(final_score)
+            })
+
+        # Sort descending by rerank_score
+        scored_docs.sort(key=lambda x: x.get("rerank_score", 0.0), reverse=True)
+        return scored_docs[:top_n]
+
+    def rerank(self, query: str, candidate_docs: List[Dict[str, Any]], top_n: int = 6) -> List[Dict[str, Any]]:
+        if not candidate_docs:
+            return []
+
+        ranker = self._get_flashrank()
+        if ranker:
+            try:
+                from flashrank import Ranker, RerankRequest
+                passages = [
+                    {"id": i, "text": doc.get("content", "")}
+                    for i, doc in enumerate(candidate_docs)
+                ]
+                req = RerankRequest(query=query, passages=passages)
+                results = ranker.rerank(req)
+                reranked = []
+                for r in results[:top_n]:
+                    idx = r["id"]
+                    orig = candidate_docs[idx]
+                    reranked.append({
+                        **orig,
+                        "rerank_score": float(r.get("score", 0.0))
+                    })
+                return reranked
+            except Exception as e:
+                logger.warning(f"FlashRank reranking failed ({e}), falling back to internal reranker")
+
+        return self._fallback_rerank(query, candidate_docs, top_n=top_n)
+

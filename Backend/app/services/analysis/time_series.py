@@ -230,6 +230,7 @@ def detect_seasonality(df: pl.DataFrame, time_col: str, value_col: str) -> dict[
 def analyze_time_series(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, Any]:
     """
     Tier 1: Complete Time Series Analysis for all numeric columns against detected time columns.
+    Enhanced with Meta Kats CUSUM Changepoints, Holt-Winters Forecasting, and TSFeatures.
     """
     time_cols = detect_time_columns(df)
     if not time_cols or not numeric_cols:
@@ -240,7 +241,10 @@ def analyze_time_series(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, 
         "has_time_series": True,
         "time_column": primary_time_col,
         "trends": {},
-        "seasonality": {}
+        "seasonality": {},
+        "kats_intelligence": {},
+        "changepoints": {},
+        "forecasts": {}
     }
     
     for num_col in numeric_cols[:5]:
@@ -249,5 +253,16 @@ def analyze_time_series(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, 
         
         results["trends"][num_col] = trend
         results["seasonality"][num_col] = seasonality
+
+        # Meta Kats Time Series Intelligence (CUSUM, Holt-Winters, TSFeatures)
+        try:
+            from app.services.timeseries_kats import run_kats_time_series_intelligence
+            kats_res = run_kats_time_series_intelligence(df, primary_time_col, num_col)
+            if kats_res.get("success"):
+                results["kats_intelligence"][num_col] = kats_res
+                results["changepoints"][num_col] = kats_res.get("changepoints", [])
+                results["forecasts"][num_col] = kats_res.get("forecast", {})
+        except Exception as kats_err:
+            logger.warning(f"Kats intelligence failed for {num_col}: {kats_err}")
         
     return results

@@ -19,6 +19,7 @@ pyarrow>=14.0.0
 fastexcel>=0.10.0
 numpy>=1.26.4
 scipy>=1.12.0
+networkx>=3.0
 
 
 # Visualization (Required for PDF Charts)

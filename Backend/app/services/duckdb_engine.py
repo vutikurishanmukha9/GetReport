@@ -105,12 +105,13 @@ class DuckDBAnalyticalSession:
             raise DuckDBSecurityError("Security Violation: Direct file path references are forbidden in analytical queries.")
 
     def execute_read_query(
-        self, sql: str, params: Optional[List[Any]] = None
+        self, sql: str, params: Optional[List[Any]] = None, max_rows: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """
         Execute an analytical SQL query with security validation.
         Guarantees that no mutating or administrative commands can execute.
         Returns records as a list of Python dictionaries via native Polars conversion.
+        Caps rows via Polars .head() before materializing into Python dicts to prevent OOM.
         """
         self.validate_sql_safety(sql)
         try:
@@ -118,6 +119,8 @@ class DuckDBAnalyticalSession:
                 result_pl = self.conn.execute(sql, params).pl()
             else:
                 result_pl = self.conn.execute(sql).pl()
+            if max_rows is not None and max_rows > 0:
+                result_pl = result_pl.head(min(max_rows, 1000))
             return result_pl.to_dicts()
         except Exception as e:
             logger.error(f"DuckDB query execution error: {e} | Query: {sql}")
@@ -148,6 +151,112 @@ class DuckDBAnalyticalSession:
         safe_table = re.sub(r"[^a-zA-Z0-9_]", "_", table_name)
         query = f"DESCRIBE {safe_table};"
         return self.conn.execute(query).pl().to_dicts()
+
+    def get_schema_metadata(self) -> Dict[str, Any]:
+        """
+        Apache Superset SQL Lab-style Schema Tree Introspection.
+        Returns complete metadata for all tables, columns, data types, and sample values
+        optimized for SQL Lab editor autocomplete and schema tree browsers.
+        """
+        tables_meta = []
+        for table in self.list_tables():
+            safe_table = re.sub(r"[^a-zA-Z0-9_]", "_", table)
+            row_cnt = self.conn.execute(f"SELECT COUNT(*) FROM {safe_table};").fetchone()[0]
+            desc = self.get_table_schema(table)
+
+            # Sample first 3 records for value preview
+            try:
+                samples_pl = self.conn.execute(f"SELECT * FROM {safe_table} LIMIT 3;").pl()
+                sample_dict = samples_pl.to_dict(as_series=False)
+            except Exception:
+                sample_dict = {}
+
+            columns = []
+            for col in desc:
+                col_name = col.get("column_name")
+                col_type = col.get("column_type")
+                nullable = col.get("null", "YES") == "YES"
+                samples = sample_dict.get(col_name, [])[:3]
+
+                columns.append({
+                    "name": col_name,
+                    "type": str(col_type),
+                    "nullable": nullable,
+                    "sample_values": [str(s) for s in samples if s is not None]
+                })
+
+            tables_meta.append({
+                "table_name": table,
+                "row_count": row_cnt,
+                "column_count": len(columns),
+                "columns": columns
+            })
+
+        return {
+            "engine": "DuckDB-InProcess",
+            "total_tables": len(tables_meta),
+            "tables": tables_meta
+        }
+
+    def execute_parameterized_query(
+        self,
+        sql: str,
+        params: Optional[Dict[str, Any]] = None,
+        max_rows: int = 1000
+    ) -> Dict[str, Any]:
+        """
+        Executes a parameterized SQL query (Apache Superset Jinja/mustache pattern).
+        Supports {{ variable_name }} substitutions safely with parameter binding.
+        """
+        import time
+        t_start = time.perf_counter()
+
+        processed_sql = sql
+        binding_params = []
+
+        if params and isinstance(params, dict):
+            # Replace {{ param }} with ? placeholders
+            for key, val in params.items():
+                pattern = re.compile(rf"\{{\{{\s*{re.escape(key)}\s*\}}\}}")
+                if pattern.search(processed_sql):
+                    processed_sql = pattern.sub("?", processed_sql)
+                    binding_params.append(val)
+
+        # Security check on processed SQL
+        self.validate_sql_safety(processed_sql)
+
+        # Enforce analytical limit if not explicitly limited
+        if not re.search(r"\bLIMIT\s+\d+", processed_sql, re.IGNORECASE):
+            processed_sql = f"{processed_sql.rstrip(';')} LIMIT {max_rows};"
+
+        try:
+            if binding_params:
+                res_pl = self.conn.execute(processed_sql, binding_params).pl()
+            else:
+                res_pl = self.conn.execute(processed_sql).pl()
+
+            records = res_pl.to_dicts()
+            duration_ms = round((time.perf_counter() - t_start) * 1000, 2)
+
+            return {
+                "success": True,
+                "sql": processed_sql,
+                "duration_ms": duration_ms,
+                "row_count": len(records),
+                "columns": res_pl.columns,
+                "column_types": [str(t) for t in res_pl.dtypes],
+                "data": records
+            }
+        except Exception as ex:
+            duration_ms = round((time.perf_counter() - t_start) * 1000, 2)
+            logger.error(f"Parameterized SQL execution failed: {ex}")
+            return {
+                "success": False,
+                "sql": processed_sql,
+                "duration_ms": duration_ms,
+                "error": str(ex),
+                "data": []
+            }
 
     def list_tables(self) -> List[str]:
         """Returns all currently registered views and tables."""

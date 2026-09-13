@@ -58,12 +58,16 @@ async def verify_api_key(api_key: str = Security(_api_key_header)) -> None:
 def verify_ws_api_key(api_key: str | None) -> bool:
     """
     Verify API key for WebSocket connections.
-    WebSockets can't use standard headers easily, so key is passed via query param.
+    WebSockets can't use standard headers easily, so key is passed via protocol message.
     
     Returns True if authorized, False otherwise.
+    Fail-closed in production if DATABASE_URL is set but API_KEY is empty.
     """
     if not settings.API_KEY:
-        return True  # Auth disabled
+        if settings.DATABASE_URL:
+            logger.critical("SECURITY: DATABASE_URL is set but API_KEY is empty. Rejecting WebSocket.")
+            return False
+        return True  # Auth disabled (development mode)
     return bool(api_key and secrets.compare_digest(api_key, settings.API_KEY))
 
 

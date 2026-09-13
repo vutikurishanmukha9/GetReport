@@ -526,6 +526,18 @@ def rag_ingest_task(task_id: str, text: str):
     """
     try:
         rag_service.ingest_report_blocking(task_id, text)
+
+        # Build and persist Dataset Knowledge Graph (LightRAG Pattern)
+        job = title_task_manager.get_job(task_id)
+        if job and job.result:
+            from app.services.dataset_graph_builder import build_dataset_graph
+            from pathlib import Path
+            base_dir = Path(__file__).resolve().parent.parent
+            graph_path = os.path.join(base_dir, "temp_cache", f"{task_id}_graph.json")
+            ledger_issues = job.result.get("ledger_issues", job.result.get("issues", []))
+            graph_store = build_dataset_graph(task_id, job.result, ledger_issues)
+            graph_store.save_to_file(graph_path)
+            logger.info(f"Dataset Knowledge Graph constructed and saved to disk for task {task_id}")
     except Exception as e:
         logger.error(f"RAG Ingestion Task failed: {e}")
 

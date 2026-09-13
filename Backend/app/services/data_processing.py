@@ -1070,3 +1070,23 @@ def impute_multivariate_mice(
     ]
     del data, missing_masks
     return df.with_columns(imputed_exprs)
+
+
+def sanitize_df_for_csv_export(df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Sanitize DataFrame before CSV export to mitigate CSV Formula Injection (CWE-1236).
+    Prepends a single quote (') to any string cell that starts with =, +, -, @, tab, or cr,
+    preventing spreadsheet software (Excel, Calc, Sheets) from executing dangerous formulas or DDE commands.
+    """
+    exprs = []
+    for col_name, dtype in zip(df.columns, df.dtypes):
+        if dtype in (pl.Utf8, pl.String):
+            sanitized = (
+                pl.when(pl.col(col_name).str.contains(r"^[=+\-@\t\r]"))
+                .then(pl.concat_str([pl.lit("'"), pl.col(col_name)]))
+                .otherwise(pl.col(col_name))
+            )
+            exprs.append(sanitized.alias(col_name))
+        else:
+            exprs.append(pl.col(col_name))
+    return df.with_columns(exprs)
