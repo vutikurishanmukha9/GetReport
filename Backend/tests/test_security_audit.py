@@ -273,15 +273,21 @@ def test_duckdb_query_capped_records():
 
 
 def test_verify_ws_api_key_fail_closed(monkeypatch):
-    """Verify WebSocket auth fails closed when DATABASE_URL is set without API_KEY."""
+    """Verify WebSocket auth fails closed when REQUIRE_AUTH is set without API_KEY."""
     from app.core import auth
     from app.core.config import settings
 
-    monkeypatch.setattr(settings, "DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    # When REQUIRE_AUTH is True but API_KEY is empty -> reject (fail closed)
+    monkeypatch.setattr(settings, "REQUIRE_AUTH", True)
     monkeypatch.setattr(settings, "API_KEY", "")
 
     assert auth.verify_ws_api_key("some_key") is False
     assert auth.verify_ws_api_key(None) is False
+
+    # When REQUIRE_AUTH is False and DATABASE_URL is set -> allow public access
+    monkeypatch.setattr(settings, "REQUIRE_AUTH", False)
+    monkeypatch.setattr(settings, "DATABASE_URL", "postgresql://user:pass@localhost:5432/db")
+    assert auth.verify_ws_api_key(None) is True
 
 
 def test_request_id_crlf_defense():

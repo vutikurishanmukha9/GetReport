@@ -23,27 +23,29 @@ UUID_PATTERN = re.compile(
 
 import secrets
 
-if settings.DATABASE_URL and not settings.API_KEY:
-    logger.warning("Production database is configured (DATABASE_URL) but API_KEY is unset! Endpoints are open to public access.")
+if settings.DATABASE_URL and not settings.API_KEY and settings.REQUIRE_AUTH:
+    logger.warning("REQUIRE_AUTH is enabled but API_KEY is unset! Endpoints will reject requests.")
+elif settings.DATABASE_URL and not settings.API_KEY:
+    logger.info("Database is configured (DATABASE_URL) and API_KEY is unset. Public access is enabled.")
 
 
 async def verify_api_key(api_key: str = Security(_api_key_header)) -> None:
     """
     FastAPI dependency that enforces API key authentication.
     
-    - If settings.API_KEY is empty/unset AND no DATABASE_URL → auth is DISABLED (dev mode).
-    - If settings.DATABASE_URL is set but API_KEY is empty → REJECT (fail closed in production).
-    - Otherwise, the request must include a valid X-API-Key header.
+    - If settings.API_KEY is empty/unset AND REQUIRE_AUTH is False → auth is DISABLED.
+    - If settings.REQUIRE_AUTH is True but API_KEY is empty → REJECT (fail closed).
+    - If settings.API_KEY is set, the request must include a valid X-API-Key header.
     """
     if not settings.API_KEY:
-        if settings.DATABASE_URL:
-            # §2: Fail closed — production database is configured but no API_KEY set
-            logger.critical("SECURITY: DATABASE_URL is set but API_KEY is empty. Rejecting all requests.")
+        if settings.REQUIRE_AUTH:
+            # Fail closed only when explicit REQUIRE_AUTH is configured
+            logger.critical("SECURITY: REQUIRE_AUTH is enabled but API_KEY is empty. Rejecting all requests.")
             raise HTTPException(
                 status_code=503,
                 detail="Service misconfigured: authentication is required but not configured.",
             )
-        # Auth disabled (development mode — no DATABASE_URL)
+        # Auth disabled
         return
 
     if not api_key or not secrets.compare_digest(api_key, settings.API_KEY):
@@ -58,16 +60,15 @@ async def verify_api_key(api_key: str = Security(_api_key_header)) -> None:
 def verify_ws_api_key(api_key: str | None) -> bool:
     """
     Verify API key for WebSocket connections.
-    WebSockets can't use standard headers easily, so key is passed via protocol message.
     
     Returns True if authorized, False otherwise.
-    Fail-closed in production if DATABASE_URL is set but API_KEY is empty.
+    Fail-closed only if REQUIRE_AUTH is True but API_KEY is empty.
     """
     if not settings.API_KEY:
-        if settings.DATABASE_URL:
-            logger.critical("SECURITY: DATABASE_URL is set but API_KEY is empty. Rejecting WebSocket.")
+        if settings.REQUIRE_AUTH:
+            logger.critical("SECURITY: REQUIRE_AUTH is enabled but API_KEY is empty. Rejecting WebSocket.")
             return False
-        return True  # Auth disabled (development mode)
+        return True  # Auth disabled
     return bool(api_key and secrets.compare_digest(api_key, settings.API_KEY))
 
 

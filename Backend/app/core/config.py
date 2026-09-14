@@ -32,8 +32,10 @@ class Settings(BaseSettings):
     
     # ─── Security ─────────────────────────────────────────────────────────
     # API Key: If set, all endpoints require X-API-Key header.
-    # Leave empty to disable auth (dev mode only).
+    # Leave empty to disable auth.
     API_KEY: str = ""
+    # Set to True only if you strictly mandate API_KEY to be configured.
+    REQUIRE_AUTH: bool = False
     
     # Max length for chat questions (prompt injection mitigation)
     MAX_CHAT_QUESTION_LENGTH: int = 500
