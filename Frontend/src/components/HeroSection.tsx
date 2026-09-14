@@ -44,10 +44,10 @@ export const HeroSection = () => {
               <span>Auditable Report Generator</span>
             </div>
 
-            {/* Apple-style Display Headline */}
-            <h1 className="text-3xl sm:text-4xl lg:text-[42px] xl:text-[46px] font-display font-semibold tracking-[-0.03em] text-foreground leading-[1.12] sm:leading-[1.15] max-w-2xl uppercase">
+            {/* Display Headline - Finalized with Outfit Font */}
+            <h1 className="text-3xl sm:text-4xl lg:text-[42px] xl:text-[46px] font-display font-bold tracking-tight text-foreground leading-[1.12] sm:leading-[1.15] max-w-2xl uppercase">
               Turn raw data into
-              <span className="block text-primary mt-1 font-display tracking-[-0.03em]">publication-ready reports</span>
+              <span className="block text-primary mt-1 font-display tracking-tight">publication-ready reports</span>
             </h1>
 
             {/* Subheadline */}
