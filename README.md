@@ -39,7 +39,7 @@ GetReport unifies high-performance data processing, mathematical profiling, and 
                                                   │ (Single-Pass Stream & Magic Bytes)
                                                   ▼
                                   ┌───────────────────────────────┐
-                                  │ Polars Rust Analytical Engine │
+                                  │ Polars Analytical Engine      │
                                   └───────┬───────────────┬───────┘
                      ┌────────────────────┘               └────────────────────┐
                      ▼                                                         ▼

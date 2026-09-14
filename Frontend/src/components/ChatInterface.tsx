@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import DOMPurify from "dompurify";
-import { Send, Bot, User, RefreshCw, ChevronDown, ChevronUp, Sparkles, BookOpen, Quote, Copy, Check, Bookmark, BookmarkCheck, Database } from "lucide-react";
+import { 
+  Send, Bot, User, RefreshCw, ChevronDown, ChevronUp, 
+  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check, Database 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -252,7 +255,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
               <CardDescription className="text-xs">Ask questions and extract insights directly from the compiled dataset</CardDescription>
             </div>
           </div>
-          <Sparkles className="h-4.5 w-4.5 text-primary/40 animate-pulse hidden sm:block" />
+          <Bot className="h-4.5 w-4.5 text-primary/40 hidden sm:block" />
         </div>
       </CardHeader>
 
@@ -285,7 +288,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                 <div className="space-y-2 max-w-full">
                   {isBot && msg.source === "golden_kpi" && (
                     <div className="flex items-center gap-1.5 text-amber-900 bg-amber-50 border border-amber-300/80 rounded-lg px-2.5 py-1 text-[11px] font-mono font-semibold w-fit shadow-2xs">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
                       <span>Verified Golden KPI</span>
                     </div>
                   )}
@@ -365,7 +368,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                   {isBot && msg.suggested_followups && msg.suggested_followups.length > 0 && (
                     <div className="pt-1.5 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
                       <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                        <Sparkles className="h-3 w-3 text-primary" />
+                        <MessageSquare className="h-3 w-3 text-primary" />
                         <span>Suggested Follow-Ups</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">

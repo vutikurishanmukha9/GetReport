@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { 
   Boxes, 
   Plus, 
-  Sparkles, 
   Calculator, 
   CheckCircle2, 
   Loader2, 
@@ -236,7 +235,7 @@ export const VirtualConceptShelf: React.FC<VirtualConceptShelfProps> = ({
             {columns && columns.length >= 2 && (
               <div className="pt-2 border-t border-border/40 flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
-                  <Sparkles className="h-3 w-3 text-primary" />
+                  <Calculator className="h-3 w-3 text-primary" />
                   Quick templates:
                 </span>
                 <button

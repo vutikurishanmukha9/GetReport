@@ -12,7 +12,7 @@ export const PrivacyPolicy = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-semibold uppercase tracking-wider font-mono border border-emerald-500/20 t-badge-shimmer">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-semibold uppercase tracking-wider font-mono border border-emerald-500/20">
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Zero Retention & Privacy Charter</span>
             </div>
@@ -37,7 +37,7 @@ export const PrivacyPolicy = () => {
               </div>
               <h3 className="font-display font-bold text-foreground text-xs sm:text-sm">100% In-Memory RAM</h3>
               <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
-                Dataframes load directly into RAM for Polars Rust execution. Zero permanent database disk writes occur for raw row records.
+                Dataframes load directly into RAM for Polars execution. Zero permanent database disk writes occur for raw row records.
               </p>
             </Card>
 

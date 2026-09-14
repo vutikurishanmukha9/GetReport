@@ -183,7 +183,7 @@ class VirtualConceptSynthesizer:
         # 3. Use LLM synthesis if available
         if self.llm is not None:
             try:
-                prompt = f"""You are an expert Polars Rust/Python compiler.
+                prompt = f"""You are an expert Polars/Python compiler.
 Dataset Schema:
 {schema}
 

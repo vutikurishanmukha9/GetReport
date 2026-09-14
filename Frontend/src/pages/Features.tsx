@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { 
-  Zap, ArrowRight, Layers, CheckCircle2, 
-  Sparkles, FileText, ArrowLeftRight, Activity, Sliders, ShieldCheck,
-  Code2
+  Cpu, ArrowRight, Layers, CheckCircle2, 
+  FileText, ArrowLeftRight, Activity, Sliders, ShieldCheck,
+  Code2, MessageSquareCode
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -50,8 +50,8 @@ export const Features = () => {
               
               {/* Left Column: Editorial Headline & Value Proposition */}
               <div className="lg:col-span-7 space-y-4 sm:space-y-5 text-left">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20 t-badge-shimmer">
-                  <Zap className="h-3.5 w-3.5" />
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20">
+                  <Cpu className="h-3.5 w-3.5" />
                   <span>100% In-Memory Polars Engine</span>
                 </div>
                 
@@ -85,7 +85,7 @@ export const Features = () => {
                   </div>
                   <div>
                     <span className="block font-bold text-emerald-600 text-sm sm:text-base">&lt; 50ms</span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Rust Streaming</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Polars Streaming</span>
                   </div>
                   <div>
                     <span className="block font-bold text-primary text-sm sm:text-base">A to F</span>
@@ -109,35 +109,37 @@ export const Features = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="p-4 sm:p-5 space-y-3.5 font-mono text-xs">
-                    <div className="space-y-2.5">
-                      {/* Polars Bar */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[11px]">
+                    <div className="space-y-3">
+                      {/* Polars Row */}
+                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-1.5">
+                        <div className="flex justify-between items-center text-[11px]">
                           <span className="font-bold text-foreground flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 t-pulse-dot" /> Polars (GetReport Engine)
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Polars Engine
                           </span>
-                          <span className="font-bold text-emerald-600">42ms • 12MB RAM</span>
+                          <span className="font-bold text-emerald-700 bg-emerald-500/20 px-2 py-0.5 rounded text-[10px]">22.4x Speedup</span>
                         </div>
-                        <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-500 rounded-full w-[14%]" />
+                        <div className="flex justify-between text-[11px] text-emerald-900 font-sans">
+                          <span>Execution: <strong>42ms</strong></span>
+                          <span>RAM Usage: <strong>12MB</strong></span>
                         </div>
                       </div>
 
-                      {/* Standard Pandas Bar */}
-                      <div className="space-y-1 opacity-70">
-                        <div className="flex justify-between text-[11px]">
-                          <span className="text-muted-foreground">Standard Pandas Ingest</span>
-                          <span className="text-muted-foreground">940ms • 148MB RAM</span>
+                      {/* Standard Pandas Row */}
+                      <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50 space-y-1.5 opacity-75">
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="text-muted-foreground font-semibold">Standard Pandas (Baseline)</span>
+                          <span className="text-muted-foreground text-[10px]">Disk Cache Bound</span>
                         </div>
-                        <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-muted-foreground/50 rounded-full w-[88%]" />
+                        <div className="flex justify-between text-[11px] text-muted-foreground font-sans">
+                          <span>Execution: <strong>940ms</strong></span>
+                          <span>RAM Usage: <strong>148MB</strong></span>
                         </div>
                       </div>
                     </div>
 
                     <div className="p-3 bg-muted/40 rounded-xl border border-border/40 text-[11px] font-sans text-muted-foreground space-y-1">
                       <strong className="text-foreground font-mono block">Zero-Copy Memory Guarantee:</strong>
-                      <span>Files are memory-mapped into Polars ChunkedArrays. Intermediate buffers are purged automatically after execution.</span>
+                      <span>Files are memory-mapped into Polars ChunkedArrays in RAM. Intermediate buffers are purged automatically upon execution.</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -186,88 +188,112 @@ export const Features = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 font-mono text-xs">
               
               {/* Slider 1: Completeness */}
-              <div className="space-y-2 p-3.5 rounded-xl bg-muted/20 border border-border/60">
+              <div className="space-y-2 p-4 rounded-xl bg-muted/20 border border-border/60">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-foreground flex items-center gap-1.5">
                     <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Completeness (Weight: 35%)
                   </span>
-                  <span className="font-bold text-primary">{completeness}%</span>
+                  <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">{completeness}%</span>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={completeness}
-                  onChange={(e) => setCompleteness(Number(e.target.value))}
-                  className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-lg"
-                  aria-label="Completeness percentage"
-                />
+                <div className="space-y-1 pt-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={completeness}
+                    onChange={(e) => setCompleteness(Number(e.target.value))}
+                    className="w-full accent-primary cursor-pointer h-1.5 bg-muted rounded-full transition-all"
+                    aria-label="Completeness percentage"
+                  />
+                  <div className="flex justify-between text-[9px] text-muted-foreground/60 font-mono">
+                    <span>0% (Empty)</span>
+                    <span>100% (No Nulls)</span>
+                  </div>
+                </div>
                 <span className="text-[10px] text-muted-foreground font-sans block">
                   Measures null values, empty strings, and masked NaN values.
                 </span>
               </div>
 
               {/* Slider 2: Consistency */}
-              <div className="space-y-2 p-3.5 rounded-xl bg-muted/20 border border-border/60">
+              <div className="space-y-2 p-4 rounded-xl bg-muted/20 border border-border/60">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-foreground flex items-center gap-1.5">
                     <Layers className="h-3.5 w-3.5 text-primary" /> Consistency (Weight: 25%)
                   </span>
-                  <span className="font-bold text-primary">{consistency}%</span>
+                  <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">{consistency}%</span>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={consistency}
-                  onChange={(e) => setConsistency(Number(e.target.value))}
-                  className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-lg"
-                  aria-label="Consistency percentage"
-                />
+                <div className="space-y-1 pt-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={consistency}
+                    onChange={(e) => setConsistency(Number(e.target.value))}
+                    className="w-full accent-primary cursor-pointer h-1.5 bg-muted rounded-full transition-all"
+                    aria-label="Consistency percentage"
+                  />
+                  <div className="flex justify-between text-[9px] text-muted-foreground/60 font-mono">
+                    <span>0% (Mixed Types)</span>
+                    <span>100% (Uniform Types)</span>
+                  </div>
+                </div>
                 <span className="text-[10px] text-muted-foreground font-sans block">
                   Evaluates type cohesion, datetime format consistency, and schema anomalies.
                 </span>
               </div>
 
               {/* Slider 3: Validity */}
-              <div className="space-y-2 p-3.5 rounded-xl bg-muted/20 border border-border/60">
+              <div className="space-y-2 p-4 rounded-xl bg-muted/20 border border-border/60">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-foreground flex items-center gap-1.5">
                     <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Validity (Weight: 25%)
                   </span>
-                  <span className="font-bold text-primary">{validity}%</span>
+                  <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">{validity}%</span>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={validity}
-                  onChange={(e) => setValidity(Number(e.target.value))}
-                  className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-lg"
-                  aria-label="Validity percentage"
-                />
+                <div className="space-y-1 pt-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={validity}
+                    onChange={(e) => setValidity(Number(e.target.value))}
+                    className="w-full accent-primary cursor-pointer h-1.5 bg-muted rounded-full transition-all"
+                    aria-label="Validity percentage"
+                  />
+                  <div className="flex justify-between text-[9px] text-muted-foreground/60 font-mono">
+                    <span>0% (Out-of-Bound)</span>
+                    <span>100% (Domain Valid)</span>
+                  </div>
+                </div>
                 <span className="text-[10px] text-muted-foreground font-sans block">
                   Detects range violations, negative balances, and invalid regex domains.
                 </span>
               </div>
 
               {/* Slider 4: Stability */}
-              <div className="space-y-2 p-3.5 rounded-xl bg-muted/20 border border-border/60">
+              <div className="space-y-2 p-4 rounded-xl bg-muted/20 border border-border/60">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-foreground flex items-center gap-1.5">
                     <Activity className="h-3.5 w-3.5 text-primary" /> Stability (Weight: 15%)
                   </span>
-                  <span className="font-bold text-primary">{stability}%</span>
+                  <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">{stability}%</span>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={stability}
-                  onChange={(e) => setStability(Number(e.target.value))}
-                  className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-lg"
-                  aria-label="Stability percentage"
-                />
+                <div className="space-y-1 pt-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={stability}
+                    onChange={(e) => setStability(Number(e.target.value))}
+                    className="w-full accent-primary cursor-pointer h-1.5 bg-muted rounded-full transition-all"
+                    aria-label="Stability percentage"
+                  />
+                  <div className="flex justify-between text-[9px] text-muted-foreground/60 font-mono">
+                    <span>0% (High Drift)</span>
+                    <span>100% (Stable Dist)</span>
+                  </div>
+                </div>
                 <span className="text-[10px] text-muted-foreground font-sans block">
                   Flags distribution skewness, extreme kurtosis, and chronological drift.
                 </span>
@@ -402,7 +428,7 @@ export const Features = () => {
             <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
               <div className="space-y-3.5">
                 <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4" />
+                  <MessageSquareCode className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
                   <h3 className="text-base sm:text-lg font-display font-bold text-foreground">

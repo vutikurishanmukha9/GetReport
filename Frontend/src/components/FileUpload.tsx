@@ -460,7 +460,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                     <span className="text-xs font-display font-bold text-primary uppercase tracking-wider">
                       Multi-Dataset Join Configuration
                     </span>
-                    <span className="text-[11px] text-muted-foreground">Polars Rust Engine</span>
+                    <span className="text-[11px] text-muted-foreground">Polars Engine</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>

@@ -1,5 +1,6 @@
 import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
+import { EngineTrustBar } from "@/components/EngineTrustBar";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { Footer } from "@/components/Footer";
 
@@ -9,6 +10,7 @@ const Index = () => {
       <Header onReset={() => {}} showReset={false} />
       <main className="flex-1">
         <HeroSection />
+        <EngineTrustBar />
         <FeaturesSection />
       </main>
       <Footer />

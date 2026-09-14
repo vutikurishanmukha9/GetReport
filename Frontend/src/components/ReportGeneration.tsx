@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, memo } from "react";
-import { 
-  CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight, 
-  AlertTriangle, ArrowRight, BarChart3, PieChart, Activity, 
-  FileSpreadsheet, TrendingUp, ChevronDown, ChevronUp, ShieldCheck, 
+import {
+  CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight,
+  AlertTriangle, ArrowRight, BarChart3, PieChart, Activity,
+  FileSpreadsheet, TrendingUp, ChevronDown, ChevronUp, ShieldCheck,
   BookOpen, Table2, Grid, Brain
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -26,10 +26,10 @@ const SafeChartImage = memo(({ base64Src, alt, className }: { base64Src: string;
   if (!src) return null;
 
   return (
-    <img 
-      src={src} 
-      alt={alt} 
-      className={className} 
+    <img
+      src={src}
+      alt={alt}
+      className={className}
       loading="lazy"
     />
   );
@@ -263,9 +263,9 @@ export const ReportGeneration = ({
           {/* Primary & Secondary Export Action Buttons Grid */}
           <div className="space-y-3 w-full max-w-xl">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Button 
-                size="lg" 
-                className="w-full rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90" 
+              <Button
+                size="lg"
+                className="w-full rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={downloadFile}
               >
                 <Download className="h-4 w-4" />
@@ -273,10 +273,10 @@ export const ReportGeneration = ({
                 <ChevronRight className="h-4 w-4 opacity-70 ml-0.5" />
               </Button>
 
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="w-full rounded-xl border-border bg-white hover:bg-muted/30 shadow-sm transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm text-foreground" 
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full rounded-xl border-border bg-white hover:bg-muted/30 shadow-sm transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm text-foreground"
                 onClick={() => downloadExport("html")}
               >
                 <BookOpen className="h-4 w-4 text-primary" />
@@ -285,30 +285,30 @@ export const ReportGeneration = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-              <Button 
-                size="default" 
-                variant="outline" 
-                className="w-full rounded-xl border-border/80 bg-muted/10 hover:bg-white text-xs font-mono text-foreground flex items-center justify-center gap-2" 
+              <Button
+                size="default"
+                variant="outline"
+                className="w-full rounded-xl border-border/80 bg-muted/10 hover:bg-white text-xs font-mono text-foreground flex items-center justify-center gap-2"
                 onClick={() => downloadExport("csv")}
               >
                 <FileSpreadsheet className="h-3.5 w-3.5 text-primary" />
                 <span>Export CSV</span>
               </Button>
 
-              <Button 
-                size="default" 
-                variant="outline" 
-                className="w-full rounded-xl border-border/80 bg-muted/10 hover:bg-white text-xs font-mono text-foreground flex items-center justify-center gap-2" 
+              <Button
+                size="default"
+                variant="outline"
+                className="w-full rounded-xl border-border/80 bg-muted/10 hover:bg-white text-xs font-mono text-foreground flex items-center justify-center gap-2"
                 onClick={() => downloadExport("parquet")}
               >
                 <Table2 className="h-3.5 w-3.5 text-primary" />
                 <span>Export Parquet</span>
               </Button>
 
-              <Button 
-                size="default" 
-                variant="outline" 
-                className="w-full rounded-xl border-border/80 bg-muted/10 hover:bg-white text-xs font-mono text-foreground flex items-center justify-center gap-2" 
+              <Button
+                size="default"
+                variant="outline"
+                className="w-full rounded-xl border-border/80 bg-muted/10 hover:bg-white text-xs font-mono text-foreground flex items-center justify-center gap-2"
                 onClick={async () => {
                   if (!taskId) return;
                   try {
@@ -325,10 +325,10 @@ export const ReportGeneration = ({
             </div>
 
             <div className="pt-2 border-t border-border/40">
-              <Button 
-                size="default" 
-                variant="ghost" 
-                className="rounded-xl text-muted-foreground hover:text-foreground text-xs flex items-center gap-2 mx-auto" 
+              <Button
+                size="default"
+                variant="ghost"
+                className="rounded-xl text-muted-foreground hover:text-foreground text-xs flex items-center gap-2 mx-auto"
                 onClick={onReset}
               >
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -347,11 +347,11 @@ export const ReportGeneration = ({
 
         {/* ─── Premium Editorial Cover Page Container ─── */}
         <div className="grid gap-6 md:grid-cols-12 items-stretch">
-          
+
           {/* Card Left: The Editorial Document Cover */}
           <Card className="md:col-span-5 border border-border bg-card shadow-premium rounded-2xl relative overflow-hidden flex flex-col justify-between p-6">
             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full pointer-events-none" />
-            
+
             <div className="space-y-4">
               <div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider text-muted-foreground uppercase">
                 <FileText className="h-3.5 w-3.5" />
@@ -419,12 +419,12 @@ export const ReportGeneration = ({
                   const hasIssues = c.issues && c.issues.length > 0;
 
                   return (
-                    <div 
-                      key={c.column} 
+                    <div
+                      key={c.column}
                       className={`border rounded-xl transition-all duration-200 ${isExpanded ? 'border-primary bg-primary/5' : 'border-border bg-white hover:bg-muted/10'}`}
                     >
                       {/* Column Summary Line */}
-                      <button 
+                      <button
                         type="button"
                         onClick={() => toggleColumnExpand(c.column)}
                         className="w-full flex items-center justify-between p-3 cursor-pointer select-none gap-2 text-left bg-transparent border-0"
@@ -544,11 +544,10 @@ export const ReportGeneration = ({
                     <button
                       key={t.id}
                       onClick={() => setActiveChartTab(t.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-150 shrink-0 ${
-                        isActive
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-150 shrink-0 ${isActive
                           ? "bg-primary text-primary-foreground shadow-sm scale-95"
                           : "bg-secondary/40 hover:bg-secondary text-muted-foreground hover:text-foreground"
-                      }`}
+                        }`}
                     >
                       <Icon className="h-3.5 w-3.5" />
                       <span>{t.label}</span>
@@ -567,9 +566,9 @@ export const ReportGeneration = ({
                       // SAFETY: correlation_heatmap union type is safely narrowed to image property or raw string
                       const imgSrc = (charts.correlation_heatmap as { image?: string })?.image ?? (charts.correlation_heatmap as string);
                       return (
-                        <SafeChartImage 
-                          base64Src={imgSrc} 
-                          alt="Correlation Heatmap" 
+                        <SafeChartImage
+                          base64Src={imgSrc}
+                          alt="Correlation Heatmap"
                           className="max-h-[260px] sm:max-h-[380px] w-full object-contain rounded-lg"
                         />
                       );
@@ -597,11 +596,10 @@ export const ReportGeneration = ({
                       <button
                         key={`dist-tab-${item.column}`}
                         onClick={() => setActiveDistIndex(idx)}
-                        className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
-                          activeDistIndex === idx
+                        className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${activeDistIndex === idx
                             ? "bg-primary/15 text-primary border border-primary/30"
                             : "bg-muted/50 hover:bg-muted text-muted-foreground border border-transparent"
-                        }`}
+                          }`}
                       >
                         {item.column}
                       </button>
@@ -609,9 +607,9 @@ export const ReportGeneration = ({
                   </div>
 
                   <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                    <SafeChartImage 
-                      base64Src={charts.distributions[activeDistIndex]?.image} 
-                      alt={`Distribution for ${charts.distributions[activeDistIndex]?.column}`} 
+                    <SafeChartImage
+                      base64Src={charts.distributions[activeDistIndex]?.image}
+                      alt={`Distribution for ${charts.distributions[activeDistIndex]?.column}`}
                       className="max-h-[320px] w-auto object-contain rounded-lg"
                     />
                   </div>
@@ -637,11 +635,10 @@ export const ReportGeneration = ({
                         <button
                           key={`bar-tab-${item.column}`}
                           onClick={() => setActiveBarIndex(idx)}
-                          className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
-                            activeBarIndex === idx
+                          className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${activeBarIndex === idx
                               ? "bg-primary/15 text-primary border border-primary/30"
                               : "bg-muted/50 hover:bg-muted text-muted-foreground border border-transparent"
-                          }`}
+                            }`}
                         >
                           {item.column}
                         </button>
@@ -649,11 +646,10 @@ export const ReportGeneration = ({
                       {charts.donut_chart && (
                         <button
                           onClick={() => setActiveBarIndex(-1)}
-                          className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
-                            activeBarIndex === -1
+                          className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${activeBarIndex === -1
                               ? "bg-primary/15 text-primary border border-primary/30"
                               : "bg-muted/50 hover:bg-muted text-muted-foreground border border-transparent"
-                          }`}
+                            }`}
                         >
                           {charts.donut_chart.column} (Composition)
                         </button>
@@ -665,9 +661,9 @@ export const ReportGeneration = ({
                   {activeBarIndex === -1 && charts.donut_chart ? (
                     <div className="space-y-6">
                       <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                        <SafeChartImage 
-                          base64Src={charts.donut_chart.image} 
-                          alt={`Composition of ${charts.donut_chart.column}`} 
+                        <SafeChartImage
+                          base64Src={charts.donut_chart.image}
+                          alt={`Composition of ${charts.donut_chart.column}`}
                           className="max-h-[320px] w-auto object-contain rounded-lg"
                         />
                       </div>
@@ -681,9 +677,9 @@ export const ReportGeneration = ({
                   ) : charts.bar_charts && charts.bar_charts[activeBarIndex] ? (
                     <div className="space-y-6">
                       <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                        <SafeChartImage 
-                          base64Src={charts.bar_charts[activeBarIndex].image} 
-                          alt={`Category breakdown of ${charts.bar_charts[activeBarIndex].column}`} 
+                        <SafeChartImage
+                          base64Src={charts.bar_charts[activeBarIndex].image}
+                          alt={`Category breakdown of ${charts.bar_charts[activeBarIndex].column}`}
                           className="max-h-[320px] w-auto object-contain rounded-lg"
                         />
                       </div>
@@ -708,11 +704,10 @@ export const ReportGeneration = ({
                       <button
                         key={`box-tab-${item.column}`}
                         onClick={() => setActiveBoxIndex(idx)}
-                        className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${
-                          activeBoxIndex === idx
+                        className={`px-2.5 py-1 rounded text-[10px] font-mono font-semibold transition-all shrink-0 ${activeBoxIndex === idx
                             ? "bg-primary/15 text-primary border border-primary/30"
                             : "bg-muted/50 hover:bg-muted text-muted-foreground border border-transparent"
-                        }`}
+                          }`}
                       >
                         {item.column}
                       </button>
@@ -720,11 +715,10 @@ export const ReportGeneration = ({
                     {charts.scatter_plot && (
                       <button
                         onClick={() => setActiveBoxIndex(-1)}
-                        className={`px-2 py-1 rounded text-[10px] font-mono font-semibold transition-all ${
-                          activeBoxIndex === -1
+                        className={`px-2 py-1 rounded text-[10px] font-mono font-semibold transition-all ${activeBoxIndex === -1
                             ? "bg-primary/15 text-primary border border-primary/30"
                             : "bg-muted/50 hover:bg-muted text-muted-foreground border border-transparent"
-                        }`}
+                          }`}
                       >
                         {charts.scatter_plot.columns} (Scatter)
                       </button>
@@ -734,9 +728,9 @@ export const ReportGeneration = ({
                   {activeBoxIndex === -1 && charts.scatter_plot ? (
                     <div className="space-y-6">
                       <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                        <SafeChartImage 
-                          base64Src={charts.scatter_plot.image} 
-                          alt="Bivariate Scatter Plot" 
+                        <SafeChartImage
+                          base64Src={charts.scatter_plot.image}
+                          alt="Bivariate Scatter Plot"
                           className="max-h-[320px] w-auto object-contain rounded-lg"
                         />
                       </div>
@@ -750,9 +744,9 @@ export const ReportGeneration = ({
                   ) : charts.boxplots && charts.boxplots[activeBoxIndex] ? (
                     <div className="space-y-6">
                       <div className="flex justify-center border border-border/45 bg-background rounded-xl p-3 max-w-2xl mx-auto">
-                        <SafeChartImage 
-                          base64Src={charts.boxplots[activeBoxIndex].image} 
-                          alt={`Boxplot for ${charts.boxplots[activeBoxIndex].column}`} 
+                        <SafeChartImage
+                          base64Src={charts.boxplots[activeBoxIndex].image}
+                          alt={`Boxplot for ${charts.boxplots[activeBoxIndex].column}`}
                           className="max-h-[320px] w-auto object-contain rounded-lg"
                         />
                       </div>
@@ -774,9 +768,9 @@ export const ReportGeneration = ({
 
         {/* ─── Virtual Concept Shelf (Data-Formulator Provocative Derived Metrics) ─── */}
         {taskId && (
-          <VirtualConceptShelf 
-            taskId={taskId} 
-            columns={info?.columns || []} 
+          <VirtualConceptShelf
+            taskId={taskId}
+            columns={info?.columns || []}
           />
         )}
 
@@ -973,9 +967,9 @@ export const ReportGeneration = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
-            <Button 
-              size="lg" 
-              className="w-full rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm font-semibold" 
+            <Button
+              size="lg"
+              className="w-full rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm font-semibold"
               onClick={downloadFile}
             >
               <Download className="h-4 w-4" />
@@ -983,10 +977,10 @@ export const ReportGeneration = ({
               <ChevronRight className="h-4 w-4 opacity-70 ml-0.5" />
             </Button>
 
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="w-full rounded-xl border-border bg-card hover:bg-muted/10 shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm" 
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full rounded-xl border-border bg-card hover:bg-muted/10 shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm"
               onClick={onReset}
             >
               <RefreshCw className="h-4.5 w-4.5" />

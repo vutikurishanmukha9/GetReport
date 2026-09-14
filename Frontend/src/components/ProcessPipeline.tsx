@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     Upload,
     Search,
-    Sparkles,
+    SlidersHorizontal,
     BarChart3,
     Brain,
     FileText,
@@ -25,7 +25,7 @@ interface PipelineStage {
 const STAGE_DEFINITIONS = [
     { id: "upload", label: "Upload", icon: Upload },
     { id: "inspect", label: "Inspect", icon: Search },
-    { id: "prepare", label: "Prepare", icon: Sparkles },
+    { id: "prepare", label: "Prepare", icon: SlidersHorizontal },
     { id: "analyze", label: "Analyze", icon: BarChart3 },
     { id: "insights", label: "Insights", icon: Brain },
     { id: "report", label: "Report", icon: FileText },
@@ -198,12 +198,9 @@ export const ProcessPipeline = ({
  
                 {/* Live Status Subtext Line */}
                 <div className="border-t border-border bg-muted/5 px-6 py-3.5 flex items-center gap-3 font-sans">
-                    {/* Pulsing indicator */}
+                    {/* Live indicator */}
                     {!isComplete && (
-                        <span className="relative flex h-2 w-2 shrink-0">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/70 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                        </span>
+                        <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />
                     )}
                     {isComplete && (
                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />

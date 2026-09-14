@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { 
-  BarChart3, GraduationCap, Users, DollarSign, Heart, ArrowRight, 
+  BarChart3, GraduationCap, Users, DollarSign, Activity, ArrowRight, 
   AlertTriangle, ChevronDown, ChevronUp, Eye
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -109,7 +109,7 @@ const examplesList: DatasetExample[] = [
   },
   {
     id: "clinical_vitals",
-    icon: Heart,
+    icon: Activity,
     title: "Clinical Trial Patient Vitals Audit",
     domain: "Healthcare",
     description: "De-identified biometric trial records tracking systolic blood pressure, dosage frequency, and adverse symptom logs.",
@@ -171,7 +171,7 @@ export const Examples = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20 t-badge-shimmer">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20">
               <BarChart3 className="h-3.5 w-3.5" />
               <span>Real-World Sample Datasets</span>
             </div>
@@ -208,7 +208,7 @@ export const Examples = () => {
           </div>
 
           {/* Dataset Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6 items-start">
             {filteredExamples.map((item) => {
               const Icon = item.icon;
               const isExpanded = expandedId === item.id;
@@ -276,7 +276,7 @@ export const Examples = () => {
 
                     {/* Executive Key Insight Quote */}
                     <div className="p-3 bg-muted/30 rounded-xl border border-border/40 text-xs font-sans text-foreground">
-                      <strong className="text-primary font-mono text-[10px] uppercase tracking-wider block mb-0.5">RAG Executive Insight:</strong>
+                      <strong className="text-primary font-mono text-[10px] uppercase tracking-wider block mb-0.5">RAG Executive Takeaway:</strong>
                       <p className="italic text-muted-foreground leading-relaxed">&ldquo;{item.keyInsight}&rdquo;</p>
                     </div>
 
@@ -309,7 +309,7 @@ export const Examples = () => {
                         {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                       </button>
 
-                      <Link to="/workspace">
+                      <Link to={`/workspace?sample=${item.id}`}>
                         <Button size="sm" className="rounded-xl font-display font-semibold text-xs gap-1 shadow-xs h-8 px-3">
                           <span>Audit in Workspace</span>
                           <ArrowRight className="h-3.5 w-3.5" />

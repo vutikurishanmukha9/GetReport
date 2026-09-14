@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { 
-  UploadCloud, Search, FileDown, ArrowRight, Brain, Sparkles, 
+  UploadCloud, Search, FileDown, ArrowRight, Brain, FileSpreadsheet, 
   CheckCircle2, Terminal, ChevronRight, ChevronLeft, 
-  ShieldCheck, Zap, Layers, RefreshCw
+  ShieldCheck, Layers, RefreshCw, Activity, Code2
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,7 @@ if user_decisions["col_amount"] == "approve":
   {
     id: "stats",
     stepNum: "03",
-    icon: Brain,
+    icon: Activity,
     title: "Statistical & Drift Auditing",
     shortDesc: "Pearson correlations, VIF multicollinearity, and conceptual drift checks.",
     fullDesc: "Executes deep bivariate and multivariate statistical tests. Identifies redundant variables using Variance Inflation Factor (VIF > 5.0), flags extreme skewness with Kurtosis thresholds, and computes Kolmogorov-Smirnov distribution shifts across chronological segments.",
@@ -123,7 +123,7 @@ corr_matrix = df.select(numeric_cols).corr()`,
   {
     id: "rag",
     stepNum: "04",
-    icon: Sparkles,
+    icon: Brain,
     title: "Domain Extraction & RAG Synthesis",
     shortDesc: "Semantic business context classification and grounded insight generation.",
     fullDesc: "Our semantic layer analyzes column taxonomy to classify the business domain (e.g. Retail, SaaS, Healthcare, Banking). Aggregated statistical summaries are sent to our RAG engine to generate plain-English executive takeaways without exposing raw row data.",
@@ -199,8 +199,8 @@ export const HowItWorks = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20 t-badge-shimmer">
-              <Zap className="h-3.5 w-3.5" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20">
+              <FileSpreadsheet className="h-3.5 w-3.5" />
               <span>Auditable Pipeline Methodology</span>
             </div>
             
@@ -312,10 +312,8 @@ export const HowItWorks = () => {
               <Card className="border border-border/80 bg-zinc-950 text-zinc-100 rounded-2xl shadow-premium overflow-hidden font-mono text-xs">
                 <CardHeader className="bg-zinc-900/80 border-b border-zinc-800 px-4 py-2.5 flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80 inline-block" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500/80 inline-block" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80 inline-block" />
-                    <span className="text-[11px] text-zinc-400 font-bold ml-2">engine_pipeline.py</span>
+                    <Code2 className="h-3.5 w-3.5 text-zinc-400" />
+                    <span className="text-[11px] text-zinc-300 font-bold ml-0.5">engine_pipeline.py</span>
                   </div>
                   <Badge variant="outline" className="text-[10px] bg-zinc-800 text-zinc-300 border-zinc-700">
                     STAGE_{activeStep.stepNum}_EXEC
@@ -387,7 +385,7 @@ export const HowItWorks = () => {
               </div>
 
               <div className="p-4 rounded-xl bg-muted/20 border border-border/60 space-y-1.5">
-                <Sparkles className="h-5 w-5 text-purple-600" />
+                <Brain className="h-5 w-5 text-primary" />
                 <h3 className="font-bold text-foreground font-sans text-xs sm:text-sm">Confidential RAG</h3>
                 <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
                   LLMs receive only aggregated mathematical metrics (mean, count, VIF) and never raw patient/customer rows.

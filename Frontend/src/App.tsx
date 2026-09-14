@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { Loader2 } from "lucide-react";
 
@@ -81,6 +81,8 @@ const App = () => (
             <Route path="/features" element={<Features />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/documentation" element={<Documentation />} />
+            <Route path="/docs" element={<Navigate to="/documentation" replace />} />
+            <Route path="/app" element={<Navigate to="/workspace" replace />} />
 
             <Route path="/examples" element={<Examples />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />

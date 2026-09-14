@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, AlertTriangle, Play, ShieldAlert, Sparkles, Trash2, Wrench, BarChart2 } from "lucide-react";
+import { Check, AlertTriangle, Play, ShieldAlert, CheckCircle2, Trash2, Wrench, BarChart2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -152,7 +152,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                     <SelectContent className="rounded-xl border-border bg-white shadow-xl">
                                         <SelectItem value="default" className="text-xs font-medium">
                                             <span className="text-muted-foreground flex items-center gap-2">
-                                                <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Ignore (Leave as is)
+                                                <Check className="w-3.5 h-3.5 text-muted-foreground" /> Ignore (Leave as is)
                                             </span>
                                         </SelectItem>
                                         <SelectItem value="drop_rows" className="text-xs font-medium text-rose-700">

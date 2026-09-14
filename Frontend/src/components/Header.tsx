@@ -1,7 +1,7 @@
 import { FileSpreadsheet, RotateCcw, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   Sheet,
   SheetContent,
@@ -16,6 +16,14 @@ interface HeaderProps {
 
 export const Header = ({ onReset, showReset }: HeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  const handleNavClick = (to: string, e: React.MouseEvent) => {
+    if (to === "/features" && location.pathname === "/") {
+      e.preventDefault();
+      document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <header className="fixed top-4 left-0 right-0 z-50 w-full max-w-7xl mx-auto px-4 sm:px-6">
@@ -36,7 +44,12 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             {[['/features', 'Features'], ['/how-it-works', 'How it works'], ['/pricing', 'Pricing'], ['/documentation', 'Docs'], ['/examples', 'Examples']].map(([to, label]) => (
-              <NavLink key={to} to={to} className={({ isActive }) => `text-xs font-display font-semibold transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:bg-primary after:transition-all after:duration-200 ${isActive ? 'text-foreground after:w-full' : 'text-muted-foreground hover:text-foreground after:w-0 hover:after:w-full'}`}>
+              <NavLink 
+                key={to} 
+                to={to} 
+                onClick={(e) => handleNavClick(to, e)}
+                className={({ isActive }) => `text-xs font-display font-semibold transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:bg-primary after:transition-all after:duration-200 ${isActive ? 'text-foreground after:w-full' : 'text-muted-foreground hover:text-foreground after:w-0 hover:after:w-full'}`}
+              >
                 {label}
               </NavLink>
             ))}
@@ -54,7 +67,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   <span>Start Over</span>
                 </Button>
               </>
-            ) : (
+            ) : location.pathname !== "/workspace" ? (
               <>
                 <div className="h-4 w-px bg-border/60 mx-1" />
                 <Link to="/workspace">
@@ -66,7 +79,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   </Button>
                 </Link>
               </>
-            )}
+            ) : null}
           </nav>
 
           {/* Mobile Menu */}
@@ -100,7 +113,15 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   <Link
                     to="/features"
                     className="text-sm font-display font-semibold uppercase tracking-wider hover:text-primary transition-colors py-2 border-b border-border/60"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      if (location.pathname === "/") {
+                        e.preventDefault();
+                        setTimeout(() => {
+                          document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+                        }, 150);
+                      }
+                    }}
                   >
                     Features
                   </Link>

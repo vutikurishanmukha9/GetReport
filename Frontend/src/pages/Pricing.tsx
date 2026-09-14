@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { 
-  Check, ArrowRight, Heart, 
-  ChevronDown, ChevronUp, HelpCircle
+  Check, ArrowRight, ShieldCheck, 
+  ChevronDown, ChevronUp, HelpCircle,
+  FileSpreadsheet, SlidersHorizontal, BarChart3, FileText
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -70,7 +71,7 @@ const faqs = [
   },
   {
     question: "How does GetReport handle data privacy and confidentiality?",
-    answer: "All processing occurs strictly inside ephemeral server memory using Polars Rust dataframes. Raw records are never written to permanent disk storage, are never used to train AI models, and are automatically purged from RAM within 60 minutes or immediately upon clicking 'Reset Workspace'."
+    answer: "All processing occurs strictly inside ephemeral server memory using Polars dataframes. Raw records are never written to permanent disk storage, are never used to train AI models, and are automatically purged from RAM within 60 minutes or immediately upon clicking 'Reset Workspace'."
   },
   {
     question: "What file formats can I audit?",
@@ -101,8 +102,8 @@ export const Pricing = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-semibold uppercase tracking-wider font-mono border border-emerald-500/20 t-badge-shimmer">
-              <Heart className="h-3.5 w-3.5 fill-emerald-500" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-semibold uppercase tracking-wider font-mono border border-emerald-500/20">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
               <span>100% Free & Open Source</span>
             </div>
 
@@ -127,8 +128,8 @@ export const Pricing = () => {
                   <Badge className="bg-primary text-primary-foreground text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-0.5 rounded-md">
                     COMMUNITY & ENTERPRISE
                   </Badge>
-                  <span className="text-xs font-mono text-emerald-600 font-semibold flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 t-pulse-dot" /> Active Release
+                  <span className="text-xs font-mono text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-semibold">
+                    Active Release
                   </span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-display font-extrabold text-foreground uppercase tracking-tight">
@@ -156,7 +157,7 @@ export const Pricing = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs sm:text-sm text-foreground font-sans">
                 {[
-                  "Polars Rust zero-copy streaming ingestion",
+                  "Polars zero-copy streaming ingestion",
                   "A-F Column Confidence Scoring (4 dimensions)",
                   "Interactive Issue Ledger with 1-click approvals",
                   "Multi-dataset relational joins (up to 5 datasets)",
@@ -186,45 +187,59 @@ export const Pricing = () => {
           </Card>
         </div>
 
-        {/* Section 2: Full Capability & Feature Matrix */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-5xl space-y-6">
-          <div className="text-center max-w-2xl mx-auto space-y-1.5">
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
-              Complete Feature & Architecture Matrix
+        {/* Section 2: 4-Category Capability Bento Grid */}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-6xl space-y-8">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground uppercase tracking-tight">
+              Platform Capabilities & Architecture
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground font-sans">
-              Every single algorithm, metric, and data engine component included in the free release.
+            <p className="text-xs sm:text-sm text-muted-foreground font-sans leading-relaxed">
+              Every single algorithm, metric, and data engine component included in GetReport Open Edition.
             </p>
           </div>
 
-          <div className="border border-border/80 bg-card rounded-2xl shadow-premium overflow-hidden">
-            {matrixCategories.map((cat, cIdx) => (
-              <div key={cat.category} className={cIdx !== 0 ? "border-t border-border/60" : ""}>
-                <div className="bg-muted/40 px-5 py-2.5 border-b border-border/40">
-                  <h3 className="font-display font-bold text-xs uppercase tracking-wider text-primary">
-                    {cat.category}
-                  </h3>
-                </div>
-                <div className="divide-y divide-border/40">
-                  {cat.items.map((item, iIdx) => (
-                    <div key={iIdx} className="px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-muted/10 transition-colors">
-                      <div className="space-y-0.5 max-w-2xl">
-                        <span className="font-sans font-semibold text-xs sm:text-sm text-foreground block">
-                          {item.name}
-                        </span>
-                        <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
-                          {item.description}
-                        </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6">
+            {matrixCategories.map((cat, cIdx) => {
+              const icons = [FileSpreadsheet, SlidersHorizontal, BarChart3, FileText];
+              const CategoryIcon = icons[cIdx % icons.length];
+              return (
+                <Card key={cat.category} className="border border-border bg-card rounded-2xl p-5 sm:p-6 shadow-premium flex flex-col justify-between t-card-lift">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                          <CategoryIcon className="h-4 w-4" />
+                        </div>
+                        <h3 className="font-display font-bold text-sm sm:text-base text-foreground">
+                          {cat.category}
+                        </h3>
                       </div>
-                      <div className="flex items-center gap-1.5 text-emerald-700 font-mono text-xs font-semibold shrink-0">
-                        <Check className="h-3.5 w-3.5 text-emerald-600" />
-                        <span>Included</span>
-                      </div>
+                      <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
+                        Unlocked
+                      </Badge>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+
+                    <div className="space-y-3">
+                      {cat.items.map((item, iIdx) => (
+                        <div key={iIdx} className="flex items-start gap-2.5">
+                          <div className="h-4 w-4 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                            <Check className="h-3 w-3" />
+                          </div>
+                          <div className="space-y-0.5">
+                            <span className="font-sans font-semibold text-xs sm:text-sm text-foreground block">
+                              {item.name}
+                            </span>
+                            <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
+                              {item.description}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </div>
 
