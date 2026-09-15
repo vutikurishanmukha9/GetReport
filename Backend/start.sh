@@ -15,5 +15,4 @@ fi
 
 # Start FastAPI Application via Granian (Rust ASGI Server — 2.5x throughput vs Uvicorn)
 echo "Starting FastAPI Server (Granian Rust ASGI)..."
-exec granian --interface asgi --host 0.0.0.0 --port "${PORT:-8000}" --workers 1 --blocking-threads 2 app.main:app
-
+exec granian --interface asgi --host 0.0.0.0 --port "${PORT:-8000}" --workers "${WEB_CONCURRENCY:-1}" app.main:app
