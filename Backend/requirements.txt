@@ -26,9 +26,10 @@ networkx>=3.0
 # Visualization (Required for PDF Charts)
 matplotlib>=3.8.3
 
-# PDF Generation (Ultra-Fast Typst Engine)
+# PDF Generation (Ultra-Fast Typst Engine & ReportLab Fallback)
 typst>=0.15.0
 jinja2>=3.1.3
+reportlab>=4.1.0
 
 # AI & Rate Limiting
 google-antigravity>=0.1.15

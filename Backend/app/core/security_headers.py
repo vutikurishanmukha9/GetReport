@@ -19,7 +19,7 @@ class SecurityHeadersMiddleware:
                 headers = list(message.get("headers", []))
                 headers.extend([
                     (b"x-content-type-options", b"nosniff"),
-                    (b"x-frame-options", b"deny"),
+                    (b"x-frame-options", b"DENY"),
                     (b"x-xss-protection", b"1; mode=block"),
                     (b"referrer-policy", b"strict-origin-when-cross-origin"),
                     (b"permissions-policy", b"camera=(), microphone=(), geolocation=(), payment=()"),

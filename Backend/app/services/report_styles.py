@@ -37,6 +37,15 @@ except ImportError:
     inch = 72  # type: ignore
     Flowable = object  # type: ignore
     Brand = None  # type: ignore
+    Spacer = None  # type: ignore
+    Image = None  # type: ignore
+    Table = None  # type: ignore
+    TableStyle = None  # type: ignore
+    HRFlowable = None  # type: ignore
+    Paragraph = None  # type: ignore
+    ParagraphStyle = None  # type: ignore
+    getSampleStyleSheet = None  # type: ignore
+
 
 # ─── Logger ──────────────────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)
@@ -363,6 +372,11 @@ def _decode_image(
         A ReportLab Image object, or None if decoding failed.
     """
     try:
+        if not REPORTLAB_AVAILABLE or Image is None:
+            meta.charts_skipped += 1
+            logger.warning("ReportLab is not installed; skipping image '%s'.", label)
+            return None
+
         if isinstance(b64_string, dict):
             b64_string = b64_string.get("image", "")
 
