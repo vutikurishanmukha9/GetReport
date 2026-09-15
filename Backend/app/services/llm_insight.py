@@ -162,6 +162,10 @@ class InsightGenerationError(RuntimeError):
     """Raised when insight generation fails after all retries are exhausted."""
 
 
+class CreditsExhaustedError(RuntimeError):
+    """Raised when a paid LLM provider returns HTTP 402 (credits exhausted)."""
+
+
 class MissingAPIKeyError(EnvironmentError):
     """Raised when OPENROUTER_API_KEY is not configured."""
 

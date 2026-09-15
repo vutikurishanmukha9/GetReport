@@ -766,7 +766,7 @@ class EnhancedRAGService:
     async def _get_gemini_embeddings_rest(self, texts: List[str]) -> List[List[float]]:
         """Fetch embeddings directly from Google's Generative Language REST API."""
         import httpx
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
         requests = [
             {"model": "models/text-embedding-004", "content": {"parts": [{"text": t}]}}
             for t in texts
@@ -781,7 +781,7 @@ class EnhancedRAGService:
     def _get_gemini_embeddings_rest_sync(self, texts: List[str]) -> List[List[float]]:
         """Fetch embeddings synchronously from Google's Generative Language REST API."""
         import httpx
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
         requests = [
             {"model": "models/text-embedding-004", "content": {"parts": [{"text": t}]}}
             for t in texts
