@@ -29,13 +29,17 @@ elif settings.DATABASE_URL and not settings.API_KEY:
     logger.info("Database is configured (DATABASE_URL) and API_KEY is unset. Public access is enabled.")
 
 
-async def verify_api_key(api_key: str = Security(_api_key_header)) -> None:
+async def verify_api_key(
+    api_key_header: str = Security(_api_key_header),
+    api_key_query: str | None = Query(None, alias="api_key"),
+) -> None:
     """
     FastAPI dependency that enforces API key authentication.
     
     - If settings.API_KEY is empty/unset AND REQUIRE_AUTH is False → auth is DISABLED.
     - If settings.REQUIRE_AUTH is True but API_KEY is empty → REJECT (fail closed).
-    - If settings.API_KEY is set, the request must include a valid X-API-Key header.
+    - If settings.API_KEY is set, the request must include a valid X-API-Key header
+      or ?api_key= query parameter (for browser EventSource / SSE compatibility).
     """
     if not settings.API_KEY:
         if settings.REQUIRE_AUTH:
@@ -48,6 +52,7 @@ async def verify_api_key(api_key: str = Security(_api_key_header)) -> None:
         # Auth disabled
         return
 
+    api_key = api_key_header or api_key_query
     if not api_key or not secrets.compare_digest(api_key, settings.API_KEY):
         logger.warning("Unauthorized API request (invalid or missing API key)")
         raise HTTPException(

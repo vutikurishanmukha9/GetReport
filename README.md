@@ -9,8 +9,8 @@
 [![Google Antigravity SDK](https://img.shields.io/badge/Agent-Google%20Antigravity%20SDK-4285F4?logo=google)](https://ai.google.dev/)
 [![Polars](https://img.shields.io/badge/Engine-Polars%20Rust-CD412B?logo=rust)](https://pola.rs/)
 [![DuckDB](https://img.shields.io/badge/OLAP-DuckDB%201.0%2B-FFF000?logo=duckdb)](https://duckdb.org/)
-[![Great Expectations](https://img.shields.io/badge/Contracts-Great%20Expectations-FF5A00)](https://greatexpectations.io/)
-[![WeasyPrint](https://img.shields.io/badge/PDF_Engine-WeasyPrint%2061.2%2B-FF6600)](https://weasyprint.org/)
+[![PostgreSQL](https://img.shields.io/badge/Database-Neon%20PostgreSQL-336791?logo=postgresql)](https://neon.tech/)
+[![Typst](https://img.shields.io/badge/PDF_Engine-Typst%200.15%2B-239DAD)](https://typst.app/)
 [![Security](https://img.shields.io/badge/Security-0%20Vulnerabilities%20%7C%20Audit%20Hardened-brightgreen?logo=shield)](https://github.com/)
 [![Tests](https://img.shields.io/badge/Tests-332%20Passed-brightgreen)](https://github.com/)
 
@@ -106,10 +106,11 @@ GetReport enforces defense-in-depth security across every ingestion, execution, 
 - **Zero-Bypass HTML/SVG Escaping (`VULN-02`)**: Complete neutralization of stored/reflected XSS in executive report PDF rendering. AI insights, executive summaries, and recommendations are strictly autoescaped. Vector SVG charts are guarded against `<script>` and `<foreignObject>` tags.
 - **CSV Formula Injection (CWE-1236) Neutralization (`VULN-03`)**: Neutralizes Dynamic Data Exchange (DDE) and formula code execution in spreadsheet applications (Excel, Calc) by auto-sanitizing text fields starting with `=, +, -, @, \t, \r` with prepended single quotes (`'`) across all CSV export endpoints.
 - **DuckDB OOM DoS & Memory Hardening (`VULN-04`)**: Prevents out-of-memory denial of service by strictly capping analytical query materialization via Polars `.head(max_rows)` before `.to_dicts()` conversion, and constraining the API `limit` parameter with Pydantic validation (`1 <= limit <= 1000`).
-- **Watchdog Thread Termination (`VULN-05`)**: Python analyst execution threads are monitored by an active watchdog timer; runaway or spinning threads are asynchronously terminated via `PyThreadState_SetAsyncExc(tid, SystemExit)` to prevent daemon thread CPU exhaustion, with AST loop depth capped to 3.
-- **Fail-Closed API & WebSocket Authentication (`VULN-06`)**: WebSocket and REST authentication enforce fail-closed security when `DATABASE_URL` is configured, preventing unauthenticated access in production. The frontend client automatically propagates the `X-API-Key` header across all REST and WS connections.
-- **Real Client IP Spoofing Prevention (`VULN-07`)**: The global rate limiter extracts trusted client IPs by prioritizing authenticated edge proxy headers (Cloudflare `CF-Connecting-IP`) over easily spoofed `X-Forwarded-For` header chains.
-- **CRLF & Header Injection Defense (CWE-113) (`VULN-08`)**: Request ID middleware validates all incoming `X-Request-ID` headers against a strict whitelist regex (`^[a-zA-Z0-9_-]{1,64}$`), discarding any newline (`\r`, `\n`) or delimiter injection payloads.
+- **Ordered Parameter Binding & Identifier Escaping (`VULN-05`)**: DuckDB parameterized query parsing uses an ordered, single-pass scanner that preserves exact lexical parameter appearance order, supports repeated placeholders (`{{ x }} + {{ x }}`) without parameter count mismatch, and escapes double-quote identifiers in column profiling.
+- **Watchdog Thread Termination & Resource Bounds (`VULN-06`)**: Python analyst execution threads are monitored by an active watchdog timer; runaway or spinning threads are asynchronously terminated via `PyThreadState_SetAsyncExc(tid, SystemExit)`. Sandbox request schemas strictly cap code payloads to 50,000 characters and execution timeouts to 1–30 seconds.
+- **Fail-Closed WebSocket Authentication (`VULN-07`)**: Protocol-level WebSocket authentication executes seamlessly in public free-to-use mode and immediately fails closed (status 4001) if explicit authentication is required.
+- **Trusted Proxy Rate Limit Evasion Defense (`VULN-08`)**: The global rate limiter extracts real client IPs while validating that proxy headers (`CF-Connecting-IP`, `X-Forwarded-For`) are only honored when incoming connections originate from verified internal/loopback proxies (Render, Docker, or Cloudflare edge), preventing direct IP spoofing.
+- **CRLF & Header Injection Defense (CWE-113) (`VULN-09`)**: Request ID middleware validates all incoming `X-Request-ID` headers against a strict whitelist regex (`^[a-zA-Z0-9_-]{1,64}$`), discarding any newline (`\r`, `\n`) or delimiter injection payloads.
 - **DuckDB Native Sandbox**: Native C++ external access disabled (`SET enable_external_access = false;`), preventing local file inclusion (LFI), network calls, or unauthorized file reads.
 
 ---
@@ -134,9 +135,10 @@ GetReport enforces defense-in-depth security across every ingestion, execution, 
 | **Data Engine** | Polars (Rust Core), NumPy, SciPy, Scikit-Learn |
 | **AI Agent** | Google Antigravity SDK (`google-antigravity`) |
 | **LLM Providers** | Google Gemini (2.5/3.7 Flash), OpenRouter, OpenAI |
+| **Database** | Neon Serverless PostgreSQL / SQLite (Local) |
 | **Contracts** | Great Expectations (GX) |
-| **Task Queue** | Celery + Redis |
-| **PDF Engines** | WeasyPrint (Production HTML/CSS) / ReportLab (Local) |
+| **Task Queue** | ARQ / Celery + Redis |
+| **PDF Engines** | Typst (Ultra-fast, <25MB RAM Rust Engine) / ReportLab |
 | **Storage** | Sandboxed Local Disk / PostgreSQL BYTEA / AWS S3 |
 
 ---
@@ -273,11 +275,11 @@ docker run -p 8000:8000 --env-file Backend/.env.example getreport-backend
 ### Environment Variables
 | Variable | Default (Local) | Production | Description |
 |---|---|---|---|
-| `PDF_ENGINE` | `reportlab` | `weasyprint` | PDF engine (`reportlab` for lightweight local dev, `weasyprint` for production). |
-| `DATABASE_URL` | (empty) -> SQLite | `postgres://...` | PostgreSQL connection string (supports pgvector). |
-| `REDIS_URL` | `redis://localhost:6379/0` | `redis://...` | Redis broker for Celery and WebSocket PubSub. |
-| `STORAGE_TYPE` | `local` | `db` / `s3` | File storage provider (`local`, `db`, or `s3`). |
-| `API_KEY` | (empty) | (secret key) | Enforces `X-API-Key` header authentication on API endpoints. |
+| `PDF_ENGINE` | `typst` | `typst` | PDF engine (`typst` ultra-fast Rust engine <25MB RAM, or `reportlab` fallback). |
+| `DATABASE_URL` | (empty) -> SQLite | `postgresql://...` | Neon Serverless PostgreSQL connection string. |
+| `REDIS_URL` | `redis://localhost:6379/0` | `redis://...` | Redis broker for background worker and WebSocket PubSub. |
+| `STORAGE_TYPE` | `local` | `db` / `s3` | File storage provider (`local`, `db` for Neon BYTEA, or `s3`). |
+| `API_KEY` | (empty) | (empty/optional) | Optional `X-API-Key` authentication (leave empty for public access). |
 | `CORS_ORIGINS` | `http://localhost:5173` | `https://get-report.vercel.app` | Allowed CORS origins. |
 | `GEMINI_API_KEY` | (optional) | (recommended) | API Key for Google Antigravity Agent and vector embeddings. |
 | `MAX_UPLOAD_SIZE_MB` | `50` | `50` | Maximum file upload limit in megabytes. |

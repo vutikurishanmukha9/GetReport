@@ -14,7 +14,7 @@ import html
 from app.core.limiter import limiter, REPORT_LIMIT
 from app.core.auth import verify_api_key, validate_task_id
 from app.services.task_manager import title_task_manager, TaskStatus
-from app.tasks import generate_pdf_task
+from app.core.task_dispatcher import dispatch_task
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -33,8 +33,8 @@ class GoldenQueryCreateRequest(BaseModel):
     description: Optional[str] = ""
 
 class SandboxExecRequest(BaseModel):
-    code: str
-    timeout_seconds: Optional[int] = 10
+    code: str = Field(..., max_length=50000, description="Python/Polars code to execute in sandbox")
+    timeout_seconds: Optional[int] = Field(default=10, ge=1, le=30, description="Execution timeout cap in seconds")
 
 class DeriveConceptRequest(BaseModel):
     concept_name: str
@@ -83,7 +83,7 @@ async def generate_persistent_report(
     
     try:
         await title_task_manager.set_report_status_async(task_id, "generating")
-        generate_pdf_task.delay(task_id)
+        await dispatch_task("app.tasks.generate_pdf", task_id)
         return {"message": "Report generation started. Poll /report/status for progress.", "path": None}
         
     except Exception as e:

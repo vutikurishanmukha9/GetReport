@@ -11,22 +11,16 @@ WORKDIR /build
 
 COPY Backend/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install \
-    -r requirements.txt \
-    weasyprint>=62.0
+    -r requirements.txt
 
 # ─── Stage 2: Runtime ────────────────────────────────────────────────────────
 FROM python:3.12-slim AS runtime
 
 # System dependencies:
-#   - WeasyPrint: libpango, libcairo, libgdk-pixbuf, fonts
-#   - Neon DB:    ca-certificates (SSL connections)
+#   - Fonts for Typst report rendering: fonts-dejavu-core
+#   - Neon DB: ca-certificates (SSL connections)
+#   - Shell script utilities: dos2unix
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf-2.0-0 \
-    libffi-dev \
-    libcairo2 \
     fonts-dejavu-core \
     ca-certificates \
     dos2unix \
@@ -53,7 +47,7 @@ RUN useradd --create-home --shell /bin/bash appuser && \
 USER appuser
 
 # ─── Environment ─────────────────────────────────────────────────────────────
-ENV PDF_ENGINE=weasyprint
+ENV PDF_ENGINE=typst
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -63,5 +57,5 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 
 EXPOSE 8000
 
-# Run both Celery and FastAPI via script
+# Run both Celery and Granian (Rust ASGI) via script
 CMD ["./start.sh"]

@@ -129,8 +129,8 @@ class DuckDBAnalyticalSession:
     def get_column_profile(self, table_name: str, column_name: str) -> Dict[str, Any]:
         """Calculates exact statistical distributions at hardware memory speeds."""
         safe_table = re.sub(r"[^a-zA-Z0-9_]", "_", table_name)
-        # Escape column name with double quotes
-        escaped_col = f'"{column_name}"'
+        safe_col = column_name.replace('"', '""')
+        escaped_col = f'"{safe_col}"'
         query = f"""
         SELECT 
             COUNT(*) AS total_records,
@@ -215,12 +215,17 @@ class DuckDBAnalyticalSession:
         binding_params = []
 
         if params and isinstance(params, dict):
-            # Replace {{ param }} with ? placeholders
-            for key, val in params.items():
-                pattern = re.compile(rf"\{{\{{\s*{re.escape(key)}\s*\}}\}}")
-                if pattern.search(processed_sql):
-                    processed_sql = pattern.sub("?", processed_sql)
-                    binding_params.append(val)
+            # Scan for all {{ placeholder }} occurrences in exact lexical appearance order
+            param_pattern = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}")
+
+            def _replacer(match: re.Match) -> str:
+                key = match.group(1)
+                if key not in params:
+                    raise DuckDBSecurityError(f"Missing parameter value for '{{{{ {key} }}}}'")
+                binding_params.append(params[key])
+                return "?"
+
+            processed_sql = param_pattern.sub(_replacer, processed_sql)
 
         # Security check on processed SQL
         self.validate_sql_safety(processed_sql)

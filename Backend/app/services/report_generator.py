@@ -1,9 +1,10 @@
 """
 report_generator.py
 ~~~~~~~~~~~~~~~~~~~
-PDF report orchestrator.  Routes to one of two engines based on config:
-  - PDF_ENGINE=reportlab  → existing ReportLab pipeline (default, local dev)
-  - PDF_ENGINE=weasyprint  → Jinja2 HTML/CSS + WeasyPrint (production)
+PDF report orchestrator.  Routes to the configured PDF engine:
+  - PDF_ENGINE=typst       → Typst Rust-compiled engine (<25MB RAM, <100ms, default)
+  - PDF_ENGINE=reportlab   → ReportLab flowable pipeline (fallback, zero C-deps)
+  - PDF_ENGINE=weasyprint  → Jinja2 HTML/CSS + WeasyPrint (legacy)
 """
 from __future__ import annotations
 
@@ -34,16 +35,30 @@ def generate_pdf_report(
     Generate the full GetReport PDF and return it as a BytesIO buffer.
 
     Routes to the correct engine based on ``settings.PDF_ENGINE``:
-      - ``"reportlab"``  → pixel-level ReportLab (default, no system deps)
+      - ``"typst"``      → Typst precompiled Rust engine (default, ultra-fast, <25MB RAM)
       - ``"weasyprint"`` → Jinja2 HTML/CSS → WeasyPrint PDF
-    With a dynamic fallback to ReportLab if WeasyPrint dependencies are missing.
+      - ``"reportlab"``  → pixel-level ReportLab pipeline
+    With automatic dynamic fallback to ReportLab if the chosen engine encounters errors.
 
     Returns:
         Tuple of (BytesIO buffer containing the PDF, ReportMetadata).
     """
-    engine = settings.PDF_ENGINE.lower().strip()
-    
-    if engine == "weasyprint":
+    engine = (settings.PDF_ENGINE or "typst").lower().strip()
+
+    if engine == "typst":
+        try:
+            from app.services.report_typst import generate_pdf_typst
+            logger.info("═══ PDF Engine: Typst (Zero-Copy Rust Engine) ═══")
+            return generate_pdf_typst(analysis_results, charts, filename)
+        except Exception as e:
+            logger.warning(
+                "Typst engine encountered an error: %s. "
+                "Automatically falling back to ReportLab engine.",
+                e,
+            )
+            # Fall through to reportlab
+
+    elif engine == "weasyprint":
         try:
             from weasyprint import HTML
             from app.services.report_weasyprint import generate_pdf_weasyprint
@@ -56,8 +71,8 @@ def generate_pdf_report(
                 e,
             )
             # Fall through to reportlab
-            
-    logger.info("═══ PDF Engine: ReportLab (Pixel-level) ═══")
+
+    logger.info("═══ PDF Engine: ReportLab (Pixel-level Fallback) ═══")
     return _generate_pdf_reportlab(analysis_results, charts, filename)
 
 

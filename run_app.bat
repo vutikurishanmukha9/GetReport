@@ -19,8 +19,8 @@ REM For now we assume Redis is running as service or user started it.
 echo [2/3] Starting Celery Worker...
 start "Celery Worker" cmd /k "cd Backend && venv\Scripts\celery -A app.core.celery_app worker --loglevel=info -P solo"
 
-echo [3/3] Starting FastAPI Backend...
-start "FastAPI Server" cmd /k "cd Backend && venv\Scripts\uvicorn app.main:app --reload"
+echo [3/3] Starting FastAPI Backend (Granian Rust ASGI)...
+start "FastAPI Server" cmd /k "cd Backend && venv\Scripts\granian --interface asgi --host 127.0.0.1 --port 8000 --reload app.main:app"
 
 echo --------------------------------
 echo Stack started!

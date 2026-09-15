@@ -59,6 +59,118 @@ async def get_task_status(
     )
 
 
+# ─── SSE Real-Time Progress Stream ──────────────────────────────────────────
+
+@router.get("/status/{task_id}/stream")
+async def stream_task_status(
+    request: Request, task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Server-Sent Events (SSE) endpoint: streams task progress updates in real-time
+    until the task completes or fails. Uses the browser-native EventSource API.
+
+    Events emitted:
+      - event: progress   → {"progress": 42, "message": "Computing correlations...", "status": "processing"}
+      - event: complete   → {"progress": 100, "message": "Done", "result": {...}}
+      - event: error      → {"message": "Pipeline failed: ..."}
+    """
+    from fastapi.responses import StreamingResponse
+
+    validate_task_id(task_id)
+
+    # Verify task exists
+    job = await title_task_manager.get_job_async(task_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    async def _event_generator():
+        """Yield SSE-formatted events until task reaches a terminal state."""
+        last_progress = -1
+        last_message = ""
+        last_status = ""
+
+        try:
+            while True:
+                current_job = await title_task_manager.get_job_async(task_id)
+                if not current_job:
+                    yield f"event: error\ndata: {json.dumps({'message': 'Task not found'})}\n\n"
+                    return
+
+                cur_status = current_job.status
+                cur_progress = current_job.progress or 0
+                cur_message = current_job.message or ""
+
+                # Only emit when state actually changes (or first iteration)
+                state_changed = (
+                    cur_status != last_status
+                    or cur_progress != last_progress
+                    or cur_message != last_message
+                )
+
+                if state_changed:
+                    last_status = cur_status
+                    last_progress = cur_progress
+                    last_message = cur_message
+
+                    if cur_status == TaskStatus.FAILED:
+                        payload = {
+                            "progress": cur_progress,
+                            "message": cur_message,
+                            "status": cur_status.value if hasattr(cur_status, "value") else str(cur_status),
+                            "error": current_job.error,
+                        }
+                        yield f"event: error\ndata: {json.dumps(payload)}\n\n"
+                        return
+
+                    if cur_status == TaskStatus.COMPLETED:
+                        payload = {
+                            "progress": 100,
+                            "message": cur_message,
+                            "status": cur_status.value if hasattr(cur_status, "value") else str(cur_status),
+                            "result": current_job.result,
+                            "report_download_url": (
+                                f"/api/jobs/{task_id}/report"
+                                if current_job.report_path
+                                else None
+                            ),
+                        }
+                        yield f"event: complete\ndata: {json.dumps(payload)}\n\n"
+                        return
+
+                    if cur_status == TaskStatus.WAITING_FOR_USER:
+                        payload = {
+                            "progress": cur_progress,
+                            "message": cur_message,
+                            "status": cur_status.value if hasattr(cur_status, "value") else str(cur_status),
+                            "result": current_job.result,
+                        }
+                        yield f"event: waiting\ndata: {json.dumps(payload)}\n\n"
+                        # Don't return — keep stream open for when user resumes
+                    else:
+                        payload = {
+                            "progress": cur_progress,
+                            "message": cur_message,
+                            "status": cur_status.value if hasattr(cur_status, "value") else str(cur_status),
+                        }
+                        yield f"event: progress\ndata: {json.dumps(payload)}\n\n"
+
+                await asyncio.sleep(1.0)
+        except (asyncio.CancelledError, GeneratorExit):
+            logger.info("SSE client disconnected for task %s", task_id)
+            return
+
+    return StreamingResponse(
+        _event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Prevents Nginx/reverse proxy buffering
+        },
+    )
+
+
 @router.websocket("/ws/status/{task_id}")
 async def websocket_status(websocket: WebSocket, task_id: str):
     """
@@ -68,7 +180,7 @@ async def websocket_status(websocket: WebSocket, task_id: str):
     # §6: Protocol-level authentication — accept key via first message, not URL query
     await websocket.accept()
     
-    if settings.API_KEY:
+    if settings.API_KEY or settings.REQUIRE_AUTH:
         try:
             # Wait up to 5s for the auth message
             auth_msg = await asyncio.wait_for(websocket.receive_text(), timeout=5.0)

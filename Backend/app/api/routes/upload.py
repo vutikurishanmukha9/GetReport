@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.auth import verify_api_key
 from app.services.task_manager import title_task_manager
 from app.services.storage import get_storage_provider
-from app.tasks import inspect_file_task
+from app.core.task_dispatcher import dispatch_task
 
 storage = get_storage_provider()
 logger = logging.getLogger(__name__)
@@ -103,8 +103,8 @@ async def upload_file(
         # Create Task
         task_id = await title_task_manager.create_job_async(safe_filename, file_hash=file_hash)
 
-        # Start Inspection Task (Phase 1) - VIA CELERY
-        inspect_file_task.delay(task_id, file_ref, safe_filename)
+        # Start Inspection Task (Phase 1) - VIA UNIFIED TASK DISPATCHER (ARQ / In-Memory)
+        await dispatch_task("app.tasks.inspect_file", task_id, file_ref, safe_filename)
 
         # Schedule cleanup for old reports (Lazy Cleanup: Max once per hour)
         from app.services.cleanup import cleanup_old_files
@@ -174,7 +174,7 @@ async def upload_files_batch(
         )
 
         task_id = await title_task_manager.create_job_async(safe_filename, batch_id=batch_id, file_hash=file_hash)
-        inspect_file_task.delay(task_id, file_ref, safe_filename)
+        await dispatch_task("app.tasks.inspect_file", task_id, file_ref, safe_filename)
 
         task_ids.append(task_id)
         task_details.append({"task_id": task_id, "batch_id": batch_id, "filename": safe_filename, "file_hash": file_hash[:12]})
@@ -253,7 +253,7 @@ async def upload_and_join_files(
         task_id = await title_task_manager.create_job_async(joined_filename, file_hash=file_hash)
 
         joined_file_ref = storage.save_upload(csv_bytes, joined_filename)
-        inspect_file_task.delay(task_id, joined_file_ref, joined_filename)
+        await dispatch_task("app.tasks.inspect_file", task_id, joined_file_ref, joined_filename)
 
         return TaskResponse(
             task_id=task_id,

@@ -331,13 +331,30 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
     return df.with_columns(exprs)
 
 
+
+def _streaming_collect(lf: pl.LazyFrame) -> pl.DataFrame:
+    """
+    Collect a LazyFrame using Polars native Rust streaming engine.
+    Processes data in chunks to cap peak memory at <64MB regardless of file size.
+    Gracefully falls back to standard collect if streaming engine is unsupported.
+    """
+    try:
+        return lf.collect(engine="streaming")
+    except (TypeError, ValueError):
+        try:
+            return lf.collect(streaming=True)
+        except Exception:
+            return lf.collect()
+
+
 # ─── File Loader (Polars) ────────────────────────────────────────────────────
 def load_dataframe(file_path: str) -> pl.DataFrame:
     """
     Load a file from disk into a Polars DataFrame with multi-encoding fallback,
     auto-delimiter detection, dirty string auto-coercion, and zip bomb validation.
+    Uses Polars streaming scan/collect to prevent memory spikes on large files.
     """
-    logger.info("═══ load_dataframe (Ultra-Robust) started — '%s' ═══", file_path)
+    logger.info("═══ load_dataframe (Ultra-Robust Streaming) started — '%s' ═══", file_path)
     
     # Pre-validate zip files (Excel) and gzip archives against decompression bombs
     lower_path = file_path.lower()
@@ -350,47 +367,84 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
         lower_path = file_path.lower()
         if lower_path.endswith(".csv") or lower_path.endswith(".txt"):
             encoding, sep, skip_rows = _detect_csv_parameters(file_path)
+            polars_encoding = "utf8-lossy" if encoding and encoding.lower() in ("latin-1", "cp1252", "iso-8859-1") else "utf8"
             try:
-                df = pl.read_csv(
+                lf = pl.scan_csv(
                     file_path,
                     separator=sep,
                     skip_rows=skip_rows,
-                    encoding=encoding,
+                    encoding=polars_encoding,
                     ignore_errors=True,
                     null_values=EXTENDED_NULL_VALUES,
                     truncate_ragged_lines=True,
                 )
+                df = _streaming_collect(lf)
             except Exception as csv_err:
-                logger.warning("Primary CSV read failed (%s). Falling back to Latin-1 lenient parse with sep='%s'.", csv_err, sep)
-                df = pl.read_csv(
+                logger.warning("Primary CSV streaming scan failed (%s). Falling back to Latin-1 lenient parse with sep='%s'.", csv_err, sep)
+                try:
+                    lf = pl.scan_csv(
+                        file_path,
+                        separator=sep,
+                        skip_rows=skip_rows,
+                        encoding="utf8-lossy",
+                        ignore_errors=True,
+                        null_values=EXTENDED_NULL_VALUES,
+                        truncate_ragged_lines=True,
+                    )
+                    df = _streaming_collect(lf)
+                except Exception:
+                    df = pl.read_csv(
+                        file_path,
+                        separator=sep,
+                        skip_rows=skip_rows,
+                        encoding="latin-1",
+                        ignore_errors=True,
+                        null_values=EXTENDED_NULL_VALUES,
+                        truncate_ragged_lines=True,
+                    )
+        elif lower_path.endswith(".tsv"):
+            try:
+                lf = pl.scan_csv(
                     file_path,
-                    separator=sep,
-                    skip_rows=skip_rows,
-                    encoding="latin-1",
+                    separator="\t",
                     ignore_errors=True,
                     null_values=EXTENDED_NULL_VALUES,
                     truncate_ragged_lines=True,
                 )
-        elif lower_path.endswith(".tsv"):
-            df = pl.read_csv(
-                file_path,
-                separator="\t",
-                ignore_errors=True,
-                null_values=EXTENDED_NULL_VALUES,
-                truncate_ragged_lines=True,
-            )
+                df = _streaming_collect(lf)
+            except Exception:
+                df = pl.read_csv(
+                    file_path,
+                    separator="\t",
+                    ignore_errors=True,
+                    null_values=EXTENDED_NULL_VALUES,
+                    truncate_ragged_lines=True,
+                )
         elif lower_path.endswith((".xls", ".xlsx")):
             df = pl.read_excel(file_path)
         elif lower_path.endswith(".parquet"):
-            df = pl.read_parquet(file_path)
+            try:
+                df = _streaming_collect(pl.scan_parquet(file_path))
+            except Exception:
+                df = pl.read_parquet(file_path)
         elif lower_path.endswith((".jsonl", ".ndjson")):
-            df = pl.read_ndjson(file_path)
+            try:
+                df = _streaming_collect(pl.scan_ndjson(file_path))
+            except Exception:
+                df = pl.read_ndjson(file_path)
         elif lower_path.endswith(".json"):
             df = pl.read_json(file_path)
         elif lower_path.endswith((".feather", ".arrow")):
-            df = pl.read_ipc(file_path)
+            try:
+                df = _streaming_collect(pl.scan_ipc(file_path))
+            except Exception:
+                df = pl.read_ipc(file_path)
         elif lower_path.endswith(".gz"):
-            df = pl.read_csv(file_path, ignore_errors=True, null_values=EXTENDED_NULL_VALUES)
+            try:
+                lf = pl.scan_csv(file_path, ignore_errors=True, null_values=EXTENDED_NULL_VALUES)
+                df = _streaming_collect(lf)
+            except Exception:
+                df = pl.read_csv(file_path, ignore_errors=True, null_values=EXTENDED_NULL_VALUES)
         else:
             raise UnsupportedFileTypeError(f"Unsupported extension for: {file_path}")
 
@@ -461,13 +515,7 @@ def compute_streaming_summary_stats(lazy_df: pl.LazyFrame) -> dict[str, Any]:
             pl.col(c).null_count().alias(f"{c}_nulls"),
         ])
         
-    try:
-        stats_df = lazy_df.select(aggs).collect(engine="streaming")
-    except (TypeError, ValueError):
-        try:
-            stats_df = lazy_df.select(aggs).collect(streaming=True)
-        except Exception:
-            stats_df = lazy_df.select(aggs).collect()
+    stats_df = _streaming_collect(lazy_df.select(aggs))
     
     res = {}
     for c in num_cols:

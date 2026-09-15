@@ -32,15 +32,20 @@ export interface ChatStreamMetadata {
 
 // ─── Client ─────────────────────────────────────────────────────────────────
 
-async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const headers = new Headers(options.headers);
-    if (!headers.has("Content-Type") && options.body) {
-        headers.set("Content-Type", "application/json");
-    }
+function getAuthHeaders(extraHeaders: HeadersInit = {}): Headers {
+    const headers = new Headers(extraHeaders);
     const apiKey = import.meta.env.VITE_API_KEY;
     if (apiKey && !headers.has("X-API-Key")) {
         headers.set("X-API-Key", apiKey);
+    }
+    return headers;
+}
+
+async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const headers = getAuthHeaders(options.headers);
+    if (!headers.has("Content-Type") && options.body) {
+        headers.set("Content-Type", "application/json");
     }
 
     const controller = new AbortController();
@@ -95,6 +100,7 @@ export const api = {
 
         const response = await fetch(`${API_BASE_URL}/upload`, {
             method: "POST",
+            headers: getAuthHeaders(),
             body: formData,
         });
 
@@ -152,7 +158,7 @@ export const api = {
         try {
             const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/chat/stream`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: getAuthHeaders({ "Content-Type": "application/json" }),
                 body: JSON.stringify({ question, chat_history: chatHistory })
             });
 
@@ -224,7 +230,9 @@ export const api = {
      * Download the already generated PDF.
      */
     downloadReportBlob: async (taskId: string): Promise<Blob> => {
-        const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/report`);
+        const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/report`, {
+            headers: getAuthHeaders(),
+        });
         if (!response.ok) throw new Error("Failed to download report");
         return response.blob();
     },
@@ -240,6 +248,7 @@ export const api = {
 
         const response = await fetch(`${API_BASE_URL}/upload/join`, {
             method: "POST",
+            headers: getAuthHeaders(),
             body: formData,
         });
 
@@ -258,7 +267,9 @@ export const api = {
      * Download multi-format export (CSV, Parquet, HTML).
      */
     downloadExportBlob: async (taskId: string, format: "csv" | "parquet" | "html"): Promise<Blob> => {
-        const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/export/${format}`);
+        const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/export/${format}`, {
+            headers: getAuthHeaders(),
+        });
         if (!response.ok) throw new Error(`Failed to export ${format.toUpperCase()} file`);
         return response.blob();
     },
@@ -353,7 +364,9 @@ export const api = {
      */
     downloadGxSuite: async (taskId: string, filename: string): Promise<void> => {
         const url = `${API_BASE_URL}/jobs/${taskId}/export-gx`;
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: getAuthHeaders(),
+        });
         if (!response.ok) {
             throw new Error(`Failed to export Great Expectations suite: ${response.statusText}`);
         }
@@ -482,6 +495,72 @@ export const api = {
         }>
     > => {
         return fetchClient(`/jobs/${taskId}/concepts`);
+    },
+
+    /**
+     * Get the SSE Stream URL for real-time status updates via EventSource.
+     */
+    getStatusStreamUrl: (taskId: string): string => {
+        const apiKey = import.meta.env.VITE_API_KEY;
+        const query = apiKey ? `?api_key=${encodeURIComponent(apiKey)}` : "";
+        return `${API_BASE_URL}/status/${taskId}/stream${query}`;
+    },
+
+    /**
+     * Subscribe to real-time task status updates using browser-native EventSource (SSE).
+     * Automatically handles 'progress', 'waiting', 'complete', and 'error' events.
+     * Returns an unsubscribe function to close the stream.
+     */
+    subscribeTaskStatus: (
+        taskId: string,
+        callbacks: {
+            onProgress?: (data: StatusResponse) => void;
+            onWaitingForUser?: (data: StatusResponse) => void;
+            onComplete?: (data: StatusResponse) => void;
+            onError?: (error: any) => void;
+        }
+    ): (() => void) => {
+        const streamUrl = api.getStatusStreamUrl(taskId);
+        const eventSource = new EventSource(streamUrl);
+
+        const handleData = (event: MessageEvent, callback?: (data: StatusResponse) => void) => {
+            try {
+                const parsed = JSON.parse(event.data);
+                const statusResponse: StatusResponse = {
+                    task_id: taskId,
+                    status: parsed.status || "PROCESSING",
+                    progress: parsed.progress ?? 0,
+                    message: parsed.message || "",
+                    result: parsed.result || null,
+                    error: parsed.error || null,
+                    report_download_url: parsed.report_download_url || null,
+                };
+                if (callback) callback(statusResponse);
+            } catch (err) {
+                console.warn("Failed to parse SSE payload:", err, event.data);
+            }
+        };
+
+        eventSource.addEventListener("progress", (e) => handleData(e as MessageEvent, callbacks.onProgress));
+        eventSource.addEventListener("waiting", (e) => handleData(e as MessageEvent, callbacks.onWaitingForUser));
+        eventSource.addEventListener("complete", (e) => {
+            handleData(e as MessageEvent, callbacks.onComplete);
+            eventSource.close();
+        });
+        eventSource.addEventListener("error", (e) => {
+            const msgEvent = e as MessageEvent;
+            if (msgEvent.data) {
+                handleData(msgEvent, callbacks.onError);
+            } else if (callbacks.onError) {
+                callbacks.onError(e);
+            }
+        });
+
+        eventSource.onmessage = (e) => handleData(e, callbacks.onProgress);
+
+        return () => {
+            eventSource.close();
+        };
     },
 
     /**

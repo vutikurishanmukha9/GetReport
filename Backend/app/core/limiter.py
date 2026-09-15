@@ -14,26 +14,41 @@ logger = logging.getLogger(__name__)
 
 def _get_real_client_ip(request: Request) -> str:
     """
-    Extract client IP safely from trusted proxy headers (Cloudflare CF-Connecting-IP
-    or validated X-Forwarded-For). Falls back to request.client.host if absent or invalid.
+    Extract client IP safely.
+    Only trusts reverse-proxy headers (CF-Connecting-IP, X-Forwarded-For) if
+    the immediate peer is a local, private, or proxy IP address, preventing direct clients
+    from forging headers to evade rate limits.
     """
-    cf_ip = request.headers.get("CF-Connecting-IP")
-    if cf_ip:
-        candidate = cf_ip.strip()
-        try:
-            ipaddress.ip_address(candidate)
-            return candidate
-        except ValueError:
-            pass
+    client_host = request.client.host if request.client else None
 
-    xff = request.headers.get("X-Forwarded-For", "")
-    if xff:
-        candidate = xff.split(",")[0].strip()
+    # Check if direct client is a local / private proxy (e.g. Render / Docker / Cloudflare container)
+    is_trusted_proxy = False
+    if client_host:
         try:
-            ipaddress.ip_address(candidate)
-            return candidate
+            ip_obj = ipaddress.ip_address(client_host)
+            is_trusted_proxy = ip_obj.is_private or ip_obj.is_loopback
         except ValueError:
-            pass
+            is_trusted_proxy = False
+
+    if is_trusted_proxy:
+        cf_ip = request.headers.get("CF-Connecting-IP")
+        if cf_ip:
+            candidate = cf_ip.strip()
+            try:
+                ipaddress.ip_address(candidate)
+                return candidate
+            except ValueError:
+                pass
+
+        xff = request.headers.get("X-Forwarded-For", "")
+        if xff:
+            candidate = xff.split(",")[0].strip()
+            try:
+                ipaddress.ip_address(candidate)
+                return candidate
+            except ValueError:
+                pass
+
     return get_remote_address(request)
 
 

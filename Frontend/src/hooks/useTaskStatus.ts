@@ -26,6 +26,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
+  const eventSourceUnsubRef = useRef<(() => void) | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -53,60 +54,71 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     }
   }, []);
 
+  // Update component state from any incoming StatusResponse packet
+  const applyStatusUpdate = useCallback((data: StatusResponse) => {
+    if (!data) return;
+
+    if (data.status) {
+      const upper = data.status.toUpperCase();
+      if (isValidTaskStatus(upper)) {
+        setTaskStatus(upper);
+      }
+    }
+    if (data.progress !== undefined) setProgress((prev) => Math.max(prev, data.progress));
+    if (data.message) setMessage(data.message);
+    if (data.result) setResult(data.result);
+    if (data.error) setError(data.error);
+
+    if (['COMPLETED', 'FAILED'].includes(data.status?.toUpperCase())) {
+      stopPolling();
+      clearWatchdog();
+      if (eventSourceUnsubRef.current) {
+        eventSourceUnsubRef.current();
+        eventSourceUnsubRef.current = null;
+      }
+      if (wsRef.current) {
+        try { wsRef.current.close(); } catch { /* ignore */ }
+        wsRef.current = null;
+      }
+    }
+  }, [setTaskStatus, stopPolling, clearWatchdog]);
+
   // HTTP Polling fallback function (runs as resilient backup)
   const pollStatus = useCallback(async (taskId: string) => {
     try {
       const data: StatusResponse = await api.getTaskStatus(taskId);
-      if (!data) return;
-
-      if (data.status) {
-        const upper = data.status.toUpperCase();
-        if (isValidTaskStatus(upper)) {
-          setTaskStatus(upper);
-        }
-      }
-      if (data.progress !== undefined) setProgress((prev) => Math.max(prev, data.progress));
-      if (data.message) setMessage(data.message);
-      if (data.result) setResult(data.result);
-      if (data.error) setError(data.error);
-
-      if (['COMPLETED', 'FAILED'].includes(data.status?.toUpperCase())) {
-        stopPolling();
-        clearWatchdog();
-        if (wsRef.current) {
-          try { wsRef.current.close(); } catch { /* ignore close error */ }
-          wsRef.current = null;
-        }
-      }
+      applyStatusUpdate(data);
     } catch (err) {
       console.warn("HTTP Status poll warning:", err);
     }
-  }, [setTaskStatus, stopPolling, clearWatchdog]);
+  }, [applyStatusUpdate]);
 
   const startPolling = useCallback((taskId: string) => {
     stopPolling();
     pollStatus(taskId);
     pollIntervalRef.current = setInterval(() => {
       pollStatus(taskId);
-    }, 1500);
+    }, 2000);
   }, [pollStatus, stopPolling]);
 
-  // Reset watchdog on frame arrival (if no frame for 25s, reconnect WS)
+  // Reset watchdog on frame arrival (if no frame for 25s, reconnect)
   const resetWatchdog = useCallback((taskId: string) => {
     clearWatchdog();
     watchdogTimerRef.current = setTimeout(() => {
       if (taskIdRef.current === taskId && !['COMPLETED', 'FAILED'].includes(statusRef.current)) {
-        console.warn("WebSocket watchdog timeout (no frames for 25s). Reconnecting...");
-        if (wsRef.current) {
-          try { wsRef.current.close(); } catch { /* ignore close error */ }
-        }
+        console.warn("Real-time stream watchdog timeout (no frames for 25s). Reconnecting...");
+        startPolling(taskId);
       }
     }, 25000);
-  }, [clearWatchdog]);
+  }, [clearWatchdog, startPolling]);
 
   const disconnect = useCallback(() => {
+    if (eventSourceUnsubRef.current) {
+      eventSourceUnsubRef.current();
+      eventSourceUnsubRef.current = null;
+    }
     if (wsRef.current) {
-      try { wsRef.current.close(); } catch { /* ignore close error */ }
+      try { wsRef.current.close(); } catch { /* ignore */ }
       wsRef.current = null;
     }
     if (reconnectTimeoutRef.current) {
@@ -121,28 +133,57 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
   }, [setTaskStatus, stopPolling, clearWatchdog]);
 
   const connect = useCallback((taskId: string) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN && taskIdRef.current === taskId) {
-      return;
-    }
-
     disconnect();
     taskIdRef.current = taskId;
     setTaskStatus('CONNECTING');
 
-    // Parallel HTTP Polling Backup
-    startPolling(taskId);
+    // Immediate state fetch to give instant feedback
+    pollStatus(taskId);
 
+    // ── 1. Primary Strategy: Server-Sent Events (SSE) Stream ──────────
+    if (typeof EventSource !== 'undefined') {
+      try {
+        const unsub = api.subscribeTaskStatus(taskId, {
+          onProgress: (data) => {
+            setIsConnected(true);
+            resetWatchdog(taskId);
+            applyStatusUpdate(data);
+          },
+          onWaitingForUser: (data) => {
+            setIsConnected(true);
+            resetWatchdog(taskId);
+            applyStatusUpdate(data);
+          },
+          onComplete: (data) => {
+            setIsConnected(true);
+            applyStatusUpdate(data);
+            stopPolling();
+          },
+          onError: (err) => {
+            console.warn("SSE stream interrupted or unavailable; falling back to WebSocket/polling.", err);
+            // Fall back to polling if SSE encounters an error
+            startPolling(taskId);
+          }
+        });
+
+        eventSourceUnsubRef.current = unsub;
+        return;
+      } catch (sseErr) {
+        console.warn("Failed to initialize SSE EventSource:", sseErr);
+      }
+    }
+
+    // ── 2. Fallback Strategy: WebSocket ──────────────────────────────
     try {
+      startPolling(taskId);
       const url = api.getWebSocketUrl(taskId);
-      // eslint-disable-next-line react-doctor/effect-needs-cleanup
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
       ws.onopen = () => {
         setIsConnected(true);
-        retryCountRef.current = 0; // Reset backoff on success
+        retryCountRef.current = 0;
 
-        // §6: Send API key via protocol message instead of URL query parameter
         const apiKey = import.meta.env.VITE_API_KEY;
         if (apiKey) {
           ws.send(JSON.stringify({ type: 'auth', api_key: apiKey }));
@@ -157,7 +198,6 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
         try {
           const data = JSON.parse(event.data);
 
-          // Handle server ping frame -> send pong
           if (data.type === 'ping') {
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
@@ -165,22 +205,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
             return;
           }
 
-          if (data.status) {
-            const upper = data.status.toUpperCase();
-            if (isValidTaskStatus(upper)) {
-              setTaskStatus(upper);
-            }
-          }
-          if (data.progress !== undefined) setProgress((prev) => Math.max(prev, data.progress));
-          if (data.message) setMessage(data.message);
-          if (data.result) setResult(data.result);
-          if (data.error) setError(data.error);
-
-          if (['COMPLETED', 'FAILED'].includes(data.status?.toUpperCase())) {
-            stopPolling();
-            clearWatchdog();
-            try { ws.close(); } catch { /* ignore close error */ }
-          }
+          applyStatusUpdate(data);
         } catch (e) {
           console.error("Failed to parse WebSocket message:", e);
         }
@@ -196,7 +221,6 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
         clearWatchdog();
 
         if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
-          // Exponential backoff with random jitter (1s, 2s, 4s, 8s, 16s, 30s max)
           const attempt = retryCountRef.current;
           retryCountRef.current += 1;
           const delay = Math.min(30000, 1000 * Math.pow(1.5, attempt)) + Math.random() * 500;
@@ -211,7 +235,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     } catch (e) {
       console.warn("WebSocket init error; active HTTP polling handling status:", e);
     }
-  }, [disconnect, setTaskStatus, startPolling, stopPolling, resetWatchdog, clearWatchdog]);
+  }, [disconnect, setTaskStatus, startPolling, stopPolling, resetWatchdog, clearWatchdog, applyStatusUpdate, pollStatus]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -243,5 +267,3 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     disconnect
   };
 };
-
-

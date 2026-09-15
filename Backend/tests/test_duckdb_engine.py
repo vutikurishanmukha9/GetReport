@@ -120,3 +120,53 @@ def test_duckdb_security_blocks_mutation(sample_polars_df):
         session.execute_read_query("SELECT * FROM staff; DROP TABLE staff;")
 
     session.close()
+
+
+def test_duckdb_parameterized_query_ordering_and_repetition(sample_polars_df):
+    session = DuckDBAnalyticalSession()
+    session.register_polars("staff", sample_polars_df)
+
+    # 1. Verify exact lexical order preservation even when dict keys are in reverse order
+    res = session.execute_parameterized_query(
+        "SELECT {{ second_val }} AS col2, {{ first_val }} AS col1 FROM staff LIMIT 1",
+        params={"first_val": "AAA", "second_val": "BBB"}
+    )
+    assert res["success"] is True
+    assert res["data"][0]["col2"] == "BBB"
+    assert res["data"][0]["col1"] == "AAA"
+
+    # 2. Verify repeated parameter placeholders execute without parameter count mismatch
+    res_repeat = session.execute_parameterized_query(
+        "SELECT ({{ multiplier }} * 10) + {{ multiplier }} AS calc FROM staff LIMIT 1",
+        params={"multiplier": 5}
+    )
+    assert res_repeat["success"] is True
+    assert res_repeat["data"][0]["calc"] == 55
+
+    # 3. Verify missing parameter raises DuckDBSecurityError
+    with pytest.raises(DuckDBSecurityError):
+        session.execute_parameterized_query(
+            "SELECT {{ missing_param }} FROM staff",
+            params={"present_param": 123}
+        )
+
+    session.close()
+
+
+def test_duckdb_column_profile_double_quote_escaping():
+    session = DuckDBAnalyticalSession()
+    df = pl.DataFrame({
+        'normal_col': [1, 2, 3],
+        'weird"quote"col': [10, 20, 30]
+    })
+    session.register_polars("test_quotes", df)
+
+    # Should safely escape double quotes and profile without SQL syntax error
+    profile = session.get_column_profile("test_quotes", 'weird"quote"col')
+    assert profile["total_records"] == 3
+    assert profile["non_null_count"] == 3
+    assert profile["min_value"] == 10.0
+    assert profile["max_value"] == 30.0
+
+    session.close()
+

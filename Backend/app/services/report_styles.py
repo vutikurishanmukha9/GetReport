@@ -13,21 +13,30 @@ from dataclasses import dataclass, field
 from io import BytesIO
 from typing import Any
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import (
-    Spacer,
-    Image,
-    Table,
-    TableStyle,
-    HRFlowable,
-    Paragraph,
-)
-from reportlab.platypus.flowables import Flowable
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
-from app.services.theme import Brand
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import (
+        Spacer,
+        Image,
+        Table,
+        TableStyle,
+        HRFlowable,
+        Paragraph,
+    )
+    from reportlab.platypus.flowables import Flowable
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+    from app.services.theme import Brand
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+    colors = None  # type: ignore
+    letter = None  # type: ignore
+    inch = 72  # type: ignore
+    Flowable = object  # type: ignore
+    Brand = None  # type: ignore
 
 # ─── Logger ──────────────────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)

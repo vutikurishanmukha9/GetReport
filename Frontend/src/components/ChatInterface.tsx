@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import DOMPurify from "dompurify";
 import { 
   Send, Bot, User, RefreshCw, ChevronDown, ChevronUp, 
-  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check, Database 
+  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check, Database,
+  Bookmark, BookmarkCheck 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -12,8 +12,9 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# VULN-08: Move DB file to a dedicated data directory
-_db_dir = os.path.abspath(settings.DB_DIR)
+# VULN-08: Move DB file to a dedicated data directory anchored to Backend
+_backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_db_dir = settings.DB_DIR if os.path.isabs(settings.DB_DIR) else os.path.join(_backend_root, settings.DB_DIR)
 os.makedirs(_db_dir, exist_ok=True)
 DB_PATH = os.path.join(_db_dir, "tasks.db")
 

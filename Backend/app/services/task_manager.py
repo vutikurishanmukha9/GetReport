@@ -25,6 +25,7 @@ if redis:
         logger.info(f"Connected to Redis for Pub/Sub at {settings.REDIS_URL}")
     except Exception as e:
         logger.warning(f"Redis not available ({e}). WebSockets will fallback to polling.")
+        redis_client = None
 else:
     logger.warning("Redis module not found. Install 'redis' for real-time updates.")
 

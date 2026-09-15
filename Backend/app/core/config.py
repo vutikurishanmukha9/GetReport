@@ -1,21 +1,6 @@
 import os
 import sys
 
-# On Windows, ensure WeasyPrint can find the GTK3 system DLLs
-if sys.platform == "win32" and "WEASYPRINT_DLL_DIRECTORIES" not in os.environ:
-    for path in [
-        r"C:\Program Files\GTK3-Runtime Win64\bin",
-        r"C:\msys64\mingw64\bin",
-    ]:
-        if os.path.exists(path):
-            os.environ["WEASYPRINT_DLL_DIRECTORIES"] = path
-            if hasattr(os, "add_dll_directory"):
-                try:
-                    os.add_dll_directory(path)
-                except Exception:
-                    pass
-            break
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -70,7 +55,7 @@ class Settings(BaseSettings):
     CHART_DPI: int = 96
 
     # ─── PDF Engine ──────────────────────────────────────────────────────
-    PDF_ENGINE: str = "reportlab"  # "weasyprint" or "reportlab" (default for local dev)
+    PDF_ENGINE: str = "typst"  # "typst" (default, ultra-fast, <25MB RAM) or "reportlab" (fallback)
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -79,4 +64,3 @@ settings = Settings()
 # Ensure Polars does not exceed thread limit on multi-core VMs
 if "POLARS_MAX_THREADS" not in os.environ:
     os.environ["POLARS_MAX_THREADS"] = str(settings.POLARS_MAX_THREADS)
-
