@@ -376,7 +376,22 @@ def detect_domain(df: pl.DataFrame) -> DomainDetection:
     # Sort by match count
     sorted_domains = sorted(domain_scores.items(), key=lambda x: x[1][0], reverse=True)
     
+    # If deterministic keyword match found no domain signals, query TypeSafe Jev if enabled
     if not sorted_domains or sorted_domains[0][1][0] == 0:
+        try:
+            from app.services.typesafe_service import typesafe_service
+            if typesafe_service.is_enabled:
+                ts_res = typesafe_service.classify_domain_sync(df.columns[:25])
+                if ts_res and ts_res.get("domain") and ts_res["domain"] != "general":
+                    return DomainDetection(
+                        primary_domain=ts_res["domain"],
+                        confidence=ts_res.get("confidence", 0.85),
+                        matched_keywords=[f"typesafe_jev:{ts_res['domain']}"],
+                        alternative_domains=[]
+                    )
+        except Exception as ts_err:
+            logger.debug("TypeSafe Jev domain detection error: %s", ts_err)
+
         return DomainDetection(
             primary_domain="generic",
             confidence=0.0,
@@ -388,6 +403,19 @@ def detect_domain(df: pl.DataFrame) -> DomainDetection:
     
     # Calculate confidence (normalized by keyword list size)
     confidence = min(top_count / 5, 1.0)  # 5+ matches = 100% confidence
+
+    # If keyword confidence is weak (<0.4), verify with TypeSafe Jev if configured
+    if confidence < 0.4:
+        try:
+            from app.services.typesafe_service import typesafe_service
+            if typesafe_service.is_enabled:
+                ts_res = typesafe_service.classify_domain_sync(df.columns[:25])
+                if ts_res and ts_res.get("confidence", 0) >= 0.75 and ts_res.get("domain") != "general":
+                    top_domain = ts_res["domain"]
+                    confidence = ts_res["confidence"]
+                    top_matches = [f"typesafe_jev:{top_domain}"] + top_matches
+        except Exception as ts_err:
+            logger.debug("TypeSafe Jev domain verification error: %s", ts_err)
     
     # Get alternatives
     alternatives = [

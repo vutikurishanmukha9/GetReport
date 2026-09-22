@@ -14,8 +14,29 @@ import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const sanitizeMessageHtml = (rawHtml: string): string => {
-  return DOMPurify.sanitize(rawHtml, {
+function formatMarkdownToHtml(raw: string): string {
+  if (!raw) return "";
+  let text = raw;
+  // Convert Markdown headers
+  text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  text = text.replace(/^## (.*$)/gim, '<h3>$1</h3>');
+  text = text.replace(/^# (.*$)/gim, '<h3>$1</h3>');
+  // Convert bold
+  text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+  // Convert italic
+  text = text.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<i>$1</i>');
+  // Convert inline code
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Convert list bullets (* item or - item or • item)
+  text = text.replace(/^[\*\-•]\s+(.*$)/gim, '• $1<br/>');
+  // Convert newlines to <br/> if not already preceded by HTML tag
+  text = text.replace(/\n{2,}/g, '<br/><br/>').replace(/\n/g, '<br/>');
+  return text;
+}
+
+const sanitizeMessageHtml = (rawText: string): string => {
+  const formatted = formatMarkdownToHtml(rawText);
+  return DOMPurify.sanitize(formatted, {
     ALLOWED_TAGS: [
       "b", "strong", "i", "em", "code", "pre", "h3", "h4",
       "br", "ul", "ol", "li", "span", "p"
@@ -58,6 +79,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
   const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
   const [highlightedSourceIdx, setHighlightedSourceIdx] = useState<number | null>(null);
   const [savedGoldenIds, setSavedGoldenIds] = useState<Set<string>>(new Set());
@@ -100,6 +122,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
     setMessages((prev) => [...prev, userMsg, initialAssistantMsg]);
     setInput("");
     setIsLoading(true);
+    setStreamingMsgId(assistantMsgId);
 
     api.streamChatWithJob(
       taskId,
@@ -131,15 +154,27 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
       },
       () => {
         setIsLoading(false);
+        setStreamingMsgId(null);
       },
       (error) => {
         console.error("Stream chat error:", error);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMsgId && !msg.content.trim()
+              ? {
+                  ...msg,
+                  content: "I encountered a communication issue while analyzing this question. Please try asking again or click one of the suggested follow-ups below.",
+                }
+              : msg
+          )
+        );
         toast({
           title: "Communication Failure",
           description: "Failed to stream response from analysis model. Please try again.",
           variant: "destructive",
         });
         setIsLoading(false);
+        setStreamingMsgId(null);
       },
       formattedHistory
     );
@@ -268,6 +303,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
         >
           {messages.map((msg) => {
             const isBot = msg.role === "assistant";
+            const isStreamingThis = isBot && streamingMsgId === msg.id && isLoading;
             return (
               <div
                 key={msg.id}
@@ -302,7 +338,21 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                         : "bg-primary text-primary-foreground rounded-tr-xs font-sans shadow-md"
                     )}
                   >
-                    {renderMessageContent(msg)}
+                    {msg.content ? (
+                      <>
+                        {renderMessageContent(msg)}
+                        {isStreamingThis && (
+                          <span className="inline-block w-1.5 h-3.5 ml-1 bg-primary/70 animate-pulse align-middle rounded-xs" />
+                        )}
+                      </>
+                    ) : isStreamingThis ? (
+                      <div className="flex items-center gap-2 text-muted-foreground font-mono text-xs py-0.5">
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
+                        <span className="animate-pulse">Synthesizing response…</span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground italic text-xs">No response available.</span>
+                    )}
 
                     {msg.chart_base64 && (
                       <div className="mt-3 rounded-xl overflow-hidden border border-border/60 bg-muted/20 p-2 shadow-2xs">
@@ -365,8 +415,8 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                     />
                   )}
 
-                  {/* Interactive Suggested Follow-Up Prompt Chips (Bot only) */}
-                  {isBot && msg.suggested_followups && msg.suggested_followups.length > 0 && (
+                  {/* Interactive Suggested Follow-Up Prompt Chips (Bot only, shown only when not streaming) */}
+                  {isBot && !isStreamingThis && msg.suggested_followups && msg.suggested_followups.length > 0 && (
                     <div className="pt-1.5 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
                       <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
                         <MessageSquare className="h-3 w-3 text-primary" />
@@ -399,20 +449,6 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
             );
           })}
 
-          {/* Loader typing block */}
-          {isLoading && (
-            <div className="flex gap-3 mr-auto max-w-[85%] animate-pulse">
-              <Avatar className="h-8 w-8 mt-0.5 shrink-0 bg-white border border-border/80 text-primary shadow-2xs">
-                <AvatarFallback className="flex items-center justify-center bg-transparent">
-                  <Bot className="h-4 w-4 text-primary" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="bg-white border border-border/80 p-3.5 rounded-2xl rounded-tl-xs flex items-center gap-2 shadow-2xs">
-                <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary" />
-                <span className="text-xs font-mono text-muted-foreground">Synthesizing response…</span>
-              </div>
-            </div>
-          )}
           <div ref={scrollRef} />
         </div>
 

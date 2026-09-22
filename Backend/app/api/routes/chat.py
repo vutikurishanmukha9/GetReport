@@ -76,7 +76,12 @@ async def chat_stream_with_job(
             job_result=job.result,
             chat_history=body.chat_history
         ),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        }
     )
 
 

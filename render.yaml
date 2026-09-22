@@ -32,6 +32,8 @@ services:
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: TYPESAFE_API_KEY
+        sync: false
       - key: API_KEY
         sync: false
       - key: PDF_ENGINE

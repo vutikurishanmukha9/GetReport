@@ -200,7 +200,13 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
 
     # 1. Quality issues & dataset health
     if any(k in q_lower for k in ["quality", "issue", "health", "problem", "bad", "error", "top quality"]):
-        data_issues = analysis.get("data_issues", [])
+        data_issues = (
+            job_result.get("ledger_issues") 
+            or job_result.get("issues") 
+            or analysis.get("data_issues") 
+            or analysis.get("issues") 
+            or []
+        )
         quality_score = analysis.get("quality_score", 100)
         grade = "A" if quality_score >= 90 else "B" if quality_score >= 80 else "C"
         
@@ -208,10 +214,15 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         lines.append(f"• <b>Overall Quality Score</b>: <b>{quality_score}%</b> (Grade <b>{grade}</b>)<br/>")
         if data_issues:
             lines.append(f"• <b>Identified Quality Issues ({len(data_issues)})</b>:")
-            for issue in data_issues[:5]:
-                col = issue.get("column", "General")
-                desc = issue.get("description", issue.get("issue", "Quality alert"))
-                lines.append(f"&nbsp;&nbsp;- <b>{col}</b>: {desc}")
+            for issue in data_issues[:6]:
+                if isinstance(issue, dict):
+                    col = issue.get("column", issue.get("col", issue.get("field", "General")))
+                    desc = issue.get("description", issue.get("issue", issue.get("message", issue.get("type", "Quality alert"))))
+                    sev = issue.get("severity", "")
+                    sev_str = f" [<b>{sev.upper()}</b>]" if sev else ""
+                    lines.append(f"&nbsp;&nbsp;• <b>{col}</b>{sev_str}: {desc}")
+                else:
+                    lines.append(f"&nbsp;&nbsp;• {str(issue)}")
             lines.append("")
         else:
             lines.append("• <b>Identified Quality Issues</b>: <b>0 critical quality issues found</b>. The dataset exhibits 100% schema consistency, zero null anomalies, and high data integrity.<br/>")
@@ -223,8 +234,35 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         lines.append(f"• <b>Missing Categorical Values Imputed</b>: <code>{cleaning_report.get('categorical_nans_filled', 0)}</code>")
         return "<br/>".join(lines)
 
-    # 2. Data cleaning & transformation actions
-    if any(k in q_lower for k in ["clean", "action", "transform", "fix", "prep", "modify", "applied"]):
+    # 2. Outliers query
+    if "outlier" in q_lower:
+        summary = analysis.get("summary", {})
+        lines = [f"<h3>🔍 Outlier Detection Report for {filename}</h3>"]
+        mentioned_cols = [c for c in summary.keys() if c.lower() in q_lower or c.lower().replace('_', ' ') in q_lower]
+        if mentioned_cols:
+            for c in mentioned_cols:
+                c_stats = summary.get(c, {})
+                outlier_cnt = c_stats.get("outlier_count", c_stats.get("outliers", 0))
+                min_v = c_stats.get("min", "N/A")
+                max_v = c_stats.get("max", "N/A")
+                mean_v = c_stats.get("mean", "N/A")
+                lines.append(f"• <b>Target Column: <code>{c}</code></b>")
+                lines.append(f"&nbsp;&nbsp;• <b>Outliers Flagged</b>: <b>{outlier_cnt}</b> anomalies detected")
+                lines.append(f"&nbsp;&nbsp;• <b>Observed Range</b>: <code>[{min_v} to {max_v}]</code> (Mean: <code>{mean_v}</code>)")
+        else:
+            total_capped = cleaning_report.get("outliers_capped", 0)
+            lines.append(f"• <b>Total Outliers Handled/Capped</b>: <b>{total_capped}</b> across all columns.")
+            found_outliers = False
+            for c, stats in list(summary.items())[:6]:
+                if isinstance(stats, dict) and stats.get("outlier_count", 0) > 0:
+                    found_outliers = True
+                    lines.append(f"&nbsp;&nbsp;• <b><code>{c}</code></b>: {stats.get('outlier_count')} outliers detected")
+            if not found_outliers:
+                lines.append("• No extreme outliers detected outside standard 3x IQR interquartile bounds.")
+        return "<br/>".join(lines)
+
+    # 3. Data cleaning & transformation actions
+    if any(k in q_lower for k in ["clean", "transform", "prep", "modify", "applied", "cleaning action"]):
         total_changes = cleaning_report.get("total_changes", 0)
         timing = cleaning_report.get("timing_ms", 0.0)
         renamed = cleaning_report.get("columns_renamed", {})
@@ -237,13 +275,56 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         lines.append(f"• <b>Type Inference & Conversions</b>: Validated data types across all columns.")
         return "<br/>".join(lines)
 
-    # 3. Correlation & relationships
+    # 4. Recommendations & Action Items
+    if any(k in q_lower for k in ["recommend", "suggestion", "suggest", "next step", "advice", "guidance", "action item"]):
+        recs = analysis.get("recommendations", [])
+        lines = [f"<h3>💡 AI Dataset Recommendations for {filename}</h3>"]
+        if recs and isinstance(recs, list):
+            for i, r in enumerate(recs[:4], 1):
+                if isinstance(r, dict):
+                    title = r.get("title", r.get("action", f"Recommendation {i}"))
+                    desc = r.get("description", r.get("details", ""))
+                    prio = r.get("priority", "")
+                    prio_badge = f" [<b>{prio.upper()}</b>]" if prio else ""
+                    lines.append(f"• <b>{title}</b>{prio_badge}: {desc}")
+                else:
+                    lines.append(f"• {str(r)}")
+        else:
+            lines.append("• <b>Schema Normalization</b>: Ensure standard data types across numeric and categorical features.")
+            lines.append("• <b>Feature Scaling</b>: Standardize high-variance numeric columns prior to modeling.")
+            lines.append("• <b>Automated Data Quality Gates</b>: Implement CI checks to catch null spikes and schema drift.")
+        return "<br/>".join(lines)
+
+    # 5. Correlation & relationships
     if any(k in q_lower for k in ["correlation", "relationship", "depend", "pair", "associate", "variable", "positive correlation"]):
+        summary = analysis.get("summary", {})
         corrs = analysis.get("strong_correlations", [])
         if not corrs:
             corrs = analysis.get("correlation", {}).get("strong_correlations", [])
+        if not corrs:
+            corrs = analysis.get("correlation", {}).get("top_correlations", [])
             
         lines = [f"<h3>📊 Correlation & Feature Relationships for {filename}</h3>"]
+
+        # Check for specific column pair query
+        mentioned_cols = [c for c in summary.keys() if c.lower() in q_lower or c.lower().replace('_', ' ') in q_lower]
+        if len(mentioned_cols) >= 2 and corrs:
+            c1, c2 = mentioned_cols[0], mentioned_cols[1]
+            found_r = None
+            for item in corrs:
+                if isinstance(item, dict):
+                    ia = item.get("column_a", item.get("col1", item.get("feature1", "")))
+                    ib = item.get("column_b", item.get("col2", item.get("feature2", "")))
+                    if (ia.lower() == c1.lower() and ib.lower() == c2.lower()) or (ia.lower() == c2.lower() and ib.lower() == c1.lower()):
+                        found_r = item.get("r_value", item.get("correlation", item.get("value", item.get("coefficient", 0.0))))
+                        break
+            if found_r is not None:
+                strength = "strong" if abs(found_r) >= 0.7 else "moderate" if abs(found_r) >= 0.4 else "weak"
+                direction = "positive" if found_r > 0 else "negative"
+                lines.append(f"• <b>Correlation between <code>{c1}</code> and <code>{c2}</code></b>: <code>r = {found_r:.2f}</code>")
+                lines.append(f"&nbsp;&nbsp;Exhibits a <b>{strength} {direction}</b> relationship.")
+                return "<br/>".join(lines)
+
         if corrs and isinstance(corrs, list):
             lines.append("• <b>Top Feature Correlations (|r| ≥ 0.70)</b>:")
             for item in corrs[:5]:
@@ -261,7 +342,7 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
             lines.append("• No extreme linear correlations (|r| ≥ 0.70) were detected among numeric variables. All variables exhibit independent variance.")
         return "<br/>".join(lines)
 
-    # 4. Default / General dataset overview
+    # 6. Default / General dataset overview
     summary = analysis.get("summary", {})
     cols = list(summary.keys()) if isinstance(summary, dict) else []
     domain = analysis.get("domain", "General Data")
@@ -1243,40 +1324,41 @@ CONTEXT:
                         logger.warning("Google Antigravity Agent chat failed (%s) — falling back to LLM pool.", agy_err)
 
                 # 4. Standard LLM Chain Fallback
-                models_to_try = self._models if self.enabled else [OPENAI_MODEL]
                 response = None
-                skip_paid = False
-                for model_name in models_to_try:
-                    if skip_paid and model_name in OPENROUTER_PAID_MODELS:
-                        logger.info("RAG Chat skipping paid model %s (credits exhausted).", model_name)
-                        continue
+                if self.enabled and self.client:
+                    models_to_try = self._models if self._models else [OPENAI_MODEL]
+                    skip_paid = False
+                    for model_name in models_to_try:
+                        if skip_paid and model_name in OPENROUTER_PAID_MODELS:
+                            logger.info("RAG Chat skipping paid model %s (credits exhausted).", model_name)
+                            continue
 
-                    try:
-                        response = await self.client.chat.completions.create(
-                            model=model_name,
-                            messages=[
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": sanitized_q}
-                            ],
-                            temperature=self.config.TEMPERATURE,
-                            max_tokens=self.config.MAX_TOKENS,
-                            timeout=10.0
-                        )
-                        break
-                    except Exception as e:
-                        err_msg = str(e).lower()
-                        if "402" in err_msg or "credit" in err_msg or getattr(e, "status_code", 0) == 402:
-                            logger.warning(
-                                "RAG Model %s credit balance exhausted (HTTP 402). Bypassing paid models...",
-                                model_name
+                        try:
+                            response = await self.client.chat.completions.create(
+                                model=model_name,
+                                messages=[
+                                    {"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": sanitized_q}
+                                ],
+                                temperature=self.config.TEMPERATURE,
+                                max_tokens=self.config.MAX_TOKENS,
+                                timeout=10.0
                             )
-                            skip_paid = True
-                        else:
-                            logger.warning(
-                                "RAG Model %s failed/unavailable (%s: %s) — skipping to next.",
-                                model_name, type(e).__name__, str(e)
-                            )
-                        continue
+                            break
+                        except Exception as e:
+                            err_msg = str(e).lower()
+                            if "402" in err_msg or "credit" in err_msg or getattr(e, "status_code", 0) == 402:
+                                logger.warning(
+                                    "RAG Model %s credit balance exhausted (HTTP 402). Bypassing paid models...",
+                                    model_name
+                                )
+                                skip_paid = True
+                            else:
+                                logger.warning(
+                                    "RAG Model %s failed/unavailable (%s: %s) — skipping to next.",
+                                    model_name, type(e).__name__, str(e)
+                                )
+                            continue
                 
                 if not response:
                     answer = _generate_smart_dataset_answer(sanitized_q, job_result)
@@ -1493,10 +1575,17 @@ CONTEXT:
                     async with AntigravityAgent(config=antigravity_config) as agent:
                         agy_resp = await agent.chat(sanitized_q)
                         has_tokens = False
-                        async for token in agy_resp:
-                            if token:
+                        async for chunk in agy_resp:
+                            text_piece = None
+                            if hasattr(chunk, "text"):
+                                if type(chunk).__name__ != "Thought":
+                                    text_piece = chunk.text
+                            elif isinstance(chunk, str):
+                                text_piece = chunk
+
+                            if text_piece:
                                 has_tokens = True
-                                yield json.dumps({"type": "token", "token": token}) + "\n"
+                                yield json.dumps({"type": "token", "token": text_piece}) + "\n"
                         if has_tokens:
                             yield json.dumps({"type": "done"}) + "\n"
                             self.metrics.record_query(True)
@@ -1505,39 +1594,39 @@ CONTEXT:
                     logger.warning("Google Antigravity Agent stream failed (%s) — falling back to standard LLM stream.", agy_stream_err)
 
             # 5. Fallback Stream across LLM pool
-            models_to_try = self._models if self.enabled else [OPENAI_MODEL]
-            
             stream_response = None
-            skip_paid = False
-            for model_name in models_to_try:
-                if skip_paid and model_name in OPENROUTER_PAID_MODELS:
-                    logger.info("RAG Stream skipping paid model %s (credits exhausted).", model_name)
-                    continue
+            if self.enabled and self.client:
+                models_to_try = self._models if self._models else [OPENAI_MODEL]
+                skip_paid = False
+                for model_name in models_to_try:
+                    if skip_paid and model_name in OPENROUTER_PAID_MODELS:
+                        logger.info("RAG Stream skipping paid model %s (credits exhausted).", model_name)
+                        continue
 
-                try:
-                    stream_response = await self.client.chat.completions.create(
-                        model=model_name,
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": sanitized_q}
-                        ],
-                        temperature=self.config.TEMPERATURE,
-                        max_tokens=self.config.MAX_TOKENS,
-                        timeout=10.0,
-                        stream=True
-                    )
-                    break
-                except Exception as e:
-                    err_msg = str(e).lower()
-                    if "402" in err_msg or "credit" in err_msg or getattr(e, "status_code", 400) == 402:
-                        logger.warning(
-                            "RAG Stream Model %s credit balance exhausted (HTTP 402). Bypassing paid models...",
-                            model_name
+                    try:
+                        stream_response = await self.client.chat.completions.create(
+                            model=model_name,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": sanitized_q}
+                            ],
+                            temperature=self.config.TEMPERATURE,
+                            max_tokens=self.config.MAX_TOKENS,
+                            timeout=10.0,
+                            stream=True
                         )
-                        skip_paid = True
-                    else:
-                        logger.warning("RAG Stream Model %s failed: %s", model_name, e)
-                    continue
+                        break
+                    except Exception as e:
+                        err_msg = str(e).lower()
+                        if "402" in err_msg or "credit" in err_msg or getattr(e, "status_code", 400) == 402:
+                            logger.warning(
+                                "RAG Stream Model %s credit balance exhausted (HTTP 402). Bypassing paid models...",
+                                model_name
+                            )
+                            skip_paid = True
+                        else:
+                            logger.warning("RAG Stream Model %s failed: %s", model_name, e)
+                        continue
 
             if not stream_response:
                 fallback_answer = _generate_smart_dataset_answer(sanitized_q, job_result)
@@ -1545,16 +1634,26 @@ CONTEXT:
                 for i in range(0, len(words), 3):
                     chunk_text = " ".join(words[i:i+3]) + (" " if i + 3 < len(words) else "")
                     yield json.dumps({"type": "token", "token": chunk_text}) + "\n"
-                    await asyncio.sleep(0.02)
+                    await asyncio.sleep(0.01)
                 yield json.dumps({"type": "done"}) + "\n"
                 self.metrics.record_query(True)
                 return
 
+            has_stream_tokens = False
             async for chunk in stream_response:
                 if chunk.choices and len(chunk.choices) > 0:
                     delta = chunk.choices[0].delta
                     if delta and delta.content:
+                        has_stream_tokens = True
                         yield json.dumps({"type": "token", "token": delta.content}) + "\n"
+
+            if not has_stream_tokens:
+                fallback_answer = _generate_smart_dataset_answer(sanitized_q, job_result)
+                words = fallback_answer.split(" ")
+                for i in range(0, len(words), 3):
+                    chunk_text = " ".join(words[i:i+3]) + (" " if i + 3 < len(words) else "")
+                    yield json.dumps({"type": "token", "token": chunk_text}) + "\n"
+                    await asyncio.sleep(0.01)
 
             yield json.dumps({"type": "done"}) + "\n"
             self.metrics.record_query(True)

@@ -134,8 +134,28 @@ class QueryRouter:
             "detected_columns": detected_cols,
         }
 
-        # If LLM is available and query is ambiguous, we can refine via fast prompt
-        if self.client and self.model and not duckdb_needed and len(q_low) > 30:
+        # 1. TypeSafe Jev "System One" Fast Decision Routing (<200ms, deterministic typed choices)
+        from app.services.typesafe_service import typesafe_service
+        if typesafe_service.is_enabled and not duckdb_needed:
+            try:
+                import asyncio
+                ts_res = await asyncio.wait_for(
+                    typesafe_service.route_query_async(query, cols),
+                    timeout=timeout
+                )
+                if ts_res and ts_res.get("confidence", 0) >= 0.7:
+                    result["query_type"] = ts_res["query_type"]
+                    if ts_res.get("needs_duckdb"):
+                        result["duckdb_sql_needed"] = True
+                    logger.info(
+                        "TypeSafe Jev routed query in fast path -> type=%s, confidence=%.2f, duckdb=%s",
+                        result["query_type"], ts_res.get("confidence", 0), result["duckdb_sql_needed"]
+                    )
+            except Exception as ts_err:
+                logger.debug("TypeSafe Jev routing skipped or timed out: %s", ts_err)
+
+        # 2. Traditional LLM fallback if Jev is not configured and query is ambiguous
+        if not typesafe_service.is_enabled and self.client and self.model and not duckdb_needed and len(q_low) > 30:
             try:
                 import asyncio
                 llm_task = self._refine_with_llm(query, cols)

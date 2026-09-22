@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: str | None = None
     OPENROUTER_API_KEY: str | None = None
     OPENAI_API_KEY: str | None = None
+    TYPESAFE_API_KEY: str | None = None
+    TYPESAFE_BASE_URL: str = "https://api.typesafe.ai/v1"
+    TYPESAFE_MODEL: str = "jev-latest"
     DATABASE_URL: str = "" # Logic: If set, use Postgres. Else, use SQLite.
     REDIS_URL: str = "redis://localhost:6379/0" # Default local Redis
     RATE_LIMIT_ENABLED: bool = True
