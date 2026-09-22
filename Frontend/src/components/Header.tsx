@@ -18,13 +18,6 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  const handleNavClick = (to: string, e: React.MouseEvent) => {
-    if (to === "/features" && location.pathname === "/") {
-      e.preventDefault();
-      document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
   return (
     <header className="fixed top-4 left-0 right-0 z-50 w-full max-w-7xl mx-auto px-4 sm:px-6">
       <div className="border border-border/80 bg-white/95 backdrop-blur-xl shadow-premium rounded-2xl px-4 sm:px-6 transition-all duration-200">
@@ -47,7 +40,6 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
               <NavLink 
                 key={to} 
                 to={to} 
-                onClick={(e) => handleNavClick(to, e)}
                 className={({ isActive }) => `text-xs font-display font-semibold transition-colors duration-150 relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:bg-primary after:transition-all after:duration-200 ${isActive ? 'text-foreground after:w-full' : 'text-muted-foreground hover:text-foreground after:w-0 hover:after:w-full'}`}
               >
                 {label}
@@ -113,15 +105,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   <Link
                     to="/features"
                     className="text-sm font-display font-semibold uppercase tracking-wider hover:text-primary transition-colors py-2 border-b border-border/60"
-                    onClick={(e) => {
-                      setMobileMenuOpen(false);
-                      if (location.pathname === "/") {
-                        e.preventDefault();
-                        setTimeout(() => {
-                          document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
-                        }, 150);
-                      }
-                    }}
+                    onClick={() => setMobileMenuOpen(false)}
                   >
                     Features
                   </Link>

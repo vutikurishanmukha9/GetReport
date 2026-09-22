@@ -87,10 +87,16 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom of chat
+  // Auto-scroll ONLY inside the chat messages container when a user queries or the assistant streams
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    // Avoid auto-scrolling on initial mount when only the welcome message is present
+    if (messages.length <= 1 && !isLoading) return;
+
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
     }
   }, [messages, isLoading]);
 

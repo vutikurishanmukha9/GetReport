@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, useCallback } from "react";
+import { useState, lazy, Suspense, useCallback, useEffect } from "react";
 import { FileUpload } from "@/components/FileUpload";
 import { DataPreview } from "@/components/DataPreview";
 import { Header } from "@/components/Header";
@@ -20,6 +20,13 @@ export const Workspace = () => {
   const [step, setStep] = useState<AppStep>("upload");
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
+
+  // Scroll to top on every workspace step transition (upload -> preview -> generating -> complete)
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [step]);
 
   // Pipeline status tracking for generating/complete phases
   const {
