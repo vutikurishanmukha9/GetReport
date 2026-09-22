@@ -51,6 +51,7 @@ class CleaningReport:
     type_conversions:         list[dict[str, str]]             = field(default_factory=list)
     numeric_nans_filled:      int                              = 0
     categorical_nans_filled:  int                              = 0
+    phone_numbers_cleaned:    int                              = 0
     total_changes:            int                              = 0
     timing_ms:                float                            = 0.0
 
@@ -63,6 +64,7 @@ class CleaningReport:
             + len(self.type_conversions)
             + self.numeric_nans_filled
             + self.categorical_nans_filled
+            + self.phone_numbers_cleaned
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -74,6 +76,7 @@ class CleaningReport:
             "type_conversions":         self.type_conversions,
             "numeric_nans_filled":      self.numeric_nans_filled,
             "categorical_nans_filled":  self.categorical_nans_filled,
+            "phone_numbers_cleaned":    self.phone_numbers_cleaned,
             "total_changes":            self.total_changes,
             "timing_ms":                round(self.timing_ms, 2),
         }
@@ -197,6 +200,46 @@ EXTENDED_NULL_VALUES: list[str] = [
 _LOWER_NULL_SET: set[str] = {v.lower() for v in EXTENDED_NULL_VALUES}
 _CURRENCY_CLEAN_REGEX: str = r"[\$,€,£,₹,¥,\s]"
 _PAREN_NEG_REGEX: str = r"^\((.*)\)$"
+_PHONE_NAME_PATTERN: re.Pattern = re.compile(
+    r"(?:^|_)(?:phone|mobile|cell|tel|telephone|contact|fax|call|sms|whatsapp)(?:$|_|no|num|number|numbers)",
+    re.IGNORECASE,
+)
+_FINANCIAL_METRIC_PATTERN: re.Pattern = re.compile(
+    r"(?:^|_)(?:balance|revenue|profit|loss|price|cost|sales|income|salary|expense|budget|margin|qty|quantity|amount|total|sum|count|score|weight|height|age|rate|fee|tax|discount|val|value)(?:$|_)",
+    re.IGNORECASE,
+)
+_LEADING_DASH_REGEX: str = r"^[\s\-\u2010\u2011\u2012\u2013\u2014\u2212]+"
+
+
+def _is_phone_column(col_name: str, series: pl.Series) -> bool:
+    """
+    Determine if a column represents a phone or mobile number using
+    column naming semantics and content pattern sampling.
+    """
+    clean_col = col_name.strip()
+    # 1. Negative exclusion for financial/numeric metrics
+    if _FINANCIAL_METRIC_PATTERN.search(clean_col):
+        return False
+
+    # 2. Positive name match
+    if _PHONE_NAME_PATTERN.search(clean_col):
+        return True
+
+    # 3. Content-based heuristic for string columns
+    if series.dtype in (pl.Utf8, pl.Object, pl.String):
+        sample = series.drop_nulls().head(40)
+        if sample.len() >= 3:
+            phone_fmt = re.compile(r"^[\s\-\u2010-\u2015\u2212]*\+?[\d\s\-\(\)\.]{7,25}$")
+            matches = 0
+            for val in sample:
+                s = str(val).strip()
+                digit_count = sum(1 for c in s if c.isdigit())
+                if 7 <= digit_count <= 15 and phone_fmt.match(s):
+                    matches += 1
+            if (matches / sample.len()) >= 0.7:
+                return True
+
+    return False
 
 
 def _detect_csv_parameters(file_path: str) -> tuple[str, str, int]:
@@ -259,6 +302,7 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
     2. Coerce string columns with currency/symbols/percentages into numeric floats.
     3. Ensure clean, unique snake_case column names.
     4. Replace infinity / -infinity float values with Null.
+    5. Clean leading '-' symbols from phone/mobile columns and keep as string identifiers.
     """
     if df.height == 0 or df.width == 0:
         return df
@@ -283,9 +327,45 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
     null_list = list(_LOWER_NULL_SET)
     for col_name in df.columns:
         col_expr = pl.col(col_name)
-        dtype = df[col_name].dtype
+        series = df[col_name]
+        dtype = series.dtype
+        is_phone = _is_phone_column(col_name, series)
 
-        if dtype in (pl.Utf8, pl.Object):
+        # Phone/Mobile Column Sanitization: Strip leading '-' and convert to clean string
+        if is_phone:
+            if dtype in (pl.Utf8, pl.Object, pl.String):
+                trimmed = col_expr.str.strip_chars()
+                null_handled = (
+                    pl.when(trimmed.str.to_lowercase().is_in(null_list) | (trimmed == ""))
+                    .then(None)
+                    .otherwise(trimmed)
+                )
+                cleaned_phone = null_handled.str.replace(_LEADING_DASH_REGEX, "")
+                cleaned_phone = (
+                    pl.when((cleaned_phone == "") | cleaned_phone.is_null())
+                    .then(None)
+                    .otherwise(cleaned_phone)
+                )
+                exprs.append(cleaned_phone.alias(col_name))
+            elif dtype in (pl.Int64, pl.Int32, pl.Int16, pl.Int8, pl.UInt64, pl.UInt32, pl.UInt16, pl.UInt8):
+                cleaned_phone = (
+                    pl.when(col_expr.is_null())
+                    .then(None)
+                    .otherwise(col_expr.abs().cast(pl.Utf8))
+                )
+                exprs.append(cleaned_phone.alias(col_name))
+            elif dtype in (pl.Float64, pl.Float32):
+                cleaned_phone = (
+                    pl.when(col_expr.is_null() | col_expr.is_nan() | col_expr.is_infinite())
+                    .then(None)
+                    .otherwise(col_expr.abs().cast(pl.Int64, strict=False).cast(pl.Utf8))
+                )
+                exprs.append(cleaned_phone.alias(col_name))
+            else:
+                exprs.append(col_expr)
+            continue
+
+        if dtype in (pl.Utf8, pl.Object, pl.String):
             trimmed = col_expr.str.strip_chars()
             null_handled = (
                 pl.when(trimmed.str.to_lowercase().is_in(null_list) | (trimmed == ""))
@@ -913,7 +993,7 @@ def clean_data(
     step_start = time.perf_counter()
     df_before = df.clone()
     init_rows = df.height
-    df = df.unique()
+    df = df.unique(maintain_order=True)
     dups_removed = init_rows - df.height
     report.duplicate_rows_removed = dups_removed
     
@@ -934,8 +1014,66 @@ def clean_data(
         col_lower = col.lower()
         is_id = any(p in col_lower for p in id_patterns)
         dtype = df[col].dtype
+        is_phone = _is_phone_column(col, df[col])
         
-        # 4a. Strip masked null string placeholders in Utf8/Object columns & fill categorical
+        # 4a. Sanitize Phone Numbers (Remove leading hyphens/dashes, standardize to Utf8 string)
+        if is_phone:
+            step_start = time.perf_counter()
+            df_before = df.clone()
+            cleaned_count = 0
+
+            if dtype in (pl.Utf8, pl.Object, pl.String):
+                dashes_mask = (
+                    pl.col(col).is_not_null()
+                    & pl.col(col).str.contains(r"^[\s\-\u2010\u2011\u2012\u2013\u2014\u2212]")
+                )
+                cleaned_count = df.select(dashes_mask.sum()).item() or 0
+
+                cleaned_phone = (
+                    pl.col(col)
+                    .str.strip_chars()
+                    .str.replace(_LEADING_DASH_REGEX, "")
+                )
+                cleaned_phone = (
+                    pl.when((cleaned_phone == "") | cleaned_phone.is_null())
+                    .then(None)
+                    .otherwise(cleaned_phone)
+                )
+                df = df.with_columns(cleaned_phone.alias(col))
+
+            elif dtype.is_numeric():
+                neg_mask = pl.col(col).is_not_null() & (pl.col(col) < 0)
+                cleaned_count = df.select(neg_mask.sum()).item() or 0
+
+                if dtype in (pl.Float64, pl.Float32):
+                    cleaned_phone = (
+                        pl.when(pl.col(col).is_null() | pl.col(col).is_nan() | pl.col(col).is_infinite())
+                        .then(None)
+                        .otherwise(pl.col(col).abs().cast(pl.Int64, strict=False).cast(pl.Utf8))
+                    )
+                else:
+                    cleaned_phone = (
+                        pl.when(pl.col(col).is_null())
+                        .then(None)
+                        .otherwise(pl.col(col).abs().cast(pl.Utf8))
+                    )
+                df = df.with_columns(cleaned_phone.alias(col))
+                report.type_conversions.append({"column": col, "from": str(dtype), "to": "Utf8"})
+
+            if cleaned_count > 0:
+                report.phone_numbers_cleaned += cleaned_count
+                dag.add_node(
+                    operation="clean_phone_numbers",
+                    df_before=df_before,
+                    df_after=df,
+                    target_column=col,
+                    parameters={"leading_dashes_removed": cleaned_count},
+                    duration_ms=(time.perf_counter() - step_start) * 1000,
+                    values_changed=cleaned_count,
+                )
+            continue
+        
+        # 4b. Strip masked null string placeholders in Utf8/Object columns & fill categorical
         if dtype == pl.Utf8 or dtype == pl.Object:
             step_start = time.perf_counter()
             df_before = df.clone()

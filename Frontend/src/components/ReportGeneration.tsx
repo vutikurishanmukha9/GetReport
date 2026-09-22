@@ -3,7 +3,7 @@ import {
   CheckCircle2, Download, RefreshCw, Loader2, FileText, ChevronRight,
   AlertTriangle, ArrowRight, BarChart3, PieChart, Activity,
   FileSpreadsheet, TrendingUp, ChevronDown, ChevronUp, ShieldCheck,
-  BookOpen, Table2, Grid, Brain
+  BookOpen, Table2, Grid, Cpu
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,7 @@ interface ReportGenerationProps {
 const getGradeColorClass = (g: string) => {
   switch (g.toUpperCase()) {
     case 'A': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    case 'B': return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'B': return 'bg-zinc-100 text-zinc-900 border-zinc-200';
     case 'C': return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'D': return 'bg-orange-50 text-orange-700 border-orange-200';
     case 'F': return 'bg-red-50 text-red-750 border-red-200';
@@ -579,7 +579,7 @@ export const ReportGeneration = ({
                     <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed font-sans italic">
                       {(() => {
                         // SAFETY: correlation_heatmap union type is safely narrowed to narrative property or default string
-                        const narrativeText = (charts.correlation_heatmap as { narrative?: string })?.narrative ?? "Pearson correlation coefficient matrix. Deep blue represents strong negative correlations, and orange indicates strong positive relationships.";
+                        const narrativeText = (charts.correlation_heatmap as { narrative?: string })?.narrative ?? "Pearson correlation coefficient matrix. Charcoal represents strong negative correlations, and orange indicates strong positive relationships.";
                         return narrativeText;
                       })()}
                     </p>
@@ -1063,7 +1063,7 @@ export const ReportGeneration = ({
 
       <Card className="border border-border/60 bg-card/60 p-5 space-y-3">
         <div className="flex items-center gap-2">
-          <Brain className="h-4 w-4 text-primary/40 animate-pulse" />
+          <Cpu className="h-4 w-4 text-primary/40 animate-pulse" />
           <div className="h-4 w-48 bg-muted animate-pulse rounded-md" />
         </div>
         <div className="space-y-2">
