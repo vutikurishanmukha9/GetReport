@@ -847,7 +847,7 @@ class EnhancedRAGService:
     async def _get_gemini_embeddings_rest(self, texts: List[str]) -> List[List[float]]:
         """Fetch embeddings directly from Google's Generative Language REST API."""
         import httpx
-        url = f"https://generativelanguage.googleapis.com/v1/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
         requests = [
             {"model": "models/text-embedding-004", "content": {"parts": [{"text": t}]}}
             for t in texts
@@ -862,7 +862,7 @@ class EnhancedRAGService:
     def _get_gemini_embeddings_rest_sync(self, texts: List[str]) -> List[List[float]]:
         """Fetch embeddings synchronously from Google's Generative Language REST API."""
         import httpx
-        url = f"https://generativelanguage.googleapis.com/v1/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
         requests = [
             {"model": "models/text-embedding-004", "content": {"parts": [{"text": t}]}}
             for t in texts
@@ -1301,25 +1301,34 @@ CONTEXT:
                 if ANTIGRAVITY_AVAILABLE and gemini_key:
                     try:
                         tools = _build_antigravity_tools(job_result)
-                        antigravity_config = LocalAgentConfig(
-                            model="gemini-3.7-flash",
-                            api_key=gemini_key,
-                            tools=tools,
-                            system_instructions=system_prompt,
-                        )
-                        async with AntigravityAgent(config=antigravity_config) as agent:
-                            agy_resp = await agent.chat(sanitized_q)
-                            agy_text = await agy_resp.text()
-                            if agy_text and agy_text.strip():
-                                formatted_answer = _format_answer_for_ui(agy_text)
-                                self.metrics.record_query(True)
-                                return {
-                                    "success": True,
-                                    "answer": formatted_answer,
-                                    "sources": sources_list if include_sources else [],
-                                    "task_id": task_id,
-                                    "suggested_followups": _generate_suggested_followups(job_result)
-                                }
+                        agy_models = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"]
+                        for agy_model in agy_models:
+                            try:
+                                antigravity_config = LocalAgentConfig(
+                                    model=agy_model,
+                                    api_key=gemini_key,
+                                    tools=tools,
+                                    system_instructions=system_prompt,
+                                )
+                                async with AntigravityAgent(config=antigravity_config) as agent:
+                                    agy_resp = await agent.chat(sanitized_q)
+                                    agy_text = await agy_resp.text()
+                                    if agy_text and agy_text.strip():
+                                        formatted_answer = _format_answer_for_ui(agy_text)
+                                        self.metrics.record_query(True)
+                                        return {
+                                            "success": True,
+                                            "answer": formatted_answer,
+                                            "sources": sources_list if include_sources else [],
+                                            "task_id": task_id,
+                                            "suggested_followups": _generate_suggested_followups(job_result)
+                                        }
+                            except Exception as m_err:
+                                err_str = str(m_err).lower()
+                                if "503" in err_str or "high demand" in err_str or "not found" in err_str or "404" in err_str:
+                                    logger.warning("AntigravityAgent model %s busy/unavailable (%s) — trying fallback agent model.", agy_model, m_err)
+                                    continue
+                                raise
                     except Exception as agy_err:
                         logger.warning("Google Antigravity Agent chat failed (%s) — falling back to LLM pool.", agy_err)
 
@@ -1566,30 +1575,39 @@ CONTEXT:
             if ANTIGRAVITY_AVAILABLE and gemini_key:
                 try:
                     tools = _build_antigravity_tools(job_result)
-                    antigravity_config = LocalAgentConfig(
-                        model="gemini-3.7-flash",
-                        api_key=gemini_key,
-                        tools=tools,
-                        system_instructions=system_prompt,
-                    )
-                    async with AntigravityAgent(config=antigravity_config) as agent:
-                        agy_resp = await agent.chat(sanitized_q)
-                        has_tokens = False
-                        async for chunk in agy_resp:
-                            text_piece = None
-                            if hasattr(chunk, "text"):
-                                if type(chunk).__name__ != "Thought":
-                                    text_piece = chunk.text
-                            elif isinstance(chunk, str):
-                                text_piece = chunk
+                    agy_models = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"]
+                    for agy_model in agy_models:
+                        try:
+                            antigravity_config = LocalAgentConfig(
+                                model=agy_model,
+                                api_key=gemini_key,
+                                tools=tools,
+                                system_instructions=system_prompt,
+                            )
+                            async with AntigravityAgent(config=antigravity_config) as agent:
+                                agy_resp = await agent.chat(sanitized_q)
+                                has_tokens = False
+                                async for chunk in agy_resp:
+                                    text_piece = None
+                                    if hasattr(chunk, "text"):
+                                        if type(chunk).__name__ != "Thought":
+                                            text_piece = chunk.text
+                                    elif isinstance(chunk, str):
+                                        text_piece = chunk
 
-                            if text_piece:
-                                has_tokens = True
-                                yield json.dumps({"type": "token", "token": text_piece}) + "\n"
-                        if has_tokens:
-                            yield json.dumps({"type": "done"}) + "\n"
-                            self.metrics.record_query(True)
-                            return
+                                    if text_piece:
+                                        has_tokens = True
+                                        yield json.dumps({"type": "token", "token": text_piece}) + "\n"
+                                if has_tokens:
+                                    yield json.dumps({"type": "done"}) + "\n"
+                                    self.metrics.record_query(True)
+                                    return
+                        except Exception as m_err:
+                            err_str = str(m_err).lower()
+                            if "503" in err_str or "high demand" in err_str or "not found" in err_str or "404" in err_str:
+                                logger.warning("AntigravityAgent stream model %s busy/unavailable (%s) — trying fallback agent model.", agy_model, m_err)
+                                continue
+                            raise
                 except Exception as agy_stream_err:
                     logger.warning("Google Antigravity Agent stream failed (%s) — falling back to standard LLM stream.", agy_stream_err)
 

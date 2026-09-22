@@ -6,6 +6,7 @@ import json
 import os
 import time
 import random
+import re
 from dataclasses import dataclass, field
 from typing import Any
 from jinja2 import Environment, FileSystemLoader
@@ -48,11 +49,10 @@ RETRY_MAX_DELAY_SEC: float  = 8.0
 GEMINI_BASE_URL: str        = "https://generativelanguage.googleapis.com/v1beta/openai/"
 GEMINI_MODELS: list[str]    = [
     "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
     "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
+    "gemini-2.5-pro",
 ]
 
 OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
