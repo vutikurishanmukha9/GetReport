@@ -14,7 +14,6 @@ import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { MLReadinessCard } from "./MLReadinessCard";
-import { VirtualConceptShelf } from "./VirtualConceptShelf";
 
 // Safe, memoized image container to prevent expensive base64 re-renders
 const SafeChartImage = memo(({ base64Src, alt, className }: { base64Src: string; alt: string; className?: string }) => {
@@ -764,14 +763,6 @@ export const ReportGeneration = ({
               )}
             </CardContent>
           </Card>
-        )}
-
-        {/* ─── Virtual Concept Shelf (Data-Formulator Provocative Derived Metrics) ─── */}
-        {taskId && (
-          <VirtualConceptShelf
-            taskId={taskId}
-            columns={info?.columns || []}
-          />
         )}
 
         {/* ─── Statistical Deep Dive (Editorial Style) ─── */}
