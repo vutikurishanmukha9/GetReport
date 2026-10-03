@@ -82,7 +82,9 @@ async def upload_file(
     Returns Task ID immediately.
     """
     try:
-        # Pre-validate extension
+        # Pre-validate filename presence and extension (VULN-05)
+        if not file.filename or not file.filename.strip():
+            raise HTTPException(400, "Missing filename.")
         if not file.filename.lower().endswith(ALLOWED_EXTENSIONS_TUPLE):
             raise HTTPException(400, "Invalid file type. Supported formats: CSV, TSV, Excel, Parquet, JSON, JSONL, Feather, GZ.")
 
@@ -100,13 +102,14 @@ async def upload_file(
             max_bytes
         )
 
-        # Create Task
-        task_id = await title_task_manager.create_job_async(safe_filename, file_hash=file_hash)
+        # Create Task (with tenant owner tracking)
+        caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+        task_id = await title_task_manager.create_job_async(safe_filename, file_hash=file_hash, owner_id=caller_owner_id)
 
         # Start Inspection Task (Phase 1) - VIA UNIFIED TASK DISPATCHER (ARQ / In-Memory)
         await dispatch_task("app.tasks.inspect_file", task_id, file_ref, safe_filename)
 
-        # Schedule cleanup for old reports (Lazy Cleanup: Max once per hour)
+        # Schedule cleanup for old reports and stale uploads (VULN-01: Lazy Cleanup max once per hour)
         from app.services.cleanup import cleanup_old_files
         import time
 
@@ -119,7 +122,10 @@ async def upload_file(
         now = time.time()
         if now - _last_cleanup_time > 3600:
             output_dir = os.path.join(os.getcwd(), "outputs")
+            temp_uploads_dir = os.path.abspath("temp_uploads")
             background_tasks.add_task(cleanup_old_files, output_dir, 86400)
+            background_tasks.add_task(storage.purge_stale_files, 86400)
+            background_tasks.add_task(cleanup_old_files, temp_uploads_dir, 86400)
             _last_cleanup_time = now
 
         return TaskResponse(
@@ -161,6 +167,8 @@ async def upload_files_batch(
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
     for file in files:
+        if not file.filename or not file.filename.strip():
+            raise HTTPException(400, "Missing filename in batch upload.")
         if not file.filename.lower().endswith(ALLOWED_EXTENSIONS_TUPLE):
             raise HTTPException(400, f"Invalid file type for '{file.filename}'.")
 
@@ -173,7 +181,8 @@ async def upload_files_batch(
             max_bytes
         )
 
-        task_id = await title_task_manager.create_job_async(safe_filename, batch_id=batch_id, file_hash=file_hash)
+        caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+        task_id = await title_task_manager.create_job_async(safe_filename, batch_id=batch_id, file_hash=file_hash, owner_id=caller_owner_id)
         await dispatch_task("app.tasks.inspect_file", task_id, file_ref, safe_filename)
 
         task_ids.append(task_id)
@@ -221,6 +230,8 @@ async def upload_and_join_files(
 
     try:
         for file in files:
+            if not file.filename or not file.filename.strip():
+                raise HTTPException(400, "Missing filename in join upload.")
             if not file.filename.lower().endswith(ALLOWED_EXTENSIONS_TUPLE):
                 raise HTTPException(400, f"Invalid file type for '{file.filename}'.")
 
@@ -250,7 +261,8 @@ async def upload_and_join_files(
         csv_bytes.seek(0)
 
         file_hash = hashlib.sha256(csv_bytes.getvalue()).hexdigest()
-        task_id = await title_task_manager.create_job_async(joined_filename, file_hash=file_hash)
+        caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+        task_id = await title_task_manager.create_job_async(joined_filename, file_hash=file_hash, owner_id=caller_owner_id)
 
         joined_file_ref = storage.save_upload(csv_bytes, joined_filename)
         await dispatch_task("app.tasks.inspect_file", task_id, joined_file_ref, joined_filename)

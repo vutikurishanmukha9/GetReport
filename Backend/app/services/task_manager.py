@@ -72,6 +72,7 @@ class Job:
     report_status: str = "not_started"
     result_path: Optional[str] = None
     version: int = 0  # For Optimistic Locking
+    owner_id: Optional[str] = None
 
 import io
 
@@ -106,14 +107,24 @@ class TaskManager:
 
     # ─── ASYNC METHODS (For FastAPI) ─────────────────────────────────────────
 
-    async def create_job_async(self, filename: str, batch_id: Optional[str] = None, file_hash: Optional[str] = None) -> str:
+    async def create_job_async(
+        self,
+        filename: str,
+        batch_id: Optional[str] = None,
+        file_hash: Optional[str] = None,
+        owner_id: Optional[str] = None
+    ) -> str:
         task_id = str(uuid.uuid4())
         initial_status = TaskStatus.PENDING.value
         initial_message = "Job created"
         
-        # Schema: task_id, status, filename, message, progress, batch_id, file_hash, version
-        query = "INSERT INTO jobs (task_id, status, filename, message, progress, batch_id, file_hash, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-        args = (task_id, initial_status, filename, initial_message, 0, batch_id, file_hash, 1)
+        # Schema: task_id, status, filename, message, progress, batch_id, file_hash, version, owner_id
+        if owner_id:
+            query = "INSERT INTO jobs (task_id, status, filename, message, progress, batch_id, file_hash, version, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            args = (task_id, initial_status, filename, initial_message, 0, batch_id, file_hash, 1, owner_id)
+        else:
+            query = "INSERT INTO jobs (task_id, status, filename, message, progress, batch_id, file_hash, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            args = (task_id, initial_status, filename, initial_message, 0, batch_id, file_hash, 1)
 
         try:
             async with get_async_db_connection() as conn:
@@ -169,6 +180,8 @@ class TaskManager:
         if result_ref:
             result_data = _load_result_from_storage(result_ref)
         
+        owner_id = row["owner_id"] if "owner_id" in row.keys() else None
+
         return Job(
             id=row["task_id"],
             status=TaskStatus(row["status"]),
@@ -182,7 +195,8 @@ class TaskManager:
             report_path=row["report_path"],
             report_status=row["report_status"] if "report_status" in row.keys() and row["report_status"] else "not_started",
             result_path=result_ref,
-            version=row["version"]
+            version=row["version"],
+            owner_id=owner_id
         )
 
     async def update_status_async(self, task_id: str, status: TaskStatus, result: Optional[Dict[str, Any]] = None):
@@ -242,14 +256,24 @@ class TaskManager:
 
     # ─── SYNC METHODS (Legacy/Celery) ────────────────────────────────────────
 
-    def create_job(self, filename: str, batch_id: Optional[str] = None, file_hash: Optional[str] = None) -> str:
+    def create_job(
+        self,
+        filename: str,
+        batch_id: Optional[str] = None,
+        file_hash: Optional[str] = None,
+        owner_id: Optional[str] = None
+    ) -> str:
         """Sync version for testing or legacy calls"""
         task_id = str(uuid.uuid4())
         initial_status = TaskStatus.PENDING.value
         initial_message = "Job created"
         
-        args = (task_id, initial_status, filename, initial_message, 0, batch_id, file_hash, 1)
-        query = "INSERT INTO jobs (task_id, status, filename, message, progress, batch_id, file_hash, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        if owner_id:
+            args = (task_id, initial_status, filename, initial_message, 0, batch_id, file_hash, 1, owner_id)
+            query = "INSERT INTO jobs (task_id, status, filename, message, progress, batch_id, file_hash, version, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        else:
+            args = (task_id, initial_status, filename, initial_message, 0, batch_id, file_hash, 1)
+            query = "INSERT INTO jobs (task_id, status, filename, message, progress, batch_id, file_hash, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 
         with get_db_connection() as conn:
             conn.execute(query, args)
@@ -274,6 +298,8 @@ class TaskManager:
              try: result_data = json.loads(row["result_json"])
              except: pass
                 
+        owner_id = row["owner_id"] if "owner_id" in row.keys() else None
+
         return Job(
             id=row["task_id"],
             status=TaskStatus(row["status"]),
@@ -287,7 +313,8 @@ class TaskManager:
             report_path=row["report_path"],
             report_status=row["report_status"] if "report_status" in row.keys() and row["report_status"] else "not_started",
             result_path=result_ref,
-            version=row.get("version", 0) if hasattr(row, "get") else row["version"]
+            version=row.get("version", 0) if hasattr(row, "get") else row["version"],
+            owner_id=owner_id
         )
 
     def update_progress(self, task_id: str, progress: int, message: Optional[str] = None):

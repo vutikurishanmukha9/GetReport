@@ -43,37 +43,10 @@ def generate_pdf_report(
     Returns:
         Tuple of (BytesIO buffer containing the PDF, ReportMetadata).
     """
-    engine = (settings.PDF_ENGINE or "typst").lower().strip()
+    from app.core.factories.reports import ReportEngineFactory
 
-    if engine == "typst":
-        try:
-            from app.services.report_typst import generate_pdf_typst
-            logger.info("═══ PDF Engine: Typst (Zero-Copy Rust Engine) ═══")
-            return generate_pdf_typst(analysis_results, charts, filename)
-        except Exception as e:
-            logger.warning(
-                "Typst engine encountered an error: %s. "
-                "Automatically falling back to ReportLab engine.",
-                e,
-            )
-            # Fall through to reportlab
-
-    elif engine == "weasyprint":
-        try:
-            from weasyprint import HTML
-            from app.services.report_weasyprint import generate_pdf_weasyprint
-            logger.info("═══ PDF Engine: WeasyPrint (HTML/CSS) ═══")
-            return generate_pdf_weasyprint(analysis_results, charts, filename)
-        except (ImportError, Exception) as e:
-            logger.warning(
-                "WeasyPrint failed to load (missing system dependencies?): %s. "
-                "Automatically falling back to ReportLab engine.",
-                e,
-            )
-            # Fall through to reportlab
-
-    logger.info("═══ PDF Engine: ReportLab (Pixel-level Fallback) ═══")
-    return _generate_pdf_reportlab(analysis_results, charts, filename)
+    engine = ReportEngineFactory.create_engine(allow_fallback=True)
+    return engine.render_pdf(analysis_results, charts, filename)
 
 
 # ─── ReportLab Engine (Original) ─────────────────────────────────────────────

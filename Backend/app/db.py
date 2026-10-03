@@ -313,7 +313,7 @@ def _create_schema(cursor):
     """)
     
     # Migrations with specific exception catching
-    for col in ["result_path TEXT", "version INTEGER DEFAULT 0", "batch_id TEXT", "file_hash TEXT", "report_status TEXT DEFAULT 'not_started'"]:
+    for col in ["result_path TEXT", "version INTEGER DEFAULT 0", "batch_id TEXT", "file_hash TEXT", "report_status TEXT DEFAULT 'not_started'", "owner_id TEXT"]:
         try:
             cursor.execute(f"ALTER TABLE jobs ADD COLUMN {col}")
         except sqlite3.OperationalError:
@@ -353,6 +353,7 @@ def _create_core_tables_explicit(cursor):
         report_status TEXT DEFAULT 'not_started',
         batch_id TEXT,
         file_hash TEXT,
+        owner_id TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         version INTEGER DEFAULT 0
@@ -375,6 +376,7 @@ def _create_core_tables_explicit(cursor):
         ("batch_id", "TEXT"),
         ("file_hash", "TEXT"),
         ("report_status", "TEXT DEFAULT 'not_started'"),
+        ("owner_id", "TEXT"),
     ]
     for col_name, col_def in migrations:
         try:

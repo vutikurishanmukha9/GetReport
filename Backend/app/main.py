@@ -22,6 +22,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         import logging
         logging.getLogger("uvicorn").error(f"DATABASE INIT FAILED: {e}")
+
+    # Startup storage purge (VULN-01: clean up stale files from previous server runs)
+    try:
+        from app.services.cleanup import cleanup_old_files
+        cleanup_old_files("temp_uploads", max_age_seconds=86400)
+        cleanup_old_files("outputs", max_age_seconds=86400)
+    except Exception as e:
+        import logging
+        logging.getLogger("uvicorn").warning(f"Startup storage cleanup failed: {e}")
+
     yield
     # Shutdown
     await close_async_db()

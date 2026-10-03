@@ -3,6 +3,8 @@ import os
 import shutil
 import uuid
 import hashlib
+import time
+import logging
 from pathlib import Path
 from tempfile import mkstemp
 from typing import BinaryIO, Optional
@@ -10,6 +12,8 @@ from fastapi import UploadFile, HTTPException
 
 from app.core.config import settings
 from app.core.file_validation import verify_header_bytes
+
+logger = logging.getLogger(__name__)
 
 class StorageProvider(abc.ABC):
     """
@@ -88,6 +92,13 @@ class StorageProvider(abc.ABC):
         Delete the file.
         """
         pass
+
+    def purge_stale_files(self, max_age_seconds: int = 86400) -> int:
+        """
+        Purge temporary files older than max_age_seconds.
+        Subclasses can override to clean underlying storage.
+        """
+        return 0
 
 class LocalStorageProvider(StorageProvider):
     """
@@ -178,6 +189,29 @@ class LocalStorageProvider(StorageProvider):
             return False
         except Exception:
             return False
+
+    def purge_stale_files(self, max_age_seconds: int = 86400) -> int:
+        """
+        Deletes files in the upload directory older than max_age_seconds.
+        Mitigates CWE-400 / CWE-775 unbounded disk accumulation.
+        """
+        now = time.time()
+        count = 0
+        try:
+            for item in self.base_dir.iterdir():
+                if item.is_file():
+                    try:
+                        file_age = now - item.stat().st_mtime
+                        if file_age > max_age_seconds:
+                            item.unlink(missing_ok=True)
+                            count += 1
+                    except Exception as err:
+                        logger.warning(f"Failed to purge stale file {item.name}: {err}")
+            if count > 0:
+                logger.info(f"Purged {count} stale upload file(s) (> {max_age_seconds}s) from {self.base_dir}")
+        except Exception as e:
+            logger.error(f"Error purging stale files in {self.base_dir}: {e}")
+        return count
 
 # ─── Factory ─────────────────────────────────────────────────────────────────
 
@@ -328,11 +362,10 @@ class DatabaseStorageProvider(StorageProvider):
         except Exception:
             return False
 
-# ─── Factory ─────────────────────────────────────────────────────────────────
-
 def get_storage_provider() -> StorageProvider:
-    if settings.STORAGE_TYPE.lower() == "s3":
-        return S3StorageProvider()
-    elif settings.STORAGE_TYPE.lower() == "db":
-        return DatabaseStorageProvider()
-    return LocalStorageProvider()
+    """
+    Factory Method: Delegates to app.core.factories.storage.StorageProviderFactory.
+    """
+    from app.core.factories.storage import StorageProviderFactory
+
+    return StorageProviderFactory.create_provider()

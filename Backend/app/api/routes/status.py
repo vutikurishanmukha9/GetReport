@@ -11,7 +11,7 @@ import time
 
 from app.core.limiter import limiter, STATUS_LIMIT
 from app.core.config import settings
-from app.core.auth import verify_api_key, verify_ws_api_key, validate_task_id
+from app.core.auth import verify_api_key, verify_ws_api_key, validate_task_id, check_task_ownership
 from app.services.task_manager import title_task_manager, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -43,6 +43,9 @@ async def get_task_status(
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    check_task_ownership(job.owner_id, caller_owner_id)
 
     result_data = None
     if job.status in (TaskStatus.COMPLETED, TaskStatus.WAITING_FOR_USER) and job.result:
@@ -83,6 +86,9 @@ async def stream_task_status(
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    check_task_ownership(job.owner_id, caller_owner_id)
 
     async def _event_generator():
         """Yield SSE-formatted events until task reaches a terminal state."""

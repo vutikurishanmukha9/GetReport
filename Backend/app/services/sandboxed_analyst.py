@@ -229,6 +229,28 @@ class SandboxedAnalystAgent:
                 if "{" in node.value and "__" in node.value:
                     raise SandboxedSecurityViolation("Format string introspection with private attributes is prohibited.")
 
+            # Check for algorithmic CPU/RAM starvation via deep exponentiation or huge bitshifts (VULN-06)
+            elif isinstance(node, ast.BinOp):
+                if isinstance(node.op, ast.Pow):
+                    # Disallow chained or nested power expressions (e.g. 9**9**9)
+                    for sub in ast.walk(node.left):
+                        if sub is not node and isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.Pow):
+                            raise SandboxedSecurityViolation("Chained or nested exponentiation is prohibited.")
+                    for sub in ast.walk(node.right):
+                        if sub is not node and isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.Pow):
+                            raise SandboxedSecurityViolation("Chained or nested exponentiation is prohibited.")
+                    # Bound constant exponents
+                    if isinstance(node.right, ast.Constant) and isinstance(node.right.value, (int, float)):
+                        if abs(node.right.value) > 10_000:
+                            raise SandboxedSecurityViolation("Exponent exceeds safety threshold (maximum permitted exponent is 10,000).")
+                    if isinstance(node.left, ast.Constant) and isinstance(node.left.value, (int, float)) and isinstance(node.right, ast.Constant) and isinstance(node.right.value, (int, float)):
+                        if abs(node.left.value) > 1 and abs(node.right.value) > 1000:
+                            raise SandboxedSecurityViolation("Constant power expression exceeds safety threshold.")
+                elif isinstance(node.op, ast.LShift):
+                    if isinstance(node.right, ast.Constant) and isinstance(node.right.value, int):
+                        if abs(node.right.value) > 10_000:
+                            raise SandboxedSecurityViolation("Bit shift count exceeds safety threshold (maximum permitted shift is 10,000).")
+
     def execute_polars(
         self,
         code_str: str,

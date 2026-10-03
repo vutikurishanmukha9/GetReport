@@ -30,6 +30,29 @@ router.include_router(chat.router, tags=["chat"])
 router.include_router(issues.router, tags=["issues"])
 
 
+class StreamTicketResponse(BaseModel):
+    ticket: str
+    expires_in: int
+    message: str
+
+
+@router.post("/auth/stream-ticket", response_model=StreamTicketResponse)
+async def request_stream_ticket(
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Issues a single-use, 60-second cryptographically secure ticket
+    for EventSource SSE and WebSocket connections, avoiding API key leakage in URLs (VULN-02).
+    """
+    from app.core.auth import create_stream_ticket
+    ticket = create_stream_ticket(ttl_seconds=60)
+    return StreamTicketResponse(
+        ticket=ticket,
+        expires_in=60,
+        message="Single-use streaming ticket issued. Pass as ?ticket= in EventSource/WebSocket URLs."
+    )
+
+
 class AnalysisRulesRequest(BaseModel):
     rules: Dict[str, Any]
     analysis_config: Optional[AnalysisConfig] = None

@@ -375,7 +375,8 @@ async def export_cleaned_data_or_report(
         raise HTTPException(404, "Job not found or analysis not complete")
 
     clean_fmt = export_format.lower()
-    filename_base = _sanitize_download_filename(job.filename or "dataset")
+    raw_base = _sanitize_download_filename(job.filename or "dataset")
+    filename_base = os.path.splitext(raw_base)[0]
     
     from app.services.storage import get_storage_provider
     from app.services.data_processing import load_dataframe
@@ -383,7 +384,7 @@ async def export_cleaned_data_or_report(
 
     storage = get_storage_provider()
     
-    if clean_fmt in ("csv", "parquet"):
+    if clean_fmt in ("csv", "parquet", "excel", "xlsx"):
         try:
             cleaned_file_ref = job.result.get("cleaned_file_ref")
             if not cleaned_file_ref:
@@ -393,27 +394,25 @@ async def export_cleaned_data_or_report(
                 raise HTTPException(404, "Cleaned dataset source file not found")
 
             df = load_dataframe(file_path)
-            
-            if clean_fmt == "csv":
-                from app.services.data_processing import sanitize_df_for_csv_export
-                safe_df = sanitize_df_for_csv_export(df)
-                buffer = io.BytesIO()
-                safe_df.write_csv(buffer)
-                buffer.seek(0)
-                return Response(
-                    content=buffer.getvalue(),
-                    media_type="text/csv",
-                    headers={"Content-Disposition": f"attachment; filename=Cleaned_{filename_base}.csv"}
-                )
-            else: # parquet
-                buffer = io.BytesIO()
-                df.write_parquet(buffer)
-                buffer.seek(0)
-                return Response(
-                    content=buffer.getvalue(),
-                    media_type="application/octet-stream",
-                    headers={"Content-Disposition": f"attachment; filename=Cleaned_{filename_base}.parquet"}
-                )
+
+            from app.core.factories.exporters import DataExporterFactory
+
+            format_key = "excel" if clean_fmt in ("excel", "xlsx") else clean_fmt
+            exporter = DataExporterFactory.create_exporter(format_key)
+            temp_path, media_type, ext = exporter.export(df, filename_base)
+            try:
+                content_bytes = temp_path.read_bytes()
+            finally:
+                if temp_path.exists():
+                    temp_path.unlink()
+
+            return Response(
+                content=content_bytes,
+                media_type=media_type,
+                headers={"Content-Disposition": f"attachment; filename=Cleaned_{filename_base}{ext}"}
+            )
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Data export failed: {e}", exc_info=True)
             raise HTTPException(500, "Failed to export cleaned dataset due to an internal server error.")
@@ -481,7 +480,7 @@ async def export_cleaned_data_or_report(
             headers={"Content-Disposition": f"attachment; filename=Report_{filename_base}.html"}
         )
     else:
-        raise HTTPException(400, "Invalid export format. Supported: 'csv', 'parquet', 'html'")
+        raise HTTPException(400, "Invalid export format. Supported: 'csv', 'parquet', 'excel', 'html'")
 
 
 # ─── In-Process DuckDB Analytical Query Endpoint ────────────────────────────
@@ -540,8 +539,8 @@ async def query_dataset_sql(
     except DuckDBSecurityError as se:
         raise HTTPException(403, str(se))
     except Exception as e:
-        logger.error(f"SQL execution error for task {task_id}: {e}")
-        raise HTTPException(400, f"Query execution failed: {str(e)}")
+        logger.error(f"SQL execution error for task {task_id}: {e}", exc_info=True)
+        raise HTTPException(400, "Query execution failed. Please verify query syntax and column references.")
     finally:
         session.close()
 
@@ -634,8 +633,8 @@ async def create_golden_query(
     except ValueError as ve:
         raise HTTPException(400, str(ve))
     except Exception as e:
-        logger.error(f"Failed to save golden query for task {task_id}: {e}")
-        raise HTTPException(500, f"Could not save golden query: {str(e)}")
+        logger.error(f"Failed to save golden query for task {task_id}: {e}", exc_info=True)
+        raise HTTPException(500, "Could not save golden query due to an internal server error.")
 
 
 @router.get("/jobs/{task_id}/golden-queries")

@@ -323,3 +323,116 @@ def test_limiter_cf_connecting_ip():
     req = Request(scope)
     assert _get_real_client_ip(req) == "198.51.100.42"
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 7. VULNERABILITY AUDIT REMEDIATION TESTS (VULN-01 to VULN-06)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_storage_purge_stale_files(tmp_path):
+    """VULN-01: Verify LocalStorageProvider purges stale files older than max_age_seconds."""
+    from app.services.storage import LocalStorageProvider
+    import time
+    provider = LocalStorageProvider(base_dir=str(tmp_path))
+
+    old_file = tmp_path / "old.csv"
+    old_file.write_text("old content")
+    # Set modification time to 2 days ago
+    two_days_ago = time.time() - 172800
+    os.utime(str(old_file), (two_days_ago, two_days_ago))
+
+    new_file = tmp_path / "new.csv"
+    new_file.write_text("new content")
+
+    purged = provider.purge_stale_files(max_age_seconds=86400)
+    assert purged == 1
+    assert not old_file.exists()
+    assert new_file.exists()
+
+
+def test_stream_ticket_lifecycle():
+    """VULN-02: Verify stream ticket generation, consumption, single-use, and expiration."""
+    from app.core.auth import create_stream_ticket, consume_stream_ticket
+
+    ticket = create_stream_ticket(ttl_seconds=60)
+    assert isinstance(ticket, str)
+    assert len(ticket) >= 32
+
+    # Consuming once should succeed
+    assert consume_stream_ticket(ticket) is True
+    # Single-use: consuming a second time should fail
+    assert consume_stream_ticket(ticket) is False
+
+    # Expired ticket should fail
+    expired_ticket = create_stream_ticket(ttl_seconds=-10)
+    assert consume_stream_ticket(expired_ticket) is False
+    assert consume_stream_ticket(None) is False
+    assert consume_stream_ticket("nonexistent_ticket") is False
+
+
+@pytest.mark.asyncio
+async def test_verify_api_key_with_stream_ticket(monkeypatch):
+    """VULN-02: Verify verify_api_key authenticates with single-use stream ticket."""
+    from app.core.auth import verify_api_key, create_stream_ticket
+    from app.core.config import settings
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(settings, "API_KEY", "super-secret-key")
+    monkeypatch.setattr(settings, "REQUIRE_AUTH", True)
+
+    ticket = create_stream_ticket(ttl_seconds=60)
+    # Authenticate via ticket (no header, no api_key query param)
+    await verify_api_key(api_key_header=None, api_key_query=None, ticket=ticket)
+
+    # Reusing ticket should fail
+    with pytest.raises(HTTPException) as exc_info:
+        await verify_api_key(api_key_header=None, api_key_query=None, ticket=ticket)
+    assert exc_info.value.status_code == 401
+
+
+def test_tenant_boundary_ownership_check():
+    """VULN-04: Verify check_task_ownership enforces tenant isolation."""
+    from app.core.auth import check_task_ownership
+    from fastapi import HTTPException
+
+    # Matching tenant allowed
+    check_task_ownership(task_owner_id="tenant-123", caller_owner_id="tenant-123")
+
+    # Single-tenant / backward compatibility (either is None) allowed
+    check_task_ownership(task_owner_id=None, caller_owner_id="tenant-123")
+    check_task_ownership(task_owner_id="tenant-123", caller_owner_id=None)
+    check_task_ownership(task_owner_id=None, caller_owner_id=None)
+
+    # Mismatch forbidden
+    with pytest.raises(HTTPException) as exc_info:
+        check_task_ownership(task_owner_id="tenant-123", caller_owner_id="attacker-456")
+    assert exc_info.value.status_code == 403
+
+
+def test_sandbox_deep_exponentiation_defense():
+    """VULN-06: Verify AST validator rejects chained/nested exponentiation and huge bitshifts."""
+    # Chained exponentiation (9**9**9)
+    with pytest.raises(SandboxedSecurityViolation, match="Chained or nested exponentiation"):
+        SandboxedAnalystAgent.validate_code_ast("result = 9**9**9")
+
+    # Parenthesized chained exponentiation
+    with pytest.raises(SandboxedSecurityViolation, match="Chained or nested exponentiation"):
+        SandboxedAnalystAgent.validate_code_ast("result = (2**3)**4")
+
+    # Excessive constant exponent
+    with pytest.raises(SandboxedSecurityViolation, match="Exponent exceeds safety threshold"):
+        SandboxedAnalystAgent.validate_code_ast("result = 2**50000")
+
+    # Constant power exceeding limits
+    with pytest.raises(SandboxedSecurityViolation, match="Constant power expression exceeds safety threshold"):
+        SandboxedAnalystAgent.validate_code_ast("result = 10**5000")
+
+    # Huge bit shift
+    with pytest.raises(SandboxedSecurityViolation, match="Bit shift count exceeds safety threshold"):
+        SandboxedAnalystAgent.validate_code_ast("result = 1 << 50000")
+
+    # Valid safe power operations should pass
+    SandboxedAnalystAgent.validate_code_ast("result = 2**10")
+    SandboxedAnalystAgent.validate_code_ast("result = x**2")
+    SandboxedAnalystAgent.validate_code_ast("result = df['col'] ** 0.5")
+
+

@@ -498,9 +498,27 @@ export const api = {
     },
 
     /**
+     * Request an ephemeral, single-use stream ticket for EventSource / WebSocket (VULN-02).
+     * Prevents long-lived API keys from being exposed in GET URLs.
+     */
+    getStreamTicket: async (): Promise<string | null> => {
+        try {
+            const res = await fetchClient<{ ticket: string }>("/auth/stream-ticket", {
+                method: "POST",
+            });
+            return res?.ticket || null;
+        } catch {
+            return null;
+        }
+    },
+
+    /**
      * Get the SSE Stream URL for real-time status updates via EventSource.
      */
-    getStatusStreamUrl: (taskId: string): string => {
+    getStatusStreamUrl: (taskId: string, ticket?: string): string => {
+        if (ticket) {
+            return `${API_BASE_URL}/status/${taskId}/stream?ticket=${encodeURIComponent(ticket)}`;
+        }
         const apiKey = import.meta.env.VITE_API_KEY;
         const query = apiKey ? `?api_key=${encodeURIComponent(apiKey)}` : "";
         return `${API_BASE_URL}/status/${taskId}/stream${query}`;
@@ -509,6 +527,7 @@ export const api = {
     /**
      * Subscribe to real-time task status updates using browser-native EventSource (SSE).
      * Automatically handles 'progress', 'waiting', 'complete', and 'error' events.
+     * Uses short-lived single-use tickets to prevent API key exposure in URLs.
      * Returns an unsubscribe function to close the stream.
      */
     subscribeTaskStatus: (
@@ -520,46 +539,70 @@ export const api = {
             onError?: (error: any) => void;
         }
     ): (() => void) => {
-        const streamUrl = api.getStatusStreamUrl(taskId);
-        const eventSource = new EventSource(streamUrl);
+        let eventSource: EventSource | null = null;
+        let isClosed = false;
 
-        const handleData = (event: MessageEvent, callback?: (data: StatusResponse) => void) => {
-            try {
-                const parsed = JSON.parse(event.data);
-                const statusResponse: StatusResponse = {
-                    task_id: taskId,
-                    status: parsed.status || "PROCESSING",
-                    progress: parsed.progress ?? 0,
-                    message: parsed.message || "",
-                    result: parsed.result || null,
-                    error: parsed.error || null,
-                    report_download_url: parsed.report_download_url || null,
-                };
-                if (callback) callback(statusResponse);
-            } catch (err) {
-                console.warn("Failed to parse SSE payload:", err, event.data);
-            }
+        const setupSSE = (url: string) => {
+            if (isClosed) return;
+            eventSource = new EventSource(url);
+
+            const handleData = (event: MessageEvent, callback?: (data: StatusResponse) => void) => {
+                try {
+                    const parsed = JSON.parse(event.data);
+                    const statusResponse: StatusResponse = {
+                        task_id: taskId,
+                        status: parsed.status || "PROCESSING",
+                        progress: parsed.progress ?? 0,
+                        message: parsed.message || "",
+                        result: parsed.result || null,
+                        error: parsed.error || null,
+                        report_download_url: parsed.report_download_url || null,
+                    };
+                    if (callback) callback(statusResponse);
+                } catch (err) {
+                    console.warn("Failed to parse SSE payload:", err, event.data);
+                }
+            };
+
+            eventSource.addEventListener("progress", (e) => handleData(e as MessageEvent, callbacks.onProgress));
+            eventSource.addEventListener("waiting", (e) => handleData(e as MessageEvent, callbacks.onWaitingForUser));
+            eventSource.addEventListener("complete", (e) => {
+                handleData(e as MessageEvent, callbacks.onComplete);
+                if (eventSource) eventSource.close();
+            });
+            eventSource.addEventListener("error", (e) => {
+                const msgEvent = e as MessageEvent;
+                if (msgEvent.data) {
+                    handleData(msgEvent, callbacks.onError);
+                } else if (callbacks.onError) {
+                    callbacks.onError(e);
+                }
+            });
+
+            eventSource.onmessage = (e) => handleData(e, callbacks.onProgress);
         };
 
-        eventSource.addEventListener("progress", (e) => handleData(e as MessageEvent, callbacks.onProgress));
-        eventSource.addEventListener("waiting", (e) => handleData(e as MessageEvent, callbacks.onWaitingForUser));
-        eventSource.addEventListener("complete", (e) => {
-            handleData(e as MessageEvent, callbacks.onComplete);
-            eventSource.close();
-        });
-        eventSource.addEventListener("error", (e) => {
-            const msgEvent = e as MessageEvent;
-            if (msgEvent.data) {
-                handleData(msgEvent, callbacks.onError);
-            } else if (callbacks.onError) {
-                callbacks.onError(e);
-            }
-        });
-
-        eventSource.onmessage = (e) => handleData(e, callbacks.onProgress);
+        // Prefer stream ticket if API key is present, fallback gracefully to standard URL
+        if (import.meta.env.VITE_API_KEY) {
+            api.getStreamTicket().then((ticket) => {
+                if (!isClosed) {
+                    setupSSE(api.getStatusStreamUrl(taskId, ticket || undefined));
+                }
+            }).catch(() => {
+                if (!isClosed) {
+                    setupSSE(api.getStatusStreamUrl(taskId));
+                }
+            });
+        } else {
+            setupSSE(api.getStatusStreamUrl(taskId));
+        }
 
         return () => {
-            eventSource.close();
+            isClosed = true;
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
         };
     },
 
