@@ -209,6 +209,7 @@ def test_csv_exporter_neutralizes_formulas(dirty_formula_df):
 
 def test_excel_exporter_neutralizes_formulas(dirty_formula_df):
     """Verify CWE-1236 protection prepends ' to formula triggers in Excel."""
+    pytest.importorskip("xlsxwriter")
     openpyxl = pytest.importorskip("openpyxl")
     exporter = ExcelDataExporter()
     file_path, mime, ext = exporter.export(dirty_formula_df, "test_export")
@@ -372,18 +373,25 @@ def test_e2e_export_endpoints_with_universal_formula_neutralization():
     assert "'@SUM(A1:A10)" in csv_text
 
     # 2. Test Excel export
-    excel_resp = client.get(f"/api/jobs/{task_id}/export/excel")
-    assert excel_resp.status_code == 200
-    assert "openxmlformats" in excel_resp.headers.get("content-type", "")
-    assert "Cleaned_e2e_export_test.xlsx" in excel_resp.headers.get("content-disposition", "")
     try:
-        import openpyxl
-        wb = openpyxl.load_workbook(io.BytesIO(excel_resp.content))
-        ws = wb.active
-        assert ws["B2"].value == "'=1+1"
-        assert ws["B3"].value == "'@SUM(A1:A10)"
+        import xlsxwriter
+        has_xlsxwriter = True
     except ImportError:
-        pass
+        has_xlsxwriter = False
+
+    if has_xlsxwriter:
+        excel_resp = client.get(f"/api/jobs/{task_id}/export/excel")
+        assert excel_resp.status_code == 200
+        assert "openxmlformats" in excel_resp.headers.get("content-type", "")
+        assert "Cleaned_e2e_export_test.xlsx" in excel_resp.headers.get("content-disposition", "")
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(excel_resp.content))
+            ws = wb.active
+            assert ws["B2"].value == "'=1+1"
+            assert ws["B3"].value == "'@SUM(A1:A10)"
+        except ImportError:
+            pass
 
     # 3. Test Parquet export
     parquet_resp = client.get(f"/api/jobs/{task_id}/export/parquet")
