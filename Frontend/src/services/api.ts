@@ -1,4 +1,4 @@
-import type { IssueLedgerData, ApiResponse, InspectionResult, CleaningRulesMap } from "@/types/api";
+import type { IssueLedgerData, ApiResponse, InspectionResult, CleaningRulesMap, DataRow, PrimitiveValue } from "@/types/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 const REQUEST_TIMEOUT_MS = 45_000;
@@ -349,7 +349,7 @@ export const api = {
         task_id: string;
         sql: string;
         columns: string[];
-        records: Record<string, any>[];
+        records: DataRow[];
         total_returned: number;
         capped: boolean;
     }> => {
@@ -464,7 +464,7 @@ export const api = {
     ): Promise<{
         status: string;
         concept_name: string;
-        node: Record<string, any>;
+        node: Record<string, PrimitiveValue>;
         total_columns: number;
         total_rows: number;
     }> => {
@@ -564,13 +564,17 @@ export const api = {
                 }
             };
 
+            // SAFETY: EventSource event handler callback parameter for custom events delivers a MessageEvent
             eventSource.addEventListener("progress", (e) => handleData(e as MessageEvent, callbacks.onProgress));
+            // SAFETY: EventSource event handler callback parameter for custom events delivers a MessageEvent
             eventSource.addEventListener("waiting", (e) => handleData(e as MessageEvent, callbacks.onWaitingForUser));
             eventSource.addEventListener("complete", (e) => {
+                // SAFETY: EventSource event handler callback parameter for custom events delivers a MessageEvent
                 handleData(e as MessageEvent, callbacks.onComplete);
                 if (eventSource) eventSource.close();
             });
             eventSource.addEventListener("error", (e) => {
+                // SAFETY: EventSource error event may encapsulate an underlying server-sent MessageEvent
                 const msgEvent = e as MessageEvent;
                 if (msgEvent.data) {
                     handleData(msgEvent, callbacks.onError);

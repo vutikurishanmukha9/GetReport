@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, AlertTriangle, Play, ShieldAlert, CheckCircle2, Trash2, Wrench, BarChart2 } from "lucide-react";
+import { Check, AlertTriangle, Play, ShieldAlert, Trash2, Wrench, BarChart2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,7 +70,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <h4 className="text-sm font-display font-bold text-amber-900 uppercase tracking-wide">
+                                <h4 className="text-sm font-display font-bold text-amber-900">
                                     {issue.type === 'partial_duplicates' ? "Ambiguous Data Detected" : "Quality Warning"}
                                 </h4>
                                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 border border-amber-500/30">

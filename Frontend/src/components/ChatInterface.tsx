@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import DOMPurify from "dompurify";
 import { 
   Send, Bot, User, RefreshCw, ChevronDown, ChevronUp, 
-  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check, Database,
-  Bookmark, BookmarkCheck 
+  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check,
+  Bookmark, BookmarkCheck, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,8 +27,8 @@ function formatMarkdownToHtml(raw: string): string {
   text = text.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<i>$1</i>');
   // Convert inline code
   text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // Convert list bullets (* item or - item or • item)
-  text = text.replace(/^[\*\-•]\s+(.*$)/gim, '• $1<br/>');
+  // Convert list bullets (- item or * item or • item)
+  text = text.replace(/^[-*•]\s+(.*$)/gim, '• $1<br/>');
   // Convert newlines to <br/> if not already preceded by HTML tag
   text = text.replace(/\n{2,}/g, '<br/><br/>').replace(/\n/g, '<br/>');
   return text;
@@ -231,6 +231,26 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
     }
   };
 
+  const handleDeleteGoldenKPI = (msgId: string) => {
+    setSavedGoldenIds((prev) => {
+      const next = new Set(prev);
+      next.delete(msgId);
+      return next;
+    });
+    toast({
+      title: "Golden KPI Removed",
+      description: "Successfully removed this query from your saved KPIs.",
+    });
+  };
+
+  const handleClearHistory = () => {
+    setMessages([]);
+    toast({
+      title: "Chat History Cleared",
+      description: "All messages in this session have been deleted.",
+    });
+  };
+
   const handleSend = () => handleSendQuery(input);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -297,7 +317,21 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
               <CardDescription className="text-xs">Ask questions and extract insights directly from the compiled dataset</CardDescription>
             </div>
           </div>
-          <Bot className="h-4.5 w-4.5 text-primary/40 hidden sm:block" />
+          <div className="flex items-center gap-2">
+            {messages.length > 0 && (
+              <Button
+                variant="delete"
+                size="sm"
+                onClick={handleClearHistory}
+                className="h-8 px-2.5 rounded-lg text-xs gap-1.5 cursor-pointer"
+                title="Delete all messages in this conversation"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Clear Chat</span>
+              </Button>
+            )}
+            <Bot className="h-4.5 w-4.5 text-primary/40 hidden sm:block" />
+          </div>
         </div>
       </CardHeader>
 
@@ -384,26 +418,42 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                   {/* Bookmark Button for Assistant Analytical Queries */}
                   {isBot && (msg.sql || /select\s+.+\s+from/i.test(msg.content)) && (
                     <div className="flex items-center gap-2 pt-0.5">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSaveGoldenKPI(msg)}
-                        disabled={savedGoldenIds.has(msg.id)}
-                        className="h-7 text-[11px] font-mono flex items-center gap-1.5 border-amber-500/30 text-amber-800 bg-amber-500/5 hover:bg-amber-500/15 hover:border-amber-500/50 rounded-lg cursor-pointer transition-all"
-                      >
-                        {savedGoldenIds.has(msg.id) ? (
-                          <>
-                            <BookmarkCheck className="w-3.5 h-3.5 text-amber-600" />
+                      {savedGoldenIds.has(msg.id) ? (
+                        <>
+                          <Button
+                            type="button"
+                            variant="save"
+                            size="sm"
+                            disabled
+                            className="h-8 px-3 text-[11px] font-mono flex items-center gap-1.5 opacity-90 rounded-lg"
+                          >
+                            <BookmarkCheck className="w-3.5 h-3.5 text-white" />
                             <span>Saved as Golden KPI</span>
-                          </>
-                        ) : (
-                          <>
-                            <Bookmark className="w-3.5 h-3.5 text-amber-600" />
-                            <span>Save as Golden KPI</span>
-                          </>
-                        )}
-                      </Button>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="delete"
+                            size="sm"
+                            onClick={() => handleDeleteGoldenKPI(msg.id)}
+                            className="h-8 px-2.5 text-[11px] font-mono flex items-center gap-1 rounded-lg cursor-pointer"
+                            title="Delete this saved KPI"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="save"
+                          size="sm"
+                          onClick={() => handleSaveGoldenKPI(msg)}
+                          className="h-8 px-3 text-[11px] font-mono flex items-center gap-1.5 rounded-lg cursor-pointer"
+                        >
+                          <Bookmark className="w-3.5 h-3.5 text-white" />
+                          <span>Save as Golden KPI</span>
+                        </Button>
+                      )}
                     </div>
                   )}
 

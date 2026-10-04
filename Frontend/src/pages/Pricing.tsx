@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
-  Check, ArrowRight, ShieldCheck, 
-  ChevronDown, ChevronUp, HelpCircle,
+  Check, ArrowRight, 
+  ChevronDown, ChevronUp,
   FileSpreadsheet, SlidersHorizontal, BarChart3, FileText
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -102,13 +102,9 @@ export const Pricing = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-semibold uppercase tracking-wider font-mono border border-emerald-500/20">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-              <span>100% Free & Open Source</span>
-            </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.08]">
-              Full Platform Access. <span className="text-primary block mt-0.5">Zero Paywalls.</span>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
+              Full platform access. <span className="text-primary block mt-0.5">Zero paywalls.</span>
             </h1>
             
             <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
@@ -132,7 +128,7 @@ export const Pricing = () => {
                     Active Release
                   </span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-display font-extrabold text-foreground uppercase tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-display font-extrabold text-foreground tracking-[-0.015em]">
                   GetReport Open Edition
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground font-sans">
@@ -190,8 +186,8 @@ export const Pricing = () => {
         {/* Section 2: 4-Category Capability Bento Grid */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-6xl space-y-8">
           <div className="text-center max-w-2xl mx-auto space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground uppercase tracking-tight">
-              Platform Capabilities & Architecture
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground tracking-[-0.02em]">
+              Platform capabilities & architecture
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground font-sans leading-relaxed">
               Every single algorithm, metric, and data engine component included in GetReport Open Edition.
@@ -246,12 +242,8 @@ export const Pricing = () => {
         {/* Section 3: Interactive FAQ Accordion */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-4xl space-y-6">
           <div className="text-center max-w-2xl mx-auto space-y-1.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-mono font-bold uppercase tracking-wider">
-              <HelpCircle className="h-3.5 w-3.5" />
-              <span>Frequently Asked Questions</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
-              Everything You Need to Know
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
+              Everything you need to know
             </h2>
           </div>
 
@@ -294,7 +286,7 @@ export const Pricing = () => {
         {/* Section 4: Bottom Conversion Bar */}
         <div className="border-t border-border/60 bg-muted/20 py-10 sm:py-12">
           <div className="container mx-auto px-4 text-center space-y-4 max-w-3xl">
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
               Start auditing datasets in seconds
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground font-sans max-w-lg mx-auto">

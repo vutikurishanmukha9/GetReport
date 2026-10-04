@@ -65,13 +65,9 @@ export const Contact = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20">
-              <MessageSquare className="h-3.5 w-3.5" />
-              <span>Engineering & Community Support</span>
-            </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.08]">
-              Get in Touch with Our Team.
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
+              Get in touch with our team.
             </h1>
             
             <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
@@ -171,8 +167,8 @@ export const Contact = () => {
             <div className="lg:col-span-7">
               <Card className="border border-border bg-card shadow-premium rounded-2xl sm:rounded-3xl p-5 sm:p-7 space-y-4 sm:space-y-5">
                 <div className="space-y-1 border-b border-border/60 pb-3">
-                  <h2 className="text-lg sm:text-xl font-display font-bold text-foreground uppercase tracking-tight">
-                    Send a Message
+                  <h2 className="text-lg sm:text-xl font-display font-bold text-foreground tracking-[-0.015em]">
+                    Send a message
                   </h2>
                   <p className="text-xs text-muted-foreground font-sans">
                     Fill out the form below and we will route your inquiry to the appropriate engineering team.

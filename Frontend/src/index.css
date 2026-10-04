@@ -1,8 +1,198 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@font-face {
+  font-family: 'Mont';
+  src: url('/fonts/Mont-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mont';
+  src: url('/fonts/Mont-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mont';
+  src: url('/fonts/Mont-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mont';
+  src: url('/fonts/Mont-Heavy.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mont';
+  src: url('/fonts/Mont-Heavy.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mont Heavy';
+  src: url('/fonts/Mont-Heavy.otf') format('opentype');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Multi-color ambient animated mesh for living, luxurious professional atmosphere */
+@keyframes auroraGradientShift {
+  0% {
+    background-position: 0% 50%, 50% 0%, 100% 50%, 0% 100%, 50% 50%;
+    filter: hue-rotate(0deg);
+  }
+  33% {
+    background-position: 60% 100%, 0% 50%, 50% 0%, 100% 50%, 20% 80%;
+    filter: hue-rotate(20deg);
+  }
+  66% {
+    background-position: 100% 50%, 100% 100%, 0% 50%, 50% 0%, 80% 20%;
+    filter: hue-rotate(-15deg);
+  }
+  100% {
+    background-position: 0% 50%, 50% 0%, 100% 50%, 0% 100%, 50% 50%;
+    filter: hue-rotate(0deg);
+  }
+}
+
+@keyframes floatAura1 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.38;
+  }
+  33% {
+    transform: translate(60px, -45px) scale(1.2);
+    opacity: 0.52;
+  }
+  66% {
+    transform: translate(-35px, 40px) scale(0.92);
+    opacity: 0.32;
+  }
+}
+
+@keyframes floatAura2 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.32;
+  }
+  33% {
+    transform: translate(-55px, 50px) scale(1.16);
+    opacity: 0.48;
+  }
+  66% {
+    transform: translate(50px, -35px) scale(0.88);
+    opacity: 0.26;
+  }
+}
+
+@keyframes floatAura3 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.28;
+  }
+  50% {
+    transform: translate(45px, -40px) scale(1.22);
+    opacity: 0.45;
+  }
+}
+
+@keyframes floatAura4 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.22;
+  }
+  50% {
+    transform: translate(-45px, 35px) scale(1.15);
+    opacity: 0.38;
+  }
+}
+
+.animate-aurora-1 {
+  animation: floatAura1 16s ease-in-out infinite;
+}
+
+.animate-aurora-2 {
+  animation: floatAura2 20s ease-in-out infinite;
+}
+
+.animate-aurora-3 {
+  animation: floatAura3 14s ease-in-out infinite;
+}
+
+.animate-aurora-4 {
+  animation: floatAura4 18s ease-in-out infinite;
+}
+
+@keyframes homeAmbientFlow {
+  0% {
+    background-position: 0% 0%, 100% 0%, 50% 100%, 0% 100%, 100% 100%;
+    filter: hue-rotate(0deg);
+  }
+  33% {
+    background-position: 60% 40%, 10% 90%, 90% 10%, 70% 30%, 30% 70%;
+    filter: hue-rotate(22deg);
+  }
+  66% {
+    background-position: 100% 100%, 50% 0%, 0% 50%, 30% 90%, 80% 20%;
+    filter: hue-rotate(-16deg);
+  }
+  100% {
+    background-position: 0% 0%, 100% 0%, 50% 100%, 0% 100%, 100% 100%;
+    filter: hue-rotate(0deg);
+  }
+}
+
+.bg-mesh-aurora {
+  background-color: #f1f5f9;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.18) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.18) 0px, transparent 50%),
+    radial-gradient(at 50% 40%, rgba(168, 85, 247, 0.10) 0px, transparent 50%),
+    radial-gradient(at 10% 90%, rgba(59, 130, 246, 0.14) 0px, transparent 50%),
+    radial-gradient(at 90% 90%, rgba(16, 185, 129, 0.10) 0px, transparent 50%);
+}
+
+.bg-mesh-hero {
+  background-color: #f4f7fb;
+  background-image: 
+    radial-gradient(ellipse 90% 60% at 30% -10%, rgba(139, 92, 246, 0.24), transparent 70%),
+    radial-gradient(ellipse 70% 50% at 85% 20%, rgba(56, 189, 248, 0.20), transparent 60%),
+    radial-gradient(ellipse 80% 60% at 10% 70%, rgba(244, 63, 94, 0.14), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 80% 90%, rgba(16, 185, 129, 0.15), transparent 70%),
+    radial-gradient(ellipse 100% 80% at 50% 50%, rgba(99, 102, 241, 0.12), transparent 80%);
+  background-size: 160% 160%;
+  animation: auroraGradientShift 22s ease-in-out infinite;
+}
+
+.bg-mesh-home {
+  background-color: #f1f5f9;
+  background-image: 
+    radial-gradient(ellipse 90% 70% at 15% 10%, rgba(139, 92, 246, 0.18), transparent 60%),
+    radial-gradient(ellipse 85% 65% at 85% 30%, rgba(56, 189, 248, 0.19), transparent 55%),
+    radial-gradient(ellipse 80% 65% at 10% 65%, rgba(244, 63, 94, 0.13), transparent 60%),
+    radial-gradient(ellipse 75% 60% at 85% 80%, rgba(16, 185, 129, 0.15), transparent 60%),
+    radial-gradient(ellipse 90% 70% at 50% 50%, rgba(99, 102, 241, 0.14), transparent 70%);
+  background-size: 180% 180%;
+  animation: homeAmbientFlow 24s ease-in-out infinite;
+  will-change: background-position, filter;
+}
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
@@ -10,46 +200,91 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 40 24% 97%;
-    --foreground: 240 14% 10%;
+    /* Grounded cool slate canvas (#EEF2F6) - rich medium contrast, eliminates glare */
+    --background: 215 22% 93%;
+    /* Deep obsidian midnight slate typography (#0F172A) for razor-sharp legibility */
+    --foreground: 222 47% 11%;
 
+    /* Pure crisp white cards */
     --card: 0 0% 100%;
-    --card-foreground: 240 12% 10%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 12% 10%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 344 58% 30%;
+    /* High-precision electric royal cobalt primary (#2563EB) */
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 40 18% 92%;
-    --secondary-foreground: 240 12% 10%;
+    /* Crisp cool slate secondary & muted (#E2E8F0) */
+    --secondary: 215 20% 89%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 40 16% 93%;
-    --muted-foreground: 240 8% 35%;
+    --muted: 215 20% 89%;
+    --muted-foreground: 217 19% 40%;
 
-    --accent: 40 18% 91%;
-    --accent-foreground: 240 12% 10%;
+    /* Subtle icy cobalt accent wash */
+    --accent: 214 95% 93%;
+    --accent-foreground: 224 76% 48%;
 
-    --destructive: 0 75% 45%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 40 14% 82%;
-    --input: 40 14% 78%;
-    --ring: 344 58% 30%;
+    /* Crisp slate borders (#CBD5E1) */
+    --border: 215 20% 82%;
+    --input: 215 20% 82%;
+    --ring: 221 83% 53%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 40 24% 97%;
-    --sidebar-foreground: 240 12% 10%;
-    --sidebar-primary: 344 58% 30%;
+    --sidebar-background: 215 22% 93%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 221 83% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 40 30% 86%;
-    --sidebar-accent-foreground: 240 12% 10%;
-    --sidebar-border: 40 18% 78%;
-    --sidebar-ring: 344 58% 30%;
+    --sidebar-accent: 215 20% 89%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 215 20% 82%;
+    --sidebar-ring: 221 83% 53%;
   }
 
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+
+    --card: 224 71% 7%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 224 71% 7%;
+    --popover-foreground: 213 31% 91%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 223 47% 11%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --ring: 224 76% 48%;
+
+    --sidebar-background: 224 71% 4%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 222 47% 11%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 216 34% 17%;
+    --sidebar-ring: 217 91% 60%;
+  }
 }
 
 @layer base {
@@ -111,11 +346,18 @@ All colors MUST be HSL.
   background: hsl(var(--muted-foreground) / 0.4);
 }
 
-/* Premium Button Inset Shadows */
+/* Premium Inset & Card Shadows */
 .shadow-premium {
   box-shadow: 
-    0 1px 2px 0 rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+    0 1px 3px 0 rgba(15, 23, 42, 0.06),
+    0 10px 25px -5px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+}
+
+.shadow-card-elevated {
+  box-shadow:
+    0 4px 6px -1px rgba(15, 23, 42, 0.05),
+    0 12px 24px -4px rgba(15, 23, 42, 0.07);
 }
 
 /* ─── Transitions.dev & beUI Semantic Motion Tokens ────────────────────── */
@@ -124,7 +366,7 @@ All colors MUST be HSL.
 }
 .t-card-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 14px 28px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
 }
 
 .t-spring-press {
@@ -133,4 +375,3 @@ All colors MUST be HSL.
 .t-spring-press:active {
   transform: scale(0.97);
 }
-

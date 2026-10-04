@@ -141,7 +141,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     pollStatus(taskId);
 
     // ── 1. Primary Strategy: Server-Sent Events (SSE) Stream ──────────
-    if (typeof EventSource !== 'undefined') {
+    if ("EventSource" in globalThis) {
       try {
         const unsub = api.subscribeTaskStatus(taskId, {
           onProgress: (data) => {

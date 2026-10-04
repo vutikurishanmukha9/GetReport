@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Upload, FileSpreadsheet, X, Shield, Lock } from "lucide-react";
+import { Upload, FileSpreadsheet, X, Shield, Lock, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -390,7 +390,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
             >
               <div className="flex items-center justify-between border-b border-border/60 pb-2">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-xs sm:text-sm font-display font-bold text-foreground uppercase tracking-wide">
+                  <h4 className="text-xs sm:text-sm font-display font-bold text-foreground">
                     Staged Datasets
                   </h4>
                   <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono text-xs font-bold">
@@ -398,12 +398,15 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   </span>
                 </div>
                 {!isProcessing && (
-                  <button 
+                  <Button 
+                    variant="delete"
+                    size="sm"
                     onClick={clearStaging}
-                    className="text-xs text-muted-foreground hover:text-destructive transition-colors font-medium"
+                    className="h-7 px-2.5 rounded-lg text-xs gap-1.5 cursor-pointer font-semibold"
                   >
-                    Clear All
-                  </button>
+                    <Trash2 className="h-3 w-3" />
+                    <span>Clear All</span>
+                  </Button>
                 )}
               </div>
 
@@ -442,10 +445,10 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                       {!isProcessing && (
                         <button
                           onClick={() => removeFileFromStaging(idx)}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors t-spring-press cursor-pointer"
-                          title="Remove file from staging"
+                          className="h-7 w-7 rounded-lg text-rose-600 hover:text-white hover:bg-rose-600 border border-transparent hover:border-rose-600 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-90"
+                          title="Delete this file from staging"
                         >
-                          <X className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </motion.div>
@@ -493,13 +496,12 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                 </div>
               )}
 
-              {/* Manual "Start Analysis" Burgundy CTA Button */}
+              {/* Manual "Start Analysis" CTA Button */}
               {!isProcessing && (
                 <div className="pt-2">
-                  <Button
-                    size="lg"
+                  <button
                     onClick={startAnalysisPipeline}
-                    className="w-full rounded-xl shadow-premium bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 py-3.5 text-sm font-display font-semibold flex items-center justify-center gap-2"
+                    className="w-full h-12 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display font-bold text-sm tracking-tight shadow-[0_4px_16px_-2px_rgba(124,58,237,0.38),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-violet-400/40 ring-1 ring-white/20 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <FileSpreadsheet className="h-4 w-4" />
                     <span>
@@ -507,7 +509,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                         ? `Start Joined Analysis (${stagedFiles.length} Datasets on '${joinKey}')`
                         : "Start Analysis & Audit (1 Dataset)"}
                     </span>
-                  </Button>
+                  </button>
                 </div>
               )}
             </motion.div>
@@ -526,7 +528,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
           <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
             <Shield className="h-4 w-4" />
           </div>
-          <h3 className="text-xs sm:text-sm font-display font-bold text-foreground uppercase tracking-wide">
+          <h3 className="text-xs sm:text-sm font-display font-bold text-foreground">
             Your Data, Your Control
           </h3>
         </div>

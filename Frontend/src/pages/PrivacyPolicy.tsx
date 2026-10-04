@@ -1,4 +1,4 @@
-import { Lock, Trash2, EyeOff, Server, ShieldCheck } from "lucide-react";
+import { Lock, Trash2, EyeOff, Server } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -12,13 +12,9 @@ export const PrivacyPolicy = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 text-xs font-semibold uppercase tracking-wider font-mono border border-emerald-500/20">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Zero Retention & Privacy Charter</span>
-            </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.08]">
-              Privacy & In-Memory Guarantees.
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
+              Privacy & in-memory guarantees.
             </h1>
             
             <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
@@ -78,7 +74,7 @@ export const PrivacyPolicy = () => {
             <section className="space-y-2">
               <div className="flex items-center gap-2 border-b border-border/60 pb-2">
                 <span className="font-mono font-bold text-primary text-xs">SECTION 01</span>
-                <h2 className="text-base sm:text-lg font-display font-bold text-foreground uppercase tracking-tight">
+                <h2 className="text-base sm:text-lg font-display font-bold text-foreground tracking-[-0.015em]">
                   Information Collection & Data Lifecycle
                 </h2>
               </div>
@@ -93,7 +89,7 @@ export const PrivacyPolicy = () => {
             <section className="space-y-2">
               <div className="flex items-center gap-2 border-b border-border/60 pb-2">
                 <span className="font-mono font-bold text-primary text-xs">SECTION 02</span>
-                <h2 className="text-base sm:text-lg font-display font-bold text-foreground uppercase tracking-tight">
+                <h2 className="text-base sm:text-lg font-display font-bold text-foreground tracking-[-0.015em]">
                   Third-Party Subprocessors & LLM Safety Boundary
                 </h2>
               </div>
@@ -105,7 +101,7 @@ export const PrivacyPolicy = () => {
             <section className="space-y-2">
               <div className="flex items-center gap-2 border-b border-border/60 pb-2">
                 <span className="font-mono font-bold text-primary text-xs">SECTION 03</span>
-                <h2 className="text-base sm:text-lg font-display font-bold text-foreground uppercase tracking-tight">
+                <h2 className="text-base sm:text-lg font-display font-bold text-foreground tracking-[-0.015em]">
                   User Ownership & Immediate Memory Deletion
                 </h2>
               </div>

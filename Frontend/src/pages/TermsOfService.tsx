@@ -12,13 +12,9 @@ export const TermsOfService = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20">
-              <Scale className="h-3.5 w-3.5" />
-              <span>Legal Operating Agreement</span>
-            </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.08]">
-              Terms of Service.
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
+              Terms of service.
             </h1>
             
             <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
@@ -40,7 +36,7 @@ export const TermsOfService = () => {
                 </div>
                 <div>
                   <span className="font-mono text-xs text-primary font-bold">CLAUSE 01</span>
-                  <h2 className="text-base sm:text-lg font-display font-bold text-foreground uppercase tracking-tight">
+                  <h2 className="text-base sm:text-lg font-display font-bold text-foreground tracking-[-0.015em]">
                     1. Acceptance of Terms & Open Source Framework
                   </h2>
                 </div>
@@ -62,7 +58,7 @@ export const TermsOfService = () => {
                 </div>
                 <div>
                   <span className="font-mono text-xs text-rose-600 font-bold">CLAUSE 02</span>
-                  <h2 className="text-base sm:text-lg font-display font-bold text-foreground uppercase tracking-tight">
+                  <h2 className="text-base sm:text-lg font-display font-bold text-foreground tracking-[-0.015em]">
                     2. Acceptable Use & Payload Safety
                   </h2>
                 </div>
@@ -80,7 +76,7 @@ export const TermsOfService = () => {
                 </div>
                 <div>
                   <span className="font-mono text-xs text-emerald-600 font-bold">CLAUSE 03</span>
-                  <h2 className="text-base sm:text-lg font-display font-bold text-foreground uppercase tracking-tight">
+                  <h2 className="text-base sm:text-lg font-display font-bold text-foreground tracking-[-0.015em]">
                     3. Complete Data Ownership & Commercial Rights
                   </h2>
                 </div>
@@ -98,7 +94,7 @@ export const TermsOfService = () => {
                 </div>
                 <div>
                   <span className="font-mono text-xs text-amber-600 font-bold">CLAUSE 04</span>
-                  <h2 className="text-base sm:text-lg font-display font-bold text-foreground uppercase tracking-tight">
+                  <h2 className="text-base sm:text-lg font-display font-bold text-foreground tracking-[-0.015em]">
                     4. Limitation of Liability & Audit Disclaimer
                   </h2>
                 </div>

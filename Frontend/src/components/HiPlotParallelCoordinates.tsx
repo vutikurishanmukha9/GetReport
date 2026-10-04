@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Sliders, RefreshCw, Filter, Eye, Layers } from 'lucide-react';
+import type { DataRow } from '@/types/api';
 
 export interface HiPlotDimension {
   name: string;
@@ -19,12 +20,12 @@ export interface HiPlotPayload {
   sampled_rows: number;
   is_sampled: boolean;
   dimensions: HiPlotDimension[];
-  datapoints: Record<string, any>[];
+  datapoints: DataRow[];
 }
 
 interface Props {
   payload: HiPlotPayload;
-  onIsolateSelection?: (selectedRows: Record<string, any>[]) => void;
+  onIsolateSelection?: (selectedRows: DataRow[]) => void;
 }
 
 export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateSelection }) => {
@@ -240,7 +241,7 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
     });
 
     if (closestDim) {
-      setDraggingDim((closestDim as HiPlotDimension).name);
+      setDraggingDim(closestDim.name);
       setDragStartY(y);
       setDragCurrentY(y);
     }

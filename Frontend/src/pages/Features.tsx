@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
-  Cpu, ArrowRight, Layers, CheckCircle2, 
-  FileText, ArrowLeftRight, Activity, Sliders, ShieldCheck,
+  ArrowRight, Layers, CheckCircle2, 
+  FileText, ArrowLeftRight, Activity, ShieldCheck,
   Code2, MessageSquareCode
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -50,12 +50,8 @@ export const Features = () => {
               
               {/* Left Column: Editorial Headline & Value Proposition */}
               <div className="lg:col-span-7 space-y-4 sm:space-y-5 text-left">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20">
-                  <Cpu className="h-3.5 w-3.5" />
-                  <span>100% In-Memory Polars Engine</span>
-                </div>
                 
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold tracking-tight text-foreground leading-[1.08] uppercase">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold tracking-[-0.02em] text-foreground leading-[1.12]">
                   Engineered for rigorous <span className="text-primary block mt-0.5">data quality audits.</span>
                 </h1>
                 
@@ -155,11 +151,7 @@ export const Features = () => {
             
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-5">
               <div className="space-y-1.5">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-mono font-bold uppercase tracking-wider">
-                  <Sliders className="h-3.5 w-3.5" />
-                  <span>Interactive Algorithm Simulator</span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
                   Column Confidence Scoring Engine
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-xl font-sans">
@@ -306,8 +298,8 @@ export const Features = () => {
         {/* Section 3: Core Capabilities Bento Grid */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-7xl space-y-8">
           <div className="text-center max-w-2xl mx-auto space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground uppercase tracking-tight">
-              Enterprise Feature Matrix
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground tracking-[-0.02em]">
+              Enterprise feature matrix
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-sans">
               Comprehensive tools designed to replace manual Python spreadsheet scripts with deterministic, auditable workflows.
@@ -470,7 +462,7 @@ export const Features = () => {
         {/* Section 4: Bottom Conversion Bar */}
         <div className="border-t border-border/60 bg-muted/20 py-10 sm:py-12">
           <div className="container mx-auto px-4 text-center space-y-4 max-w-3xl">
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
               Ready to audit your first dataset?
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground font-sans max-w-lg mx-auto">

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { 
   FileSpreadsheet, Gauge, ShieldCheck, Code2, Copy, 
-  Check, ArrowRight, BookOpen, Layers
+  Check, ArrowRight, Layers
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -95,13 +95,9 @@ export const Documentation = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20">
-              <BookOpen className="h-3.5 w-3.5" />
-              <span>Technical Documentation & Architecture</span>
-            </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.08]">
-              GetReport Technical Hub.
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
+              GetReport technical hub.
             </h1>
             
             <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
@@ -205,7 +201,7 @@ export const Documentation = () => {
                     <FileSpreadsheet className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
                       1. Supported Ingestion Formats
                     </h2>
                     <p className="text-xs text-muted-foreground font-sans">
@@ -264,7 +260,7 @@ export const Documentation = () => {
                     <Gauge className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
                       2. Column Confidence Scoring
                     </h2>
                     <p className="text-xs text-muted-foreground font-sans">
@@ -306,7 +302,7 @@ export const Documentation = () => {
                     <Layers className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
                       3. Issue Ledger & Transformation DAG
                     </h2>
                     <p className="text-xs text-muted-foreground font-sans">
@@ -339,7 +335,7 @@ export const Documentation = () => {
                     <Code2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
                       4. REST API Endpoint Specifications
                     </h2>
                     <p className="text-xs text-muted-foreground font-sans">
@@ -404,7 +400,7 @@ export const Documentation = () => {
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
                       5. Architecture Specs & Security Invariants
                     </h2>
                     <p className="text-xs text-muted-foreground font-sans">
@@ -440,7 +436,7 @@ export const Documentation = () => {
         {/* Section: Bottom CTA */}
         <div className="border-t border-border/60 bg-muted/20 py-10 sm:py-12">
           <div className="container mx-auto px-4 text-center space-y-4 max-w-3xl">
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
               Ready to audit a dataset?
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground font-sans max-w-lg mx-auto">

@@ -113,6 +113,18 @@ GetReport enforces defense-in-depth security across every ingestion, execution, 
 - **CRLF & Header Injection Defense (CWE-113) (`VULN-09`)**: Request ID middleware validates all incoming `X-Request-ID` headers against a strict whitelist regex (`^[a-zA-Z0-9_-]{1,64}$`), discarding any newline (`\r`, `\n`) or delimiter injection payloads.
 - **DuckDB Native Sandbox**: Native C++ external access disabled (`SET enable_external_access = false;`), preventing local file inclusion (LFI), network calls, or unauthorized file reads.
 
+### 8. Modern Frontend & Human-Centric UI/UX Architecture
+GetReport pairs its backend engine with an agency-grade, accessible user interface:
+- **Customer-First Language (Jargon-Free Interface)**: Technical jargon ("Rust Ingest", "Polars Arrow Vector", "AST Sandboxing") has been replaced with intuitive business concepts ("Automated Spreadsheet Quality Audit", "Instant Scan < 2s", "Human-in-the-Loop Transparency", "Quality Score").
+- **Double-Bezel Hardware Architecture**: Concentric dual-layer frosted glass enclosures (`bg-slate-900/[0.06] backdrop-blur-2xl ring-1 ring-slate-900/10` outer bezel + `bg-white/95 backdrop-blur-xl` inner core) featured on both the floating desktop navigation header and the mobile bottom action bar.
+- **Ergonomic Semantic Button System**: Custom 12px squircle geometry (`rounded-xl`) with specialized semantic states and tactile active press feedback (`active:scale-95`):
+  - **Save & Save All**: Forest Emerald with specular highlight sheen and micro-elevation.
+  - **Delete & Delete All**: Refined Ruby/Crimson with destructive confirmation styling.
+  - **Launch & Start Free**: Signature Royal Iris / Amethyst jewel gradient (`from-violet-600 via-purple-600 to-indigo-600`) with top specular highlight and drop shadow.
+- **Architectural 2-Line Hero Typography**: Powered by **Plus Jakarta Sans** (`font-hero`), strictly enforcing a balanced 2-line desktop reading rhythm with zero orphan words, responsive `text-balance`, and a luminous Iris gradient.
+- **Continuous Section Flow**: Optimized vertical pacing with tight, intentional section paddings (`py-10 sm:py-14`) and header margins (`mb-6 sm:mb-8`), eliminating dead scrolling space while maintaining visual impact.
+- **Mobile-First Touch Ergonomics**: Fully responsive mobile floating bar with an animated `100% Private` status indicator, swipeable spreadsheet previews, and touch targets calibrated for mobile devices.
+
 ---
 
 ## Tech Stack
@@ -122,7 +134,9 @@ GetReport enforces defense-in-depth security across every ingestion, execution, 
 |---|---|
 | **Framework** | React 18 + Vite |
 | **Language** | TypeScript 5.8 |
+| **Typography** | Plus Jakarta Sans, Mont, JetBrains Mono |
 | **Styling** | Tailwind CSS 3.4, Vanilla CSS, Shadcn/UI primitives |
+| **Design Architecture** | Double-Bezel Frosted Glass, Squircle Geometry, Royal Iris Jewel Palette |
 | **Sanitization** | DOMPurify |
 | **Charts & Motion** | Recharts, Framer Motion, Lucide React |
 | **State & Data** | TanStack Query v5 |

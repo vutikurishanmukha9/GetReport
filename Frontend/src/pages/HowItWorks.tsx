@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { 
-  UploadCloud, Search, FileDown, ArrowRight, Brain, FileSpreadsheet, 
+  UploadCloud, Search, FileDown, ArrowRight, Brain, 
   CheckCircle2, Terminal, ChevronRight, ChevronLeft, 
   ShieldCheck, Layers, RefreshCw, Activity, Code2
 } from "lucide-react";
@@ -199,13 +199,9 @@ export const HowItWorks = () => {
         {/* Header */}
         <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider font-mono border border-primary/20">
-              <FileSpreadsheet className="h-3.5 w-3.5" />
-              <span>Auditable Pipeline Methodology</span>
-            </div>
             
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-tight uppercase leading-[1.08]">
-              Transparent Data Pipeline.
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
+              Transparent data pipeline.
             </h1>
             
             <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
@@ -351,8 +347,8 @@ export const HowItWorks = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl">
           <div className="border border-border bg-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-premium space-y-6">
             <div className="text-center max-w-2xl mx-auto space-y-1.5">
-              <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
-                Architectural Invariants & Safety Guarantees
+              <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
+                Architectural invariants & safety guarantees
               </h2>
               <p className="text-xs sm:text-sm text-muted-foreground font-sans">
                 Every calculation in GetReport adheres to 4 immutable engineering principles.
@@ -398,7 +394,7 @@ export const HowItWorks = () => {
         {/* Section 3: Bottom CTA */}
         <div className="border-t border-border/60 bg-muted/20 py-10 sm:py-12">
           <div className="container mx-auto px-4 text-center space-y-4 max-w-3xl">
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground uppercase tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
               Test the pipeline on your data
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground font-sans max-w-lg mx-auto">
