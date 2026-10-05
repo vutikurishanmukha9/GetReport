@@ -113,21 +113,21 @@ export const HeroSection = () => {
       {/* 2. Film Grain / Tactile Noise Texture Filter (opacity: .08 overlay to soften gradient) */}
       <div className="hero-grain-overlay" />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-start lg:pt-1">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-6 xl:px-8 max-w-7xl relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 xl:gap-10 items-start lg:pt-1">
           
           {/* Left Column: Value Proposition & High-Contrast Typography */}
           <div className="lg:col-span-7 space-y-6 sm:space-y-7 text-left">
 
             {/* Display Headline - Crisp white on deepened orange bowl with soft text-shadow */}
             <h1 
-              className="text-3xl xs:text-4xl sm:text-5xl lg:text-[2.65rem] xl:text-[3.1rem] font-hero font-extrabold tracking-[-0.03em] text-white leading-[1.14] sm:leading-[1.1] [text-wrap:balance]"
+              className="text-3xl xs:text-4xl sm:text-[2.75rem] lg:text-[2.1rem] xl:text-[2.65rem] font-hero font-extrabold tracking-[-0.03em] text-white leading-[1.14] sm:leading-[1.1] [text-wrap:pretty]"
               style={{ textShadow: '0 1px 18px rgba(120, 40, 0, 0.25)' }}
             >
-              <span className="block text-white">
+              <span className="block text-white lg:whitespace-nowrap">
                 The data audit platform built for
               </span>
-              <span className="block mt-1 sm:mt-1.5 text-white">
+              <span className="block mt-1 sm:mt-1.5 text-white lg:whitespace-nowrap">
                 when numbers actually matter.
               </span>
             </h1>
