@@ -18,8 +18,8 @@ const buttonVariants = cva(
         // Dedicated High-End Semantic Action Variants
         save: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-600/25 border border-emerald-400/40 ring-1 ring-white/20 active:scale-[0.98] font-semibold",
         saveAll: "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-600/30 border border-emerald-400/50 ring-1 ring-white/25 active:scale-[0.98] font-bold",
-        delete: "bg-rose-50 text-rose-700 border border-rose-200/90 hover:bg-rose-600 hover:text-white hover:border-rose-600 shadow-2xs hover:shadow-sm hover:shadow-rose-600/20 active:scale-[0.98] font-semibold",
-        deleteAll: "bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-md shadow-rose-600/30 border border-rose-400/40 ring-1 ring-white/20 active:scale-[0.98] font-bold",
+        delete: "bg-white text-slate-700 border border-slate-200/90 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 shadow-2xs hover:shadow-xs active:scale-[0.98] font-semibold transition-all duration-150",
+        deleteAll: "bg-white text-rose-700 border border-rose-200 hover:bg-rose-600 hover:text-white hover:border-rose-600 shadow-2xs hover:shadow-sm hover:shadow-rose-600/20 active:scale-[0.98] font-bold transition-all duration-150",
         launch: "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white shadow-[0_4px_14px_-2px_rgba(124,58,237,0.38),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-violet-400/40 ring-1 ring-white/20 active:scale-[0.98] font-bold",
       },
       size: {

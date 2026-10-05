@@ -85,75 +85,77 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
       }`}
     >
       <div className="max-w-5xl mx-auto pointer-events-auto">
-        {/* Double-Bezel Hardware Architecture: Outer Shell with Micro-Ring */}
+        {/* Clean Single-Border Pill Navigation without heavy halo ring */}
         <div
-          className={`p-1 sm:p-1.5 rounded-full bg-slate-900/[0.04] backdrop-blur-2xl ring-1 ring-slate-900/10 transition-all duration-300 ${
+          className={`rounded-full bg-white/95 sm:bg-white/90 backdrop-blur-xl px-3.5 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 border border-white/60 ${
             isScrolled
-              ? "shadow-[0_20px_48px_-12px_rgba(15,23,42,0.18),0_2px_8px_rgba(0,0,0,0.06)]"
-              : "shadow-[0_16px_40px_-12px_rgba(15,23,42,0.12),0_2px_6px_rgba(0,0,0,0.04)]"
+              ? "shadow-[0_20px_48px_-12px_rgba(40,20,70,0.22)]"
+              : "shadow-[0_16px_40px_-12px_rgba(40,20,70,0.16)]"
           }`}
         >
-          
-          {/* Inner Surface Core */}
-          <div className="rounded-full bg-white/95 sm:bg-white/90 backdrop-blur-xl border border-white/80 px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 sm:gap-4">
-            
-            {/* Left Pod: Brand Identity */}
-            <div className="flex items-center gap-2.5">
-              <Link to="/" onClick={onReset} className="flex items-center gap-2.5 group shrink-0">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 text-white shadow-md shadow-violet-600/25 transition-transform duration-200 group-hover:scale-105">
-                  <FileSpreadsheet className="h-4 w-4" />
-                </div>
-                <span className="text-base font-display font-black tracking-tight text-slate-900 group-hover:text-violet-700 transition-colors">
-                  GetReport
-                </span>
+          {/* Left Pod: Brand Identity */}
+          <div className="flex items-center gap-2.5">
+            <Link 
+              to="/" 
+              onClick={onReset} 
+              className="flex items-center gap-2.5 group shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 text-white shadow-md shadow-violet-600/25 transition-transform duration-200 group-hover:scale-105">
+                <FileSpreadsheet className="h-4 w-4" />
+              </div>
+              <span className="text-base font-hero font-extrabold tracking-tight text-slate-900 group-hover:text-violet-700 transition-colors">
+                GetReport
+              </span>
+            </Link>
+          </div>
+
+          {/* Center Pod: High-Contrast Segmented Navigator Track */}
+          <nav className="hidden md:flex items-center p-1 rounded-full bg-slate-100/90 border border-slate-200/70 gap-0.5">
+            {navLinks.map(({ to, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `px-3.5 py-1.5 rounded-full text-[13px] font-hero font-medium transition-all duration-150 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${
+                    isActive
+                      ? "bg-white text-violet-950 font-bold shadow-xs border border-slate-200/80"
+                      : "text-[#2b2b3d] hover:text-black hover:bg-slate-900/[0.06]"
+                  }`
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* Right Pod: Action Console */}
+          <div className="flex items-center gap-2">
+            {showReset ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onReset}
+                className="h-9 px-3.5 rounded-xl shadow-2xs border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 hover:text-violet-700 hover:border-violet-300 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-hero font-semibold text-xs gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-violet-600" />
+                <span>Start Over</span>
+              </Button>
+            ) : location.pathname !== "/workspace" ? (
+              <Link to="/workspace" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 rounded-xl">
+                <button 
+                  type="button"
+                  className="h-9 px-4 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-hero font-bold text-xs tracking-tight shadow-[0_3px_12px_-1px_rgba(124,58,237,0.4)] border border-violet-400/30 flex items-center gap-2 group transition-all duration-150 hover:-translate-y-0.5 active:scale-95 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+                >
+                  <span>Start Free</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-white/90 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0" />
+                </button>
               </Link>
-            </div>
-
-            {/* Center Pod: Segmented Interactive Glass Navigator Track */}
-            <nav className="hidden md:flex items-center p-1 rounded-full bg-slate-100/90 border border-slate-200/70 gap-0.5">
-              {navLinks.map(({ to, label }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={({ isActive }) =>
-                    `px-3 py-1.5 rounded-full text-xs font-display font-semibold transition-all duration-150 relative ${
-                      isActive
-                        ? "bg-white text-violet-950 font-bold shadow-xs border border-slate-200/60"
-                        : "text-slate-600 hover:text-slate-950 hover:bg-white/60"
-                    }`
-                  }
-                >
-                  {label}
-                </NavLink>
-              ))}
-            </nav>
-
-            {/* Right Pod: Action Console */}
-            <div className="flex items-center gap-2">
-              {showReset ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onReset}
-                  className="h-9 px-3.5 rounded-xl shadow-2xs border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 hover:text-violet-700 hover:border-violet-300 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-xs gap-1.5 cursor-pointer"
-                >
-                  <RotateCcw className="h-3.5 w-3.5 text-violet-600" />
-                  <span>Start Over</span>
-                </Button>
-              ) : location.pathname !== "/workspace" ? (
-                <Link to="/workspace">
-                  <button className="h-9 px-3.5 sm:px-4 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display font-bold text-xs tracking-tight shadow-[0_3px_12px_-1px_rgba(124,58,237,0.36),inset_0_1px_0_rgba(255,255,255,0.3)] border border-violet-400/40 flex items-center gap-2 group transition-all duration-150 hover:-translate-y-0.5 active:scale-95 cursor-pointer shrink-0">
-                    <span className="hidden xs:inline">Launch Workspace</span>
-                    <span className="xs:hidden">Start Free</span>
-                    <ArrowRight className="h-3.5 w-3.5 text-white/90 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0" />
-                  </button>
-                </Link>
-              ) : (
-                <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 border border-violet-200/80 text-violet-800 text-[11px] font-mono font-medium">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Session Active</span>
-                </div>
-              )}
+            ) : (
+              <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 border border-violet-200/80 text-violet-800 text-[11px] font-hero font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Session Active</span>
+              </div>
+            )}
 
               {/* Mobile Drawer Trigger */}
               <div className="md:hidden">
@@ -254,10 +256,8 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 </Sheet>
               </div>
             </div>
-
           </div>
         </div>
-      </div>
-    </header>
-  );
-};
+      </header>
+    );
+  };
