@@ -121,17 +121,24 @@ export const HeroSection = () => {
 
             {/* Display Headline - Crisp white on deepened orange bowl with soft text-shadow */}
             <h1 
-              className="font-hero font-extrabold tracking-[-0.03em] text-white leading-[1.14] sm:leading-[1.1]"
-              style={{ 
-                fontSize: 'clamp(1.25rem, 3.2vw, 2.65rem)',
-                textShadow: '0 1px 18px rgba(120, 40, 0, 0.25)' 
-              }}
+              className="text-2xl xs:text-3xl sm:text-4xl lg:text-[2.2rem] xl:text-[2.65rem] font-hero font-extrabold tracking-[-0.03em] text-white leading-[1.16] sm:leading-[1.12]"
+              style={{ textShadow: '0 1px 18px rgba(120, 40, 0, 0.25)' }}
             >
-              <span className="block text-white whitespace-nowrap">
-                The data audit platform built for
+              {/* Mobile View (< sm): 3 perfectly balanced semantic lines — eliminates awkward "built for" orphan */}
+              <span className="sm:hidden block">
+                <span className="block">The data audit platform</span>
+                <span className="block mt-1">built for when numbers</span>
+                <span className="block mt-1">actually matter.</span>
               </span>
-              <span className="block mt-1 sm:mt-1.5 text-white whitespace-nowrap">
-                when numbers actually matter.
+
+              {/* Tablet & Desktop View (sm+): 2 razor-sharp authoritative lines */}
+              <span className="hidden sm:block">
+                <span className="block whitespace-nowrap">
+                  The data audit platform built for
+                </span>
+                <span className="block mt-1 sm:mt-1.5 whitespace-nowrap">
+                  when numbers actually matter.
+                </span>
               </span>
             </h1>
 
