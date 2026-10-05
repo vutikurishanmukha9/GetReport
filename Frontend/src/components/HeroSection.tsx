@@ -106,32 +106,24 @@ export const HeroSection = () => {
   const activeDataset = SAMPLE_DATASETS.find(d => d.id === selectedDatasetId) || SAMPLE_DATASETS[0];
 
   return (
-    <section className="relative pt-24 sm:pt-28 lg:pt-32 pb-20 sm:pb-24 lg:pb-28 bg-hero-custom-gradient text-white border-b border-black/10 overflow-hidden">
-      {/* 1. Dynamic ambient glowing accent orbs harmonized with deep green, indigo, purple palette */}
-      <div className="absolute top-2 left-1/4 -translate-x-1/2 w-[550px] h-[450px] bg-gradient-to-tr from-[#44803b]/35 via-teal-400/20 to-transparent rounded-full blur-3xl pointer-events-none -z-10 animate-aurora-1" />
-      <div className="absolute top-1/3 right-1/4 translate-x-1/2 w-[580px] h-[480px] bg-gradient-to-bl from-[#654e80]/40 via-purple-300/20 to-transparent rounded-full blur-3xl pointer-events-none -z-10 animate-aurora-2" />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[700px] h-[280px] bg-gradient-to-t from-[#44803b]/30 via-emerald-400/20 to-transparent rounded-full blur-3xl pointer-events-none -z-10 animate-aurora-4" />
+    <section className="relative pt-28 sm:pt-28 lg:pt-28 pb-14 sm:pb-16 lg:pb-20 bg-hero-custom-gradient border-b border-slate-200/80 overflow-hidden">
+      {/* 1. Subtle Ethereal Micro-Dot Grid */}
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.22)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_25%,#000_65%,transparent_100%)] opacity-35 pointer-events-none" />
 
-      {/* 2. Directional Contrast Scrim: guarantees > 4.5:1 contrast behind white headline text */}
-      <div className="hero-contrast-scrim" />
-
-      {/* 3. Luminous Studio Spotlight & Vignette Filter Sheen */}
-      <div className="hero-vignette-lighting -z-10" />
-
-      {/* 4. Subtle Ethereal Micro-Dot Grid */}
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(rgba(255,255,255,0.15)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_25%,#000_65%,transparent_100%)] opacity-40 pointer-events-none" />
-
-      {/* 5. Film Grain / Tactile Noise Texture Filter (opacity: .08 overlay) */}
+      {/* 2. Film Grain / Tactile Noise Texture Filter (opacity: .08 overlay to soften gradient) */}
       <div className="hero-grain-overlay" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-start lg:pt-2">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 xl:gap-12 items-start lg:pt-1">
           
           {/* Left Column: Value Proposition & High-Contrast Typography */}
-          <div className="lg:col-span-7 space-y-5 sm:space-y-6 text-left">
+          <div className="lg:col-span-7 space-y-6 sm:space-y-7 text-left">
 
-            {/* Display Headline - Razor-sharp pure white, no blurring glow */}
-            <h1 className="text-3xl xs:text-4xl sm:text-5xl lg:text-[2.65rem] xl:text-[3.1rem] font-hero font-extrabold tracking-[-0.03em] text-white leading-[1.14] sm:leading-[1.1] [text-wrap:balance]">
+            {/* Display Headline - Crisp white on deepened orange bowl with soft text-shadow */}
+            <h1 
+              className="text-3xl xs:text-4xl sm:text-5xl lg:text-[2.65rem] xl:text-[3.1rem] font-hero font-extrabold tracking-[-0.03em] text-white leading-[1.14] sm:leading-[1.1] [text-wrap:balance]"
+              style={{ textShadow: '0 1px 18px rgba(120, 40, 0, 0.25)' }}
+            >
               <span className="block text-white">
                 The data audit platform built for
               </span>
@@ -140,46 +132,49 @@ export const HeroSection = () => {
               </span>
             </h1>
 
-            {/* Subheadline - High-contrast white with text-pretty to eliminate orphan 'clients.' */}
-            <p className="text-base sm:text-lg lg:text-[1.125rem] text-white/95 leading-relaxed max-w-xl font-hero font-normal [text-wrap:pretty]">
+            {/* Subheadline - High-contrast white text covering the extended orange bowl */}
+            <p 
+              className="text-base sm:text-lg lg:text-[1.125rem] text-white/95 leading-relaxed max-w-xl font-hero font-medium [text-wrap:pretty]"
+              style={{ textShadow: '0 1px 10px rgba(120, 40, 0, 0.20)' }}
+            >
               Catch hidden spreadsheet errors, fix bad data with one click, and generate professional PDF reports before sharing with your team or clients.
             </p>
 
             {/* Primary & Secondary Nested CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1 sm:pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
               <Link to="/workspace" className="w-full sm:w-auto">
                 <button
                   type="button"
-                  className="w-full sm:w-auto h-12 px-7 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-hero font-bold text-sm tracking-tight shadow-[0_4px_20px_-2px_rgba(124,58,237,0.5)] border border-violet-400/30 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2"
+                  className="w-full sm:w-auto h-12 px-7 rounded-xl bg-gradient-to-r from-[#4338ca] via-[#3730a3] to-[#312e81] hover:from-[#3730a3] hover:to-[#312e81] text-white font-hero font-bold text-sm tracking-tight shadow-[0_4px_20px_-2px_rgba(67,56,202,0.45)] border border-indigo-400/30 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2"
                 >
                   <span>Start Checking Your Data Free</span>
-                  <ArrowRight className="h-4 w-4 text-violet-200 transition-transform duration-200 group-hover:translate-x-1" />
+                  <ArrowRight className="h-4 w-4 text-indigo-200 transition-transform duration-200 group-hover:translate-x-1" />
                 </button>
               </Link>
 
               <Link to="/how-it-works" className="w-full sm:w-auto">
                 <button
                   type="button"
-                  className="w-full sm:w-auto h-12 px-6 rounded-xl border-[1.5px] border-white/85 hover:border-white bg-[#0e1d2e]/40 hover:bg-[#0e1d2e]/60 text-white font-hero font-bold text-sm shadow-sm backdrop-blur-md transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
+                  className="w-full sm:w-auto h-12 px-6 rounded-xl bg-white hover:bg-slate-50 text-[#1d1d2b] font-hero font-bold text-sm shadow-sm border border-black/10 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
                   <span>See How It Works</span>
                 </button>
               </Link>
             </div>
 
-            {/* Technical Proof Strip - Light Frosted Glass Chips (rgba(255,255,255,.18) with 1px white border) */}
-            <div className="pt-4 border-t border-white/20 grid grid-cols-3 gap-2 sm:gap-3 max-w-lg">
-              <div className="p-2.5 sm:p-3 rounded-xl bg-white/18 hover:bg-white/24 backdrop-blur-md border border-white/35 shadow-xs space-y-1 text-white transition-all">
-                <span className="block font-mono font-bold text-white text-xs sm:text-sm leading-tight">&lt; 2 Seconds</span>
-                <span className="leading-tight block text-white/95 text-[13px] sm:text-sm font-hero font-medium">Instant Scan</span>
+            {/* Technical Proof Strip - Clean Frosted Cards with single typography family on periwinkle base */}
+            <div className="pt-5 mt-2 border-t border-white/45 grid grid-cols-3 gap-2.5 sm:gap-3 max-w-lg">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-white/90 hover:bg-white backdrop-blur-md border border-white/70 shadow-xs space-y-1 transition-all">
+                <span className="block font-hero font-extrabold text-slate-900 text-sm sm:text-base leading-tight">&lt; 2 Seconds</span>
+                <span className="leading-tight block text-slate-600 text-xs sm:text-[13px] font-hero font-medium">Instant Scan</span>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-white/18 hover:bg-white/24 backdrop-blur-md border border-white/35 shadow-xs space-y-1 text-white transition-all">
-                <span className="block font-mono font-bold text-white text-xs sm:text-sm leading-tight">100% Private</span>
-                <span className="leading-tight block text-white/95 text-[13px] sm:text-sm font-hero font-medium">Never Stored</span>
+              <div className="p-3 sm:p-3.5 rounded-xl bg-white/90 hover:bg-white backdrop-blur-md border border-white/70 shadow-xs space-y-1 transition-all">
+                <span className="block font-hero font-extrabold text-slate-900 text-sm sm:text-base leading-tight">100% Private</span>
+                <span className="leading-tight block text-slate-600 text-xs sm:text-[13px] font-hero font-medium">Never Stored</span>
               </div>
-              <div className="p-2.5 sm:p-3 rounded-xl bg-white/18 hover:bg-white/24 backdrop-blur-md border border-white/35 shadow-xs space-y-1 text-white transition-all">
-                <span className="block font-mono font-bold text-white text-xs sm:text-sm leading-tight">Safe Export</span>
-                <span className="leading-tight block text-white/95 text-[13px] sm:text-sm font-hero font-medium">Formula Protected</span>
+              <div className="p-3 sm:p-3.5 rounded-xl bg-white/90 hover:bg-white backdrop-blur-md border border-white/70 shadow-xs space-y-1 transition-all">
+                <span className="block font-hero font-extrabold text-slate-900 text-sm sm:text-base leading-tight">Safe Export</span>
+                <span className="leading-tight block text-slate-600 text-xs sm:text-[13px] font-hero font-medium">Formula Protected</span>
               </div>
             </div>
 
@@ -188,17 +183,20 @@ export const HeroSection = () => {
           {/* Right Column: Clean Single-Border Interactive Demo Card */}
           <div className="lg:col-span-5 w-full">
             <div 
-              className="rounded-3xl bg-white/95 backdrop-blur-2xl p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-5 text-slate-800"
+              className="rounded-3xl p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-5 text-slate-800"
               style={{
-                border: '1px solid rgba(255, 255, 255, 0.5)',
-                boxShadow: '0 30px 60px -20px rgba(40, 20, 70, 0.45)',
+                backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.85)',
+                boxShadow: '0 24px 50px -15px rgba(249, 115, 22, 0.18), 0 12px 30px -10px rgba(188, 202, 248, 0.32)',
               }}
             >
               
               {/* Header: Sample Dataset Switcher */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-slate-100 pb-3 sm:pb-4">
                 <div>
-                  <span className="text-[13px] font-hero font-medium text-slate-500 block leading-tight">
+                  <span className="text-[13px] font-hero font-semibold text-slate-700 block leading-tight">
                     Try an example
                   </span>
                   <span className="text-sm sm:text-base font-hero font-bold text-slate-900 block mt-0.5">
@@ -213,9 +211,9 @@ export const HeroSection = () => {
                       key={d.id}
                       type="button"
                       onClick={() => setSelectedDatasetId(d.id)}
-                      className={`h-9 sm:h-8 px-3 rounded-lg text-xs sm:text-[12px] font-hero font-semibold transition-all active:scale-95 touch-manipulation flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${
+                      className={`h-9 sm:h-8 px-3 rounded-lg text-xs sm:text-[12px] font-hero font-semibold transition-all active:scale-95 touch-manipulation flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
                         selectedDatasetId === d.id
-                          ? "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white shadow-xs"
+                          ? "bg-gradient-to-r from-[#4338ca] via-[#3730a3] to-[#312e81] text-white shadow-xs"
                           : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                       }`}
                     >
@@ -230,7 +228,7 @@ export const HeroSection = () => {
                 <button
                   type="button"
                   onClick={() => setActiveViewMode("seal")}
-                  className={`h-10 sm:h-8.5 rounded-lg text-center font-hero font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-95 text-xs sm:text-[12px] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${
+                  className={`h-10 sm:h-8.5 rounded-lg text-center font-hero font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-95 text-xs sm:text-[12px] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
                     activeViewMode === "seal" ? "bg-white text-slate-900 border border-slate-200 shadow-xs" : "text-slate-500 hover:text-slate-900"
                   }`}
                 >
@@ -241,7 +239,7 @@ export const HeroSection = () => {
                 <button
                   type="button"
                   onClick={() => setActiveViewMode("matrix")}
-                  className={`h-10 sm:h-8.5 rounded-lg text-center font-hero font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-95 text-xs sm:text-[12px] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${
+                  className={`h-10 sm:h-8.5 rounded-lg text-center font-hero font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-95 text-xs sm:text-[12px] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
                     activeViewMode === "matrix" ? "bg-white text-slate-900 border border-slate-200 shadow-xs" : "text-slate-500 hover:text-slate-900"
                   }`}
                 >
@@ -252,7 +250,7 @@ export const HeroSection = () => {
                 <button
                   type="button"
                   onClick={() => setActiveViewMode("sql")}
-                  className={`h-10 sm:h-8.5 rounded-lg text-center font-hero font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-95 text-xs sm:text-[12px] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${
+                  className={`h-10 sm:h-8.5 rounded-lg text-center font-hero font-semibold transition-all flex items-center justify-center gap-1.5 active:scale-95 text-xs sm:text-[12px] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
                     activeViewMode === "sql" ? "bg-white text-slate-900 border border-slate-200 shadow-xs" : "text-slate-500 hover:text-slate-900"
                   }`}
                 >
@@ -388,12 +386,12 @@ export const HeroSection = () => {
 
               {/* Bottom Card Action */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-[13px] sm:text-sm font-hero font-medium text-slate-600">
+                <span className="text-[13px] sm:text-sm font-hero font-semibold text-slate-800">
                   Try this with your own spreadsheet
                 </span>
                 <Link 
                   to="/workspace" 
-                  className="inline-flex items-center gap-1.5 font-hero font-bold text-violet-700 hover:text-violet-900 hover:underline text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 rounded-md"
+                  className="inline-flex items-center gap-1.5 font-hero font-bold text-[#4338ca] hover:text-[#312e81] hover:underline text-xs sm:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-md"
                 >
                   <span>Open Free Workspace</span>
                   <ArrowRight className="h-3.5 w-3.5" />

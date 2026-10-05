@@ -85,12 +85,12 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
       }`}
     >
       <div className="max-w-5xl mx-auto pointer-events-auto">
-        {/* Clean Single-Border Pill Navigation without heavy halo ring */}
+        {/* Clean Single-Border Pill Navigation in clean rgba(255,255,255,.92) */}
         <div
-          className={`rounded-full bg-white/95 sm:bg-white/90 backdrop-blur-xl px-3.5 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 border border-white/60 ${
+          className={`rounded-full bg-white/[0.92] backdrop-blur-xl px-3.5 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 border border-white/80 ${
             isScrolled
-              ? "shadow-[0_20px_48px_-12px_rgba(40,20,70,0.22)]"
-              : "shadow-[0_16px_40px_-12px_rgba(40,20,70,0.16)]"
+              ? "shadow-[0_16px_40px_-10px_rgba(20,15,35,0.16)]"
+              : "shadow-[0_12px_32px_-10px_rgba(20,15,35,0.12)]"
           }`}
         >
           {/* Left Pod: Brand Identity */}
@@ -98,12 +98,12 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
             <Link 
               to="/" 
               onClick={onReset} 
-              className="flex items-center gap-2.5 group shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+              className="flex items-center gap-2.5 group shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 text-white shadow-md shadow-violet-600/25 transition-transform duration-200 group-hover:scale-105">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-[#4338ca] via-[#3730a3] to-[#312e81] text-white shadow-md shadow-indigo-600/25 transition-transform duration-200 group-hover:scale-105">
                 <FileSpreadsheet className="h-4 w-4" />
               </div>
-              <span className="text-base font-hero font-extrabold tracking-tight text-slate-900 group-hover:text-violet-700 transition-colors">
+              <span className="text-base font-hero font-extrabold tracking-tight text-slate-900 group-hover:text-indigo-700 transition-colors">
                 GetReport
               </span>
             </Link>
@@ -116,9 +116,9 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `px-3.5 py-1.5 rounded-full text-[13px] font-hero font-medium transition-all duration-150 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${
+                  `px-3.5 py-1.5 rounded-full text-[13px] font-hero font-medium transition-all duration-150 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     isActive
-                      ? "bg-white text-violet-950 font-bold shadow-xs border border-slate-200/80"
+                      ? "bg-white text-indigo-950 font-bold shadow-xs border border-slate-200/80"
                       : "text-[#2b2b3d] hover:text-black hover:bg-slate-900/[0.06]"
                   }`
                 }
@@ -135,16 +135,16 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 variant="outline"
                 size="sm"
                 onClick={onReset}
-                className="h-9 px-3.5 rounded-xl shadow-2xs border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 hover:text-violet-700 hover:border-violet-300 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-hero font-semibold text-xs gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+                className="h-9 px-3.5 rounded-xl shadow-2xs border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 hover:text-indigo-700 hover:border-indigo-300 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-hero font-semibold text-xs gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
-                <RotateCcw className="h-3.5 w-3.5 text-violet-600" />
+                <RotateCcw className="h-3.5 w-3.5 text-indigo-600" />
                 <span>Start Over</span>
               </Button>
             ) : location.pathname !== "/workspace" ? (
-              <Link to="/workspace" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 rounded-xl">
+              <Link to="/workspace" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-xl">
                 <button 
                   type="button"
-                  className="h-9 px-4 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-hero font-bold text-xs tracking-tight shadow-[0_3px_12px_-1px_rgba(124,58,237,0.4)] border border-violet-400/30 flex items-center gap-2 group transition-all duration-150 hover:-translate-y-0.5 active:scale-95 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+                  className="h-9 px-4 rounded-xl bg-gradient-to-r from-[#4338ca] via-[#3730a3] to-[#312e81] hover:from-[#3730a3] hover:to-[#312e81] text-white font-hero font-bold text-xs tracking-tight shadow-[0_3px_12px_-1px_rgba(67,56,202,0.4)] border border-indigo-400/30 flex items-center gap-2 group transition-all duration-150 hover:-translate-y-0.5 active:scale-95 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                 >
                   <span>Start Free</span>
                   <ArrowRight className="h-3.5 w-3.5 text-white/90 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0" />
