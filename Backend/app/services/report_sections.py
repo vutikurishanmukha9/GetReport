@@ -612,7 +612,7 @@ def _build_quality_flags_section(
     story.append(Spacer(1, 0.1 * inch))
 
     for col_name, flags in analysis_results["column_quality_flags"].items():
-        flag_text = "<br/>".join(f"⚠ {flag}" for flag in flags)
+        flag_text = "<br/>".join(f"• {flag}" for flag in flags)
         flag_para = Paragraph(f"<b>{col_name}</b><br/>{flag_text}", styles["WarningText"])
         warning_box = Table([[flag_para]], colWidths=[6.0 * inch])
         warning_box.setStyle(TableStyle([

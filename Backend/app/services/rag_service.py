@@ -210,7 +210,7 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         quality_score = analysis.get("quality_score", 100)
         grade = "A" if quality_score >= 90 else "B" if quality_score >= 80 else "C"
         
-        lines = [f"<h3>🛡️ Dataset Quality & Health Report for {filename}</h3>"]
+        lines = [f"<h3>Dataset Quality & Health Report for {filename}</h3>"]
         lines.append(f"• <b>Overall Quality Score</b>: <b>{quality_score}%</b> (Grade <b>{grade}</b>)<br/>")
         if data_issues:
             lines.append(f"• <b>Identified Quality Issues ({len(data_issues)})</b>:")
@@ -237,7 +237,7 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
     # 2. Outliers query
     if "outlier" in q_lower:
         summary = analysis.get("summary", {})
-        lines = [f"<h3>🔍 Outlier Detection Report for {filename}</h3>"]
+        lines = [f"<h3>Outlier Detection Report for {filename}</h3>"]
         mentioned_cols = [c for c in summary.keys() if c.lower() in q_lower or c.lower().replace('_', ' ') in q_lower]
         if mentioned_cols:
             for c in mentioned_cols:
@@ -267,7 +267,7 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         timing = cleaning_report.get("timing_ms", 0.0)
         renamed = cleaning_report.get("columns_renamed", {})
         
-        lines = [f"<h3>🧹 Data Cleaning & Transformation Actions for {filename}</h3>"]
+        lines = [f"<h3>Data Cleaning & Transformation Actions for {filename}</h3>"]
         lines.append(f"• <b>Total Cleaning Operations</b>: <b>{total_changes}</b> transformations executed in <code>{timing:.2f} ms</code><br/>")
         lines.append(f"• <b>Column Renaming & Standardization</b>: Standardized <b>{len(renamed)}</b> column headers to snake_case format.")
         lines.append(f"• <b>Duplicate Handling</b>: Filtered and purged <code>{cleaning_report.get('duplicate_rows_removed', 0)}</code> duplicate rows.")
@@ -278,7 +278,7 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
     # 4. Recommendations & Action Items
     if any(k in q_lower for k in ["recommend", "suggestion", "suggest", "next step", "advice", "guidance", "action item"]):
         recs = analysis.get("recommendations", [])
-        lines = [f"<h3>💡 AI Dataset Recommendations for {filename}</h3>"]
+        lines = [f"<h3>AI Dataset Recommendations for {filename}</h3>"]
         if recs and isinstance(recs, list):
             for i, r in enumerate(recs[:4], 1):
                 if isinstance(r, dict):
@@ -304,7 +304,7 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         if not corrs:
             corrs = analysis.get("correlation", {}).get("top_correlations", [])
             
-        lines = [f"<h3>📊 Correlation & Feature Relationships for {filename}</h3>"]
+        lines = [f"<h3>Correlation & Feature Relationships for {filename}</h3>"]
 
         # Check for specific column pair query
         mentioned_cols = [c for c in summary.keys() if c.lower() in q_lower or c.lower().replace('_', ' ') in q_lower]
@@ -347,7 +347,7 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
     cols = list(summary.keys()) if isinstance(summary, dict) else []
     domain = analysis.get("domain", "General Data")
     
-    lines = [f"<h3>📈 Dataset Analysis Summary ({filename})</h3>"]
+    lines = [f"<h3>Dataset Analysis Summary ({filename})</h3>"]
     lines.append(f"• <b>Detected Domain</b>: <code>{domain.replace('_', ' ').title()}</code>")
     lines.append(f"• <b>Evaluated Features</b>: <b>{len(cols)}</b> columns analyzed.")
     if cols:
@@ -1190,7 +1190,7 @@ class EnhancedRAGService:
                                 summary_text = "<br/>".join(rows_summary) if rows_summary else "No rows returned."
 
                                 golden_answer = (
-                                    f"🎯 <b>Verified Golden KPI Result</b><br/>"
+                                    f"<b>Verified Golden KPI Result</b><br/>"
                                     f"Matched verified KPI query for: <i>\"{golden.question}\"</i><br/><br/>"
                                     f"<b>SQL Query:</b><br/><code>{golden.sql_query}</code><br/><br/>"
                                     f"<b>Result:</b><br/>{summary_text}"
@@ -1448,7 +1448,7 @@ CONTEXT:
                                 summary_text = "<br/>".join(rows_summary) if rows_summary else "No rows returned."
 
                                 golden_answer = (
-                                    f"🎯 <b>Verified Golden KPI Result</b><br/>"
+                                    f"<b>Verified Golden KPI Result</b><br/>"
                                     f"Matched verified KPI query for: <i>\"{golden.question}\"</i><br/><br/>"
                                     f"<b>SQL Query:</b><br/><code>{golden.sql_query}</code><br/><br/>"
                                     f"<b>Result:</b><br/>{summary_text}"

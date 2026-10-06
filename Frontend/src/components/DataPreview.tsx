@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   ArrowLeft, ArrowRight, FileSpreadsheet, Hash, Calendar, Type,
-  AlertTriangle, Search, CheckCircle2, Database, Layers, Sparkles
+  AlertTriangle, Search, CheckCircle2, Database, Layers, FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,7 +129,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
             onClick={onGenerateReport}
             className="gap-2 flex-1 sm:flex-none h-10 px-5 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display text-xs sm:text-sm font-bold tracking-tight shadow-[0_4px_14px_-2px_rgba(124,58,237,0.38),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-violet-400/40 ring-1 ring-white/20 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center cursor-pointer"
           >
-            <Sparkles className="h-4 w-4" />
+            <FileText className="h-4 w-4" />
             <span>Generate Full Report</span>
             <ArrowRight className="h-4 w-4 opacity-90" />
           </button>

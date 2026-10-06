@@ -402,7 +402,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                           className="w-full h-auto max-h-[360px] object-contain rounded-lg bg-white"
                         />
                         <div className="mt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground px-1">
-                          <span>📊 Sandboxed Python Visualization</span>
+                          <span>Sandboxed Python Visualization</span>
                           <a
                             href={`data:image/png;base64,${msg.chart_base64}`}
                             download="analysis_chart.png"

@@ -89,6 +89,24 @@ class RowTriageConfig:
     learned_max_flag_share: float = 0.01  # if more than 1% of a column trips the test, keep only the worst 1%
     learned_tail_multiple: float = 2.5    # threshold is also at least this multiple of the column's own 99th percentile z
     learned_min_group: int = 50           # smallest missing-data pattern that gets its own error scale
+    # text layer (see text_intelligence.py)
+    text_enabled: bool = True
+    text_min_rows: int = 100
+    text_max_classes: int = 20            # categorical targets with more classes are not modelled
+    text_max_targets: int = 10
+    text_min_accuracy: float = 0.97       # a dependency must hold for ~all rows before violations are flagged
+    text_min_lift: float = 0.15           # and must beat always guessing the most common value by this much
+    text_p_low: float = 0.05              # actual value must be this unlikely given the rest of the row
+    text_confident: float = 0.90          # while the model is at least this sure of another value
+    text_shape_coverage: float = 0.95     # established formats must cover this share of a column
+    text_shape_max_established: int = 3   # more than this many formats means the column has no fixed format
+    text_shape_established: float = 0.05  # a format used by fewer than this share of values is a stray format
+    text_fixed_width_share: float = 0.90  # if one exact shape holds this share, the column is fixed width
+    text_coherent_group: float = 0.80     # rare values whose rows all point to the same context are real categories
+    text_rare_class_share: float = 0.02   # a value used by fewer than this share of rows counts as rare
+    text_free_text_len: float = 60.0      # columns with longer average text are free text and never judged
+    text_max_distinct: int = 5000
+    text_variant_similarity: float = 0.84
     random_state: int = 0
 
 
@@ -178,7 +196,11 @@ class RowTriageResult:
         drivers = self.explanations.get(position)
         if not drivers:
             return None
-        parts = [f"{d['column']}={d['value']} (expected about {d['expected']} given the rest of the row)" for d in drivers]
+        parts = [
+            f"{d['column']}={d['value']} ({d['note']})" if "note" in d
+            else f"{d['column']}={d['value']} (expected about {d['expected']} given the rest of the row)"
+            for d in drivers
+        ]
         return "; ".join(parts)
 
     def summary(self) -> dict[str, Any]:
@@ -632,6 +654,11 @@ def triage_rows(df: pl.DataFrame, config: RowTriageConfig | None = None) -> RowT
     learned_info: dict[str, Any] = {"ran": False, "reason": "disabled"}
     if cfg.learned_enabled:
         learned_info = _learned_layer(data, roles, valid, cfg, flags, explanations)
+
+    if cfg.text_enabled:
+        from app.services.text_intelligence import run_text_layer  # local import: text layer imports this module
+
+        learned_info["text"] = run_text_layer(data, roles, valid, cfg, flags, explanations)
 
     severity = np.zeros(n, dtype=np.int8)
     for f in flags:
