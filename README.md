@@ -12,7 +12,8 @@
 [![PostgreSQL](https://img.shields.io/badge/Database-Neon%20PostgreSQL-336791?logo=postgresql)](https://neon.tech/)
 [![Typst](https://img.shields.io/badge/PDF_Engine-Typst%200.15%2B-239DAD)](https://typst.app/)
 [![Security](https://img.shields.io/badge/Security-0%20Vulnerabilities%20%7C%20Audit%20Hardened-brightgreen?logo=shield)](https://github.com/)
-[![Tests](https://img.shields.io/badge/Tests-332%20Passed-brightgreen)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-387%20Passed-brightgreen)](https://github.com/)
+[![ML Anomaly Detection](https://img.shields.io/badge/ML-HistGradientBoosting%20%7C%20scikit--learn-F7931E?logo=scikitlearn)](https://scikit-learn.org/)
 
 ---
 
@@ -21,6 +22,7 @@
 
 GetReport unifies high-performance data processing, mathematical profiling, and agentic AI:
 - **Zero-Copy Hybrid Engine**: Combines **Polars (Rust)** for streaming aggregations with **DuckDB** for in-process SQL OLAP queries over Apache Arrow tables.
+- **Row Intelligence & Self-Supervised Anomaly Detection**: 4-tier row triage hierarchy (`PROTECT`, `REVIEW`, `FIX`, `EXCLUDE`) ensuring bit-identical preservation of clean records, automatic pruning of non-data rows (headers, totals, footers) before profiling, gated smart imputation against synthetic data hallucination, and cross-column relationship violation detection via out-of-fold `HistGradientBoostingRegressor`.
 - **Advanced Statistical Profiling & Time-Series**: Non-parametric dispersion estimators (MAD, IQR, Trimmed Mean), Bowley quartile skewness, Phik ($\Phi_K$) non-linear correlation matrices, Kats/Mann-Kendall trend detection, and Benford's Law forensic audits.
 - **High-Dimensional Visual Analytics**: Multi-parameter Parallel Coordinates plots powered by HiPlot and responsive SVG charts.
 - **Enterprise Data Governance**: Interactive Issue Ledger ("Jira for Dirty Data"), Great Expectations data contracts exporter, and immutable cryptographic DAG provenance.
@@ -80,27 +82,39 @@ GetReport unifies high-performance data processing, mathematical profiling, and 
 - **Skewness-Adjusted Outlier Fences**: Dynamically adjusts Tukey multiplier bounds according to sample skewness, preventing false alarms on heavy-tailed or monetary distributions.
 - **Missingness Structure Diagnostics**: Evaluates pairwise Phi-coefficient missingness matrices to classify MCAR, MAR, and MNAR structures, providing listwise deletion row-survival predictions.
 
-### 3. Forensic Confidence Scoring & Integrity Auditing
+### 3. Row Intelligence & Self-Supervised Anomaly Detection
+- **4-Tier Verdict Hierarchy (`RowVerdict`)**: Categorizes every row into a single explicit verdict before cleaning begins:
+  - `PROTECT` (Severity 0): Passes all checks; bit-identical guarantee through downstream cleaning.
+  - `REVIEW` (Severity 1): Suspicious or multi-column relationship violations; flagged with natural-language drivers for human audit, never mutated or dropped.
+  - `FIX` (Severity 2): Safe, deterministic cell repairs (masked null placeholders like `"N/A"`, imputable nulls with $\le 30\%$ column missingness).
+  - `EXCLUDE` (Severity 3): Non-data artifacts (blank rows, repeated headers, subtotal/total rows, export footers).
+- **Structural Sanitation & Statistical Isolation**: Purges non-data rows in Step 1b so summary totals never double revenue metrics or distort averages, and header strings never corrupt numeric column types. All summary statistics and quartiles run solely across valid data rows.
+- **Gated Smart Imputation**: Sparse rows ($\le 10\%$ populated) and heavily missing columns ($>30\%$ nulls) are strictly blocked from median/mode imputation, completely preventing the pipeline from hallucinating synthetic records.
+- **Self-Supervised Cross-Column ML Layer (`HistGradientBoostingRegressor`)**: Trains out-of-fold regression models natively handling NaNs. Evaluates columns with $R^2 \ge 0.30$, applies two-pass outlier decontamination, scales residuals by missingness pattern MAD ($\text{MAD} \times 1.4826$), and flags extreme tail deviations ($Z \ge 6.0$, $\ge 2.5 \times 99\text{th percentile}$, $\le 1\%$ cap).
+- **Contrastive Driver Explanations**: Generates plain-language diagnostics for flagged rows (e.g., `salary=95000 (expected about 35000 given the rest of the row)`).
+- **DAG Lineage Provenance**: Records all pruned non-data rows under the `"drop_non_data_rows"` node with partial reversibility and stored row IDs.
+
+### 4. Forensic Confidence Scoring & Integrity Auditing
 - **Benford's Law Forensic Audit**: Analyzes leading digit distributions against the logarithmic first-digit law using Pearson Chi-Square goodness-of-fit to uncover fabricated, synthetic, or manipulated numbers.
 - **Role-Adaptive Confidence Weighting**: Calibrates Completeness, Consistency, Validity, and Stability scores according to inferred column roles (identifiers, metrics, categories, dates).
 - **Population Stability Index (PSI)**: Monitors distribution drift and concept shifts across dataset versions.
 
-### 4. Conversational Sandboxing & Visual Concept Synthesis
+### 5. Conversational Sandboxing & Visual Concept Synthesis
 - **AST-Sandboxed Python Analyst Agent**: Parses generated code into an AST before execution. Blocks all forbidden imports (`os`, `sys`, `subprocess`, `socket`, `requests`, `pathlib`), reflection dunder attributes (`__class__`, `__subclasses__`, `__dict__`), and dangerous calls (`eval`, `exec`, `open`, `compile`).
 - **Headless Matplotlib Generation**: Captures high-resolution plots via Matplotlib's `Agg` headless backend, outputting Base64-encoded PNG cards directly into the conversational UI.
 - **Virtual Concept Synthesizer**: Translates natural-language intent or raw formulas (e.g. `margin = (revenue - cost) / revenue`) into valid, optimized Polars expressions, compiling them to augmented columns and recording provenance in the `TransformationDAG`.
 
-### 5. Data Governance, Contracts & Lineage
+### 6. Data Governance, Contracts & Lineage
 - **Issue Ledger ("Jira for Dirty Data")**: Identifies quality defects, produces automated remediation code, and enforces an approve/reject/modify lifecycle before applying fixes in a restricted Python scope.
 - **Great Expectations (GX) Contract Exporter**: Translates profile constraints into production-ready `ExpectationSuite` specifications (`.json` and standalone `.py` scripts) with column type, null percentage, and value range checks.
 - **Transformation DAG**: Tracks all dataset mutations with cryptographic data hashes, parent/child node linkages, execution durations, and automated reversibility drop hints.
 
-### 6. Time-Series Intelligence & High-Dimensional Analytics (Kats & HiPlot)
+### 7. Time-Series Intelligence & High-Dimensional Analytics (Kats & HiPlot)
 - **Kats Time-Series Forecasting & Anomaly Engine**: Performs monotonic trend analysis via Mann-Kendall tests, computes seasonal decomposition (additive/multiplicative STL) across temporal columns, and pinpoints structural changepoints.
 - **HiPlot Parallel Coordinates**: High-dimensional multi-parameter visual analytics rendering continuous and categorical axes with interactive brush selection and sub-population slicing.
 - **LightRAG Dual-Level Knowledge Graph**: Combines low-level entity-relationship extractions with high-level global dataset themes for grounded exploratory Q&A.
 
-### 7. Zero-Vulnerability Security Architecture (Audit-Hardened)
+### 8. Zero-Vulnerability Security Architecture (Audit-Hardened)
 GetReport enforces defense-in-depth security across every ingestion, execution, and rendering boundary:
 - **Strict Polars AST Whitelisting (`VULN-01`)**: The concept synthesis AST validator strictly allows only safe root tokens (`ALLOWED_POLARS_ROOTS` = `{"pl", "col", "lit", "when"}`), blocking arbitrary attribute access, file I/O operations (`read_*`, `scan_*`, `pipe`, `map_elements`), functions, and lambda expressions.
 - **Zero-Bypass HTML/SVG Escaping (`VULN-02`)**: Complete neutralization of stored/reflected XSS in executive report PDF rendering. AI insights, executive summaries, and recommendations are strictly autoescaped. Vector SVG charts are guarded against `<script>` and `<foreignObject>` tags.
@@ -113,7 +127,7 @@ GetReport enforces defense-in-depth security across every ingestion, execution, 
 - **CRLF & Header Injection Defense (CWE-113) (`VULN-09`)**: Request ID middleware validates all incoming `X-Request-ID` headers against a strict whitelist regex (`^[a-zA-Z0-9_-]{1,64}$`), discarding any newline (`\r`, `\n`) or delimiter injection payloads.
 - **DuckDB Native Sandbox**: Native C++ external access disabled (`SET enable_external_access = false;`), preventing local file inclusion (LFI), network calls, or unauthorized file reads.
 
-### 8. Modern Frontend & Human-Centric UI/UX Architecture
+### 9. Modern Frontend & Human-Centric UI/UX Architecture
 GetReport pairs its backend engine with an agency-grade, accessible user interface:
 - **Customer-First Language (Jargon-Free Interface)**: Technical jargon ("Rust Ingest", "Polars Arrow Vector", "AST Sandboxing") has been replaced with intuitive business concepts ("Automated Spreadsheet Quality Audit", "Instant Scan < 2s", "Human-in-the-Loop Transparency", "Quality Score").
 - **Double-Bezel Hardware Architecture**: Concentric dual-layer frosted glass enclosures (`bg-slate-900/[0.06] backdrop-blur-2xl ring-1 ring-slate-900/10` outer bezel + `bg-white/95 backdrop-blur-xl` inner core) featured on both the floating desktop navigation header and the mobile bottom action bar.
@@ -146,7 +160,7 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 |---|---|
 | **Framework** | FastAPI (Python 3.12+) with Pydantic v2 |
 | **OLAP Engine** | DuckDB 1.0+ (In-Process, Apache Arrow Zero-Copy) |
-| **Data Engine** | Polars (Rust Core), NumPy, SciPy, Scikit-Learn |
+| **Data & ML Engines** | Polars (Rust Core), DuckDB, NumPy, SciPy, Scikit-Learn |
 | **AI Agent** | Google Antigravity SDK (`google-antigravity`) |
 | **LLM Providers** | Google Gemini (2.5/3.7 Flash), OpenRouter, OpenAI |
 | **Database** | Neon Serverless PostgreSQL / SQLite (Local) |
@@ -248,14 +262,17 @@ pytest -q
 ```
 
 ```
-................................................................................................... [ 30%]
-................................................................................................... [ 60%]
-................................................................................................... [ 90%]
-................................                                                                    [100%]
-=================================== 332 passed in 66.98s ====================================
+........................................................................ [ 18%]
+........................................................................ [ 37%]
+...................................................................s.... [ 55%]
+........................................................................ [ 74%]
+........................................................................ [ 92%]
+............................                                             [100%]
+================== 387 passed, 1 skipped in 60.25s (100%) ==================
 ```
 
 ### Test Suite Highlights
+- **22 Row Intelligence & Machine Learning Tests** (`test_row_intelligence.py`): Validates 4-tier triage exclusivity, bit-identical immutability on clean records, safe non-data row pruning, gated imputation on sparse rows, and self-supervised multi-column anomaly detection (`HistGradientBoostingRegressor`) with contrastive driver explanations.
 - **17 Security Verification Tests** (`test_security_audit.py`): Validates complete 0-vulnerability posture across the full application surface:
   - DuckDB LFI rejection and C++ engine filesystem block (`SET enable_external_access = false;`)
   - AST sandbox dunder blocking, subscript reflection defense, and format string introspection protection

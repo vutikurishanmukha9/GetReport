@@ -13,6 +13,7 @@ import numpy as np
 import zipfile
 from fastapi import UploadFile, HTTPException
 from app.core.config import settings
+from app.services.row_intelligence import RowTriageConfig, sparse_row_mask, triage_rows
 
 # ─── Logger ──────────────────────────────────────────────────────────────────
 logger = logging.getLogger(__name__)
@@ -47,6 +48,7 @@ class CleaningReport:
     empty_rows_dropped:       int                              = 0
     empty_columns_dropped:    int                              = 0
     duplicate_rows_removed:   int                              = 0
+    non_data_rows_dropped:    int                              = 0
     columns_renamed:          dict[str, str]                   = field(default_factory=dict)
     type_conversions:         list[dict[str, str]]             = field(default_factory=list)
     numeric_nans_filled:      int                              = 0
@@ -54,12 +56,14 @@ class CleaningReport:
     phone_numbers_cleaned:    int                              = 0
     total_changes:            int                              = 0
     timing_ms:                float                            = 0.0
+    row_triage:               dict[str, Any]                   = field(default_factory=dict)
 
     def finalize(self) -> None:
         self.total_changes = (
             self.empty_rows_dropped
             + self.empty_columns_dropped
             + self.duplicate_rows_removed
+            + self.non_data_rows_dropped
             + len(self.columns_renamed)
             + len(self.type_conversions)
             + self.numeric_nans_filled
@@ -72,6 +76,7 @@ class CleaningReport:
             "empty_rows_dropped":       self.empty_rows_dropped,
             "empty_columns_dropped":    self.empty_columns_dropped,
             "duplicate_rows_removed":   self.duplicate_rows_removed,
+            "non_data_rows_dropped":    self.non_data_rows_dropped,
             "columns_renamed":          self.columns_renamed,
             "type_conversions":         self.type_conversions,
             "numeric_nans_filled":      self.numeric_nans_filled,
@@ -79,6 +84,7 @@ class CleaningReport:
             "phone_numbers_cleaned":    self.phone_numbers_cleaned,
             "total_changes":            self.total_changes,
             "timing_ms":                round(self.timing_ms, 2),
+            "row_triage":               self.row_triage,
         }
 
 # ─── Utility: Snake Case Conversion ──────────────────────────────────────────
@@ -815,6 +821,8 @@ def clean_data(
     rules: dict[str, Any] | None = None,
     dag: "TransformationDAG | None" = None,
     dataset_name: str = "",
+    row_intelligence: bool = True,
+    triage_config: RowTriageConfig | None = None,
 ) -> tuple[pl.DataFrame, CleaningReport, "TransformationDAG"]:
     """
     Clean the dataframe with optional transformation tracking.
@@ -824,6 +832,8 @@ def clean_data(
         rules: User-specified cleaning rules
         dag: Optional TransformationDAG for audit tracking
         dataset_name: Name for audit trail
+        row_intelligence: Classify rows first so only rows that need it are touched
+        triage_config: Optional tuning for row triage (protected columns, thresholds)
         
     Returns:
         Tuple of (cleaned_df, cleaning_report, transformation_dag)
@@ -861,6 +871,33 @@ def clean_data(
             parameters={"mappings": changed_cols},
             duration_ms=(time.perf_counter() - step_start) * 1000,
         )
+
+    # ─── Step 1b: Row Intelligence (decide which rows may be touched) ────────
+    triage_cfg = triage_config or RowTriageConfig()
+    non_imputable_cols: set[str] = set()
+    if row_intelligence and df.height > 0:
+        step_start = time.perf_counter()
+        triage = triage_rows(df, triage_cfg)
+        report.row_triage = triage.to_dict()
+        non_imputable_cols = set(triage.non_imputable_columns)
+
+        # Remove rows that are not data (blank, repeated header, total, footer).
+        # Exact duplicates are left to Step 3 so existing dedupe accounting is unchanged.
+        drop_mask = triage.exclude_mask_without("exact_duplicate")
+        if drop_mask.any():
+            df_before = df.clone()
+            dropped_ids = [int(i) for i in triage.row_ids[drop_mask][:1000]]
+            df = df.filter(pl.Series(~drop_mask))
+            dropped = int(drop_mask.sum())
+            report.non_data_rows_dropped = dropped
+            dag.add_node(
+                operation="drop_non_data_rows",
+                df_before=df_before,
+                df_after=df,
+                parameters={"rows_dropped": dropped, "reasons": triage.summary()["by_reason"]},
+                stored_data={"dropped_row_ids": dropped_ids},
+                duration_ms=(time.perf_counter() - step_start) * 1000,
+            )
 
     # ─── Step 2: Apply User Rules (Interactive) ──────────────────────────────
     if rules:
@@ -1009,6 +1046,21 @@ def clean_data(
     # ─── Step 4: Automated Smart Cleaning & Safe Imputation ─────────────────────
     masked_placeholders = ["n/a", "na", "-999", "null", "?", "-", "missing", "unknown", "none"]
     id_patterns = ["id", "code", "sku", "zip", "phone"]
+
+    # Sparse rows are never imputed: filling 90% of a row with medians would invent a record.
+    sparse = sparse_row_mask(df, triage_cfg) if row_intelligence else np.zeros(df.height, dtype=bool)
+    keep_lit = pl.lit(pl.Series(~sparse)) if sparse.any() else None
+
+    def _gated_fill(col_name: str, value: Any) -> pl.Expr:
+        if keep_lit is None:
+            return pl.col(col_name).fill_null(value)
+        return pl.when(pl.col(col_name).is_null() & keep_lit).then(pl.lit(value)).otherwise(pl.col(col_name))
+
+    def _fillable(col_name: str) -> int:
+        expr = pl.col(col_name).is_null()
+        if keep_lit is not None:
+            expr = expr & keep_lit
+        return int(df.select(expr.sum()).item() or 0)
     
     for col in df.columns:
         col_lower = col.lower()
@@ -1086,9 +1138,9 @@ def clean_data(
                 .alias(col)
             )
             
-            null_cnt = df[col].null_count()
-            if null_cnt > 0 and not is_id:
-                df = df.with_columns(pl.col(col).fill_null("Unknown"))
+            null_cnt = _fillable(col)
+            if null_cnt > 0 and not is_id and col not in non_imputable_cols:
+                df = df.with_columns(_gated_fill(col, "Unknown").alias(col))
                 report.categorical_nans_filled += null_cnt
                 dag.add_node(
                     operation="fill_null_value",
@@ -1101,14 +1153,14 @@ def clean_data(
                 )
 
         # 4b. Auto-impute numeric missing values with median for non-ID numeric columns
-        elif dtype.is_numeric() and not is_id:
-            null_cnt = df[col].null_count()
+        elif dtype.is_numeric() and not is_id and col not in non_imputable_cols:
+            null_cnt = _fillable(col)
             if null_cnt > 0:
                 step_start = time.perf_counter()
                 df_before = df.clone()
                 med_val = df[col].median()
                 if med_val is not None:
-                    df = df.with_columns(pl.col(col).fill_null(med_val))
+                    df = df.with_columns(_gated_fill(col, med_val).alias(col))
                     report.numeric_nans_filled += null_cnt
                     dag.add_node(
                         operation="fill_null_median",

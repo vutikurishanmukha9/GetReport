@@ -50,8 +50,8 @@ def test_ai_insights_rule_based_fallback_generation():
 
 def test_automated_cleaning_strips_masked_nulls_and_imputes():
     df = pl.DataFrame({
-        "status": ["active", "N/A", "null", "?", "pending"],
-        "sales": [100.0, None, 300.0, None, 500.0],
+        "status": ["active", "N/A", "null", "?", "pending", "active", "active", "active", "pending", "active"],
+        "sales": [100.0, None, 300.0, None, 500.0, 300.0, 200.0, 400.0, 300.0, 300.0],
     })
 
     cleaned_df, report, dag = clean_data(df)
