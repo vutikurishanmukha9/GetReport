@@ -45,6 +45,18 @@ def generate_pdf_report(
     """
     from app.core.factories.reports import ReportEngineFactory
 
+    if "executive_ml" not in analysis_results:
+        try:
+            from app.services.ml_production import MLProductionService
+            ml_svc = MLProductionService()
+            ml_section = ml_svc.build_report_section(
+                unsupervised_data=analysis_results.get("unsupervised_learning"),
+                supervised_data=analysis_results.get("supervised_learning"),
+            )
+            analysis_results["executive_ml"] = ml_section.to_dict()
+        except Exception as e:
+            logger.debug(f"Executive ML section synthesis skipped: {e}")
+
     engine = ReportEngineFactory.create_engine(allow_fallback=True)
     return engine.render_pdf(analysis_results, charts, filename)
 

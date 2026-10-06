@@ -10,6 +10,7 @@ narrow exception tuple so unexpected errors propagate immediately.
 from __future__ import annotations
 
 import logging
+import gc
 from dataclasses import dataclass, field
 from typing import Any, Protocol, Sequence, Tuple, Type
 
@@ -152,6 +153,45 @@ class RecommendationsStep:
         )
 
 
+class UnsupervisedStep:
+    name = "unsupervised_learning"
+
+    def __call__(self, df: pl.DataFrame, result: dict[str, Any]) -> None:
+        from app.services.unsupervised import UnsupervisedIntelligenceService
+        cluster_res = UnsupervisedIntelligenceService.run_unsupervised_discovery(df)
+        result["unsupervised_learning"] = cluster_res.to_dict()
+        if cluster_res.ran:
+            logger.info(
+                "Unsupervised learning: k=%d clusters, %.1f%% variance explained",
+                cluster_res.optimal_k,
+                cluster_res.explained_variance_pct,
+            )
+        else:
+            logger.info("Unsupervised learning skipped: %s", cluster_res.reason)
+        gc.collect()
+
+
+class SupervisedStep:
+    name = "supervised_learning"
+
+    def __call__(self, df: pl.DataFrame, result: dict[str, Any]) -> None:
+        from app.services.supervised import SupervisedAutoMLService
+        service = SupervisedAutoMLService()
+        automl_res = service.run_automl(df)
+        result["supervised_learning"] = automl_res.to_dict()
+        if automl_res.ran:
+            logger.info(
+                "Supervised learning: target='%s', best_model=%s, %s=%.4f",
+                automl_res.target_column,
+                automl_res.best_model_name,
+                automl_res.primary_metric_name,
+                automl_res.primary_metric_value,
+            )
+        else:
+            logger.info("Supervised learning skipped: %s", automl_res.reason)
+        gc.collect()
+
+
 # ─── Default Pipeline ───────────────────────────────────────────────────────
 
 DEFAULT_STEPS: Sequence[AnalysisStep] = [
@@ -161,6 +201,8 @@ DEFAULT_STEPS: Sequence[AnalysisStep] = [
     FeatureEngineeringStep(),
     SchemaStep(),
     RecommendationsStep(),
+    UnsupervisedStep(),
+    SupervisedStep(),
 ]
 
 

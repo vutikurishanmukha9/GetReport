@@ -18,10 +18,12 @@ export interface CleaningReport {
   empty_rows_dropped: number;
   empty_columns_dropped: number;
   duplicate_rows_removed: number;
+  non_data_rows_dropped?: number;
   numeric_nans_filled: number;
   categorical_nans_filled: number;
   columns_renamed: Record<string, string>;
   filesize_reduced_mb?: number;
+  row_triage?: Record<string, any>;
 }
 
 export interface AnalysisSummary {
@@ -90,6 +92,45 @@ export interface ConfidenceScores {
   ml_readiness?: MLReadiness;
 }
 
+export interface ClusterPoint {
+  id: number;
+  x: number;
+  y: number;
+  cluster: number;
+  label?: string | null;
+}
+
+export interface ClusterFeatureDiff {
+  feature: string;
+  cluster_mean: number;
+  population_mean: number;
+  index_ratio: number;
+  direction: "higher" | "lower" | "average";
+}
+
+export interface ClusterPersona {
+  cluster_id: number;
+  name: string;
+  size: number;
+  share_pct: number;
+  distinguishing_features: ClusterFeatureDiff[];
+  summary: string;
+}
+
+export interface ClusteringResult {
+  ran: boolean;
+  reason?: string;
+  optimal_k: number;
+  silhouette_score: number;
+  explained_variance_pct: number;
+  pc_loadings?: {
+    pc1_top_drivers: string[];
+    pc2_top_drivers: string[];
+  };
+  personas: ClusterPersona[];
+  points: ClusterPoint[];
+}
+
 export interface AnalysisResult {
   metadata: Record<string, PrimitiveValue>;
   summary: AnalysisSummary;
@@ -110,6 +151,7 @@ export interface AnalysisResult {
   };
   confidence_scores?: ConfidenceScores;
   ml_readiness?: MLReadiness;
+  unsupervised_learning?: ClusteringResult;
   timing_ms: number;
   insights?: string | InsightResult; // Optional: Can be string or object depending on merge
 }
