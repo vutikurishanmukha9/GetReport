@@ -1054,26 +1054,33 @@ def _detect_masked_null_issues(df: pl.DataFrame) -> list[Issue]:
         dtype = df[col].dtype
         masked_count = 0
 
-        if dtype == pl.Utf8:
+        if dtype in (pl.Utf8, pl.String):
             non_null = df[col].drop_nulls()
             if non_null.len() == 0:
                 continue
             masked_mask = non_null.str.to_lowercase().str.strip_chars().is_in(list(MASKED_NULL_PATTERNS))
             masked_count = int(masked_mask.sum())
-        elif dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32):
+        elif dtype.is_float():
             non_null = df[col].drop_nulls()
             if non_null.len() == 0:
                 continue
-            masked_count = int(non_null.is_in([-999, -9999, 9999, 99999]).sum())
+            masked_count = int(non_null.cast(pl.Float64).is_in([-999.0, -9999.0, 9999.0, 99999.0]).sum())
+        elif dtype.is_integer():
+            non_null = df[col].drop_nulls()
+            if non_null.len() == 0:
+                continue
+            masked_count = int(non_null.cast(pl.Int64).is_in([-999, -9999, 9999, 99999]).sum())
 
         if masked_count > 0:
             masked_pct = (masked_count / n_rows * 100)
             severity: Severity = "high" if masked_pct >= 10 else ("medium" if masked_pct >= 3 else "low")
             
-            if dtype == pl.Utf8:
+            if dtype in (pl.Utf8, pl.String):
                 fix_code = f"df = df.with_columns(pl.when(pl.col('{col}').str.to_lowercase().str.strip_chars().is_in({list(MASKED_NULL_PATTERNS)})).then(None).otherwise(pl.col('{col}')).alias('{col}'))"
+            elif dtype.is_float():
+                fix_code = f"df = df.with_columns(pl.when(pl.col('{col}').cast(pl.Float64).is_in([-999.0, -9999.0, 9999.0, 99999.0])).then(None).otherwise(pl.col('{col}')).alias('{col}'))"
             else:
-                fix_code = f"df = df.with_columns(pl.when(pl.col('{col}').is_in([-999, -9999, 9999, 99999])).then(None).otherwise(pl.col('{col}')).alias('{col}'))"
+                fix_code = f"df = df.with_columns(pl.when(pl.col('{col}').cast(pl.Int64).is_in([-999, -9999, 9999, 99999])).then(None).otherwise(pl.col('{col}')).alias('{col}'))"
 
             issues.append(Issue(
                 id=_generate_id(),

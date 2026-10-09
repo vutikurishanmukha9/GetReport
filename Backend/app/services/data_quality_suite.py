@@ -125,7 +125,17 @@ class DataQualityTestSuite:
                         allowed = set(params.get("allowed_values", []))
                         non_nulls = series.drop_nulls()
                         if non_nulls.len() > 0 and allowed:
-                            violators = df.filter(~(pl.col(col).is_in(list(allowed))) & pl.col(col).is_not_null())
+                            if series.dtype.is_float():
+                                allowed_vals = [float(x) for x in allowed]
+                                violators = df.filter(~(pl.col(col).cast(pl.Float64).is_in(allowed_vals)) & pl.col(col).is_not_null())
+                            elif series.dtype.is_integer():
+                                allowed_vals = [int(x) for x in allowed]
+                                violators = df.filter(~(pl.col(col).cast(pl.Int64).is_in(allowed_vals)) & pl.col(col).is_not_null())
+                            elif series.dtype in (pl.Utf8, pl.String):
+                                allowed_vals = [str(x) for x in allowed]
+                                violators = df.filter(~(pl.col(col).cast(pl.String).is_in(allowed_vals)) & pl.col(col).is_not_null())
+                            else:
+                                violators = df.filter(~(pl.col(col).is_in(list(allowed))) & pl.col(col).is_not_null())
                             violation_count = violators.height
                             success = violation_count == 0
                         details = {"allowed_set_size": len(allowed), "violations": violation_count}
