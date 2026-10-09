@@ -457,7 +457,7 @@ export const ReportGeneration = ({
             <Button
               size="lg"
               variant="outline"
-              className="flex-1 md:flex-none rounded-xl border-border bg-white hover:bg-muted/30 shadow-2xs transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm text-foreground"
+              className="flex-1 md:flex-none rounded-xl border-border/80 bg-secondary/80 hover:bg-secondary shadow-xs transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm text-foreground"
               onClick={() => downloadExport("html")}
             >
               <BookOpen className="h-4 w-4 text-primary" />
@@ -482,7 +482,7 @@ export const ReportGeneration = ({
           <TabsList className="bg-muted/30 border border-border/80 p-1.5 rounded-2xl mb-6 shadow-2xs flex flex-wrap gap-1">
             <TabsTrigger
               value="overview"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-2xs data-[state=active]:text-foreground transition-all flex items-center gap-2"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground transition-all flex items-center gap-2"
             >
               <FileText className="h-4 w-4" />
               <span>Overview</span>
@@ -490,7 +490,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="charts"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-2xs data-[state=active]:text-foreground transition-all flex items-center gap-2"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground transition-all flex items-center gap-2"
             >
               <TrendingUp className="h-4 w-4" />
               <span>Visual Analytics</span>
@@ -503,7 +503,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="ledger"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-2xs data-[state=active]:text-foreground transition-all flex items-center gap-2"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground transition-all flex items-center gap-2"
             >
               <ShieldCheck className="h-4 w-4" />
               <span>Trust Ledger</span>
@@ -514,7 +514,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="stats"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-2xs data-[state=active]:text-foreground transition-all flex items-center gap-2"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground transition-all flex items-center gap-2"
             >
               <Activity className="h-4 w-4" />
               <span>Statistical Audit</span>
@@ -522,7 +522,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="sql"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-2xs data-[state=active]:text-foreground transition-all flex items-center gap-2"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground transition-all flex items-center gap-2"
             >
               <Terminal className="h-4 w-4" />
               <span>DuckDB SQL Studio</span>
@@ -530,7 +530,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="export"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-2xs data-[state=active]:text-foreground transition-all flex items-center gap-2"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground transition-all flex items-center gap-2"
             >
               <Download className="h-4 w-4" />
               <span>Export Hub</span>
@@ -913,7 +913,7 @@ export const ReportGeneration = ({
                       type="button"
                       onClick={() => setLedgerGradeFilter("all")}
                       className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
-                        ledgerGradeFilter === "all" ? "bg-white text-foreground shadow-2xs" : "text-muted-foreground"
+                        ledgerGradeFilter === "all" ? "bg-card text-foreground border border-border/80 shadow-xs" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       All ({confidence.columns.length})
@@ -922,7 +922,7 @@ export const ReportGeneration = ({
                       type="button"
                       onClick={() => setLedgerGradeFilter("A")}
                       className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
-                        ledgerGradeFilter === "A" ? "bg-emerald-100 text-emerald-800 shadow-2xs" : "text-muted-foreground"
+                        ledgerGradeFilter === "A" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-xs" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       Grade A
@@ -931,7 +931,7 @@ export const ReportGeneration = ({
                       type="button"
                       onClick={() => setLedgerGradeFilter("attention")}
                       className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
-                        ledgerGradeFilter === "attention" ? "bg-amber-100 text-amber-800 shadow-2xs" : "text-muted-foreground"
+                        ledgerGradeFilter === "attention" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-xs" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       Flags
@@ -944,7 +944,7 @@ export const ReportGeneration = ({
                       placeholder="Search variables..."
                       value={ledgerSearch}
                       onChange={(e) => setLedgerSearch(e.target.value)}
-                      className="pl-9 h-8 text-xs rounded-xl bg-white border-border/80"
+                      className="pl-9 h-8 text-xs rounded-xl bg-background border-border/80 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50"
                     />
                   </div>
                 </div>
@@ -961,7 +961,7 @@ export const ReportGeneration = ({
                       <div
                         key={c.column}
                         className={`border rounded-2xl transition-all duration-200 ${
-                          isExpanded ? 'border-primary bg-primary/5' : 'border-border/80 bg-white hover:bg-muted/10'
+                          isExpanded ? 'border-primary bg-primary/5' : 'border-border/80 bg-card hover:bg-muted/20'
                         }`}
                       >
                         <button
@@ -1189,7 +1189,7 @@ export const ReportGeneration = ({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8.5 text-xs font-mono rounded-xl bg-white border-border/80 px-3"
+                    className="h-8.5 text-xs font-mono rounded-xl bg-secondary/80 hover:bg-secondary text-foreground border-border/80 px-3"
                     onClick={() => {
                       navigator.clipboard.writeText(sqlQuery);
                       setHasCopiedSql(true);
@@ -1323,7 +1323,7 @@ export const ReportGeneration = ({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 text-xs font-mono rounded-xl bg-white border-border/80 px-3 cursor-pointer"
+                        className="h-8 text-xs font-mono rounded-xl bg-secondary/80 hover:bg-secondary text-foreground border-border/80 px-3 cursor-pointer"
                         onClick={downloadSqlCsv}
                       >
                         <Download className="h-3.5 w-3.5 mr-1" />
@@ -1344,7 +1344,7 @@ export const ReportGeneration = ({
                             ))}
                           </TableRow>
                         </TableHeader>
-                        <TableBody className="divide-y divide-border/60 bg-white">
+                        <TableBody className="divide-y divide-border/60 bg-card">
                           {sqlResult.records.map((r, rowIdx) => (
                             <TableRow key={`sql-row-${rowIdx}`} className="hover:bg-primary/[0.02]">
                               {sqlResult.columns.map((col) => (
@@ -1410,7 +1410,7 @@ export const ReportGeneration = ({
                 <div className="pt-6">
                   <Button
                     variant="outline"
-                    className="w-full rounded-xl border-border bg-white text-foreground font-semibold text-xs shadow-2xs gap-2"
+                    className="w-full rounded-xl border-border/80 bg-secondary/80 hover:bg-secondary text-foreground font-semibold text-xs shadow-xs gap-2 transition-all"
                     onClick={() => downloadExport("html")}
                   >
                     <Download className="h-3.5 w-3.5" />
@@ -1435,7 +1435,7 @@ export const ReportGeneration = ({
                 <div className="pt-6">
                   <Button
                     variant="outline"
-                    className="w-full rounded-xl border-border bg-white text-foreground font-semibold text-xs shadow-2xs gap-2"
+                    className="w-full rounded-xl border-border/80 bg-secondary/80 hover:bg-secondary text-foreground font-semibold text-xs shadow-xs gap-2 transition-all"
                     onClick={() => downloadExport("csv")}
                   >
                     <Download className="h-3.5 w-3.5" />
@@ -1460,7 +1460,7 @@ export const ReportGeneration = ({
                 <div className="pt-6">
                   <Button
                     variant="outline"
-                    className="w-full rounded-xl border-border bg-white text-foreground font-semibold text-xs shadow-2xs gap-2"
+                    className="w-full rounded-xl border-border/80 bg-secondary/80 hover:bg-secondary text-foreground font-semibold text-xs shadow-xs gap-2 transition-all"
                     onClick={() => downloadExport("parquet")}
                   >
                     <Download className="h-3.5 w-3.5" />
@@ -1485,7 +1485,7 @@ export const ReportGeneration = ({
                 <div className="pt-6">
                   <Button
                     variant="outline"
-                    className="w-full rounded-xl border-border bg-white text-foreground font-semibold text-xs shadow-2xs gap-2"
+                    className="w-full rounded-xl border-border/80 bg-secondary/80 hover:bg-secondary text-foreground font-semibold text-xs shadow-xs gap-2 transition-all"
                     onClick={async () => {
                       if (!taskId) return;
                       try {

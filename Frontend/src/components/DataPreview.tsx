@@ -26,16 +26,30 @@ interface DataPreviewProps {
   onBack: () => void;
 }
 
-const getTypeIcon = (type: string) => {
-  if (type.includes("int") || type.includes("float")) return <Hash className="h-3 w-3" />;
-  if (type.includes("datetime") || type.includes("date")) return <Calendar className="h-3 w-3" />;
-  return <Type className="h-3 w-3" />;
-};
-
-const getTypeBadgeVariant = (type: string): "default" | "secondary" | "outline" => {
-  if (type.includes("int") || type.includes("float")) return "default";
-  if (type.includes("datetime") || type.includes("date")) return "secondary";
-  return "outline";
+const getTypeStyle = (type: string) => {
+  const t = type.toLowerCase();
+  if (t.includes("int") || t.includes("float")) {
+    return {
+      icon: <Hash className="h-3 w-3 text-sky-400" />,
+      className: "bg-sky-500/10 text-sky-400 border-sky-500/25",
+    };
+  }
+  if (t.includes("datetime") || t.includes("date") || t.includes("time")) {
+    return {
+      icon: <Calendar className="h-3 w-3 text-amber-400" />,
+      className: "bg-amber-500/10 text-amber-400 border-amber-500/25",
+    };
+  }
+  if (t.includes("bool")) {
+    return {
+      icon: <CheckCircle2 className="h-3 w-3 text-emerald-400" />,
+      className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
+    };
+  }
+  return {
+    icon: <Type className="h-3 w-3 text-violet-400" />,
+    className: "bg-violet-500/10 text-violet-400 border-violet-500/25",
+  };
 };
 
 export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, onBack }: DataPreviewProps) => {
@@ -120,9 +134,9 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
           <Button
             variant="outline"
             onClick={onBack}
-            className="gap-2 rounded-xl shadow-2xs border-slate-300 bg-white hover:bg-slate-50 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm font-semibold h-10 px-4 cursor-pointer"
+            className="gap-2 rounded-xl shadow-2xs border-border/80 bg-secondary/70 hover:bg-secondary text-foreground transition-all duration-150 hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm font-semibold h-10 px-4 cursor-pointer"
           >
-            <ArrowLeft className="h-4 w-4 text-slate-600" />
+            <ArrowLeft className="h-4 w-4 text-muted-foreground" />
             <span>Upload New</span>
           </Button>
           <button
@@ -195,17 +209,17 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
         <TabsList className="bg-muted/30 border border-border/80 p-1.5 rounded-2xl mb-6 shadow-2xs">
           <TabsTrigger
             value="preview"
-            className="rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-2xs data-[state=active]:text-foreground transition-all"
+            className="rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground transition-all"
           >
             Data Preview & Types
           </TabsTrigger>
           <TabsTrigger
             value="quality"
-            className="rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-2xs data-[state=active]:text-foreground transition-all flex items-center gap-2"
+            className="rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground transition-all flex items-center gap-2"
           >
             <span>Column Quality Audit</span>
             {totalIssuesCount > 0 && (
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0 h-4 rounded-full">
+              <Badge variant="secondary" className="bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0 h-4 rounded-full font-mono">
                 {totalIssuesCount}
               </Badge>
             )}
@@ -261,21 +275,23 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
 
             {/* Column Chips */}
             <div className="flex flex-wrap gap-2 pt-4 border-t border-border/60 mt-4">
-              {visibleColumns.map((column) => (
-                <div
-                  key={column}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white text-xs border border-border/80 shadow-2xs font-sans hover:border-primary/30 transition-colors"
-                >
-                  <span className="font-semibold text-foreground">{column}</span>
-                  <Badge
-                    variant={getTypeBadgeVariant(info.dtypes[column] || "")}
-                    className="text-[10px] font-mono gap-1 px-2 py-0.5 border-border/40 rounded-full"
+              {visibleColumns.map((column) => {
+                const typeStyle = getTypeStyle(info.dtypes[column] || "");
+                return (
+                  <div
+                    key={column}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 hover:bg-secondary text-xs border border-border/80 shadow-xs font-sans hover:border-primary/40 transition-colors"
                   >
-                    {getTypeIcon(info.dtypes[column] || "")}
-                    {info.dtypes[column] || "unknown"}
-                  </Badge>
-                </div>
-              ))}
+                    <span className="font-semibold text-foreground tracking-tight">{column}</span>
+                    <span
+                      className={`inline-flex items-center text-[10px] font-mono gap-1 px-2 py-0.5 rounded-full border ${typeStyle.className}`}
+                    >
+                      {typeStyle.icon}
+                      {info.dtypes[column] || "unknown"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </Card>
 
@@ -299,7 +315,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                     placeholder="Search in sample rows..."
                     value={rowSearchQuery}
                     onChange={(e) => setRowSearchQuery(e.target.value)}
-                    className="pl-9 h-9 text-xs rounded-xl bg-white border-border/80"
+                    className="pl-9 h-9 text-xs rounded-xl bg-background border-border/80 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50"
                   />
                 </div>
               </div>
@@ -375,7 +391,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                       type="button"
                       onClick={() => setQualityFilter("all")}
                       className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
-                        qualityFilter === "all" ? "bg-white text-foreground shadow-2xs" : "text-muted-foreground"
+                        qualityFilter === "all" ? "bg-card text-foreground border border-border/80 shadow-xs" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       All ({info.columns.length})
@@ -384,7 +400,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                       type="button"
                       onClick={() => setQualityFilter("issues")}
                       className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
-                        qualityFilter === "issues" ? "bg-amber-100 text-amber-800 shadow-2xs" : "text-muted-foreground"
+                        qualityFilter === "issues" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-xs" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       Flags ({totalIssuesCount})
@@ -393,7 +409,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                       type="button"
                       onClick={() => setQualityFilter("clean")}
                       className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
-                        qualityFilter === "clean" ? "bg-emerald-100 text-emerald-800 shadow-2xs" : "text-muted-foreground"
+                        qualityFilter === "clean" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-xs" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       Clean ({info.columns.length - totalIssuesCount})
@@ -406,7 +422,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                       placeholder="Filter columns..."
                       value={colSearchQuery}
                       onChange={(e) => setColSearchQuery(e.target.value)}
-                      className="pl-9 h-8 text-xs rounded-xl bg-white border-border/80"
+                      className="pl-9 h-8 text-xs rounded-xl bg-background border-border/80 text-foreground placeholder:text-muted-foreground focus-visible:border-primary/50"
                     />
                   </div>
                 </div>
@@ -424,26 +440,26 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                     return (
                       <div
                         key={col}
-                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-xl transition-all duration-200 bg-white ${
-                          hasIssues ? 'border-amber-300 shadow-sm' : 'border-border hover:bg-muted/10'
+                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-xl transition-all duration-200 bg-card ${
+                          hasIssues ? 'border-amber-500/40 bg-amber-500/[0.03] shadow-sm' : 'border-border/80 hover:bg-muted/20'
                         }`}
                       >
                         <div className="mb-2 sm:mb-0">
                           <div className="flex items-center gap-3">
                             <span className="font-display font-bold text-base text-foreground">{col}</span>
-                            <Badge variant="outline" className="text-[10px] font-mono px-2 py-0.5 bg-muted/20 border-border rounded-full">
+                            <Badge variant="outline" className="text-[10px] font-mono px-2 py-0.5 bg-muted/30 border-border rounded-full">
                               {info.dtypes[col] || "unknown"}
                             </Badge>
                             {!hasIssues && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/25">
                                 <CheckCircle2 className="h-3 w-3" /> Healthy
                               </span>
                             )}
                           </div>
                           {issues.length > 0 && (
-                            <div className="text-xs text-amber-700 mt-2 flex flex-wrap gap-1.5 font-mono">
+                            <div className="text-xs text-amber-400 mt-2 flex flex-wrap gap-1.5 font-mono">
                               {issues.map(issue => (
-                                <span key={issue} className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-semibold">
+                                <span key={issue} className="flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/25 font-semibold">
                                   <AlertTriangle className="h-3 w-3 shrink-0" /> {issue.toLowerCase()}
                                 </span>
                               ))}
@@ -456,8 +472,8 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                             <span className="text-muted-foreground text-[10px] font-mono uppercase tracking-wider">Missing Values</span>
                             <span className={`font-mono text-xs font-semibold mt-0.5 ${
                               missing.count > 0
-                                ? 'text-destructive bg-destructive/5 px-2 py-0.5 rounded-full border border-destructive/20'
-                                : 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200'
+                                ? 'text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/25'
+                                : 'text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/25'
                             }`}>
                               {missing.count > 0 ? `${missing.count.toLocaleString()} (${missing.percentage.toFixed(1)}%)` : "0 (0%)"}
                             </span>
