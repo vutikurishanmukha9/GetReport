@@ -59,6 +59,7 @@ const issueTypeLabels = {
     duplicates: 'Duplicates',
     type_mismatch: 'Type Mismatch',
     outliers: 'Outliers',
+    multivariate_anomaly: 'Multivariate Anomaly',
     format_issue: 'Format Issue',
     high_cardinality: 'High Cardinality',
     empty_column: 'Empty Column',

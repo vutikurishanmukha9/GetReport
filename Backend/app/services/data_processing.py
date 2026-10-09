@@ -440,7 +440,7 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
     auto-delimiter detection, dirty string auto-coercion, and zip bomb validation.
     Uses Polars streaming scan/collect to prevent memory spikes on large files.
     """
-    logger.info("═══ load_dataframe (Ultra-Robust Streaming) started — '%s' ═══", file_path)
+    logger.info("═══ load_dataframe (Ultra-Robust Streaming) started - '%s' ═══", file_path)
     
     # Pre-validate zip files (Excel) and gzip archives against decompression bombs
     lower_path = file_path.lower()
@@ -815,6 +815,106 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
 
     return quality_report
 
+# ─── Contextual Missing Value Reconstruction ─────────────────────────────────
+def _contextual_impute_series(
+    df: pl.DataFrame,
+    col: str,
+    candidate_cols: list[str],
+) -> tuple[pl.Series | None, dict[str, Any] | None]:
+    """
+    Infers missing numeric values by leveraging multivariate linear relationships
+    with correlated numeric features, preserving data variance and covariance structure.
+    
+    Falls back gracefully to None if:
+    - No suitable predictor features exist
+    - Correlations are too weak (R^2 < 0.15)
+    - Dataset is too small (< 15 rows)
+    """
+    if df.height < 15 or not candidate_cols:
+        return None, None
+
+    valid_candidates = [c for c in candidate_cols if c != col and df[c].null_count() < df.height * 0.5]
+    if not valid_candidates:
+        return None, None
+
+    try:
+        from sklearn.linear_model import Ridge
+
+        target_series = df[col]
+        target_np = np.array(target_series)
+        target_null_mask = np.array(target_series.is_null())
+
+        if not target_null_mask.any():
+            return None, None
+
+        pred_data = {}
+        for c in valid_candidates:
+            s = df[c]
+            med = s.median()
+            if med is None:
+                continue
+            pred_data[c] = np.array(s.fill_null(med))
+
+        if not pred_data:
+            return None, None
+
+        valid_target_idx = ~target_null_mask
+        y_valid = target_np[valid_target_idx].astype(np.float64)
+
+        if len(y_valid) < 10:
+            return None, None
+
+        correlations = {}
+        for c, vals in pred_data.items():
+            x_valid = vals[valid_target_idx].astype(np.float64)
+            std_x = float(np.std(x_valid))
+            std_y = float(np.std(y_valid))
+            if std_x > 1e-9 and std_y > 1e-9:
+                corr = float(np.corrcoef(x_valid, y_valid)[0, 1])
+                if not np.isnan(corr) and abs(corr) >= 0.35:
+                    correlations[c] = abs(corr)
+
+        if not correlations:
+            return None, None
+
+        selected_cols = sorted(correlations.keys(), key=lambda c: correlations[c], reverse=True)[:3]
+        X_selected = np.column_stack([pred_data[c] for c in selected_cols]).astype(np.float64)
+
+        X_train = X_selected[valid_target_idx]
+        y_train = y_valid
+
+        model = Ridge(alpha=1.0)
+        model.fit(X_train, y_train)
+
+        r2 = float(model.score(X_train, y_train))
+        if r2 < 0.15 or np.isnan(r2):
+            return None, None
+
+        X_missing = X_selected[target_null_mask]
+        preds = model.predict(X_missing)
+
+        min_observed = float(np.min(y_train))
+        max_observed = float(np.max(y_train))
+        preds = np.clip(preds, min_observed, max_observed)
+
+        if df[col].dtype.is_integer():
+            preds = np.round(preds)
+
+        reconstructed = target_np.copy()
+        reconstructed[target_null_mask] = preds
+
+        res_series = pl.Series(name=col, values=reconstructed, dtype=df[col].dtype)
+        meta = {
+            "method": "contextual_reconstruction",
+            "predictor_columns": selected_cols,
+            "fit_quality_r2": round(r2, 3),
+        }
+        return res_series, meta
+    except Exception as e:
+        logger.debug("Contextual reconstruction skipped for %s: %s", col, e)
+        return None, None
+
+
 # ─── Cleaning Pipeline (Polars) ──────────────────────────────────────────────
 def clean_data(
     df: pl.DataFrame, 
@@ -1152,25 +1252,66 @@ def clean_data(
                     values_changed=null_cnt,
                 )
 
-        # 4b. Auto-impute numeric missing values with median for non-ID numeric columns
+        # 4b. Auto-impute numeric missing values (contextual reconstruction with median fallback)
         elif dtype.is_numeric() and not is_id and col not in non_imputable_cols:
             null_cnt = _fillable(col)
             if null_cnt > 0:
                 step_start = time.perf_counter()
                 df_before = df.clone()
-                med_val = df[col].median()
-                if med_val is not None:
-                    df = df.with_columns(_gated_fill(col, med_val).alias(col))
+                
+                # Contextual reconstruction using correlated numeric metrics
+                numeric_candidates = [
+                    c for c in df.columns
+                    if df[c].dtype.is_numeric()
+                    and not any(p in c.lower() for p in id_patterns)
+                    and c not in non_imputable_cols
+                ]
+                reconstructed_series, meta = _contextual_impute_series(df, col, numeric_candidates)
+
+                if reconstructed_series is not None and meta is not None:
+                    if keep_lit is None:
+                        df = df.with_columns(reconstructed_series.alias(col))
+                    else:
+                        df = df.with_columns(
+                            pl.when(pl.col(col).is_null() & keep_lit)
+                            .then(reconstructed_series)
+                            .otherwise(pl.col(col))
+                            .alias(col)
+                        )
+                    # Handle any residual nulls with median
+                    res_med = df[col].median()
+                    if res_med is not None and df[col].null_count() > 0:
+                        df = df.with_columns(_gated_fill(col, res_med).alias(col))
+
                     report.numeric_nans_filled += null_cnt
                     dag.add_node(
-                        operation="fill_null_median",
+                        operation="contextual_imputation",
                         df_before=df_before,
                         df_after=df,
                         target_column=col,
-                        parameters={"fill_value": med_val, "nulls_filled": null_cnt},
+                        parameters={
+                            "method": "contextual_reconstruction",
+                            "predictors": meta["predictor_columns"],
+                            "confidence_r2": meta["fit_quality_r2"],
+                            "nulls_filled": null_cnt,
+                        },
                         duration_ms=(time.perf_counter() - step_start) * 1000,
                         values_changed=null_cnt,
                     )
+                else:
+                    med_val = df[col].median()
+                    if med_val is not None:
+                        df = df.with_columns(_gated_fill(col, med_val).alias(col))
+                        report.numeric_nans_filled += null_cnt
+                        dag.add_node(
+                            operation="fill_null_median",
+                            df_before=df_before,
+                            df_after=df,
+                            target_column=col,
+                            parameters={"fill_value": med_val, "nulls_filled": null_cnt},
+                            duration_ms=(time.perf_counter() - step_start) * 1000,
+                            values_changed=null_cnt,
+                        )
                 
     report.timing_ms = (time.perf_counter() - start_time) * 1000
     report.finalize()

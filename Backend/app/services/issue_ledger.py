@@ -34,6 +34,7 @@ IssueType = Literal[
     "duplicates", 
     "type_mismatch",
     "outliers",
+    "multivariate_anomaly",
     "format_issue",
     "high_cardinality",
     "empty_column",
@@ -212,7 +213,7 @@ def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
         elif null_pct >= 1:
             severity = "low"
         else:
-            continue  # < 1% — negligible
+            continue  # < 1% - negligible
 
         # ── Null concentration pattern & MCAR/MAR/MNAR classification ──
         pattern = "scattered (MCAR - Missing Completely At Random)"
@@ -247,7 +248,7 @@ def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
             fix_code = f"df = df.with_columns(pl.col('{col}').fill_null(pl.col('{col}').mode().first()))"
             suggested_fix = "Fill with most common value"
 
-        desc = f"{null_pct:.1f}% missing values ({null_count:,} rows) — {pattern}"
+        desc = f"{null_pct:.1f}% missing values ({null_count:,} rows) - {pattern}"
 
         issues.append(Issue(
             id=_generate_id(),
@@ -503,7 +504,7 @@ def _detect_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
 
         desc = f"{dup_count:,} exact duplicate rows ({dup_pct:.1f}%)"
         if contributing_cols:
-            desc += f" — low-cardinality columns: {', '.join(contributing_cols[:5])}"
+            desc += f" - low-cardinality columns: {', '.join(contributing_cols[:5])}"
 
         issues.append(Issue(
             id=_generate_id(),
@@ -809,7 +810,7 @@ def _detect_type_mismatch_issues(
                 if col in df.columns:
                     samples = df[col].drop_nulls().head(3).to_list()
                     if samples:
-                        samples_str = f" — samples: {samples[:3]}"
+                        samples_str = f" - samples: {samples[:3]}"
             except Exception:
                 pass
 
@@ -856,7 +857,7 @@ def _detect_type_mismatch_issues(
                     column=col,
                     affected_rows=n_rows,
                     affected_pct=100.0,
-                    description=f"Column contains boolean-like values ({', '.join(sorted(unique_vals))}) stored as strings — samples: {sample[:3]}",
+                    description=f"Column contains boolean-like values ({', '.join(sorted(unique_vals))}) stored as strings - samples: {sample[:3]}",
                     suggested_fix="Convert to Boolean",
                     fix_code=f"df = df.with_columns(pl.col('{col}').str.to_lowercase().is_in(['true','yes','1','t','y']).alias('{col}'))",
                 ))
@@ -879,7 +880,7 @@ def _detect_type_mismatch_issues(
                 column=col,
                 affected_rows=n_rows,
                 affected_pct=100.0,
-                description=f"String column appears numeric ({match_ratio:.0%} of sampled values parse as numbers) — samples: {sample[:3]}",
+                description=f"String column appears numeric ({match_ratio:.0%} of sampled values parse as numbers) - samples: {sample[:3]}",
                 suggested_fix=f"Convert to {target_type}",
                 fix_code=f"df = df.with_columns(pl.col('{col}').cast(pl.{target_type}, strict=False))",
             ))
@@ -913,9 +914,11 @@ def _detect_outlier_issues(
     else:
         # Self-compute IQR outliers for all numeric columns
         numeric_dtypes = (pl.Int8, pl.Int16, pl.Int32, pl.Int64, pl.Float32, pl.Float64, pl.UInt32, pl.UInt64)
+        active_numeric = []
         for col in df.columns:
             if df[col].dtype not in numeric_dtypes:
                 continue
+            active_numeric.append(col)
             series = df[col].drop_nulls()
             if series.len() < 10:  # Skip tiny series
                 continue
@@ -933,7 +936,60 @@ def _detect_outlier_issues(
             except Exception:
                 continue
 
+        # If multiple numeric features exist, silently test for multivariate anomaly patterns
+        if len(active_numeric) >= 2 and n_rows >= 20:
+            try:
+                from sklearn.ensemble import IsolationForest
+                from sklearn.neighbors import LocalOutlierFactor
+
+                clean_df = df.select(active_numeric[:5]).to_pandas().fillna(0)
+                if len(clean_df) >= 20:
+                    iso = IsolationForest(contamination=0.02, random_state=42, n_estimators=100)
+                    iso_preds = iso.fit_predict(clean_df)
+                    iso_outliers = int((iso_preds == -1).sum())
+
+                    lof = LocalOutlierFactor(n_neighbors=15, contamination=0.02)
+                    lof_preds = lof.fit_predict(clean_df)
+                    high_conf = int(((iso_preds == -1) & (lof_preds == -1)).sum())
+
+                    if high_conf > 0:
+                        outlier_data["_multivariate_summary"] = {
+                            "count": high_conf,
+                            "percentage": round(high_conf / n_rows * 100, 2),
+                            "columns_evaluated": active_numeric[:5],
+                            "isolation_forest_count": iso_outliers,
+                            "high_confidence_multivariate_count": high_conf,
+                        }
+            except Exception as ml_err:
+                logger.debug("Multivariate anomaly check skipped: %s", ml_err)
+
+    # ── Handle multi-column multivariate anomalies ──
+    multi_summary = outlier_data.get("_multivariate_summary")
+    if multi_summary and isinstance(multi_summary, dict):
+        multi_count = multi_summary.get("count", 0)
+        multi_pct = multi_summary.get("percentage", 0.0)
+        eval_cols = multi_summary.get("columns_evaluated", [])
+        if multi_count > 0:
+            cols_str = ", ".join(eval_cols) if eval_cols else "numeric features"
+            multi_sev: Severity = "high" if multi_pct >= 5 else "medium"
+            desc = f"{multi_count:,} multi-column anomalies detected ({multi_pct:.1f}% of records) across [{cols_str}]. These records deviate significantly from expected multi-variable patterns."
+            suggested_fix = f"Review flagged records for cross-column inconsistencies across [{cols_str}]"
+            fix_code = f"# Multi-column anomaly alert: {multi_count} rows deviate from joint distribution of [{cols_str}]\n# Inspect records flagged across these features"
+            issues.append(Issue(
+                id=_generate_id(),
+                issue_type="multivariate_anomaly",
+                severity=multi_sev,
+                column=eval_cols[0] if eval_cols else None,
+                affected_rows=multi_count,
+                affected_pct=multi_pct,
+                description=desc,
+                suggested_fix=suggested_fix,
+                fix_code=fix_code,
+            ))
+
     for col, outlier_info in outlier_data.items():
+        if col.startswith("_"):
+            continue
         count = outlier_info.get("count", 0)
         if count <= 0:
             continue
@@ -974,7 +1030,7 @@ def _detect_outlier_issues(
         # ── Differentiated fix suggestions ──
         if pct < 5:
             suggested_fix = "Flag for manual review"
-            fix_code = f"# Review outliers in '{col}' — values outside [{lower:.2f}, {upper:.2f}]"
+            fix_code = f"# Review outliers in '{col}' - values outside [{lower:.2f}, {upper:.2f}]"
         elif pct < 15:
             suggested_fix = f"Winsorize to IQR bounds [{lower:.2f}, {upper:.2f}]"
             fix_code = f"df = df.with_columns(pl.col('{col}').clip({lower:.2f}, {upper:.2f}))"

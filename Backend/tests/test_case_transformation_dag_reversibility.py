@@ -13,5 +13,6 @@ def test_transformation_dag_reversibility_classification():
     assert _get_reversibility("fill_null_mode")[0] == "none"
     assert _get_reversibility("fill_null_value")[0] == "none"
     assert _get_reversibility("replace_outliers")[0] == "none"
+    assert _get_reversibility("contextual_imputation")[0] == "none"
     assert _get_reversibility("custom")[0] == "none"
     assert _get_reversibility("unknown_random_op")[0] == "none"
