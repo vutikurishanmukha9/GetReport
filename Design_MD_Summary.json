@@ -1,0 +1,1904 @@
+[
+  {
+    "file": "DESIGN-BMW.md",
+    "name": "BMW",
+    "description": "BMW's corporate site \u2014 distinct from BMW M's motorsport-bombastic variant, this is a measured and settled corporate-automotive interface. On a light (cream-tint",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#1c69d4\"",
+      "primary-active: \"#0653b6\"",
+      "primary-disabled: \"#d6d6d6\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f7f7f7\"",
+      "surface-card: \"#fafafa\"",
+      "surface-strong: \"#ebebeb\"",
+      "surface-dark: \"#1a2129\""
+    ],
+    "hairlines": [
+      "hairline: \"#e6e6e6\"",
+      "hairline-strong: \"#cccccc\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Hairlines",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-Opencode.ai.md",
+    "name": "OpenCode",
+    "description": "|",
+    "canvas": [
+      "canvas: \"#fdfcfc\""
+    ],
+    "primary": [
+      "primary: \"#201d1d\"",
+      "primary: \"#fdfcfc\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f8f7f7\"",
+      "surface-card: \"#f1eeee\"",
+      "surface-dark: \"#201d1d\"",
+      "surface-dark-elevated: \"#302c2c\""
+    ],
+    "hairlines": [
+      "hairline: \"rgba",
+      "hairline-strong: \"#646262\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-Pinterest.md",
+    "name": "Pinterest",
+    "description": "|",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#e60023\"",
+      "primary: \"#ffffff\"",
+      "primary-pressed: \"#cc001f\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#fbfbf9\"",
+      "surface-card: \"#f6f6f3\"",
+      "surface-elevated: \"#ffffff\"",
+      "surface-dark: \"#262622\""
+    ],
+    "hairlines": [
+      "hairline: \"#dadad3\"",
+      "hairline-soft: \"#e5e5e0\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-Raycast.md",
+    "name": "Raycast",
+    "description": "|",
+    "canvas": [
+      "canvas: \"#07080a\""
+    ],
+    "primary": [
+      "primary: \"#ffffff\"",
+      "primary-pressed: \"#e8e8e8\"",
+      "primary: \"#000000\""
+    ],
+    "surfaces": [
+      "surface: \"#0d0d0d\"",
+      "surface-elevated: \"#101111\"",
+      "surface-card: \"#121212\""
+    ],
+    "hairlines": [
+      "hairline: \"#242728\"",
+      "hairline-soft: \"rgba",
+      "hairline-strong: \"rgba"
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-Renault.md",
+    "name": "Renault",
+    "description": "|",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#ffed00\"",
+      "primary-deep: \"#e6d200\"",
+      "primary: \"#000000\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f7f7f7\"",
+      "surface-card: \"#ffffff\"",
+      "surface-dark: \"#000000\"",
+      "surface-deep: \"#111111\""
+    ],
+    "hairlines": [
+      "hairline: \"#f2f2f2\"",
+      "hairline-strong: \"#000000\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-Replicate.md",
+    "name": "Replicate",
+    "description": "|",
+    "canvas": [
+      "canvas: \"#f9f7f3\""
+    ],
+    "primary": [
+      "primary: \"#ea2804\"",
+      "primary-deep: \"#c01f00\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-bone: \"#f3f0e8\"",
+      "surface-card: \"#ffffff\"",
+      "surface-dark: \"#202020\"",
+      "surface-deep: \"#000000\""
+    ],
+    "hairlines": [
+      "hairline: \"rgba",
+      "hairline-strong: \"#202020\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-airbnb.md",
+    "name": "Airbnb",
+    "description": "A warm, generous consumer marketplace anchored on a clean white canvas and Airbnb Rausch (#ff385c), the single brand voltage that carries every primary CTA, sea",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#ff385c\"",
+      "primary-active: \"#e00b41\"",
+      "primary-disabled: \"#ffd1da\"",
+      "primary-error-text: \"#c13515\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f7f7f7\"",
+      "surface-card: \"#ffffff\"",
+      "surface-strong: \"#f2f2f2\""
+    ],
+    "hairlines": [
+      "hairline: \"#dddddd\"",
+      "hairline-soft: \"#ebebeb\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Hairlines & Borders",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-airtable.md",
+    "name": "Airtable",
+    "description": "A sober, editorial workflow-software interface anchored on white canvas and dark-ink type, where brand voltage comes from full-bleed signature cards in coral, d",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#181d26\"",
+      "primary-active: \"#0d1218\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f8fafc\"",
+      "surface-strong: \"#e0e2e6\"",
+      "surface-dark: \"#181d26\"",
+      "surface-dark-elevated: \"#1d1f25\""
+    ],
+    "hairlines": [
+      "hairline: \"#dddddd\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Signature Card Surfaces"
+    ]
+  },
+  {
+    "file": "DESIGN-apple.md",
+    "name": "Apple",
+    "description": "A photography-first interface that turns marketing into a museum gallery. Edge-to-edge product tiles alternate light and dark canvases, framed by SF Pro Display",
+    "canvas": [
+      "canvas: \"#ffffff\"",
+      "canvas-parchment: \"#f5f5f7\""
+    ],
+    "primary": [
+      "primary: \"#0066cc\"",
+      "primary-focus: \"#0071e3\"",
+      "primary-on-dark: \"#2997ff\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-pearl: \"#fafafc\"",
+      "surface-tile-1: \"#272729\"",
+      "surface-tile-2: \"#2a2a2c\"",
+      "surface-tile-3: \"#252527\""
+    ],
+    "hairlines": [
+      "hairline: \"#e0e0e0\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Hairlines & Borders"
+    ]
+  },
+  {
+    "file": "DESIGN-binance.md",
+    "name": "Binance",
+    "description": "A confident financial-platform interface anchored on a deep near-black canvas, where Binance's iconic yellow (#FCD535) carries every primary CTA, brand accent, ",
+    "canvas": [
+      "canvas-light: \"#ffffff\"",
+      "canvas-dark: \"#0b0e11\""
+    ],
+    "primary": [
+      "primary: \"#fcd535\"",
+      "primary-active: \"#f0b90b\"",
+      "primary-disabled: \"#3a3a1f\"",
+      "primary: \"#181a20\""
+    ],
+    "surfaces": [
+      "surface-card-dark: \"#1e2329\"",
+      "surface-elevated-dark: \"#2b3139\"",
+      "surface-soft-light: \"#fafafa\"",
+      "surface-strong-light: \"#f5f5f5\""
+    ],
+    "hairlines": [
+      "hairline-on-light: \"#eaecef\"",
+      "hairline-on-dark: \"#2b3139\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Hairlines & Borders",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-bmw2.md",
+    "name": "BMW M",
+    "description": "A motorsport-engineering interface anchored on a near-black canvas with white BMW Type Next Latin display headlines in confident UPPERCASE. The brand carries no",
+    "canvas": [
+      "canvas: \"#000000\""
+    ],
+    "primary": [
+      "primary: \"#ffffff\"",
+      "primary: \"#000000\""
+    ],
+    "surfaces": [
+      "surface-card: \"#1a1a1a\"",
+      "surface-elevated: \"#262626\"",
+      "surface-soft: \"#0d0d0d\""
+    ],
+    "hairlines": [
+      "hairline: \"#3c3c3c\"",
+      "hairline-strong: \"#262626\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Hairlines & Borders",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-bugati.md",
+    "name": "Bugatti",
+    "description": "An austere luxury-automotive interface that uses near-pure black canvas, white uppercase letterspaced display, and full-bleed automotive photography as the only",
+    "canvas": [
+      "canvas: \"#000000\""
+    ],
+    "primary": [
+      "primary: \"#ffffff\"",
+      "primary: \"#000000\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#0d0d0d\"",
+      "surface-card: \"#141414\"",
+      "surface-elevated: \"#1f1f1f\""
+    ],
+    "hairlines": [
+      "hairline: \"#262626\"",
+      "hairline-strong: \"#3a3a3a\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-cal.md",
+    "name": "Cal.com",
+    "description": "A clean, calendar-software-first interface anchored on white canvas with black primary CTAs and custom Cal Sans display typography. The system reads as friendly",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#111111\"",
+      "primary-active: \"#242424\"",
+      "primary-disabled: \"#e5e7eb\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f8f9fa\"",
+      "surface-card: \"#f5f5f5\"",
+      "surface-strong: \"#e5e7eb\"",
+      "surface-dark: \"#101010\""
+    ],
+    "hairlines": [
+      "hairline: \"#e5e7eb\"",
+      "hairline-soft: \"#f3f4f6\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-clay.md",
+    "name": "Clay",
+    "description": "A vibrant claymation-meets-data interface for Clay.com (GTM data-orchestration platform). Anchors on white canvas with dark-navy primary CTAs, custom rounded di",
+    "canvas": [
+      "canvas: \"#fffaf0\""
+    ],
+    "primary": [
+      "primary: \"#0a0a0a\"",
+      "primary-active: \"#1f1f1f\"",
+      "primary-disabled: \"#e5e5e5\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#faf5e8\"",
+      "surface-card: \"#f5f0e0\"",
+      "surface-strong: \"#ebe6d6\"",
+      "surface-dark: \"#0a1a1a\""
+    ],
+    "hairlines": [
+      "hairline: \"#e5e5e5\"",
+      "hairline-soft: \"#f0f0f0\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-cliclhouse.md",
+    "name": "ClickHouse",
+    "description": "A high-performance database interface anchored on near-pure black canvas with electric yellow as the brand voltage. White typography in confident sans, yellow C",
+    "canvas": [
+      "canvas: \"#0a0a0a\""
+    ],
+    "primary": [
+      "primary: \"#faff69\"",
+      "primary-active: \"#e6eb52\"",
+      "primary-disabled: \"#3a3a1f\"",
+      "primary: \"#0a0a0a\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#121212\"",
+      "surface-card: \"#1a1a1a\"",
+      "surface-elevated: \"#242424\"",
+      "surface-yellow-band: \"#faff69\""
+    ],
+    "hairlines": [
+      "hairline: \"#2a2a2a\"",
+      "hairline-strong: \"#3a3a3a\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic / Accent"
+    ]
+  },
+  {
+    "file": "DESIGN-cohere.md",
+    "name": "Cohere",
+    "description": "Cohere's 2026 web system is a controlled enterprise AI interface built from stark white editorial space, deep green-black product bands, soft mineral surfaces, ",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#17171c\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [],
+    "hairlines": [
+      "hairline: \"#d9d9dd\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface & Background",
+      "Text & Rules",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-coinbase.md",
+    "name": "Coinbase",
+    "description": "An institutional-grade crypto exchange whose marketing surfaces read like a quietly-confident financial-services brand. The base canvas is pure white; Coinbase ",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#0052ff\"",
+      "primary-active: \"#003ecc\"",
+      "primary-disabled: \"#a8b8cc\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f7f7f7\"",
+      "surface-card: \"#ffffff\"",
+      "surface-strong: \"#eef0f3\"",
+      "surface-dark: \"#0a0b0d\""
+    ],
+    "hairlines": [
+      "hairline: \"#dee1e6\"",
+      "hairline-soft: \"#eef0f3\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Hairlines",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-compoiso.md",
+    "name": "Composio",
+    "description": "A developer-tools brand for AI-agent tool integration whose marketing surfaces lean into a dark, technical aesthetic with a single deep-electric-blue voltage (`",
+    "canvas": [
+      "canvas: \"#0f0f0f\"",
+      "canvas-deep: \"#000000\""
+    ],
+    "primary": [
+      "primary: \"#0007cd\"",
+      "primary-active: \"#0005a3\"",
+      "primary-glow: \"#1a26ff\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-card: \"#181818\"",
+      "surface-card-elevated: \"#222222\"",
+      "surface-strong: \"#2a2a2a\""
+    ],
+    "hairlines": [
+      "hairline: \"#222222\"",
+      "hairline-soft: \"#1a1a1a\"",
+      "hairline-strong: \"#333333\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Hairlines",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-cursor.md",
+    "name": "Cursor",
+    "description": "An AI-first code editor whose marketing site reads like a quietly-confident developer-tools brand with a warm-cream editorial canvas (`#f7f7f4`) instead of the ",
+    "canvas": [
+      "canvas: \"#f7f7f4\"",
+      "canvas-soft: \"#fafaf7\""
+    ],
+    "primary": [
+      "primary: \"#f54e00\"",
+      "primary-active: \"#d04200\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-card: \"#ffffff\"",
+      "surface-strong: \"#e6e5e0\""
+    ],
+    "hairlines": [
+      "hairline: \"#e6e5e0\"",
+      "hairline-soft: \"#efeee8\"",
+      "hairline-strong: \"#cfcdc4\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Hairlines",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-elevenlabs.md",
+    "name": "ElevenLabs",
+    "description": "A voice-AI brand whose marketing surfaces read like a quietly editorial print magazine. The base canvas is off-white (`#f5f5f5`) holding warm near-black ink (`#",
+    "canvas": [
+      "canvas: \"#f5f5f5\"",
+      "canvas-soft: \"#fafafa\"",
+      "canvas-deep: \"#0c0a09\""
+    ],
+    "primary": [
+      "primary: \"#292524\"",
+      "primary-active: \"#0c0a09\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-card: \"#ffffff\"",
+      "surface-strong: \"#f0efed\"",
+      "surface-dark: \"#0c0a09\"",
+      "surface-dark-elevated: \"#1c1917\""
+    ],
+    "hairlines": [
+      "hairline: \"#e7e5e4\"",
+      "hairline-soft: \"#f0efed\"",
+      "hairline-strong: \"#d6d3d1\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Hairlines",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-expo.md",
+    "name": "Expo",
+    "description": "A React Native developer-platform whose marketing site reads like a quietly-confident infrastructure brand. The base canvas is pure white with a soft sky-blue g",
+    "canvas": [
+      "canvas: \"#ffffff\"",
+      "canvas-soft: \"#fafafa\""
+    ],
+    "primary": [
+      "primary: \"#000000\"",
+      "primary-active: \"#1a1a1a\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-card: \"#ffffff\"",
+      "surface-strong: \"#f0f0f3\"",
+      "surface-dark: \"#171717\"",
+      "surface-dark-elevated: \"#1a1a1a\""
+    ],
+    "hairlines": [
+      "hairline: \"#f0f0f3\"",
+      "hairline-soft: \"#f5f5f7\"",
+      "hairline-strong: \"#dcdee0\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Atmospheric Backdrop",
+      "Hairlines"
+    ]
+  },
+  {
+    "file": "DESIGN-farmer.md",
+    "name": "Framer",
+    "description": "A confident dark-canvas builder marketing site that treats the page like a working artboard \u2014 pure black surfaces, white display type set in GT Walsheim Medium ",
+    "canvas": [
+      "canvas: \"#090909\"",
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#ffffff\"",
+      "primary: \"#000000\""
+    ],
+    "surfaces": [
+      "surface-1: \"#141414\"",
+      "surface-2: \"#1c1c1c\""
+    ],
+    "hairlines": [
+      "hairline: \"#262626\"",
+      "hairline-soft: \"#1a1a1a\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-ferrari.md",
+    "name": "Ferrari",
+    "description": "A luxury-automotive brand whose marketing surfaces read as cinematic editorial. The base canvas is **near-black** (`#181818`) holding pure white display type; w",
+    "canvas": [
+      "canvas: \"#181818\"",
+      "canvas-elevated: \"#303030\"",
+      "canvas-light: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#da291c\"",
+      "primary-active: \"#b01e0a\"",
+      "primary-hover: \"#9d2211\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-card: \"#303030\"",
+      "surface-soft-light: \"#f7f7f7\"",
+      "surface-strong-light: \"#ebebeb\""
+    ],
+    "hairlines": [
+      "hairline: \"#303030\"",
+      "hairline-on-light: \"#d2d2d2\"",
+      "hairline-soft: \"#ebebeb\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Hairlines",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-figma.md",
+    "name": "Figma",
+    "description": "A confident black-and-white editorial frame interrupted by oversized, hand-cut pastel color blocks. The marketing canvas is rigorously monochrome \u2014 figmaSans va",
+    "canvas": [
+      "canvas: \"#ffffff\"",
+      "canvas: \"#000000\""
+    ],
+    "primary": [
+      "primary: \"#000000\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f7f7f5\""
+    ],
+    "hairlines": [
+      "hairline: \"#e6e6e6\"",
+      "hairline-soft: \"#f1f1f1\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-harshicrop.md",
+    "name": "HashiCorp",
+    "description": "An enterprise-infrastructure marketing canvas built around a near-black ground (#000000) and a system of per-product accent colors \u2014 Terraform purple, Vault yel",
+    "canvas": [
+      "canvas: \"#000000\"",
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#000000\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-1: \"#15181e\"",
+      "surface-2: \"#1f232b\"",
+      "surface-3: \"#3b3d45\""
+    ],
+    "hairlines": [
+      "hairline: \"#3b3d45\"",
+      "hairline-soft: \"#252830\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Per-Product Identity (signature)"
+    ]
+  },
+  {
+    "file": "DESIGN-ibm.md",
+    "name": "IBM",
+    "description": "An enterprise-marketing canvas faithful to Carbon Design System: white surfaces, charcoal type, IBM Blue (#0f62fe) as the single confident accent, and a deliber",
+    "canvas": [
+      "canvas: \"#ffffff\"",
+      "canvas: \"#161616\""
+    ],
+    "primary": [
+      "primary: \"#0f62fe\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-1: \"#f4f4f4\"",
+      "surface-2: \"#e0e0e0\"",
+      "surface-1: \"#262626\""
+    ],
+    "hairlines": [
+      "hairline: \"#e0e0e0\"",
+      "hairline-strong: \"#161616\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-intercom.md",
+    "name": "Intercom",
+    "description": "An editorial customer-service marketing canvas built around a soft cream-white ground, charcoal type set in Saans (Intercom's proprietary geometric sans), and a",
+    "canvas": [
+      "canvas: \"#f5f1ec\"",
+      "canvas: \"#000000\""
+    ],
+    "primary": [
+      "primary: \"#111111\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-1: \"#ffffff\"",
+      "surface-2: \"#ebe7e1\"",
+      "surface-1: \"#313130\""
+    ],
+    "hairlines": [
+      "hairline: \"#d3cec6\"",
+      "hairline-soft: \"#ebe7e1\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic & Report Palette (in-product mockups)"
+    ]
+  },
+  {
+    "file": "DESIGN-kraken.md",
+    "name": "DESIGN-kraken.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Kraken",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Neutral",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-lamborghini.md",
+    "name": "DESIGN-lamborghini.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Lamborghini",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Secondary & Accent",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-linear.app.md",
+    "name": "Linear",
+    "description": "A near-black product-focused marketing canvas built around #010102 (the deepest dark surface of any tool in this collection), light gray text (#f7f8f8), and the",
+    "canvas": [
+      "canvas: \"#010102\"",
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#5e6ad2\"",
+      "primary: \"#ffffff\"",
+      "primary-hover: \"#828fff\"",
+      "primary-focus: \"#5e69d1\""
+    ],
+    "surfaces": [
+      "surface-1: \"#0f1011\"",
+      "surface-2: \"#141516\"",
+      "surface-3: \"#18191a\"",
+      "surface-4: \"#191a1b\""
+    ],
+    "hairlines": [
+      "hairline: \"#23252a\"",
+      "hairline-strong: \"#34343a\"",
+      "hairline-tertiary: \"#3e3e44\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-lovable.md",
+    "name": "DESIGN-lovable.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Lovable",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Neutral Scale (Opacity-Based)",
+      "Surface & Border"
+    ]
+  },
+  {
+    "file": "DESIGN-mangodb.md",
+    "name": "MongoDB",
+    "description": "MongoDB carries a strong dual-mode visual identity \u2014 dark deep-teal hero bands with bright MongoDB green ({colors.brand-green}) CTAs paired with stark white doc",
+    "canvas": [
+      "canvas: \"#ffffff\"",
+      "canvas-dark: \"#001e2b\""
+    ],
+    "primary": [
+      "primary: \"#00ed64\"",
+      "primary-deep: \"#00b545\"",
+      "primary-pressed: \"#008c34\"",
+      "primary: \"#001e2b\""
+    ],
+    "surfaces": [
+      "surface: \"#f9fbfa\"",
+      "surface-soft: \"#f4f7f6\"",
+      "surface-feature: \"#e3fcef\""
+    ],
+    "hairlines": [
+      "hairline: \"#e1e5e8\"",
+      "hairline-soft: \"#eceff1\"",
+      "hairline-strong: \"#c1ccd6\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Category Accent (Course Tags)",
+      "Surface",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-mastercard.md",
+    "name": "DESIGN-mastercard.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Mastercard",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Secondary & Accent",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-meta.md",
+    "name": "Meta",
+    "description": "Meta's design system spans hardware commerce (Quest VR, Ray-Ban Meta AI glasses) and brand surfaces with a confident product-merchandising voice. The system pai",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#0064e0\"",
+      "primary-deep: \"#0457cb\"",
+      "primary-soft: \"#0091ff\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f1f4f7\""
+    ],
+    "hairlines": [
+      "hairline: \"#ced0d4\"",
+      "hairline-soft: \"#dee3e9\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-minimax.md",
+    "name": "MiniMax",
+    "description": "MiniMax presents itself as a premium AI infrastructure brand through a striking duality \u2014 bold black-pill CTAs and stark white canvas for marketing, paired with",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#0a0a0a\"",
+      "primary: \"#ffffff\"",
+      "primary-soft: \"#181e25\""
+    ],
+    "surfaces": [
+      "surface: \"#f7f8fa\"",
+      "surface-soft: \"#f2f3f5\""
+    ],
+    "hairlines": [
+      "hairline: \"#e5e7eb\"",
+      "hairline-soft: \"#eaecf0\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-mintlify.md",
+    "name": "Mintlify",
+    "description": "Mintlify presents documentation infrastructure with a dual-mode aesthetic \u2014 atmospheric sky-gradient marketing heroes (cloud illustration backdrops, soft cream-",
+    "canvas": [
+      "canvas: \"#ffffff\"",
+      "canvas-dark: \"#0a0a0a\""
+    ],
+    "primary": [
+      "primary: \"#0a0a0a\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface: \"#f7f7f7\"",
+      "surface-soft: \"#fafafa\"",
+      "surface-code: \"#1c1c1e\""
+    ],
+    "hairlines": [
+      "hairline: \"#e5e5e5\"",
+      "hairline-soft: \"#ededed\"",
+      "hairline-dark: \"#1f1f1f\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Hero Atmospheric",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-miro.md",
+    "name": "Miro",
+    "description": "Miro presents itself as the AI-powered visual workspace through a confident, almost playful brand voice \u2014 anchored by its signature canary yellow ({colors.brand",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#1c1c1e\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface: \"#f7f8fa\"",
+      "surface-soft: \"#fafbfc\"",
+      "surface-yellow: \"#fff8e0\"",
+      "surface-pricing-featured: \"#f5f3ff\""
+    ],
+    "hairlines": [
+      "hairline: \"#e0e2e8\"",
+      "hairline-soft: \"#eef0f3\"",
+      "hairline-strong: \"#c7cad5\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-mistral.ai.md",
+    "name": "Mistral AI",
+    "description": "Mistral AI brands itself with a singular signature \u2014 atmospheric sunset gradients (mustard, orange, deep red) layered over photography of mountains, plus a hori",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#fa520f\"",
+      "primary-deep: \"#cc3a05\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface: \"#fafafa\"",
+      "surface-cream: \"#fff8e0\"",
+      "surface-cream-soft: \"#fffaeb\"",
+      "surface-code: \"#1c1c1e\""
+    ],
+    "hairlines": [
+      "hairline: \"#e5e5e5\"",
+      "hairline-soft: \"#ededed\"",
+      "hairline-strong: \"#c7c7c7\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Cream / Neutral Warm",
+      "Surface",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-nike.md",
+    "name": "Nike",
+    "description": "|",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#111111\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [],
+    "hairlines": [
+      "hairline: \"#cacacb\"",
+      "hairline-soft: \"#e5e5e5\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-notion.md",
+    "name": "Notion",
+    "description": "Notion presents itself as the all-in-one workspace through a confident, illustration-rich brand voice \u2014 anchored by a deep navy hero band ({colors.brand-navy}) ",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#5645d4\"",
+      "primary-pressed: \"#4534b3\"",
+      "primary-deep: \"#3a2a99\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface: \"#f6f5f4\"",
+      "surface-soft: \"#fafaf9\""
+    ],
+    "hairlines": [
+      "hairline: \"#e5e3df\"",
+      "hairline-soft: \"#ede9e4\"",
+      "hairline-strong: \"#c8c4be\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Primary",
+      "Brand Color Spectrum (echoes live product database properties)",
+      "Card Tints (Pastel Feature Card Backgrounds)",
+      "Surface"
+    ]
+  },
+  {
+    "file": "DESIGN-nvidia.md",
+    "name": "NVIDIA",
+    "description": "|",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#76b900\"",
+      "primary: \"#000000\"",
+      "primary-dark: \"#5a8d00\""
+    ],
+    "surfaces": [
+      "surface-dark: \"#000000\"",
+      "surface-soft: \"#f7f7f7\"",
+      "surface-elevated: \"#1a1a1a\""
+    ],
+    "hairlines": [
+      "hairline: \"#cccccc\"",
+      "hairline-strong: \"#5e5e5e\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-ollama.md",
+    "name": "Ollama",
+    "description": "|",
+    "canvas": [
+      "canvas: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#000000\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#fafafa\"",
+      "surface-card: \"#ffffff\"",
+      "surface-dark: \"#171717\""
+    ],
+    "hairlines": [
+      "hairline: \"#e5e5e5\"",
+      "hairline-strong: \"#d4d4d4\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-playstation.md",
+    "name": "PlayStation",
+    "description": "|",
+    "canvas": [
+      "canvas-light: \"#ffffff\"",
+      "canvas-dark: \"#000000\""
+    ],
+    "primary": [
+      "primary: \"#0070d1\"",
+      "primary-pressed: \"#0064b7\"",
+      "primary-active: \"#004d8d\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f3f3f3\"",
+      "surface-card: \"#f5f7fa\"",
+      "surface-filter: \"rgba",
+      "surface-dark-elevated: \"#121314\""
+    ],
+    "hairlines": [
+      "hairline-light: \"#f3f3f3\"",
+      "hairline-dark: \"rgba"
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-posthog.md",
+    "name": "PostHog",
+    "description": "|",
+    "canvas": [
+      "canvas: \"#eeefe9\""
+    ],
+    "primary": [
+      "primary: \"#f7a501\"",
+      "primary-pressed: \"#dd9001\"",
+      "primary-active: \"#b17816\"",
+      "primary: \"#23251d\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#e5e7e0\"",
+      "surface-card: \"#ffffff\"",
+      "surface-doc: \"#fcfcfa\"",
+      "surface-dark: \"#23251d\""
+    ],
+    "hairlines": [
+      "hairline: \"#bfc1b7\"",
+      "hairline-soft: \"#dcdfd2\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-resend.md",
+    "name": "Resend",
+    "description": "|",
+    "canvas": [
+      "canvas: \"#000000\""
+    ],
+    "primary": [
+      "primary: \"#fcfdff\"",
+      "primary-on: \"#000000\""
+    ],
+    "surfaces": [
+      "surface-card: \"#0a0a0c\"",
+      "surface-elevated: \"#101012\"",
+      "surface-deep: \"#06060a\"",
+      "surface-light: \"#f1f7fe\""
+    ],
+    "hairlines": [
+      "hairline: \"rgba",
+      "hairline-strong: \"rgba"
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-revoult.md",
+    "name": "Revolut",
+    "description": "|",
+    "canvas": [
+      "canvas-light: \"#ffffff\"",
+      "canvas-dark: \"#000000\""
+    ],
+    "primary": [
+      "primary: \"#494fdf\"",
+      "primary-bright: \"#4f55f1\"",
+      "primary-deep: \"#3a40c4\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f4f4f4\"",
+      "surface-card: \"#ffffff\"",
+      "surface-deep: \"#0a0a0a\"",
+      "surface-elevated: \"#16181a\""
+    ],
+    "hairlines": [
+      "hairline-light: \"#e2e2e7\"",
+      "hairline-dark: \"rgba",
+      "hairline-strong: \"#191c1f\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-runwayml.md",
+    "name": "DESIGN-runwayml.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Runway",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Surface & Background",
+      "Neutrals & Text"
+    ]
+  },
+  {
+    "file": "DESIGN-sanity.md",
+    "name": "DESIGN-sanity.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Sanity",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary Brand",
+      "Accent & Interactive",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-sentry.md",
+    "name": "Sentri Inspired",
+    "description": "An inspired interpretation of Sentri's design language \u2014 a developer-tools brand built on a deep purple-violet midnight canvas, electric lime accents, and a sli",
+    "canvas": [
+      "canvas-dark: \"#1f1633\"",
+      "canvas-light: \"#ffffff\""
+    ],
+    "primary": [
+      "primary: \"#150f23\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-canvas-dark: \"#1f1633\"",
+      "surface-canvas-light: \"#ffffff\"",
+      "surface-night: \"#150f23\"",
+      "surface-press-light: \"#f0f0f0\""
+    ],
+    "hairlines": [
+      "hairline-violet: \"#362d59\"",
+      "hairline-cool: \"#cfcfdb\"",
+      "hairline-cloud: \"#e5e7eb\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-shopify.md",
+    "name": "Shopifi Inspired",
+    "description": "An inspired interpretation of Shopifi's design language \u2014 a cinematic commerce platform that runs two parallel design tracks. The marketing-hero and product-nar",
+    "canvas": [
+      "canvas-night: \"#000000\"",
+      "canvas-night-elevated: \"#0a0a0a\"",
+      "canvas-light: \"#ffffff\"",
+      "canvas-cream: \"#fbfbf5\""
+    ],
+    "primary": [
+      "primary: \"#000000\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-elevated-dark: \"#1e2c31\""
+    ],
+    "hairlines": [
+      "hairline-light: \"#e4e4e7\"",
+      "hairline-dark: \"#1e2c31\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Shade Ladder",
+      "Text"
+    ]
+  },
+  {
+    "file": "DESIGN-slack.md",
+    "name": "Slacc Inspired",
+    "description": "An inspired interpretation of Slacc's design language \u2014 a workplace messaging brand built on a deep aubergine primary, with cream-lavender hero gradients, blue ",
+    "canvas": [
+      "canvas: \"#ffffff\"",
+      "canvas-cream: \"#f4ede4\"",
+      "canvas-lavender: \"#f9f0ff\""
+    ],
+    "primary": [
+      "primary: \"#4a154b\"",
+      "primary-deep: \"#481a54\"",
+      "primary-press: \"#611f69\"",
+      "primary-tint: \"#592466\""
+    ],
+    "surfaces": [
+      "surface-elev: \"#ffffff\"",
+      "surface-aubergine: \"#4a154b\""
+    ],
+    "hairlines": [
+      "hairline: \"#e6e6e6\"",
+      "hairline-strong: \"#000000\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-spacex.md",
+    "name": "Spasex Inspired",
+    "description": "An inspired interpretation of Spasex's design language \u2014 a mission-oriented aerospace brand built on pure black canvas, full-bleed photographic and video heroes",
+    "canvas": [
+      "canvas-night: \"#000000\"",
+      "canvas-night-soft: \"#0a0a0a\"",
+      "canvas-light: \"#ffffff\"",
+      "canvas-cool: \"#f0f0fa\""
+    ],
+    "primary": [
+      "primary: \"#000000\"",
+      "primary: \"#ffffff\"",
+      "primary-mute: \"#f0f0fa\""
+    ],
+    "surfaces": [],
+    "hairlines": [
+      "hairline-on-dark: \"#3a3a3f\"",
+      "hairline-on-light: \"#e0e0e8\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Link"
+    ]
+  },
+  {
+    "file": "DESIGN-spotify.md",
+    "name": "DESIGN-spotify.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [
+      "Surface: Dark"
+    ],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Spotify",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary Brand",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-starbucks.md",
+    "name": "DESIGN-starbucks.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Starbucks",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Secondary & Accent",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-stripe.md",
+    "name": "Stripi Inspired",
+    "description": "An inspired interpretation of Stripi's design language \u2014 a financial-infrastructure brand built on a deep navy ink, an electric indigo primary, and a recurring ",
+    "canvas": [
+      "canvas: \"#ffffff\"",
+      "canvas-soft: \"#f6f9fc\"",
+      "canvas-cream: \"#f5e9d4\""
+    ],
+    "primary": [
+      "primary: \"#533afd\"",
+      "primary-deep: \"#4434d4\"",
+      "primary-press: \"#2e2b8c\"",
+      "primary-soft: \"#665efd\""
+    ],
+    "surfaces": [],
+    "hairlines": [
+      "hairline: \"#e3e8ee\"",
+      "hairline-input: \"#a8c3de\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-supabase.md",
+    "name": "Supabaze Inspired",
+    "description": "An inspired interpretation of Supabaze's design language \u2014 an open-source database platform built on a clean white-and-near-black system with a single signature",
+    "canvas": [
+      "canvas: \"#ffffff\"",
+      "canvas-soft: \"#fafafa\"",
+      "canvas-night: \"#1c1c1c\"",
+      "canvas-night-soft: \"#202020\""
+    ],
+    "primary": [
+      "primary: \"#3ecf8e\"",
+      "primary-deep: \"#24b47e\"",
+      "primary-soft: \"#4ade80\"",
+      "primary: \"#171717\""
+    ],
+    "surfaces": [],
+    "hairlines": [
+      "hairline: \"#dfdfdf\"",
+      "hairline-strong: \"#c7c7c7\"",
+      "hairline-cool: \"#ededed\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Typography"
+    ]
+  },
+  {
+    "file": "DESIGN-superhuman.md",
+    "name": "Superhumon Inspired",
+    "description": "An inspired interpretation of Superhumon's design language \u2014 a fast-email productivity brand split between an editorial dark hero (deep indigo navy with violet-",
+    "canvas": [
+      "canvas: \"#ffffff\"",
+      "canvas-soft: \"#fafaf8\""
+    ],
+    "primary": [
+      "primary: \"#1b1938\"",
+      "primary-deep: \"#0e0c1f\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-violet-soft: \"#c9b4fa\"",
+      "surface-teal-deep: \"#0e3030\"",
+      "surface-teal-mid: \"#155555\""
+    ],
+    "hairlines": [
+      "hairline: \"#e8e4dd\"",
+      "hairline-dark: \"#3f3a52\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Typography"
+    ]
+  },
+  {
+    "file": "DESIGN-tesla.md",
+    "name": "DESIGN-tesla.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Tesla",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Secondary & Accent",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-theverge.md",
+    "name": "DESIGN-theverge.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by The Verge",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary (Brand Hazards)",
+      "Secondary & Accent",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-together.ai.md",
+    "name": "DESIGN-together.ai.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Together AI",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Secondary & Accent",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-uber.md",
+    "name": "DESIGN-uber.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Uber",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Interactive & Button States",
+      "Text & Content"
+    ]
+  },
+  {
+    "file": "DESIGN-vercel.md",
+    "name": "DESIGN-vercel.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Vercel",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Workflow Accent Colors",
+      "Console / Code Colors"
+    ]
+  },
+  {
+    "file": "DESIGN-vlaude.md",
+    "name": "Claude",
+    "description": "A warm-canvas editorial interface for Anthropic's Claude product. The system anchors on a tinted cream canvas with serif display headlines, warm coral CTAs, and",
+    "canvas": [
+      "canvas: \"#faf9f5\""
+    ],
+    "primary": [
+      "primary: \"#cc785c\"",
+      "primary-active: \"#a9583e\"",
+      "primary-disabled: \"#e6dfd8\"",
+      "primary: \"#ffffff\""
+    ],
+    "surfaces": [
+      "surface-soft: \"#f5f0e8\"",
+      "surface-card: \"#efe9de\"",
+      "surface-cream-strong: \"#e8e0d2\"",
+      "surface-dark: \"#181715\""
+    ],
+    "hairlines": [
+      "hairline: \"#e6dfd8\"",
+      "hairline-soft: \"#ebe6df\""
+    ],
+    "sections": [
+      "Overview",
+      "Colors",
+      "Brand & Accent",
+      "Surface",
+      "Text",
+      "Semantic"
+    ]
+  },
+  {
+    "file": "DESIGN-vodafone.md",
+    "name": "DESIGN-vodafone.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Vodafone",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Secondary & Accent",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-voltagent.md",
+    "name": "DESIGN-voltagent.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by VoltAgent",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Secondary & Accent",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-warp.md",
+    "name": "DESIGN-warp.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Warp",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Secondary & Accent",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-webflow.md",
+    "name": "DESIGN-webflow.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Webflow",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Secondary Accents",
+      "Neutral"
+    ]
+  },
+  {
+    "file": "DESIGN-wired.md",
+    "name": "DESIGN-wired.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by WIRED",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary (Editorial Ink)",
+      "Secondary (Editorial Voice)",
+      "Surface & Background"
+    ]
+  },
+  {
+    "file": "DESIGN-wise.md",
+    "name": "DESIGN-wise.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Wise",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary Brand",
+      "Semantic",
+      "Neutral"
+    ]
+  },
+  {
+    "file": "DESIGN-x.ai.md",
+    "name": "DESIGN-x.ai.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by xAI",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Interactive",
+      "Surface & Borders"
+    ]
+  },
+  {
+    "file": "DESIGN-zapier.md",
+    "name": "DESIGN-zapier.md",
+    "description": "",
+    "canvas": [],
+    "primary": [],
+    "surfaces": [],
+    "hairlines": [],
+    "sections": [
+      "Design System Inspired by Zapier",
+      "1. Visual Theme & Atmosphere",
+      "2. Color Palette & Roles",
+      "Primary",
+      "Brand Accent",
+      "Neutral Scale"
+    ]
+  }
+]

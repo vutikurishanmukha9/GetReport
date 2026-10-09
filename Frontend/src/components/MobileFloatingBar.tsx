@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FileSpreadsheet, ArrowRight, ShieldCheck } from "lucide-react";
+import { FileSpreadsheet, ArrowRight } from "lucide-react";
 
 export const MobileFloatingBar = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -35,34 +35,34 @@ export const MobileFloatingBar = () => {
           : "translate-y-16 opacity-0 scale-95 pointer-events-none"
       }`}
     >
-      {/* Double-Bezel Hardware Architecture matching the Top Header */}
-      <div className="pointer-events-auto p-1 rounded-full bg-slate-900/[0.06] backdrop-blur-2xl ring-1 ring-slate-900/10 shadow-[0_20px_48px_-10px_rgba(15,23,42,0.25),0_4px_16px_rgba(0,0,0,0.08)]">
-        <div className="rounded-full bg-white/95 backdrop-blur-xl border border-white/90 px-3 py-1.5 flex items-center justify-between gap-3">
+      {/* Double-Bezel Hardware Architecture in Obsidian Dark */}
+      <div className="pointer-events-auto p-1 rounded-full bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 shadow-[0_20px_48px_-10px_rgba(0,0,0,0.8),0_4px_16px_rgba(0,0,0,0.4)]">
+        <div className="rounded-full bg-[#0c0d14]/95 backdrop-blur-xl border border-white/10 px-3.5 py-1.5 flex items-center justify-between gap-3">
           
           {/* Left Pod: Brand Identity & Privacy Indicator */}
           <Link to="/" className="flex items-center gap-2.5 min-w-0 group cursor-pointer">
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-violet-600/30 shrink-0 group-hover:scale-105 transition-transform duration-200">
-              <FileSpreadsheet className="h-4 w-4" />
+            <div className="h-9 w-9 rounded-xl bg-white/[0.06] border border-white/10 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200">
+              <FileSpreadsheet className="h-4 w-4 text-white" />
             </div>
             <div className="text-left leading-tight min-w-0">
-              <span className="text-xs font-display font-black text-slate-900 tracking-tight block truncate">
+              <span className="text-xs font-display font-black text-white tracking-tight block truncate">
                 GetReport
               </span>
-              <span className="text-[10px] font-mono text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-mono text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 100% Private
               </span>
             </div>
           </Link>
 
-          {/* Right Pod: Refined Primary CTA Button */}
+          {/* Right Pod: Solid White Primary CTA Button with 44px min touch target */}
           <Link to="/workspace" className="shrink-0">
             <button
               type="button"
-              className="h-9 px-3.5 sm:px-4 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display font-bold text-xs tracking-tight shadow-[0_3px_12px_-1px_rgba(124,58,237,0.36),inset_0_1px_0_rgba(255,255,255,0.3)] border border-violet-400/40 flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
+              className="min-h-[44px] h-10 px-4 rounded-full bg-white hover:bg-zinc-100 text-black font-sans font-bold text-xs tracking-tight shadow-[0_2px_12px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] border border-white flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
             >
               <span>Start Free</span>
-              <ArrowRight className="h-3.5 w-3.5 text-white/90" />
+              <ArrowRight className="h-3.5 w-3.5 text-black" />
             </button>
           </Link>
 
@@ -71,3 +71,5 @@ export const MobileFloatingBar = () => {
     </div>
   );
 };
+
+export default MobileFloatingBar;

@@ -85,12 +85,12 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
       }`}
     >
       <div className="max-w-5xl mx-auto pointer-events-auto">
-        {/* Clean Single-Border Pill Navigation in clean rgba(255,255,255,.92) */}
+        {/* Clean Single-Border Pill Navigation in Raycast/Linear dark glass */}
         <div
-          className={`rounded-full bg-white/[0.92] backdrop-blur-xl px-3.5 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 border border-white/80 ${
+          className={`rounded-full bg-[#0c0d12]/85 backdrop-blur-xl px-3.5 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 border border-white/10 ${
             isScrolled
-              ? "shadow-[0_16px_40px_-10px_rgba(20,15,35,0.16)]"
-              : "shadow-[0_12px_32px_-10px_rgba(20,15,35,0.12)]"
+              ? "shadow-[0_16px_40px_-10px_rgba(0,0,0,0.7)]"
+              : "shadow-[0_12px_32px_-10px_rgba(0,0,0,0.5)]"
           }`}
         >
           {/* Left Pod: Brand Identity */}
@@ -98,28 +98,28 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
             <Link 
               to="/" 
               onClick={onReset} 
-              className="flex items-center gap-2.5 group shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              className="flex items-center gap-2.5 group shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-[#4338ca] via-[#3730a3] to-[#312e81] text-white shadow-md shadow-indigo-600/25 transition-transform duration-200 group-hover:scale-105">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-black shadow-md shadow-black/40 transition-transform duration-200 group-hover:scale-105">
                 <FileSpreadsheet className="h-4 w-4" />
               </div>
-              <span className="text-base font-hero font-extrabold tracking-tight text-slate-900 group-hover:text-indigo-700 transition-colors">
+              <span className="text-base font-hero font-extrabold tracking-tight text-white group-hover:text-slate-300 transition-colors">
                 GetReport
               </span>
             </Link>
           </div>
 
           {/* Center Pod: High-Contrast Segmented Navigator Track */}
-          <nav className="hidden md:flex items-center p-1 rounded-full bg-slate-100/90 border border-slate-200/70 gap-0.5">
+          <nav className="hidden md:flex items-center p-1 rounded-full bg-[#12141c]/90 border border-white/10 gap-0.5">
             {navLinks.map(({ to, label }) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `px-3.5 py-1.5 rounded-full text-[13px] font-hero font-medium transition-all duration-150 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  `px-3.5 py-1.5 rounded-full text-[13px] font-hero font-medium transition-all duration-150 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
                     isActive
-                      ? "bg-white text-indigo-950 font-bold shadow-xs border border-slate-200/80"
-                      : "text-[#2b2b3d] hover:text-black hover:bg-slate-900/[0.06]"
+                      ? "bg-white/[0.12] text-white font-bold shadow-xs border border-white/15"
+                      : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
                   }`
                 }
               >
@@ -135,24 +135,24 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 variant="outline"
                 size="sm"
                 onClick={onReset}
-                className="h-9 px-3.5 rounded-xl shadow-2xs border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 hover:text-indigo-700 hover:border-indigo-300 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-hero font-semibold text-xs gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="h-9 px-3.5 rounded-xl border-white/15 bg-[#14161f] text-slate-200 hover:bg-[#1a1d29] hover:text-white hover:border-white/25 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-hero font-semibold text-xs gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                <RotateCcw className="h-3.5 w-3.5 text-indigo-600" />
+                <RotateCcw className="h-3.5 w-3.5 text-slate-300" />
                 <span>Start Over</span>
               </Button>
             ) : location.pathname !== "/workspace" ? (
-              <Link to="/workspace" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-xl">
+              <Link to="/workspace" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-xl">
                 <button 
                   type="button"
-                  className="h-9 px-4 rounded-xl bg-gradient-to-r from-[#4338ca] via-[#3730a3] to-[#312e81] hover:from-[#3730a3] hover:to-[#312e81] text-white font-hero font-bold text-xs tracking-tight shadow-[0_3px_12px_-1px_rgba(67,56,202,0.4)] border border-indigo-400/30 flex items-center gap-2 group transition-all duration-150 hover:-translate-y-0.5 active:scale-95 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                  className="h-9 px-4 rounded-xl bg-white hover:bg-slate-100 text-black font-hero font-bold text-xs tracking-tight shadow-[0_4px_14px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white/90 flex items-center gap-2 group transition-all duration-150 hover:-translate-y-0.5 active:scale-95 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
                 >
                   <span>Start Free</span>
-                  <ArrowRight className="h-3.5 w-3.5 text-white/90 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0" />
+                  <ArrowRight className="h-3.5 w-3.5 text-black/80 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0" />
                 </button>
               </Link>
             ) : (
-              <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 border border-violet-200/80 text-violet-800 text-[11px] font-hero font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px] font-hero font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span>Session Active</span>
               </div>
             )}
@@ -162,7 +162,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                   <SheetTrigger asChild>
                     <button
-                      className="h-9 w-9 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/90 flex items-center justify-center text-slate-800 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                      className="h-9 w-9 rounded-xl bg-[#14161f] hover:bg-[#1a1d29] border border-white/10 flex items-center justify-center text-slate-200 active:scale-95 transition-all shadow-2xs cursor-pointer"
                       aria-label="Open Navigation Menu"
                     >
                       <Menu className="h-4 w-4" />
@@ -170,20 +170,20 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   </SheetTrigger>
                   <SheetContent
                     side="right"
-                    className="w-[310px] sm:w-[350px] rounded-l-3xl border-l border-slate-200/80 bg-white/95 backdrop-blur-3xl p-5 sm:p-6 flex flex-col justify-between shadow-2xl"
+                    className="w-[310px] sm:w-[350px] rounded-l-3xl border-l border-white/10 bg-[#0a0b0e]/95 backdrop-blur-3xl p-5 sm:p-6 flex flex-col justify-between shadow-2xl text-white"
                   >
                     <div>
                       {/* Drawer Brand Header */}
-                      <div className="flex items-center gap-3 pb-5 border-b border-slate-100">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 text-white shadow-md shadow-violet-600/25">
+                      <div className="flex items-center gap-3 pb-5 border-b border-white/10">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white text-black shadow-md shadow-black/50">
                           <FileSpreadsheet className="h-4.5 w-4.5" />
                         </div>
                         <div>
-                          <SheetTitle className="text-base font-display font-black text-slate-900 leading-none">
+                          <SheetTitle className="text-base font-display font-black text-white leading-none">
                             GetReport
                           </SheetTitle>
-                          <span className="text-[10px] font-mono text-emerald-600 font-semibold flex items-center gap-1 mt-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] font-mono text-emerald-400 font-semibold flex items-center gap-1 mt-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                             100% Private & Secure
                           </span>
                         </div>
@@ -206,21 +206,21 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                               to={to}
                               className={`p-3 rounded-2xl border transition-all duration-150 flex items-center justify-between active:scale-[0.98] ${
                                 isActive
-                                  ? "bg-violet-50/90 border-violet-300 text-violet-950 shadow-xs"
-                                  : "bg-slate-50/80 hover:bg-slate-100/80 border-slate-200/60 text-slate-700"
+                                  ? "bg-white/[0.1] border-white/20 text-white shadow-xs"
+                                  : "bg-[#12141c]/60 hover:bg-[#181b26] border-white/5 text-slate-300"
                               }`}
                               onClick={() => setMobileMenuOpen(false)}
                             >
                               <div className="flex items-center gap-3">
                                 <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${
                                   isActive
-                                    ? "bg-violet-600 text-white shadow-xs"
-                                    : "bg-white text-slate-600 border border-slate-200 shadow-2xs"
+                                    ? "bg-white text-black shadow-xs"
+                                    : "bg-[#181b26] text-slate-300 border border-white/10 shadow-2xs"
                                 }`}>
                                   <NavIcon className="h-4 w-4" />
                                 </div>
                                 <div className="text-left">
-                                  <span className="text-xs font-display font-bold block leading-tight">
+                                  <span className="text-xs font-display font-bold block leading-tight text-white">
                                     {label}
                                   </span>
                                   <span className="text-[10px] text-slate-400 font-sans block leading-tight mt-0.5">
@@ -228,7 +228,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                                   </span>
                                 </div>
                               </div>
-                              <span className="text-slate-300 font-mono text-xs pr-1">→</span>
+                              <span className="text-slate-400 font-mono text-xs pr-1">→</span>
                             </Link>
                           );
                         })}
@@ -236,19 +236,19 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                     </div>
 
                     {/* Bottom Action Pod */}
-                    <div className="pt-4 border-t border-slate-100 space-y-2.5">
+                    <div className="pt-4 border-t border-white/10 space-y-2.5">
                       <Link
                         to="/workspace"
                         className="w-full block"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <button className="w-full h-12 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display font-bold text-sm shadow-[0_4px_16px_-2px_rgba(124,58,237,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-violet-400/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer">
+                        <button className="w-full h-12 rounded-xl bg-white hover:bg-slate-100 text-black font-display font-bold text-sm shadow-[0_4px_16px_-2px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer">
                           <span>Launch Workspace</span>
-                          <ArrowRight className="h-4 w-4" />
+                          <ArrowRight className="h-4 w-4 text-black" />
                         </button>
                       </Link>
                       <div className="flex items-center justify-center gap-1.5 text-[10px] font-mono text-slate-400">
-                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
                         <span>100% Private • Files never saved to disk</span>
                       </div>
                     </div>

@@ -277,7 +277,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.1 }}
     >
-      {/* Process Pipeline — shown when processing is active */}
+      {/* Process Pipeline: shown when processing is active */}
       <AnimatePresence>
         {isProcessing && taskId && (
           <ProcessPipeline
@@ -310,8 +310,8 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
             <motion.div
               className={`
                 mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center 
-                rounded-full transition-all duration-200 shadow-premium border border-border
-                ${isDragging ? "bg-primary/10 border-primary/30 text-primary" : "bg-white text-muted-foreground"}
+                rounded-full transition-all duration-200 shadow-premium border
+                ${isDragging ? "bg-primary/20 border-primary/50 text-primary" : "bg-[#121420] border-white/10 text-zinc-300"}
               `}
               animate={{ scale: isDragging ? 1.08 : 1 }}
               transition={{ type: "spring", stiffness: 260 }}
@@ -360,7 +360,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                     onChange={handleFileSelect}
                     className="sr-only"
                   />
-                  <Button asChild variant="outline" size="default" className="cursor-pointer border-border bg-white text-foreground hover:bg-muted/30 transition-all duration-150 rounded-xl px-5 py-2.5 shadow-sm">
+                  <Button asChild variant="outline" size="default" className="cursor-pointer border-white/10 bg-[#121420] text-zinc-100 hover:bg-white/10 transition-all duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]">
                     <span className="text-xs font-semibold flex items-center gap-2">
                       <Upload className="h-3.5 w-3.5 text-primary" />
                       Browse Files to Stage
@@ -373,7 +373,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
             {/* Supported formats */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-6 text-xs">
               {['.csv', '.xlsx', '.parquet', '.json', '.tsv'].map((fmt) => (
-                <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white text-foreground/80 font-mono text-[10px] font-medium rounded-full border border-border/80 shadow-2xs">
+                <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#121420] text-zinc-300 font-mono text-[10px] font-medium rounded-full border border-white/10 shadow-2xs">
                   <FileSpreadsheet className="h-3 w-3 text-primary" />
                   {fmt}
                 </span>
@@ -418,25 +418,25 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   return (
                     <motion.div
                       key={`${file.name}-${file.size}-${file.lastModified}`}
-                      className="flex items-center justify-between p-3 rounded-xl bg-white border border-border/80 shadow-2xs hover:border-primary/30 t-card-lift"
+                      className="flex items-center justify-between p-3 rounded-xl bg-[#121420] border border-white/10 shadow-2xs hover:border-white/20 t-card-lift"
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2 rounded-lg bg-primary/5 text-primary shrink-0">
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
                           <FileSpreadsheet className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-display font-semibold text-xs sm:text-sm text-foreground truncate max-w-[140px] sm:max-w-[320px]">
+                            <span className="font-display font-semibold text-xs sm:text-sm text-white truncate max-w-[140px] sm:max-w-[320px]">
                               {file.name}
                             </span>
-                            <span className="px-1.5 py-0.2 rounded bg-muted text-[10px] font-mono text-muted-foreground uppercase">
+                            <span className="px-1.5 py-0.2 rounded bg-white/[0.06] text-[10px] font-mono text-zinc-300 uppercase">
                               {ext}
                             </span>
                           </div>
-                          <span className="text-[11px] text-muted-foreground font-mono">
+                          <span className="text-[11px] text-zinc-400 font-mono">
                             {formatFileSize(file.size)}
                           </span>
                         </div>
@@ -445,7 +445,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                       {!isProcessing && (
                         <button
                           onClick={() => removeFileFromStaging(idx)}
-                          className="h-7 w-7 rounded-lg text-rose-600 hover:text-white hover:bg-rose-600 border border-transparent hover:border-rose-600 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-90"
+                          className="h-7 w-7 rounded-lg text-rose-400 hover:text-white hover:bg-rose-600 border border-transparent hover:border-rose-600 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-90"
                           title="Delete this file from staging"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -474,7 +474,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                         value={joinKey}
                         onChange={(e) => setJoinKey(e.target.value)}
                         placeholder="e.g. id, user_id, date"
-                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-white text-foreground focus:outline-none focus:border-primary font-mono text-xs"
+                        className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
                       />
                     </div>
                     <div>
@@ -485,7 +485,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                         value={joinType}
                         // SAFETY: Select element options strictly constrain values to 'inner' | 'left' | 'outer'
                         onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
-                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-white text-foreground focus:outline-none focus:border-primary font-sans text-xs"
+                        className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-sans text-xs"
                       >
                         <option value="inner">Inner Join (Matched Rows)</option>
                         <option value="left">Left Join (Keep Base Dataset)</option>
@@ -501,9 +501,9 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                 <div className="pt-2">
                   <button
                     onClick={startAnalysisPipeline}
-                    className="w-full h-12 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display font-bold text-sm tracking-tight shadow-[0_4px_16px_-2px_rgba(124,58,237,0.38),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-violet-400/40 ring-1 ring-white/20 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full min-h-[48px] h-12 rounded-full bg-white hover:bg-zinc-100 text-black font-sans font-bold text-sm tracking-tight shadow-[0_2px_16px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] border border-white transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <FileSpreadsheet className="h-4 w-4" />
+                    <FileSpreadsheet className="h-4 w-4 text-black" />
                     <span>
                       {stagedFiles.length > 1
                         ? `Start Joined Analysis (${stagedFiles.length} Datasets on '${joinKey}')`
@@ -519,7 +519,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
       {/* Privacy & Data Handling Disclosure */}
       <motion.div
-        className="p-5 rounded-2xl border border-border/80 bg-white shadow-premium space-y-3"
+        className="p-5 rounded-2xl border border-white/10 bg-[#0c0d14] shadow-premium space-y-3"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
@@ -536,23 +536,23 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
         <ul className="space-y-2 text-[11px] sm:text-xs text-muted-foreground leading-relaxed font-sans">
           <li className="flex items-start gap-2">
             <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
-            <span><strong className="text-foreground">Session-scoped processing</strong> — Your file is processed for this audit session and is not used for training.</span>
+            <span><strong className="text-foreground">Session-scoped processing:</strong> Your file is processed for this audit session and is not used for training.</span>
           </li>
           <li className="flex items-start gap-2">
             <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
-            <span><strong className="text-foreground">Controlled retention</strong> — Download the outputs you need before the session expires.</span>
+            <span><strong className="text-foreground">Controlled retention:</strong> Download the outputs you need before the session expires.</span>
           </li>
           <li className="flex items-start gap-2">
             <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
-            <span><strong className="text-foreground">No Third-Party Sharing</strong> — Raw row-level data is never sent to any external AI provider. Only aggregated statistical summaries are used for insight generation.</span>
+            <span><strong className="text-foreground">No Third-Party Sharing:</strong> Raw row-level data is never sent to any external AI provider. Only aggregated statistical summaries are used for insight generation.</span>
           </li>
           <li className="flex items-start gap-2">
             <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
-            <span><strong className="text-foreground">End-to-End Encryption</strong> — All uploads are transmitted over HTTPS / TLS 1.3. Server-side memory is isolated per request.</span>
+            <span><strong className="text-foreground">End-to-End Encryption:</strong> All uploads are transmitted over HTTPS / TLS 1.3. Server-side memory is isolated per request.</span>
           </li>
         </ul>
 
-        <div className="pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-muted-foreground">
           <span>Enterprise privacy standards built-in</span>
           <Link to="/privacy" className="text-primary hover:underline font-medium">
             Read Security Architecture &rarr;

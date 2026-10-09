@@ -9,18 +9,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm active:scale-[0.98]",
+        default: "bg-white text-black font-semibold hover:bg-slate-100 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.6)] border border-white/90 active:scale-[0.98]",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm active:scale-[0.98]",
-        outline: "border border-border/80 bg-white text-foreground hover:bg-slate-50 hover:border-slate-300 shadow-2xs active:scale-[0.98]",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-2xs active:scale-[0.98]",
+        outline: "border border-border/80 bg-secondary/50 text-foreground hover:bg-secondary hover:border-white/20 shadow-2xs active:scale-[0.98]",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/60 shadow-2xs active:scale-[0.98]",
         ghost: "hover:bg-accent hover:text-accent-foreground active:scale-[0.98]",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-foreground underline-offset-4 hover:underline",
         // Dedicated High-End Semantic Action Variants
-        save: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-600/25 border border-emerald-400/40 ring-1 ring-white/20 active:scale-[0.98] font-semibold",
-        saveAll: "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-600/30 border border-emerald-400/50 ring-1 ring-white/25 active:scale-[0.98] font-bold",
-        delete: "bg-white text-slate-700 border border-slate-200/90 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 shadow-2xs hover:shadow-xs active:scale-[0.98] font-semibold transition-all duration-150",
-        deleteAll: "bg-white text-rose-700 border border-rose-200 hover:bg-rose-600 hover:text-white hover:border-rose-600 shadow-2xs hover:shadow-sm hover:shadow-rose-600/20 active:scale-[0.98] font-bold transition-all duration-150",
-        launch: "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white shadow-[0_4px_14px_-2px_rgba(124,58,237,0.38),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-violet-400/40 ring-1 ring-white/20 active:scale-[0.98] font-bold",
+        save: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-900/40 border border-emerald-400/40 ring-1 ring-white/10 active:scale-[0.98] font-semibold",
+        saveAll: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/50 border border-emerald-400/50 ring-1 ring-white/15 active:scale-[0.98] font-bold",
+        delete: "bg-secondary/50 text-slate-300 border border-border/80 hover:bg-rose-950/40 hover:text-rose-300 hover:border-rose-500/40 shadow-2xs active:scale-[0.98] font-semibold transition-all duration-150",
+        deleteAll: "bg-rose-950/30 text-rose-300 border border-rose-500/30 hover:bg-rose-600 hover:text-white hover:border-rose-600 shadow-2xs active:scale-[0.98] font-bold transition-all duration-150",
+        launch: "bg-white text-black hover:bg-slate-100 shadow-[0_4px_16px_-2px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white font-bold active:scale-[0.98]",
       },
       size: {
         default: "h-10 px-4 py-2 text-xs sm:text-sm",

@@ -67,7 +67,7 @@ const matrixCategories: FeatureCategory[] = [
 const faqs = [
   {
     question: "Is GetReport truly 100% free with no hidden paywalls?",
-    answer: "Yes. GetReport is 100% free and open source. All capabilities—including multi-dataset relational joins, Issue Ledger approvals, RAG companion chat, and board-ready WeasyPrint PDF reports—are fully unlocked for everyone without any credit card or tier gating."
+    answer: "Yes. GetReport is 100% free and open source. All capabilities (including multi-dataset relational joins, Issue Ledger approvals, RAG companion chat, and board-ready WeasyPrint PDF reports) are fully unlocked for everyone without any credit card or tier gating."
   },
   {
     question: "How does GetReport handle data privacy and confidentiality?",

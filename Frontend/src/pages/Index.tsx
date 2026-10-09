@@ -2,7 +2,6 @@ import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { EngineTrustBar } from "@/components/EngineTrustBar";
 import { ComparisonSection } from "@/components/ComparisonSection";
-import { FeaturesSection } from "@/components/FeaturesSection";
 import { ArchitectureSection } from "@/components/ArchitectureSection";
 import { QuickLaunchDock } from "@/components/QuickLaunchDock";
 import { MobileFloatingBar } from "@/components/MobileFloatingBar";
@@ -18,7 +17,6 @@ const Index = () => {
         <HeroSection />
         <EngineTrustBar />
         <ComparisonSection />
-        <FeaturesSection />
         <ArchitectureSection />
         <QuickLaunchDock />
       </main>

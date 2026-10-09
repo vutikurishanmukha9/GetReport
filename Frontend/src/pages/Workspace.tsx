@@ -93,7 +93,7 @@ export const Workspace = () => {
 
         {(step === "generating" || step === "complete") && apiData && (
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12 space-y-12">
-            {/* Process Pipeline — visible during report generation */}
+            {/* Process Pipeline: visible during report generation */}
             {step === "generating" && taskId && (
               <div className="max-w-6xl mx-auto">
                 <ProcessPipeline
