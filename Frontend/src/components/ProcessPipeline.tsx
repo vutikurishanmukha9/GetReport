@@ -5,7 +5,7 @@ import {
     Search,
     SlidersHorizontal,
     BarChart3,
-    Brain,
+    TrendingUp,
     FileText,
     CheckCircle2,
     Loader2,
@@ -27,7 +27,7 @@ const STAGE_DEFINITIONS = [
     { id: "inspect", label: "Inspect", icon: Search },
     { id: "prepare", label: "Prepare", icon: SlidersHorizontal },
     { id: "analyze", label: "Analyze", icon: BarChart3 },
-    { id: "insights", label: "Insights", icon: Brain },
+    { id: "insights", label: "Insights", icon: TrendingUp },
     { id: "report", label: "Report", icon: FileText },
 ] as const;
 

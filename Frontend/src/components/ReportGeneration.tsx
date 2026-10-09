@@ -595,11 +595,11 @@ export const ReportGeneration = ({
 
             {/* Critical Dataset Alerts (if any) */}
             {confidence.critical_issues && confidence.critical_issues.length > 0 && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-                <div className="space-y-1 font-mono text-xs text-red-800">
-                  <span className="font-bold uppercase tracking-wider block">Critical Data Hygiene Notices</span>
-                  <ul className="list-disc pl-4 space-y-0.5 font-sans">
+              <div className="p-4 bg-rose-500/15 border border-rose-500/30 rounded-2xl flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
+                <div className="space-y-1 font-mono text-xs text-rose-300">
+                  <span className="font-bold uppercase tracking-wider block text-rose-200">Critical Data Hygiene Notices</span>
+                  <ul className="list-disc pl-4 space-y-0.5 font-sans text-rose-300/90">
                     {confidence.critical_issues.map((ci: string) => (
                       <li key={`critical-issue-${ci}`}>{ci}</li>
                     ))}

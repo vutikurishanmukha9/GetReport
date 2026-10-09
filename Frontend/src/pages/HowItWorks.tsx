@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { 
-  UploadCloud, Search, FileDown, ArrowRight, Brain, 
+  UploadCloud, Search, FileDown, ArrowRight, Cpu, 
   CheckCircle2, Terminal, ChevronRight, ChevronLeft, 
   ShieldCheck, Layers, RefreshCw, Activity, Code2
 } from "lucide-react";
@@ -123,7 +123,7 @@ corr_matrix = df.select(numeric_cols).corr()`,
   {
     id: "rag",
     stepNum: "04",
-    icon: Brain,
+    icon: Cpu,
     title: "Domain Extraction & RAG Synthesis",
     shortDesc: "Semantic business context classification and grounded insight generation.",
     fullDesc: "Our semantic layer analyzes column taxonomy to classify the business domain (e.g. Retail, SaaS, Healthcare, Banking). Aggregated statistical summaries are sent to our RAG engine to generate plain-English executive takeaways without exposing raw row data.",
@@ -381,7 +381,7 @@ export const HowItWorks = () => {
               </div>
 
               <div className="p-4 rounded-xl bg-muted/20 border border-border/60 space-y-1.5">
-                <Brain className="h-5 w-5 text-primary" />
+                <Cpu className="h-5 w-5 text-primary" />
                 <h3 className="font-bold text-foreground font-sans text-xs sm:text-sm">Confidential RAG</h3>
                 <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
                   LLMs receive only aggregated mathematical metrics (mean, count, VIF) and never raw patient/customer rows.

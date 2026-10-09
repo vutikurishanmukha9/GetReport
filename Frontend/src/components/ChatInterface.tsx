@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import DOMPurify from "dompurify";
 import { 
-  Send, Bot, User, RefreshCw, ChevronDown, ChevronUp, 
+  Send, Terminal, Database, User, RefreshCw, ChevronDown, ChevronUp, 
   MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check,
   Bookmark, BookmarkCheck, Trash2
 } from "lucide-react";
@@ -307,11 +307,11 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
-              <Bot className="w-5 h-5 text-primary" />
+              <Terminal className="w-5 h-5 text-primary" />
             </div>
             <div>
               <CardTitle className="text-base font-display font-bold text-foreground tracking-tight flex items-center gap-1.5">
-                <span>AI Data Companion</span>
+                <span>Dataset Query Engine</span>
                 <Badge variant="secondary" className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono font-bold uppercase tracking-wider">Active Context</Badge>
               </CardTitle>
               <CardDescription className="text-xs">Ask questions and extract insights directly from the compiled dataset</CardDescription>
@@ -330,7 +330,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                 <span className="hidden sm:inline">Clear Chat</span>
               </Button>
             )}
-            <Bot className="h-4.5 w-4.5 text-primary/40 hidden sm:block" />
+            <Database className="h-4.5 w-4.5 text-primary/40 hidden sm:block" />
           </div>
         </div>
       </CardHeader>
@@ -357,7 +357,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                   "h-7 w-7 sm:h-8 sm:w-8 shrink-0 mt-0.5 border border-border/80 bg-secondary/80 text-foreground shadow-sm"
                 )}>
                   <AvatarFallback className="flex items-center justify-center bg-transparent">
-                    {isBot ? <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+                    {isBot ? <Terminal className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                   </AvatarFallback>
                 </Avatar>
 
@@ -457,7 +457,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                     </div>
                   )}
 
-                  {/* Context Citations Drawer (Bot only) */}
+                  {/* Context Citations Drawer (Assistant only) */}
                   {isBot && msg.sources && msg.sources.length > 0 && (
                     <SourcesExpander 
                       messageId={msg.id}
@@ -471,7 +471,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                     />
                   )}
 
-                  {/* Interactive Suggested Follow-Up Prompt Chips (Bot only, shown only when not streaming) */}
+                  {/* Interactive Suggested Follow-Up Prompt Chips (Assistant only, shown only when not streaming) */}
                   {isBot && !isStreamingThis && msg.suggested_followups && msg.suggested_followups.length > 0 && (
                     <div className="pt-1.5 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
                       <div className="text-[10px] font-mono font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
