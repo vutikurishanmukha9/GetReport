@@ -835,7 +835,7 @@
         {% for ins in analysis.ranked_insights[:10] %}
         <div class="insight-card no-break mb-8 {% if ins.get('severity') == 'high' %}insight-card--danger{% elif ins.get('severity') == 'medium' %}insight-card--warning{% else %}insight-card--success{% endif %}">
             <div class="insight-card__title">
-                {{ ins.get('title', ins.get('insight', '—')) }}
+                {{ ins.get('title', ins.get('insight', '-')) }}
                 <span class="badge badge--{{ (ins.get('severity', 'low')) | lower }} " style="margin-left:8px;">{{ ins.get('severity', ins.get('priority', 'info')) }}</span>
             </div>
             <div class="insight-card__text">

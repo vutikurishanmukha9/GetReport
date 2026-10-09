@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Optional
 @dataclass
 class ExecutiveMLSection:
     has_ml_content: bool
-    title: str = "Machine Learning & Predictive Intelligence"
+    title: str = "Key Performance Drivers & Operational Cohorts"
     executive_takeaways: List[str] = field(default_factory=list)
     segmentation_summary: Optional[Dict[str, Any]] = None
     driver_attribution: Optional[Dict[str, Any]] = None

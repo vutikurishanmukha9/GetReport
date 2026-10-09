@@ -29,14 +29,14 @@ class ExecutiveMLReportSynthesizer:
             personas = unsupervised_data.get("personas", [])
 
             takeaways.append(
-                f"Autonomous clustering isolated {k} cohesive operational segments, "
-                f"capturing {var_pct:.1f}% of overall data variance (Silhouette Cohesion: {sil_score:.2f})."
+                f"Statistical profiling identified {k} natural operational cohorts, "
+                f"capturing {var_pct:.0f}% of total population variance."
             )
 
             if personas:
                 top_persona = personas[0]
                 takeaways.append(
-                    f"Primary Segment ({top_persona.get('name', 'Segment 1')}) represents "
+                    f"Leading Cohort ({top_persona.get('name', 'Tier 1')}) represents "
                     f"{top_persona.get('share_pct', 0.0):.1f}% of records: {top_persona.get('summary', '')}"
                 )
 
@@ -80,15 +80,15 @@ class ExecutiveMLReportSynthesizer:
             leaderboard = supervised_data.get("leaderboard", [])
 
             takeaways.append(
-                f"Predictive analysis for target '{target_col}' ({task_type}) achieved peak accuracy via "
-                f"{best_model} ({primary_metric}: {primary_val:.3f})."
+                f"Outcome modeling for '{target_col}' confirmed strong predictive signal "
+                f"({primary_metric}: {primary_val:.2f})."
             )
 
             if drivers:
                 top_driver = drivers[0]
                 takeaways.append(
-                    f"Outcome '{target_col}' is predominantly driven by '{top_driver.get('feature')}' "
-                    f"({top_driver.get('importance_pct', 0.0):.1f}% relative power; {top_driver.get('impact_description', '')})."
+                    f"'{target_col}' is predominantly influenced by '{top_driver.get('feature')}' "
+                    f"({top_driver.get('importance_pct', 0.0):.1f}% relative impact: {top_driver.get('impact_description', '')})."
                 )
 
             formatted_drivers = []
@@ -125,7 +125,7 @@ class ExecutiveMLReportSynthesizer:
 
         return ExecutiveMLSection(
             has_ml_content=True,
-            title="Predictive Intelligence & Segments",
+            title="Key Performance Drivers & Operational Cohorts",
             executive_takeaways=takeaways,
             segmentation_summary=segmentation_summary,
             driver_attribution=driver_attribution,

@@ -205,6 +205,14 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
             len(pipeline_outcome.failed),
             [s.name for s in pipeline_outcome.failed],
         )
+
+    # Re-evaluate ranked insights now that pipeline steps (supervised/unsupervised/kats) have enriched result
+    try:
+        ranked_insights = rank_insights(result)
+        result["ranked_insights"] = [i.to_dict() for i in ranked_insights]
+        logger.info(f"Insight Ranking (Enriched): Generated {len(ranked_insights)} executive insights")
+    except Exception as exc:
+        logger.warning(f"Failed to refresh ranked insights with pipeline data: {exc}")
         
     # Populate the root ml_readiness key from confidence_scores (or calculate if missing)
     if "confidence_scores" in result and result["confidence_scores"] is not None:
