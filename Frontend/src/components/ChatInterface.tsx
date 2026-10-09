@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import DOMPurify from "dompurify";
 import { 
-  Send, Terminal, Database, User, RefreshCw, ChevronDown, ChevronUp, 
+  Send, Terminal, User, RefreshCw, ChevronDown, ChevronUp, 
   MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check,
   Bookmark, BookmarkCheck, Trash2
 } from "lucide-react";
@@ -320,17 +320,16 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
           <div className="flex items-center gap-2">
             {messages.length > 0 && (
               <Button
-                variant="delete"
+                variant="outline"
                 size="sm"
                 onClick={handleClearHistory}
-                className="h-8 px-2.5 rounded-lg text-xs gap-1.5 cursor-pointer"
+                className="h-8 px-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 border-border/80 gap-1.5 cursor-pointer transition-colors"
                 title="Delete all messages in this conversation"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Clear Chat</span>
               </Button>
             )}
-            <Database className="h-4.5 w-4.5 text-primary/40 hidden sm:block" />
           </div>
         </div>
       </CardHeader>
@@ -425,17 +424,17 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                             variant="save"
                             size="sm"
                             disabled
-                            className="h-8 px-3 text-[11px] font-mono flex items-center gap-1.5 opacity-90 rounded-lg"
+                            className="h-8 px-3 text-xs font-medium flex items-center gap-1.5 opacity-90 rounded-lg"
                           >
                             <BookmarkCheck className="w-3.5 h-3.5 text-white" />
                             <span>Saved as Golden KPI</span>
                           </Button>
                           <Button
                             type="button"
-                            variant="delete"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleDeleteGoldenKPI(msg.id)}
-                            className="h-8 px-2.5 text-[11px] font-mono flex items-center gap-1 rounded-lg cursor-pointer"
+                            className="h-8 px-2.5 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 border-border/80 flex items-center gap-1.5 rounded-lg cursor-pointer transition-colors"
                             title="Delete this saved KPI"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -448,7 +447,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                           variant="save"
                           size="sm"
                           onClick={() => handleSaveGoldenKPI(msg)}
-                          className="h-8 px-3 text-[11px] font-mono flex items-center gap-1.5 rounded-lg cursor-pointer"
+                          className="h-8 px-3 text-xs font-medium flex items-center gap-1.5 rounded-lg cursor-pointer"
                         >
                           <Bookmark className="w-3.5 h-3.5 text-white" />
                           <span>Save as Golden KPI</span>

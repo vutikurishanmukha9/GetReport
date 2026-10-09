@@ -399,10 +399,10 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                 </div>
                 {!isProcessing && (
                   <Button 
-                    variant="delete"
+                    variant="outline"
                     size="sm"
                     onClick={clearStaging}
-                    className="h-7 px-2.5 rounded-lg text-xs gap-1.5 cursor-pointer font-semibold"
+                    className="h-7 px-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 border-border/80 gap-1.5 cursor-pointer transition-colors"
                   >
                     <Trash2 className="h-3 w-3" />
                     <span>Clear All</span>

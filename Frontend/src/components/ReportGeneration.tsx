@@ -1172,8 +1172,8 @@ export const ReportGeneration = ({
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
-                    variant="delete"
-                    className="h-8.5 text-xs font-mono rounded-xl px-2.5 gap-1.5"
+                    variant="outline"
+                    className="h-8 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 border-border/80 gap-1.5 transition-colors cursor-pointer"
                     onClick={() => {
                       setSqlQuery("");
                       setSqlResult(null);
@@ -1189,7 +1189,7 @@ export const ReportGeneration = ({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8.5 text-xs font-mono rounded-xl bg-secondary/80 hover:bg-secondary text-foreground border-border/80 px-3"
+                    className="h-8 text-xs font-medium border-border/80 bg-secondary/50 hover:bg-secondary text-foreground gap-1.5 transition-colors cursor-pointer"
                     onClick={() => {
                       navigator.clipboard.writeText(sqlQuery);
                       setHasCopiedSql(true);
@@ -1197,13 +1197,14 @@ export const ReportGeneration = ({
                       toast({ title: "Copied", description: "Query copied to clipboard" });
                     }}
                   >
-                    {hasCopiedSql ? <Check className="h-3.5 w-3.5 text-emerald-600 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                    {hasCopiedSql ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
                     <span>{hasCopiedSql ? "Copied" : "Copy SQL"}</span>
                   </Button>
 
                   <Button
                     size="sm"
-                    className="h-8.5 text-xs font-bold rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white shadow-sm shadow-violet-600/30 gap-1.5 px-4 cursor-pointer"
+                    variant="default"
+                    className="h-8 text-xs font-semibold gap-1.5 px-3.5 shadow-sm cursor-pointer"
                     disabled={sqlRunning}
                     onClick={() => executeSql()}
                   >
@@ -1223,7 +1224,7 @@ export const ReportGeneration = ({
                     setSqlQuery(q);
                     executeSql(q);
                   }}
-                  className="px-2.5 py-1 rounded-lg text-xs font-mono bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  className="px-2.5 py-1 rounded-md text-xs font-medium bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/60 hover:border-border transition-colors cursor-pointer"
                 >
                   Preview 15 Rows
                 </button>
@@ -1234,7 +1235,7 @@ export const ReportGeneration = ({
                     setSqlQuery(q);
                     executeSql(q);
                   }}
-                  className="px-2.5 py-1 rounded-lg text-xs font-mono bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  className="px-2.5 py-1 rounded-md text-xs font-medium bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/60 hover:border-border transition-colors cursor-pointer"
                 >
                   Count Records
                 </button>
@@ -1247,7 +1248,7 @@ export const ReportGeneration = ({
                       setSqlQuery(q);
                       executeSql(q);
                     }}
-                    className="px-2.5 py-1 rounded-lg text-xs font-mono bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/60 hover:border-border transition-colors cursor-pointer"
                   >
                     Numeric Summary
                   </button>
@@ -1303,7 +1304,7 @@ export const ReportGeneration = ({
                       <Button
                         size="sm"
                         variant="save"
-                        className="h-8 text-xs font-mono rounded-xl px-3 gap-1.5 cursor-pointer"
+                        className="h-8 text-xs font-medium rounded-lg px-3 gap-1.5 cursor-pointer"
                         onClick={handleSaveSqlQuery}
                         disabled={isSavedSql}
                       >
@@ -1323,10 +1324,10 @@ export const ReportGeneration = ({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 text-xs font-mono rounded-xl bg-secondary/80 hover:bg-secondary text-foreground border-border/80 px-3 cursor-pointer"
+                        className="h-8 text-xs font-medium rounded-lg bg-secondary/50 hover:bg-secondary text-foreground border-border/80 px-3 cursor-pointer gap-1.5"
                         onClick={downloadSqlCsv}
                       >
-                        <Download className="h-3.5 w-3.5 mr-1" />
+                        <Download className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>Export CSV</span>
                       </Button>
                     </div>
