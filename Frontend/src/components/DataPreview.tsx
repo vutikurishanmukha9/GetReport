@@ -120,7 +120,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
               <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground truncate">
                 Dataset Ingestion Preview
               </h1>
-              <Badge variant="outline" className="text-[10px] font-mono uppercase bg-emerald-50 text-emerald-700 border-emerald-200">
+              <Badge variant="outline" className="text-[10px] font-mono uppercase bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
                 Validated
               </Badge>
             </div>

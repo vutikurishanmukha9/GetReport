@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Check, AlertTriangle, Play, ShieldAlert, Trash2, Wrench, BarChart2 } from "lucide-react";
+import { Check, AlertTriangle, Play, ShieldAlert, Trash2, Wrench, BarChart2, Hash, Calendar, CheckCircle2, Type } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
     Select,
     SelectContent,
@@ -23,6 +22,32 @@ interface DataHealthCheckProps {
     onContinue: (rules: CleaningRulesMap) => void;
     isProcessing: boolean;
 }
+
+const getTypeStyle = (type: string) => {
+    const t = (type || "").toLowerCase();
+    if (t.includes("int") || t.includes("float") || t.includes("num")) {
+        return {
+            icon: <Hash className="h-3 w-3 text-sky-400" />,
+            className: "bg-sky-500/10 text-sky-400 border-sky-500/25",
+        };
+    }
+    if (t.includes("datetime") || t.includes("date") || t.includes("time")) {
+        return {
+            icon: <Calendar className="h-3 w-3 text-amber-400" />,
+            className: "bg-amber-500/10 text-amber-400 border-amber-500/25",
+        };
+    }
+    if (t.includes("bool")) {
+        return {
+            icon: <CheckCircle2 className="h-3 w-3 text-emerald-400" />,
+            className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
+        };
+    }
+    return {
+        icon: <Type className="h-3 w-3 text-violet-400" />,
+        className: "bg-violet-500/10 text-violet-400 border-violet-500/25",
+    };
+};
 
 export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealthCheckProps) => {
     const [rules, setRules] = useState<CleaningRulesMap>({});
@@ -65,19 +90,19 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                 if (issue.column !== "Multiple") return [];
                 return [
                     <div key={`global-warning-${issue.type}-${issue.count}`} className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 p-5 rounded-2xl flex items-start gap-4 shadow-sm animate-in fade-in duration-300">
-                        <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-700 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-2xs">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-2xs">
                             <AlertTriangle className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <h4 className="text-sm font-display font-bold text-amber-900">
+                                <h4 className="text-sm font-display font-bold text-amber-300">
                                     {issue.type === 'partial_duplicates' ? "Ambiguous Data Detected" : "Quality Warning"}
                                 </h4>
-                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 border border-amber-500/30">
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                     {issue.count} rows
                                 </span>
                             </div>
-                            <p className="text-xs text-amber-800/90 mt-1 font-sans leading-relaxed">
+                            <p className="text-xs text-amber-200/90 mt-1 font-sans leading-relaxed">
                                 {issue.type === 'partial_duplicates'
                                     ? `Found ${issue.count} rows that look identical but have different IDs (Partial Duplicates). Review rules below.`
                                     : `System detected ${issue.count} potential quality conflicts across multiple attributes.`
@@ -96,6 +121,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
                     if (!hasIssue) return null;
 
+                    const typeStyle = getTypeStyle(col.inferred_type);
+
                     return (
                         <Card key={col.name} className="border border-border/80 bg-card rounded-2xl shadow-premium overflow-hidden flex flex-col justify-between t-card-lift">
                             <CardHeader className="pb-3 bg-muted/10 border-b border-border/40">
@@ -106,18 +133,21 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger>
-                                                <Badge variant="outline" className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white border-border/80 text-foreground shrink-0">
+                                                <span
+                                                    className={`inline-flex items-center text-[10px] font-mono gap-1 px-2.5 py-0.5 rounded-full border ${typeStyle.className} shrink-0 shadow-2xs`}
+                                                >
+                                                    {typeStyle.icon}
                                                     {col.inferred_type}
-                                                </Badge>
+                                                </span>
                                             </TooltipTrigger>
-                                            <TooltipContent>
+                                            <TooltipContent className="rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl">
                                                 <p className="text-xs font-mono">Inferred Type: {col.inferred_type}</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                 </div>
-                                <CardDescription className="flex items-center gap-1.5 text-amber-700 font-sans text-xs font-semibold mt-1">
-                                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                                <CardDescription className="flex items-center gap-1.5 text-amber-400 font-sans text-xs font-semibold mt-1">
+                                    <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                                     <span>
                                         {issue?.type === 'outliers'
                                             ? `${issue.count} outliers detected`
@@ -146,18 +176,18 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                     value={getActionForColumn(col.name)}
                                     onValueChange={(val) => handleActionChange(col.name, val)}
                                 >
-                                    <SelectTrigger className="w-full bg-white border-border/80 rounded-xl text-xs h-10 font-medium hover:border-primary/40 focus:ring-primary/20 shadow-2xs">
+                                    <SelectTrigger className="w-full bg-secondary/80 hover:bg-secondary border-border/80 text-foreground rounded-xl text-xs h-10 font-medium hover:border-primary/40 focus:ring-primary/20 shadow-2xs transition-colors cursor-pointer">
                                         <SelectValue placeholder="Select action…" />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-xl border-border bg-white shadow-xl">
-                                        <SelectItem value="default" className="text-xs font-medium">
-                                            <span className="text-muted-foreground flex items-center gap-2">
-                                                <Check className="w-3.5 h-3.5 text-muted-foreground" /> Ignore (Leave as is)
+                                    <SelectContent className="rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-2xl backdrop-blur-xl">
+                                        <SelectItem value="default" className="text-xs font-medium text-foreground cursor-pointer focus:bg-accent focus:text-foreground">
+                                            <span className="text-muted-foreground hover:text-foreground flex items-center gap-2">
+                                                Ignore (Leave as is)
                                             </span>
                                         </SelectItem>
-                                        <SelectItem value="drop_rows" className="text-xs font-medium text-rose-700">
+                                        <SelectItem value="drop_rows" className="text-xs font-medium text-rose-400 focus:text-rose-300 focus:bg-rose-500/15 cursor-pointer">
                                             <span className="flex items-center gap-2">
-                                                <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Drop Rows
+                                                <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Drop Rows
                                             </span>
                                         </SelectItem>
 
@@ -165,22 +195,22 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                             <>
                                                 {issue?.type !== 'outliers' && (
                                                     <>
-                                                        <SelectItem value="fill_median" className="text-xs font-medium">
+                                                        <SelectItem value="fill_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                             <span className="flex items-center gap-2">
-                                                                <Wrench className="w-3.5 h-3.5 text-primary" /> Fill with Median
+                                                                <Wrench className="w-3.5 h-3.5 text-sky-400" /> Fill with Median
                                                             </span>
                                                         </SelectItem>
-                                                        <SelectItem value="fill_mean" className="text-xs font-medium">
+                                                        <SelectItem value="fill_mean" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                             <span className="flex items-center gap-2">
-                                                                <Wrench className="w-3.5 h-3.5 text-primary" /> Fill with Average
+                                                                <Wrench className="w-3.5 h-3.5 text-sky-400" /> Fill with Average
                                                             </span>
                                                         </SelectItem>
                                                     </>
                                                 )}
                                                 {issue?.type === 'outliers' && (
-                                                    <SelectItem value="replace_outliers_median" className="text-xs font-medium">
+                                                    <SelectItem value="replace_outliers_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                         <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-amber-600" /> Cap Outliers (Median)
+                                                            <Wrench className="w-3.5 h-3.5 text-amber-400" /> Cap Outliers (Median)
                                                         </span>
                                                     </SelectItem>
                                                 )}
@@ -188,14 +218,14 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                         )}
                                         {col.inferred_type !== 'numeric' && (
                                             <>
-                                                <SelectItem value="fill_mode" className="text-xs font-medium">
+                                                <SelectItem value="fill_mode" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center gap-2">
-                                                        <Wrench className="w-3.5 h-3.5 text-primary" /> Fill with Most Frequent
+                                                        <Wrench className="w-3.5 h-3.5 text-indigo-400" /> Fill with Most Frequent
                                                     </span>
                                                 </SelectItem>
-                                                <SelectItem value="fill_value" className="text-xs font-medium">
+                                                <SelectItem value="fill_value" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center gap-2">
-                                                        <Wrench className="w-3.5 h-3.5 text-primary" /> Fill with "Unknown"
+                                                        <Wrench className="w-3.5 h-3.5 text-indigo-400" /> Fill with &ldquo;Unknown&rdquo;
                                                     </span>
                                                 </SelectItem>
                                             </>
@@ -210,8 +240,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
             {report.issues.length === 0 && (
                 <div className="bg-card border border-border/80 shadow-premium rounded-2xl p-8 max-w-2xl mx-auto text-center mt-6">
-                    <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5 border border-emerald-200 shadow-2xs">
-                        <Check className="h-8 w-8 text-emerald-600" />
+                    <div className="w-16 h-16 bg-emerald-500/15 rounded-full flex items-center justify-center mx-auto mb-5 border border-emerald-500/30 shadow-2xs">
+                        <Check className="h-8 w-8 text-emerald-400" />
                     </div>
                     <h3 className="text-2xl font-display font-bold text-foreground">Data Quality: Excellent</h3>
                     <p className="text-muted-foreground mt-2 max-w-md mx-auto text-sm leading-relaxed">
@@ -220,14 +250,14 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     
                     <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                         <div className="bg-muted/30 border border-border/60 rounded-xl p-4 flex items-start gap-3">
-                            <div className="bg-emerald-100 p-1.5 rounded-md mt-0.5"><Check className="h-4 w-4 text-emerald-600" /></div>
+                            <div className="bg-emerald-500/15 p-1.5 rounded-md mt-0.5 border border-emerald-500/25"><Check className="h-4 w-4 text-emerald-400" /></div>
                             <div>
                                 <h4 className="text-sm font-semibold text-foreground">Format Integrity</h4>
                                 <p className="text-xs text-muted-foreground mt-1">All columns contain valid types.</p>
                             </div>
                         </div>
                         <div className="bg-muted/30 border border-border/60 rounded-xl p-4 flex items-start gap-3">
-                            <div className="bg-emerald-100 p-1.5 rounded-md mt-0.5"><Check className="h-4 w-4 text-emerald-600" /></div>
+                            <div className="bg-emerald-500/15 p-1.5 rounded-md mt-0.5 border border-emerald-500/25"><Check className="h-4 w-4 text-emerald-400" /></div>
                             <div>
                                 <h4 className="text-sm font-semibold text-foreground">Data Completeness</h4>
                                 <p className="text-xs text-muted-foreground mt-1">No missing cells detected.</p>
@@ -245,7 +275,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                         <h3 className="text-sm font-display font-bold text-foreground tracking-tight">Data Preview (First 5 Rows)</h3>
                         <span className="text-xs font-mono text-muted-foreground">{report.preview.length} sample rows</span>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-sm text-left border-collapse">
                             <thead className="bg-muted/40 text-foreground font-semibold">
                                 <tr>
@@ -256,7 +286,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-border/60">
+                            <tbody className="divide-y divide-border/60 bg-card">
                                 {report.preview.map((row, rowPos) => (
                                     <tr key={`row_pos_${rowPos}`} className="border-b border-border/40 last:border-0 hover:bg-primary/[0.02] transition-colors">
                                         {Object.entries(row).map(([header, cell]) => (
@@ -278,7 +308,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     size="lg"
                     onClick={handleSubmit}
                     disabled={isProcessing}
-                    className="w-full sm:w-auto min-w-[220px] rounded-xl shadow-premium transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-base py-6 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                    className="w-full sm:w-auto min-w-[220px] rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-sm py-6 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display border border-violet-400/40 ring-1 ring-white/20 shadow-[0_4px_14px_-2px_rgba(124,58,237,0.38),inset_0_1px_1px_rgba(255,255,255,0.3)] cursor-pointer"
                 >
                     {isProcessing ? (
                         "Processing…"
@@ -318,8 +348,8 @@ const SparklineHistogram = ({ data }: { data: { count: number; label: string }[]
                                     style={{ height: `${Math.max(12, (d.count / max) * 100)}%` }}
                                 />
                             </TooltipTrigger>
-                            <TooltipContent className="rounded-xl border-border bg-white shadow-xl">
-                                <p className="text-xs font-sans">{d.label}: <strong className="font-mono text-primary">{d.count}</strong></p>
+                            <TooltipContent className="rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl">
+                                <p className="text-xs font-sans text-popover-foreground">{d.label}: <strong className="font-mono text-primary">{d.count}</strong></p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -328,3 +358,4 @@ const SparklineHistogram = ({ data }: { data: { count: number; label: string }[]
         </div>
     );
 };
+

@@ -354,7 +354,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
               >
                 {/* Avatar Icon */}
                 <Avatar className={cn(
-                  "h-7 w-7 sm:h-8 sm:w-8 shrink-0 mt-0.5 border border-border bg-white text-primary shadow-sm"
+                  "h-7 w-7 sm:h-8 sm:w-8 shrink-0 mt-0.5 border border-border/80 bg-secondary/80 text-foreground shadow-sm"
                 )}>
                   <AvatarFallback className="flex items-center justify-center bg-transparent">
                     {isBot ? <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
@@ -364,8 +364,8 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                 {/* Bubble container */}
                 <div className="space-y-2 max-w-full">
                   {isBot && msg.source === "golden_kpi" && (
-                    <div className="flex items-center gap-1.5 text-amber-900 bg-amber-50 border border-amber-300/80 rounded-lg px-2.5 py-1 text-[11px] font-mono font-semibold w-fit shadow-2xs">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
+                    <div className="flex items-center gap-1.5 text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-lg px-2.5 py-1 text-[11px] font-mono font-semibold w-fit shadow-2xs">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
                       <span>Verified Golden KPI</span>
                     </div>
                   )}
@@ -374,7 +374,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                     className={cn(
                       "p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-premium",
                       isBot
-                        ? "bg-white border border-border/80 text-foreground rounded-tl-xs font-sans"
+                        ? "bg-card border border-border/80 text-foreground rounded-tl-xs font-sans"
                         : "bg-primary text-primary-foreground rounded-tr-xs font-sans shadow-md"
                     )}
                   >
@@ -484,7 +484,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                             key={qIdx}
                             onClick={() => handleSendQuery(qText)}
                             disabled={isLoading}
-                            className="text-left text-xs font-sans bg-white hover:bg-primary/5 border border-border/80 hover:border-primary/40 text-foreground rounded-xl px-3.5 py-1.5 shadow-2xs disabled:opacity-50 cursor-pointer t-card-lift t-spring-press"
+                            className="text-left text-xs font-sans bg-secondary/80 hover:bg-secondary border border-border/80 hover:border-primary/40 text-foreground rounded-xl px-3.5 py-1.5 shadow-2xs disabled:opacity-50 cursor-pointer t-card-lift t-spring-press"
                           >
                             {qText}
                           </button>
@@ -510,7 +510,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
 
         {/* Input Textbox bar */}
         <div className="p-2.5 sm:p-4 border-t border-border/60 bg-muted/10">
-          <div className="flex items-center gap-2 bg-white border border-border/80 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20 rounded-2xl p-1.5 transition-all duration-200 shadow-2xs">
+          <div className="flex items-center gap-2 bg-card border border-border/80 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20 rounded-2xl p-1.5 transition-all duration-200 shadow-2xs">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
