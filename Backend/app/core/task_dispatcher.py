@@ -7,6 +7,7 @@ Implements dual-mode background task execution:
 """
 import asyncio
 import logging
+import os
 import threading
 from typing import Any, Callable, Dict, Optional
 
