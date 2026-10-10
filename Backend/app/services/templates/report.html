@@ -357,9 +357,9 @@
                     <td class="num-col">
                         {% set delta = metric.get('delta', 0) %}
                         {% if delta > 0 %}
-                        <span class="priority-low">▲ {{ delta }}</span>
+                        <span class="priority-low">+{{ delta }}</span>
                         {% elif delta < 0 %}
-                        <span class="priority-high">▼ {{ delta }}</span>
+                        <span class="priority-high">{{ delta }}</span>
                         {% else %}
                         <span class="text-muted">—</span>
                         {% endif %}

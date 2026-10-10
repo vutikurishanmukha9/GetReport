@@ -523,8 +523,11 @@ async def query_dataset_sql(
             df = load_dataframe(file_path)
             session.register_polars("dataset", df)
 
+        import time
+        t_start = time.perf_counter()
         query_limit = min(body.limit or 500, 1000)
         records = session.execute_read_query(body.sql, max_rows=query_limit)
+        duration_ms = round((time.perf_counter() - t_start) * 1000, 2)
         columns = list(records[0].keys()) if records else []
         capped_records = records[:query_limit]
 
@@ -535,12 +538,68 @@ async def query_dataset_sql(
             "records": capped_records,
             "total_returned": len(records),
             "capped": len(records) > len(capped_records),
+            "execution_ms": duration_ms,
         }
     except DuckDBSecurityError as se:
         raise HTTPException(403, str(se))
     except Exception as e:
         logger.error(f"SQL execution error for task {task_id}: {e}", exc_info=True)
-        raise HTTPException(400, "Query execution failed. Please verify query syntax and column references.")
+        raw_err = str(e).strip()
+        sanitized_err = re.sub(r"[A-Za-z]:\\[^ \n\r\t:]+", "<path>", raw_err)
+        sanitized_err = re.sub(r"/(?:Users|home|tmp|var|opt)/[^ \n\r\t:]+", "<path>", sanitized_err)
+        first_line = sanitized_err.split("\n")[0].strip()
+        detail_msg = first_line if first_line else "Query execution failed. Please verify query syntax and column references."
+        raise HTTPException(400, f"DuckDB Query Error: {detail_msg}")
+    finally:
+        session.close()
+
+
+@router.get("/jobs/{task_id}/sql-schema")
+@limiter.limit(REPORT_LIMIT)
+async def get_job_sql_schema(
+    request: Request,
+    task_id: str,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Returns DuckDB schema introspection for the dataset registered in the job.
+    Includes tables, column names, column data types, nullability, and sample preview values.
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job or not job.result:
+        raise HTTPException(404, "Job not found or analysis not complete")
+
+    from app.services.storage import get_storage_provider
+    from app.services.duckdb_engine import DuckDBAnalyticalSession
+    from app.services.data_processing import load_dataframe
+
+    cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
+    if not cleaned_file_ref:
+        raise HTTPException(404, "Dataset artifact not found for this job")
+
+    storage = get_storage_provider()
+    file_path = storage.get_absolute_path(cleaned_file_ref)
+    if not os.path.exists(file_path):
+        raise HTTPException(404, "Dataset file does not exist on storage")
+
+    session = DuckDBAnalyticalSession()
+    try:
+        if file_path.endswith(".parquet"):
+            session.register_parquet("dataset", file_path)
+        else:
+            df = load_dataframe(file_path)
+            session.register_polars("dataset", df)
+
+        schema_meta = session.get_schema_metadata()
+        return {
+            "task_id": task_id,
+            "success": True,
+            **schema_meta,
+        }
+    except Exception as e:
+        logger.error(f"Error fetching SQL schema for task {task_id}: {e}", exc_info=True)
+        raise HTTPException(500, f"Failed to inspect SQL schema: {str(e)}")
     finally:
         session.close()
 

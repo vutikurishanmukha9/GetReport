@@ -1217,10 +1217,9 @@ def _build_analysis_decisions_section(
         row_colors = []
         for d in decisions:
             status = d.get("decision", "")
-            status_icon = "✓" if status == "ran" else "○" if status == "skipped" else "◐" if status == "partial" else "✗"
             table_data.append([
                 d.get("analysis", "")[:28],
-                f"{status_icon} {status.upper()}",
+                status.upper(),
                 d.get("reason", "")[:55],
             ])
             row_colors.append(status_colors.get(status, colors.white))

@@ -31,29 +31,41 @@ def register_task(name: str):
 
 def check_redis_available() -> bool:
     """
-    Check if Redis is reachable with a fast 0.5s timeout.
+    Check if Redis is reachable with a fast timeout.
     Result is cached to prevent repeated connection attempts in offline environments.
     """
     global _redis_available
     if _redis_available is not None:
         return _redis_available
 
+    redis_url = (settings.REDIS_URL or "").strip()
+    if not redis_url:
+        _redis_available = False
+        logger.info("Task Dispatcher: No REDIS_URL configured. Using in-memory native asyncio task runner.")
+        return False
+
+    # In cloud environments (Render, Railway, etc.), avoid attempting connection to localhost
+    if (os.environ.get("RENDER") or os.environ.get("PORT")) and ("localhost" in redis_url or "127.0.0.1" in redis_url):
+        _redis_available = False
+        logger.info("Task Dispatcher: Localhost Redis specified in cloud environment. Falling back to in-memory runner.")
+        return False
+
     try:
         import redis
-        client = redis.from_url(settings.REDIS_URL, socket_connect_timeout=0.2, socket_timeout=0.2)
+        client = redis.from_url(redis_url, socket_connect_timeout=1.0, socket_timeout=1.0)
         client.ping()
         _redis_available = True
-        logger.info("Task Dispatcher: Redis connection verified at %s (ARQ Mode active).", settings.REDIS_URL)
-    except Exception:
+        logger.info("Task Dispatcher: Redis connection verified at %s (ARQ Mode active).", redis_url)
+    except Exception as e:
         _redis_available = False
-        logger.info("Task Dispatcher: Redis not reachable. Falling back to in-memory native asyncio task runner.")
+        logger.info("Task Dispatcher: Redis not reachable (%s). Falling back to in-memory native asyncio task runner.", e)
 
     return _redis_available
 
 
 async def _get_arq_pool():
     """Lazily initialize ARQ connection pool when Redis is available."""
-    global _arq_pool
+    global _arq_pool, _redis_available
     if _arq_pool is not None:
         return _arq_pool
 
@@ -64,6 +76,7 @@ async def _get_arq_pool():
         logger.info("Task Dispatcher: ARQ worker connection pool created.")
         return _arq_pool
     except Exception as e:
+        _redis_available = False
         logger.warning("Task Dispatcher: Failed to create ARQ pool (%s). Using in-memory runner.", e)
         return None
 
@@ -105,6 +118,7 @@ async def dispatch_task(task_name: str, *args: Any, **kwargs: Any) -> str:
                 logger.info("Dispatched task '%s' to ARQ worker (job_id=%s)", task_name, job_id)
                 return job_id
             except Exception as arq_err:
+                _redis_available = False
                 logger.warning("ARQ enqueue failed (%s). Falling back to in-memory execution.", arq_err)
 
     # In-memory execution fallback (Local Dev & zero-Redis environments)

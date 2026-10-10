@@ -352,11 +352,37 @@ export const api = {
         records: DataRow[];
         total_returned: number;
         capped: boolean;
+        execution_ms?: number;
     }> => {
         return fetchClient(`/jobs/${taskId}/query-sql`, {
             method: "POST",
             body: JSON.stringify({ sql, limit }),
         });
+    },
+
+    /**
+     * Introspect DuckDB analytical schema metadata (tables, columns, types, sample values).
+     */
+    getSqlSchema: async (
+        taskId: string
+    ): Promise<{
+        task_id: string;
+        success: boolean;
+        engine: string;
+        total_tables: number;
+        tables: Array<{
+            table_name: string;
+            row_count: number;
+            column_count: number;
+            columns: Array<{
+                name: string;
+                type: string;
+                nullable: boolean;
+                sample_values: string[];
+            }>;
+        }>;
+    }> => {
+        return fetchClient(`/jobs/${taskId}/sql-schema`);
     },
 
     /**

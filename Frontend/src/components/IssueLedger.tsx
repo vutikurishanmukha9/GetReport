@@ -445,7 +445,17 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                         <span className={`text-xs font-semibold inline-flex items-center gap-1 ${
                                             issue.status === 'approved' ? 'text-emerald-400' : 'text-rose-400'
                                         }`}>
-                                            {issue.status === 'approved' ? '✓ Approved' : '✕ Rejected'}
+                                            {issue.status === 'approved' ? (
+                                                <>
+                                                    <Check className="w-3.5 h-3.5" />
+                                                    <span>Approved</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <X className="w-3.5 h-3.5" />
+                                                    <span>Rejected</span>
+                                                </>
+                                            )}
                                         </span>
                                     )}
                                 </td>

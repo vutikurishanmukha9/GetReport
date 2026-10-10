@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     TYPESAFE_BASE_URL: str = "https://api.typesafe.ai/v1"
     TYPESAFE_MODEL: str = "jev-latest"
     DATABASE_URL: str = "" # Logic: If set, use Postgres. Else, use SQLite.
-    REDIS_URL: str = "redis://localhost:6379/0" # Default local Redis
+    REDIS_URL: str = "" # Logic: If set and reachable, use ARQ Redis worker. Else, use native in-memory asyncio task runner.
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_DEFAULT: str = "60/minute"
     MAX_UPLOAD_SIZE_MB: int = 50

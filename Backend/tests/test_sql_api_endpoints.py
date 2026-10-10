@@ -146,3 +146,48 @@ def test_golden_query_crud_endpoints(setup_completed_job):
     assert res_list_after.status_code == 200
     assert len(res_list_after.json()) == 0
 
+
+def test_get_sql_schema_endpoint(setup_completed_job):
+    task_id, _ = setup_completed_job
+
+    response = client.get(f"/api/jobs/{task_id}/sql-schema")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["task_id"] == task_id
+    assert data["success"] is True
+    assert data["engine"] == "DuckDB-InProcess"
+    assert data["total_tables"] == 1
+    table_meta = data["tables"][0]
+    assert table_meta["table_name"] == "dataset"
+    assert table_meta["row_count"] == 5
+    assert table_meta["column_count"] == 3
+    col_names = [col["name"] for col in table_meta["columns"]]
+    assert "product_id" in col_names
+    assert "category" in col_names
+    assert "price" in col_names
+
+
+def test_query_sql_execution_ms_and_error_reporting(setup_completed_job):
+    task_id, _ = setup_completed_job
+
+    # Valid query returns execution_ms
+    response = client.post(
+        f"/api/jobs/{task_id}/query-sql",
+        json={"sql": "SELECT * FROM dataset"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "execution_ms" in data
+    assert isinstance(data["execution_ms"], (int, float))
+
+    # Unknown column gives helpful Binder Error instead of vague error
+    bad_res = client.post(
+        f"/api/jobs/{task_id}/query-sql",
+        json={"sql": "SELECT nonexistent_column FROM dataset"}
+    )
+    assert bad_res.status_code == 400
+    detail = bad_res.json()["detail"]
+    assert "DuckDB Query Error" in detail
+
+
