@@ -216,6 +216,9 @@ export interface QualityIssue {
   count: number;
   severity: "low" | "medium" | "high" | "none";
   suggestion: string;
+  label?: string;
+  action?: "fill_median" | "fill_mean" | "fill_mode" | "fill_value" | "drop_rows" | "replace_outliers_median" | "default";
+  rationale?: string;
 }
 
 export interface ColumnProfile {
@@ -235,7 +238,7 @@ export interface InspectionReport {
 }
 
 export interface CleaningRule {
-  action: "drop_rows" | "fill_mean" | "fill_value" | "none";
+  action: "drop_rows" | "fill_mean" | "fill_median" | "fill_mode" | "fill_value" | "replace_outliers_median" | "default" | "none";
   value?: string | number;
 }
 

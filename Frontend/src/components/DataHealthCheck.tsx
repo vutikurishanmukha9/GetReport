@@ -50,7 +50,19 @@ const getTypeStyle = (type: string) => {
 };
 
 export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealthCheckProps) => {
-    const [rules, setRules] = useState<CleaningRulesMap>({});
+    // Automatically pre-populate rules with dynamic suggestions from the backend engine
+    const [rules, setRules] = useState<CleaningRulesMap>(() => {
+        const initial: CleaningRulesMap = {};
+        (report?.issues || []).forEach(issue => {
+            if (issue.column && issue.column !== "Multiple" && issue.action) {
+                initial[issue.column] = {
+                    action: issue.action as CleaningRule["action"],
+                    value: issue.action === "fill_value" ? "Unknown" : undefined
+                };
+            }
+        });
+        return initial;
+    });
 
     const handleActionChange = (column: string, action: string) => {
         setRules(prev => ({
@@ -63,6 +75,23 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
         }));
     };
 
+    const handleApplyAllSuggestions = () => {
+        const updated: CleaningRulesMap = {};
+        (report?.issues || []).forEach(issue => {
+            if (issue.column && issue.column !== "Multiple" && issue.action) {
+                updated[issue.column] = {
+                    action: issue.action as CleaningRule["action"],
+                    value: issue.action === "fill_value" ? "Unknown" : undefined
+                };
+            }
+        });
+        setRules(updated);
+    };
+
+    const handleResetAllToIgnore = () => {
+        setRules({});
+    };
+
     const getActionForColumn = (column: string) => {
         return rules[column]?.action || "default"; // "default" means auto-pilot
     };
@@ -70,6 +99,11 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
     const handleSubmit = () => {
         onContinue(rules);
     };
+
+    const columnsWithIssues = (report?.columns || []).filter(col => {
+        const issue = (report?.issues || []).find(i => i.column === col.name);
+        return col.missing_count > 0 || (issue && ['outliers', 'high_cardinality', 'class_imbalance'].includes(issue.type));
+    });
 
     return (
         <div className="space-y-8 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -112,6 +146,36 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     </div>
                 ];
             })}
+
+            {/* ─── Dynamic Rules Toolbar ─── */}
+            {columnsWithIssues.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/20 border border-border/50 p-3 rounded-xl">
+                    <div className="text-xs text-muted-foreground font-sans">
+                        Dynamic suggestions calculated based on column distribution, skewness, and cardinality.
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleApplyAllSuggestions}
+                            className="text-xs h-8 rounded-lg cursor-pointer hover:bg-primary/10 hover:text-primary border-border/70 font-sans"
+                        >
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                            Apply Dynamic Suggestions
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleResetAllToIgnore}
+                            className="text-xs h-8 rounded-lg cursor-pointer text-muted-foreground hover:text-foreground font-sans"
+                        >
+                            Ignore All
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* Column Health Grid */}
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -162,11 +226,24 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             </CardHeader>
 
                             <CardContent className="py-4 space-y-3">
-                                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/60 text-xs text-muted-foreground font-sans">
-                                    <span className="text-[11px] text-muted-foreground uppercase font-semibold block tracking-wider">Auto-suggestion</span>
-                                    <span className="font-semibold text-foreground block truncate mt-0.5">
-                                        {issue?.suggestion || "Ignore (Leave as is)"}
-                                    </span>
+                                <div className="p-3 rounded-xl bg-muted/30 border border-border/60 text-xs text-muted-foreground font-sans space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">Auto-suggestion</span>
+                                        {issue?.action && (
+                                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                                Dynamic
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                                        <Wrench className="w-3.5 h-3.5 text-primary shrink-0" />
+                                        <span className="truncate">{issue?.label || issue?.suggestion || "Ignore (Leave as is)"}</span>
+                                    </div>
+                                    {issue?.rationale && (
+                                        <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
+                                            {issue.rationale}
+                                        </p>
+                                    )}
                                 </div>
                                 {col.distribution && <SparklineHistogram data={col.distribution} />}
                             </CardContent>
@@ -186,8 +263,15 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                             </span>
                                         </SelectItem>
                                         <SelectItem value="drop_rows" className="text-xs font-medium text-rose-400 focus:text-rose-300 focus:bg-rose-500/15 cursor-pointer">
-                                            <span className="flex items-center gap-2">
-                                                <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Drop Rows
+                                            <span className="flex items-center justify-between w-full gap-2">
+                                                <span className="flex items-center gap-2">
+                                                    <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Drop Rows
+                                                </span>
+                                                {issue?.action === "drop_rows" && (
+                                                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                        Recommended
+                                                    </span>
+                                                )}
                                             </span>
                                         </SelectItem>
 
@@ -196,21 +280,54 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 {issue?.type !== 'outliers' && (
                                                     <>
                                                         <SelectItem value="fill_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                            <span className="flex items-center gap-2">
-                                                                <Wrench className="w-3.5 h-3.5 text-sky-400" /> Fill with Median
+                                                            <span className="flex items-center justify-between w-full gap-2">
+                                                                <span className="flex items-center gap-2">
+                                                                    <Wrench className="w-3.5 h-3.5 text-sky-400" /> Fill with Median
+                                                                </span>
+                                                                {issue?.action === "fill_median" && (
+                                                                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                        Recommended
+                                                                    </span>
+                                                                )}
                                                             </span>
                                                         </SelectItem>
                                                         <SelectItem value="fill_mean" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                            <span className="flex items-center gap-2">
-                                                                <Wrench className="w-3.5 h-3.5 text-sky-400" /> Fill with Average
+                                                            <span className="flex items-center justify-between w-full gap-2">
+                                                                <span className="flex items-center gap-2">
+                                                                    <Wrench className="w-3.5 h-3.5 text-sky-400" /> Fill with Average
+                                                                </span>
+                                                                {issue?.action === "fill_mean" && (
+                                                                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                        Recommended
+                                                                    </span>
+                                                                )}
+                                                            </span>
+                                                        </SelectItem>
+                                                        <SelectItem value="fill_mode" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                            <span className="flex items-center justify-between w-full gap-2">
+                                                                <span className="flex items-center gap-2">
+                                                                    <Wrench className="w-3.5 h-3.5 text-indigo-400" /> Fill with Most Frequent
+                                                                </span>
+                                                                {issue?.action === "fill_mode" && (
+                                                                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                        Recommended
+                                                                    </span>
+                                                                )}
                                                             </span>
                                                         </SelectItem>
                                                     </>
                                                 )}
                                                 {issue?.type === 'outliers' && (
                                                     <SelectItem value="replace_outliers_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                        <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-amber-400" /> Cap Outliers (Median)
+                                                        <span className="flex items-center justify-between w-full gap-2">
+                                                            <span className="flex items-center gap-2">
+                                                                <Wrench className="w-3.5 h-3.5 text-amber-400" /> Cap Outliers (Median)
+                                                            </span>
+                                                            {issue?.action === "replace_outliers_median" && (
+                                                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                    Recommended
+                                                                </span>
+                                                            )}
                                                         </span>
                                                     </SelectItem>
                                                 )}
@@ -219,13 +336,27 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                         {col.inferred_type !== 'numeric' && (
                                             <>
                                                 <SelectItem value="fill_mode" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center gap-2">
-                                                        <Wrench className="w-3.5 h-3.5 text-indigo-400" /> Fill with Most Frequent
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Wrench className="w-3.5 h-3.5 text-indigo-400" /> Fill with Most Frequent
+                                                        </span>
+                                                        {issue?.action === "fill_mode" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
                                                     </span>
                                                 </SelectItem>
                                                 <SelectItem value="fill_value" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center gap-2">
-                                                        <Wrench className="w-3.5 h-3.5 text-indigo-400" /> Fill with &ldquo;Unknown&rdquo;
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Wrench className="w-3.5 h-3.5 text-indigo-400" /> Fill with &ldquo;Unknown&rdquo;
+                                                        </span>
+                                                        {issue?.action === "fill_value" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
                                                     </span>
                                                 </SelectItem>
                                             </>

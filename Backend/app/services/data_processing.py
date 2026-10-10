@@ -681,6 +681,149 @@ def join_datasets(
     return _sanitize_and_coerce_df(result_df)
 
 
+def _compute_dynamic_missing_suggestion(
+    df: pl.DataFrame,
+    col_name: str,
+    inferred: str,
+    null_count: int,
+) -> dict[str, str]:
+    """
+    Computes an intelligent, distribution-aware dynamic suggestion and rationale
+    for missing values in a dataset column.
+    """
+    n_rows = df.height
+    col_lower = col_name.lower()
+
+    # 1. Identifier / Key attributes
+    id_indicators = ["id", "uuid", "guid", "pk", "code", "ssn", "phone", "email", "key"]
+    is_id = any(
+        col_lower == ind
+        or col_lower.startswith(f"{ind}_")
+        or col_lower.endswith(f"_{ind}")
+        or f"_{ind}_" in col_lower
+        for ind in id_indicators
+    )
+    if is_id:
+        return {
+            "action": "drop_rows",
+            "label": "Drop Missing Rows",
+            "rationale": "Identifier/key attribute; imputing synthetic values corrupts entity uniqueness.",
+            "suggestion": "Drop Rows (Key integrity)",
+        }
+
+    # 2. Datetime columns
+    if inferred == "datetime":
+        return {
+            "action": "drop_rows",
+            "label": "Drop Missing Rows",
+            "rationale": "Temporal timestamps cannot be safely imputed with mean or median without distorting chronology.",
+            "suggestion": "Drop Rows (Temporal chronology)",
+        }
+
+    # 3. Numeric columns
+    if inferred == "numeric":
+        series = df[col_name].drop_nulls()
+        if series.len() == 0:
+            return {
+                "action": "drop_rows",
+                "label": "Drop Rows",
+                "rationale": "All values in column are missing.",
+                "suggestion": "Drop Rows (All null)",
+            }
+
+        # Check for discrete integer scales (e.g. ratings 1..5, status flags 0/1)
+        is_int_dtype = df[col_name].dtype in (
+            pl.Int64, pl.Int32, pl.Int16, pl.Int8, pl.UInt64, pl.UInt32, pl.UInt16, pl.UInt8
+        )
+        n_unique = series.n_unique()
+        if is_int_dtype and n_unique <= 7:
+            mode_s = series.mode()
+            top_mode = mode_s[0] if mode_s.len() > 0 else 0
+            return {
+                "action": "fill_mode",
+                "label": "Fill with Most Frequent",
+                "rationale": f"Discrete integer scale ({n_unique} distinct values, mode {top_mode}); avoids invalid fractional counts.",
+                "suggestion": f"Fill with Mode ({top_mode})",
+            }
+
+        # Check distribution skewness and outliers
+        try:
+            skew = series.skew()
+        except Exception:
+            skew = None
+
+        has_outliers = False
+        try:
+            q1 = series.quantile(0.25)
+            q3 = series.quantile(0.75)
+            if q1 is not None and q3 is not None and (q3 - q1) > 0:
+                iqr = q3 - q1
+                lower = q1 - 1.5 * iqr
+                upper = q3 + 1.5 * iqr
+                outliers = series.filter((pl.col(col_name) < lower) | (pl.col(col_name) > upper)).len()
+                has_outliers = outliers > 0
+        except Exception:
+            pass
+
+        # If symmetric and no outliers -> Mean preserves parametric distribution
+        if skew is not None and abs(skew) < 0.5 and not has_outliers:
+            return {
+                "action": "fill_mean",
+                "label": "Fill with Average",
+                "rationale": f"Normal distribution (skewness: {skew:.2f}); preserves sample mean and parametric variance.",
+                "suggestion": f"Fill with Average (Normal: skew {skew:.2f})",
+            }
+
+        # Else skewed or has outliers -> Median is robust
+        skew_str = f"skew: {skew:.2f}" if skew is not None else "asymmetric"
+        outlier_str = " • outliers present" if has_outliers else ""
+        return {
+            "action": "fill_median",
+            "label": "Fill with Median",
+            "rationale": f"Skewed distribution ({skew_str}{outlier_str}); median is robust to extreme tail values.",
+            "suggestion": f"Fill with Median ({skew_str})",
+        }
+
+    # 4. Categorical / String columns
+    non_null = df[col_name].drop_nulls()
+    if non_null.len() == 0:
+        return {
+            "action": "fill_value",
+            "label": "Fill with 'Unknown'",
+            "rationale": "All values in column are missing.",
+            "suggestion": "Fill with 'Unknown'",
+        }
+
+    n_unique = non_null.n_unique()
+    unique_ratio = n_unique / non_null.len() if non_null.len() > 0 else 1.0
+
+    if n_unique <= 20 or unique_ratio < 0.15:
+        mode_s = non_null.mode()
+        mode_val = str(mode_s[0]) if mode_s.len() > 0 else "Unknown"
+        mode_val_display = mode_val if len(mode_val) <= 15 else f"{mode_val[:12]}..."
+        try:
+            mode_cnt = non_null.filter(pl.col(col_name) == mode_s[0]).len()
+            mode_pct = round((mode_cnt / non_null.len()) * 100, 1)
+            pct_str = f" ({mode_pct}% of known)"
+        except Exception:
+            pct_str = ""
+
+        return {
+            "action": "fill_mode",
+            "label": "Fill with Most Frequent",
+            "rationale": f"Categorical attribute with {n_unique} categories; most frequent class is '{mode_val}'{pct_str}.",
+            "suggestion": f"Fill with Most Frequent ('{mode_val_display}')",
+        }
+
+    # High cardinality (free text, names, descriptions)
+    return {
+        "action": "fill_value",
+        "label": "Fill with 'Unknown'",
+        "rationale": f"High-cardinality text ({n_unique} unique entries); placeholder token prevents falsifying categories.",
+        "suggestion": "Fill with 'Unknown' (Placeholder)",
+    }
+
+
 # ─── Inspection (Polars) ─────────────────────────────────────────────────────
 def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
     """
@@ -727,12 +870,16 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
         quality_report["columns"].append(col_info)
         
         if null_count > 0:
+            sugg_info = _compute_dynamic_missing_suggestion(df, col_name, inferred, null_count)
             quality_report["issues"].append({
                 "type": "missing_values",
                 "column": col_name,
                 "count": null_count,
-                "severity": "high",
-                "suggestion": "fill_median" if inferred == "numeric" else "fill_unknown"
+                "severity": "high" if (null_count / df.height) > 0.2 else "medium",
+                "suggestion": sugg_info["suggestion"],
+                "label": sugg_info["label"],
+                "action": sugg_info["action"],
+                "rationale": sugg_info["rationale"],
             })
 
         # Detect Outliers (Numeric only)
@@ -749,12 +896,16 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
                 ).item()
                 
                 if outlier_count > 0:
-                     quality_report["issues"].append({
+                    outlier_pct = round((outlier_count / df.height) * 100, 1)
+                    quality_report["issues"].append({
                         "type": "outliers",
                         "column": col_name,
                         "count": outlier_count,
-                        "severity": "medium",
-                        "suggestion": "replace_outliers_median"
+                        "severity": "high" if outlier_pct > 5 else "medium",
+                        "suggestion": f"Cap Outliers ({outlier_pct}% outside fences)",
+                        "label": "Cap Outliers (Tukey Fences)",
+                        "action": "replace_outliers_median",
+                        "rationale": f"{outlier_count} values outside [{lower:.1f}, {upper:.1f}] ({outlier_pct}%); clips extreme outliers to Tukey fences.",
                     })
             
     # Check for Partial Duplicates (Rule #4)
