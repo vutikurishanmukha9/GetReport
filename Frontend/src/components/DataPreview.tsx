@@ -216,16 +216,16 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-muted/30 border border-border/80 p-1.5 rounded-2xl mb-6 shadow-2xs">
+        <TabsList className="h-auto min-h-12 bg-muted/40 dark:bg-white/[0.03] border border-border/80 dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-2xs flex flex-wrap items-center gap-1.5">
           <TabsTrigger
             value="preview"
-            className="rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground transition-all"
+            className="rounded-xl text-xs sm:text-sm px-5 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all shrink-0"
           >
             Data Preview & Types
           </TabsTrigger>
           <TabsTrigger
             value="quality"
-            className="rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 data-[state=active]:shadow-sm text-muted-foreground hover:text-foreground transition-all flex items-center gap-2"
+            className="rounded-xl text-xs sm:text-sm px-5 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
           >
             <span>Column Quality Audit</span>
             {totalIssuesCount > 0 && (
