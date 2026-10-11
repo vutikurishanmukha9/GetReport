@@ -53,7 +53,7 @@ def check_redis_available() -> bool:
 
     try:
         import redis
-        client = redis.from_url(redis_url, socket_connect_timeout=1.0, socket_timeout=1.0)
+        client = redis.from_url(redis_url, socket_connect_timeout=5.0, socket_timeout=5.0)
         client.ping()
         _redis_available = True
         logger.info("Task Dispatcher: Redis connection verified at %s (ARQ Mode active).", redis_url)
@@ -73,7 +73,11 @@ async def _get_arq_pool():
     try:
         from arq import create_pool
         from arq.connections import RedisSettings
-        _arq_pool = await create_pool(RedisSettings.from_dsn(settings.REDIS_URL))
+        r_settings = RedisSettings.from_dsn(settings.REDIS_URL)
+        r_settings.conn_timeout = 10
+        r_settings.conn_retries = 10
+        r_settings.conn_retry_delay = 2
+        _arq_pool = await create_pool(r_settings)
         logger.info("Task Dispatcher: ARQ worker connection pool created.")
         return _arq_pool
     except Exception as e:

@@ -16,7 +16,7 @@ try:
     url = os.environ.get('REDIS_URL', '').strip()
     if not url:
         sys.exit(1)
-    r = redis.from_url(url, socket_connect_timeout=2.0, socket_timeout=2.0)
+    r = redis.from_url(url, socket_connect_timeout=5.0, socket_timeout=5.0)
     r.ping()
     sys.exit(0)
 except Exception:
@@ -31,7 +31,13 @@ fi
 
 if [ "$USE_ARQ" = true ]; then
     echo "Redis connection verified. Starting Lean ARQ Worker Pool (~25MB RAM footprint)..."
-    arq app.tasks_arq.WorkerSettings &
+    (
+        while true; do
+            arq app.tasks_arq.WorkerSettings || true
+            echo "ARQ Worker exited. Reconnecting in 3 seconds..."
+            sleep 3
+        done
+    ) &
 else
     echo "No reachable Redis service detected; background tasks will execute via native in-memory asyncio task runner."
 fi

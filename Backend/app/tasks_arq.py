@@ -541,7 +541,15 @@ try:
             func(rag_ingest_task, name="app.tasks.rag_ingest"),
             func(rag_ingest_task, name="rag_ingest_task"),
         ]
-        redis_settings = RedisSettings.from_dsn(settings.REDIS_URL or "redis://localhost:6379/0")
+        _redis_url = settings.REDIS_URL or "redis://localhost:6379/0"
+        try:
+            redis_settings = RedisSettings.from_dsn(_redis_url)
+            redis_settings.conn_timeout = 10
+            redis_settings.conn_retries = 10
+            redis_settings.conn_retry_delay = 2
+        except Exception:
+            redis_settings = RedisSettings()
+
         max_jobs = 8
         job_timeout = 600
         keep_result = 3600
