@@ -167,22 +167,26 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
                 from sklearn.ensemble import IsolationForest
                 from sklearn.neighbors import LocalOutlierFactor
 
-                # Prepare scaled numpy array for top numeric columns
-                clean_df = df.select(numeric_cols[:5]).to_pandas().fillna(0)
-                if len(clean_df) >= 20:
+                # Prepare scaled numpy array for top numeric columns (pure Polars -> NumPy)
+                eval_cols = numeric_cols[:5]
+                clean_arr = df.select([
+                    pl.col(c).cast(pl.Float64, strict=False).fill_null(0.0)
+                    for c in eval_cols
+                ]).to_numpy()
+                if len(clean_arr) >= 20:
                     iso = IsolationForest(contamination=0.02, random_state=42, n_estimators=100)
-                    iso_preds = iso.fit_predict(clean_df)
+                    iso_preds = iso.fit_predict(clean_arr)
                     iso_outliers = int((iso_preds == -1).sum())
 
                     lof = LocalOutlierFactor(n_neighbors=15, contamination=0.02)
-                    lof_preds = lof.fit_predict(clean_df)
+                    lof_preds = lof.fit_predict(clean_arr)
                     high_conf_multivariate = int(((iso_preds == -1) & (lof_preds == -1)).sum())
 
                     if high_conf_multivariate > 0:
                         outliers["_multivariate_summary"] = {
                             "count": high_conf_multivariate,
                             "percentage": round(high_conf_multivariate / n_rows * 100, 2),
-                            "columns_evaluated": numeric_cols[:5],
+                            "columns_evaluated": eval_cols,
                             "isolation_forest_count": iso_outliers,
                             "high_confidence_multivariate_count": high_conf_multivariate,
                         }
