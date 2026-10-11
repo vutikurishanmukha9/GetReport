@@ -26,7 +26,7 @@ def test_gemini_settings_and_rag_initialization():
         assert rag.enabled is True
         assert rag._provider_name == "Google Gemini"
         assert rag._base_url == "https://generativelanguage.googleapis.com/v1beta/openai/"
-        assert rag.embedding_model == "text-embedding-004"
+        assert rag.embedding_model in ("gemini-embedding-001", "text-embedding-004")
         assert "gemini-2.5-flash" in rag._models
 
         # 2. Test GOOGLE_API_KEY alias

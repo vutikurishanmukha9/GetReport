@@ -523,9 +523,11 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
               onClick={handleSend} 
               disabled={isLoading || !input.trim()} 
               size="icon"
+              aria-label="Send message"
               className="h-9 w-9 rounded-xl shadow-premium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 transition-all duration-150 active:scale-90 cursor-pointer disabled:opacity-40"
             >
               <Send className="h-4 w-4" />
+              <span className="sr-only">Send message</span>
             </Button>
           </div>
         </div>

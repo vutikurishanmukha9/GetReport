@@ -1462,10 +1462,11 @@ export const ReportGeneration = ({
                     </button>
                   </div>
                   <div className="grid gap-1.5 max-h-36 overflow-y-auto">
-                    {queryHistory.map((q, idx) => (
-                      <div
-                        key={`history-q-${idx}`}
-                        className="flex items-center justify-between gap-2 p-2 rounded-xl bg-card border border-border/60 hover:border-primary/50 text-xs font-mono transition-colors group cursor-pointer"
+                    {queryHistory.map((q) => (
+                      <button
+                        type="button"
+                        key={`history-query-${q}`}
+                        className="flex items-center justify-between gap-2 p-2 rounded-xl bg-card border border-border/60 hover:border-primary/50 text-xs font-mono transition-colors group cursor-pointer text-left w-full"
                         onClick={() => {
                           setSqlQuery(q);
                           setShowHistory(false);
@@ -1474,7 +1475,7 @@ export const ReportGeneration = ({
                       >
                         <span className="truncate text-foreground/90 group-hover:text-primary">{q}</span>
                         <span className="text-[10px] text-muted-foreground shrink-0 uppercase">Load</span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -1564,12 +1565,13 @@ export const ReportGeneration = ({
                               key={`schema-col-${col.name}`}
                               className="rounded-xl border border-border/60 bg-background/80 hover:bg-background hover:border-primary/40 transition-all text-xs overflow-hidden"
                             >
-                              <div
-                                className="p-2 flex items-center justify-between gap-1.5 cursor-pointer"
-                                onClick={() => insertTextIntoQuery(`"${col.name}"`)}
-                                title={`Click to insert "${col.name}"`}
-                              >
-                                <div className="flex items-center gap-1.5 min-w-0">
+                              <div className="w-full p-2 flex items-center justify-between gap-1.5">
+                                <button
+                                  type="button"
+                                  className="flex items-center gap-1.5 min-w-0 text-left cursor-pointer bg-transparent border-0 p-0"
+                                  onClick={() => insertTextIntoQuery(`"${col.name}"`)}
+                                  title={`Click to insert "${col.name}"`}
+                                >
                                   <span
                                     className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${isNum
                                         ? "bg-blue-500/10 text-blue-500 border border-blue-500/20"
@@ -1585,7 +1587,7 @@ export const ReportGeneration = ({
                                   <span className="font-mono text-xs font-medium text-foreground truncate">
                                     {col.name}
                                   </span>
-                                </div>
+                                </button>
 
                                 <button
                                   type="button"
@@ -1593,7 +1595,7 @@ export const ReportGeneration = ({
                                     e.stopPropagation();
                                     setExpandedSchemaCol(isExpanded ? null : col.name);
                                   }}
-                                  className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
+                                  className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer shrink-0"
                                   title="Expand column details and quick queries"
                                 >
                                   {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -1776,6 +1778,7 @@ export const ReportGeneration = ({
                       </div>
                     </div>
                     <textarea
+                      aria-label="SQL Query Input"
                       value={sqlQuery}
                       onChange={(e) => setSqlQuery(e.target.value)}
                       onKeyDown={(e) => {

@@ -27,7 +27,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
   const [isConnected, setIsConnected] = useState(false);
 
   const eventSourceUnsubRef = useRef<(() => void) | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+  const wsUnsubRef = useRef<(() => void) | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -76,9 +76,9 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
         eventSourceUnsubRef.current();
         eventSourceUnsubRef.current = null;
       }
-      if (wsRef.current) {
-        try { wsRef.current.close(); } catch { /* ignore */ }
-        wsRef.current = null;
+      if (wsUnsubRef.current) {
+        wsUnsubRef.current();
+        wsUnsubRef.current = null;
       }
     }
   }, [setTaskStatus, stopPolling, clearWatchdog]);
@@ -117,9 +117,9 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       eventSourceUnsubRef.current();
       eventSourceUnsubRef.current = null;
     }
-    if (wsRef.current) {
-      try { wsRef.current.close(); } catch { /* ignore */ }
-      wsRef.current = null;
+    if (wsUnsubRef.current) {
+      wsUnsubRef.current();
+      wsUnsubRef.current = null;
     }
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
@@ -176,75 +176,45 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     // ── 2. Fallback Strategy: WebSocket ──────────────────────────────
     try {
       startPolling(taskId);
-      const url = api.getWebSocketUrl(taskId);
-      const ws = new WebSocket(url);
-      wsRef.current = ws;
+      const unsubWs = api.subscribeWebSocketStatus(taskId, {
+        onOpen: () => {
+          setIsConnected(true);
+          retryCountRef.current = 0;
+          setTaskStatus('PROCESSING');
+          resetWatchdog(taskId);
+        },
+        onMessage: (data) => {
+          resetWatchdog(taskId);
+          applyStatusUpdate(data as StatusResponse);
+        },
+        onError: () => {
+          console.warn("WebSocket status channel unavailable; HTTP polling active.");
+        },
+        onClose: () => {
+          setIsConnected(false);
+          wsUnsubRef.current = null;
+          clearWatchdog();
 
-      ws.onopen = () => {
-        setIsConnected(true);
-        retryCountRef.current = 0;
+          if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
+            const attempt = retryCountRef.current;
+            retryCountRef.current += 1;
+            const delay = Math.min(30000, 1000 * Math.pow(1.5, attempt)) + Math.random() * 500;
 
-        const apiKey = import.meta.env.VITE_API_KEY;
-        if (apiKey) {
-          ws.send(JSON.stringify({ type: 'auth', api_key: apiKey }));
-        }
-
-        setTaskStatus('PROCESSING');
-        resetWatchdog(taskId);
-      };
-
-      ws.onmessage = (event) => {
-        resetWatchdog(taskId);
-        try {
-          const data = JSON.parse(event.data);
-
-          if (data.type === 'ping') {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
-            }
-            return;
+            reconnectTimeoutRef.current = setTimeout(() => {
+              if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
+                connect(taskId);
+              }
+            }, delay);
           }
-
-          applyStatusUpdate(data);
-        } catch (e) {
-          console.error("Failed to parse WebSocket message:", e);
         }
-      };
-
-      ws.onerror = () => {
-        console.warn("WebSocket status channel unavailable; HTTP polling active.");
-      };
-
-      ws.onclose = () => {
-        setIsConnected(false);
-        wsRef.current = null;
-        clearWatchdog();
-
-        if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
-          const attempt = retryCountRef.current;
-          retryCountRef.current += 1;
-          const delay = Math.min(30000, 1000 * Math.pow(1.5, attempt)) + Math.random() * 500;
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
-              connect(taskId);
-            }
-          }, delay);
-        }
-      };
+      });
+      wsUnsubRef.current = unsubWs;
     } catch (e) {
       console.warn("WebSocket init error; active HTTP polling handling status:", e);
     }
   }, [disconnect, setTaskStatus, startPolling, stopPolling, resetWatchdog, clearWatchdog, applyStatusUpdate, pollStatus]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      disconnect();
-    };
-  }, [disconnect]);
-
-  // Auto-connect if activeTaskId is provided
+  // Auto-connect and ensure full lifecycle cleanup of timers, SSE, and sockets
   useEffect(() => {
     if (activeTaskId) {
       connect(activeTaskId);
@@ -252,6 +222,26 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       disconnect();
     }
     return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (watchdogTimerRef.current) {
+        clearTimeout(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      }
+      if (eventSourceUnsubRef.current) {
+        eventSourceUnsubRef.current();
+        eventSourceUnsubRef.current = null;
+      }
+      if (wsUnsubRef.current) {
+        wsUnsubRef.current();
+        wsUnsubRef.current = null;
+      }
       disconnect();
     };
   }, [activeTaskId, connect, disconnect]);

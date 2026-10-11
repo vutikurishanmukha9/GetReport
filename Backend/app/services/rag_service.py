@@ -706,7 +706,7 @@ class EnhancedRAGService:
             self._base_url = GEMINI_BASE_URL
             self._provider_name = "Google Gemini"
             self._embeddings_enabled = True
-            self.embedding_model = "text-embedding-004"
+            self.embedding_model = "gemini-embedding-001"
             self._models = GEMINI_MODELS
         elif settings.OPENROUTER_API_KEY:
             self.api_key = settings.OPENROUTER_API_KEY
@@ -730,7 +730,7 @@ class EnhancedRAGService:
             self._base_url = None
             self._provider_name = "None"
             self._embeddings_enabled = False
-            self.embedding_model = "text-embedding-004"
+            self.embedding_model = "gemini-embedding-001"
             self._models = [OPENAI_MODEL]
 
         self._client = None
@@ -845,34 +845,57 @@ class EnhancedRAGService:
         return self._semaphore
 
     async def _get_gemini_embeddings_rest(self, texts: List[str]) -> List[List[float]]:
-        """Fetch embeddings directly from Google's Generative Language REST API."""
+        """Fetch embeddings directly from Google's Generative Language REST API with fallback."""
         import httpx
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
-        requests = [
-            {"model": "models/text-embedding-004", "content": {"parts": [{"text": t}]}}
-            for t in texts
-        ]
+        candidate_models = [self.embedding_model, "gemini-embedding-001", "text-embedding-004"]
+        # Deduplicate while preserving order
+        seen = set()
+        models_to_try = [m for m in candidate_models if not (m in seen or seen.add(m))]
+        last_error = None
+
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, json={"requests": requests})
-            if resp.status_code != 200:
-                raise RuntimeError(f"Gemini REST embedding returned status {resp.status_code}: {resp.text[:200]}")
-            data = resp.json()
-            return [emb["values"] for emb in data.get("embeddings", [])]
+            for model_name in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:batchEmbedContents?key={self.api_key}"
+                requests = [
+                    {"model": f"models/{model_name}", "content": {"parts": [{"text": t}]}}
+                    for t in texts
+                ]
+                try:
+                    resp = await client.post(url, json={"requests": requests})
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        return [emb["values"] for emb in data.get("embeddings", [])]
+                    last_error = f"Gemini REST embedding returned status {resp.status_code} for {model_name}: {resp.text[:200]}"
+                except Exception as ex:
+                    last_error = str(ex)
+
+        raise RuntimeError(last_error or "Gemini REST embedding failed across all candidate models.")
 
     def _get_gemini_embeddings_rest_sync(self, texts: List[str]) -> List[List[float]]:
-        """Fetch embeddings synchronously from Google's Generative Language REST API."""
+        """Fetch embeddings synchronously from Google's Generative Language REST API with fallback."""
         import httpx
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={self.api_key}"
-        requests = [
-            {"model": "models/text-embedding-004", "content": {"parts": [{"text": t}]}}
-            for t in texts
-        ]
+        candidate_models = [self.embedding_model, "gemini-embedding-001", "text-embedding-004"]
+        seen = set()
+        models_to_try = [m for m in candidate_models if not (m in seen or seen.add(m))]
+        last_error = None
+
         with httpx.Client(timeout=10.0) as client:
-            resp = client.post(url, json={"requests": requests})
-            if resp.status_code != 200:
-                raise RuntimeError(f"Gemini REST sync embedding returned status {resp.status_code}: {resp.text[:200]}")
-            data = resp.json()
-            return [emb["values"] for emb in data.get("embeddings", [])]
+            for model_name in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:batchEmbedContents?key={self.api_key}"
+                requests = [
+                    {"model": f"models/{model_name}", "content": {"parts": [{"text": t}]}}
+                    for t in texts
+                ]
+                try:
+                    resp = client.post(url, json={"requests": requests})
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        return [emb["values"] for emb in data.get("embeddings", [])]
+                    last_error = f"Gemini REST sync embedding returned status {resp.status_code} for {model_name}: {resp.text[:200]}"
+                except Exception as ex:
+                    last_error = str(ex)
+
+        raise RuntimeError(last_error or "Gemini REST sync embedding failed across all candidate models.")
 
     async def _get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Get embeddings via native Gemini REST API or OpenAI-compatible endpoint."""

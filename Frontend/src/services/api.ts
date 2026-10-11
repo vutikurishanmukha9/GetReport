@@ -659,6 +659,87 @@ export const api = {
         return `${protocol}//${host}/ws/status/${taskId}`;
     },
 
+    /**
+     * Subscribe to real-time task status updates using WebSocket.
+     * Encapsulates WebSocket connection lifecycle and authentication.
+     * Returns an unsubscribe function to close the socket and detach handlers.
+     */
+    subscribeWebSocketStatus: (
+        taskId: string,
+        callbacks: {
+            onOpen?: () => void;
+            onMessage?: (data: StatusResponse | { type: string; [key: string]: unknown }) => void;
+            onError?: (error: Event) => void;
+            onClose?: () => void;
+        }
+    ): (() => void) => {
+        let ws: WebSocket | null = null;
+        let isClosed = false;
+
+        try {
+            const url = api.getWebSocketUrl(taskId);
+            ws = new WebSocket(url);
+
+            ws.onopen = () => {
+                if (isClosed) {
+                    try { ws?.close(); } catch { /* ignore */ }
+                    return;
+                }
+                const apiKey = import.meta.env.VITE_API_KEY;
+                if (apiKey) {
+                    try {
+                        ws?.send(JSON.stringify({ type: "auth", api_key: apiKey }));
+                    } catch { /* ignore */ }
+                }
+                callbacks.onOpen?.();
+            };
+
+            ws.onmessage = (event) => {
+                if (isClosed) return;
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === "ping") {
+                        if (ws?.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({ type: "pong", timestamp: Date.now() }));
+                        }
+                        return;
+                    }
+                    callbacks.onMessage?.(data);
+                } catch (e) {
+                    console.error("Failed to parse WebSocket message:", e);
+                }
+            };
+
+            ws.onerror = (e) => {
+                if (isClosed) return;
+                callbacks.onError?.(e);
+            };
+
+            ws.onclose = () => {
+                if (isClosed) return;
+                callbacks.onClose?.();
+            };
+        } catch (e) {
+            console.warn("WebSocket init error:", e);
+        }
+
+        return () => {
+            isClosed = true;
+            if (ws) {
+                ws.onopen = null;
+                ws.onmessage = null;
+                ws.onerror = null;
+                ws.onclose = null;
+                try {
+                    if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                        ws.close();
+                    }
+                } catch { /* ignore */ }
+                ws = null;
+            }
+        };
+    },
+
     // ─── Snowflake Data Warehouse Ingestion ─────────────────────────────────
 
     connectSnowflake: (params: SnowflakeConnectParams): Promise<SnowflakeConnectResponse> => {

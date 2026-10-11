@@ -273,9 +273,9 @@ export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness })
               <span>Detected Pipeline Constraints & Issues</span>
             </h4>
             <div className="grid gap-2">
-              {reasons.map((reason, idx) => (
+              {reasons.map((reason) => (
                 <div
-                  key={`ml-reason-${idx}`}
+                  key={`ml-reason-${reason.slice(0, 40)}`}
                   className="p-3 rounded-xl bg-amber-500/[0.05] border border-amber-500/25 flex items-start gap-3 text-xs font-sans text-amber-700 dark:text-amber-200/90"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />

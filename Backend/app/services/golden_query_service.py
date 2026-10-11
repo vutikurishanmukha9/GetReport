@@ -83,10 +83,10 @@ class GoldenQueryService:
         created_at = datetime.now(timezone.utc).isoformat()
 
         insert_sql = """
-        INSERT INTO golden_queries (id, task_id, question, sql_query, description, result_summary, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO golden_queries (id, task_id, question, sql_query, description, result_summary)
+        VALUES (?, ?, ?, ?, ?, ?)
         """
-        params = (query_id, task_id, clean_question, clean_sql, description, result_summary, created_at)
+        params = (query_id, task_id, clean_question, clean_sql, description, result_summary)
 
         try:
             with get_db_connection() as conn:
@@ -140,10 +140,10 @@ class GoldenQueryService:
         created_at = datetime.now(timezone.utc).isoformat()
 
         insert_sql = """
-        INSERT INTO golden_queries (id, task_id, question, sql_query, description, result_summary, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO golden_queries (id, task_id, question, sql_query, description, result_summary)
+        VALUES (?, ?, ?, ?, ?, ?)
         """
-        params = (query_id, task_id, clean_question, clean_sql, description, result_summary, created_at)
+        params = (query_id, task_id, clean_question, clean_sql, description, result_summary)
 
         try:
             async with get_async_db_connection() as conn:

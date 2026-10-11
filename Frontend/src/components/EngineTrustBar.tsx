@@ -114,8 +114,11 @@ const DOCUMENTS: FormatDocument[] = [
   },
 ];
 
-// Duplicate document array for seamless unbroken infinite horizontal flow
-const FLOWING_DOCUMENTS = [...DOCUMENTS, ...DOCUMENTS];
+// Duplicate document array for seamless unbroken infinite horizontal flow with unique keys
+const FLOWING_DOCUMENTS = [
+  ...DOCUMENTS.map((d) => ({ ...d, uniqueFlowKey: `${d.id}-flow-a` })),
+  ...DOCUMENTS.map((d) => ({ ...d, uniqueFlowKey: `${d.id}-flow-b` })),
+];
 
 export const EngineTrustBar = () => {
   const renderMiniPreview = (previewType: "sheet" | "report" | "code", ext: string) => {
@@ -203,14 +206,14 @@ export const EngineTrustBar = () => {
       {/* Infinite Horizontal Moving Stream of Deduplicated Document Cards */}
       <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)] group py-2">
         <div className="animate-marquee-flow flex items-center gap-4 sm:gap-5">
-          {FLOWING_DOCUMENTS.map((doc, idx) => {
+          {FLOWING_DOCUMENTS.map((doc) => {
             const IconComponent = doc.icon;
             const isBoth = doc.type === "BOTH";
             const isInput = doc.type === "IN";
 
             return (
               <div
-                key={`${doc.id}-${idx}`}
+                key={doc.uniqueFlowKey}
                 className="relative w-[215px] sm:w-[235px] min-w-[215px] sm:min-w-[235px] h-[280px] sm:h-[300px] rounded-2xl border border-white/10 bg-[#0c0d14] p-4 flex flex-col justify-between shadow-xl transition-all duration-300 hover:border-white/30 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-black/70 group/card shrink-0 select-none cursor-default"
               >
                 {/* Tactile Document Dog-Ear Fold at top right corner */}

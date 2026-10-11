@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { CtaBanner } from "@/components/CtaBanner";
 
 interface DatasetExample {
   id: string;
@@ -320,24 +321,12 @@ export const Examples = () => {
         </div>
 
         {/* Bottom CTA */}
-        <div className="border-t border-border/60 bg-muted/20 py-10 sm:py-12">
-          <div className="container mx-auto px-4 text-center space-y-4 max-w-3xl">
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
-              Have your own dataset to analyze?
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground font-sans max-w-lg mx-auto">
-              GetReport is 100% free and processes data securely in ephemeral RAM with zero disk retention.
-            </p>
-            <div className="pt-1 flex flex-wrap items-center justify-center gap-3">
-              <Link to="/workspace">
-                <Button size="lg" className="h-11 px-7 rounded-xl shadow-premium t-card-lift t-spring-press font-display font-semibold text-sm">
-                  <span>Start Free Audit</span>
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
+        <CtaBanner
+          title="Have your own dataset to analyze?"
+          description="GetReport is 100% free and processes data securely in ephemeral RAM with zero disk retention."
+          buttonText="Start Free Audit"
+          buttonLink="/workspace"
+        />
 
       </main>
 

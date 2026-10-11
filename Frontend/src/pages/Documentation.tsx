@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { 
   FileSpreadsheet, Gauge, ShieldCheck, Code2, Copy, 
-  Check, ArrowRight, Layers
+  Check, Layers
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { CtaBanner } from "@/components/CtaBanner";
 import { useToast } from "@/hooks/use-toast";
 
 interface EndpointSpec {
@@ -418,8 +418,8 @@ export const Documentation = () => {
                       { param: "Content Security Policy", detail: "Strict CSP with script-src 'self' and frame-ancestors 'none'" },
                       { param: "Rate Limiting", detail: "Token-bucket limiter: 60 upload requests/min per IP address" },
                       { param: "AI Privacy Boundary", detail: "Raw customer/patient rows strictly omitted from external prompts" }
-                    ].map((row, rIdx) => (
-                      <div key={rIdx} className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 hover:bg-muted/10">
+                    ].map((row) => (
+                      <div key={row.param} className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 hover:bg-muted/10">
                         <span className="font-bold text-foreground font-sans">{row.param}:</span>
                         <span className="text-muted-foreground text-[11px]">{row.detail}</span>
                       </div>
@@ -434,24 +434,7 @@ export const Documentation = () => {
         </div>
 
         {/* Section: Bottom CTA */}
-        <div className="border-t border-border/60 bg-muted/20 py-10 sm:py-12">
-          <div className="container mx-auto px-4 text-center space-y-4 max-w-3xl">
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
-              Ready to audit a dataset?
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground font-sans max-w-lg mx-auto">
-              Launch the interactive workspace and see these algorithms in action.
-            </p>
-            <div className="pt-1 flex flex-wrap items-center justify-center gap-3">
-              <Link to="/workspace">
-                <Button size="lg" className="h-11 px-7 rounded-xl shadow-premium t-card-lift t-spring-press font-display font-semibold text-sm">
-                  <span>Launch Workspace</span>
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
+        <CtaBanner />
 
       </main>
 

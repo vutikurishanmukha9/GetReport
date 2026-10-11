@@ -789,7 +789,7 @@ export const Features = () => {
               const isOpen = openFaq === index;
               return (
                 <div
-                  key={index}
+                  key={item.q}
                   className="border border-border/80 bg-card rounded-xl overflow-hidden transition-all duration-200"
                 >
                   <button

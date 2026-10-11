@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { 
-  Upload, Search, FileDown, ArrowRight, Cpu, 
+  Upload, Search, FileDown, Cpu, 
   CheckCircle2, Terminal, ChevronRight, ChevronLeft, 
   ShieldCheck, Layers, RefreshCw, Activity, Code2
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { CtaBanner } from "@/components/CtaBanner";
 
 interface PipelineStep {
   id: string;
@@ -392,24 +392,12 @@ export const HowItWorks = () => {
         </div>
 
         {/* Section 3: Bottom CTA */}
-        <div className="border-t border-border/60 bg-muted/20 py-10 sm:py-12">
-          <div className="container mx-auto px-4 text-center space-y-4 max-w-3xl">
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
-              Test the pipeline on your data
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground font-sans max-w-lg mx-auto">
-              Experience sub-50ms ingestion and automated confidence scoring right now.
-            </p>
-            <div className="pt-1 flex flex-wrap items-center justify-center gap-3">
-              <Link to="/workspace">
-                <Button size="lg" className="h-11 px-7 rounded-xl shadow-premium t-card-lift t-spring-press font-display font-semibold text-sm">
-                  <span>Open Data Workspace</span>
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
+        <CtaBanner
+          title="Test the pipeline on your data"
+          description="Experience sub-50ms ingestion and automated confidence scoring right now."
+          buttonText="Open Data Workspace"
+          buttonLink="/workspace"
+        />
 
       </main>
 

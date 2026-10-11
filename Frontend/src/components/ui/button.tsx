@@ -155,33 +155,31 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...motionProps}
       >
         {/* Subtle radial ripple wave effect */}
-        {ripple && !reduceMotion && (
-          <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] z-0">
-            <AnimatePresence>
-              {ripples.map((r) => (
-                <motion.span
-                  key={r.id}
-                  className="absolute rounded-full bg-current opacity-25"
-                  style={{
-                    left: r.x,
-                    top: r.y,
-                    width: r.size,
-                    height: r.size,
-                    x: "-50%",
-                    y: "-50%",
-                  }}
-                  initial={{ scale: 0.05, opacity: 0.25 }}
-                  animate={{ scale: 1, opacity: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 1.0, ease: EASE_OUT }}
-                  onAnimationComplete={() =>
-                    setRipples((prev) => prev.filter((x) => x.id !== r.id))
-                  }
-                />
-              ))}
-            </AnimatePresence>
-          </span>
-        )}
+        <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] z-0">
+          <AnimatePresence>
+            {ripple && !reduceMotion && ripples.map((r) => (
+              <motion.span
+                key={r.id}
+                className="absolute rounded-full bg-current opacity-25"
+                style={{
+                  left: r.x,
+                  top: r.y,
+                  width: r.size,
+                  height: r.size,
+                  x: "-50%",
+                  y: "-50%",
+                }}
+                initial={{ scale: 0.05, opacity: 0.25 }}
+                animate={{ scale: 1, opacity: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.0, ease: EASE_OUT }}
+                onAnimationComplete={() =>
+                  setRipples((prev) => prev.filter((x) => x.id !== r.id))
+                }
+              />
+            ))}
+          </AnimatePresence>
+        </span>
 
         {/* Content with optional stateful spinner */}
         <span className="relative z-10 inline-flex items-center justify-center gap-2">

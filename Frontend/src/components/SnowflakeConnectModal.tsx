@@ -556,10 +556,11 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
             {/* Account & User */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                <label htmlFor="snowflake-account" className="block text-xs font-medium text-zinc-300 mb-1">
                   Account Identifier <span className="text-rose-400">*</span>
                 </label>
                 <Input
+                  id="snowflake-account"
                   required
                   placeholder="e.g. orgname-accountname"
                   value={account}
@@ -572,10 +573,11 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                <label htmlFor="snowflake-user" className="block text-xs font-medium text-zinc-300 mb-1">
                   Username <span className="text-rose-400">*</span>
                 </label>
                 <Input
+                  id="snowflake-user"
                   required
                   placeholder="e.g. DATA_ANALYST"
                   value={user}
@@ -590,9 +592,9 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
 
             {/* Auth Method Selector */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-zinc-300">
+              <span className="block text-xs font-medium text-zinc-300">
                 Authentication Method
-              </label>
+              </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 p-1 rounded-xl bg-black/40 border border-white/10 gap-1.5">
                 <button
                   type="button"
@@ -631,11 +633,11 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
             {authType === "key_pair" ? (
               <div className="p-3.5 rounded-xl bg-[#0e1017] border border-white/10 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
                     <KeyRound className="h-3.5 w-3.5 text-blue-400" />
                     <span>RSA Private Key</span>
                     <span className="text-rose-400">*</span>
-                  </label>
+                  </span>
                   <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg border border-white/5">
                     <button
                       type="button"
@@ -703,6 +705,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                     {showRawPem && (
                       <textarea
                         rows={3}
+                        aria-label="Raw RSA Private Key Content"
                         value={privateKeyPem}
                         onChange={(e) => setPrivateKeyPem(e.target.value)}
                         className="w-full p-2.5 rounded-lg border border-white/10 bg-black/60 text-zinc-200 font-mono text-[10px] focus:outline-none focus:border-blue-500"
@@ -746,7 +749,8 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   /* Monospace Key Textarea */
                   <textarea
                     rows={4}
-                    placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                    aria-label="RSA Private Key PEM"
+                    placeholder="Paste PKCS#8 or OpenSSL RSA private key PEM here..."
                     value={privateKeyPem}
                     onChange={(e) => setPrivateKeyPem(e.target.value)}
                     className="w-full p-2.5 rounded-xl border border-white/10 bg-black/40 text-zinc-200 font-mono text-[11px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40"
@@ -754,10 +758,11 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                 )}
 
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">
+                  <label htmlFor="snowflake-key-passphrase" className="block text-xs font-medium text-zinc-300 mb-1">
                     Key Passphrase <span className="text-zinc-500 font-normal">(optional)</span>
                   </label>
                   <Input
+                    id="snowflake-key-passphrase"
                     type="password"
                     placeholder="Required only if RSA key is encrypted with a passphrase"
                     value={privateKeyPassphrase}
@@ -768,10 +773,11 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
               </div>
             ) : (
               <div className="p-3.5 rounded-xl bg-[#0e1017] border border-white/10 space-y-2">
-                <label className="block text-xs font-medium text-zinc-300">
+                <label htmlFor="snowflake-password" className="block text-xs font-medium text-zinc-300">
                   Account Password <span className="text-rose-400">*</span>
                 </label>
                 <Input
+                  id="snowflake-password"
                   required
                   type="password"
                   placeholder="Enter your Snowflake password"
@@ -789,8 +795,9 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-[11px] text-zinc-400 mb-1">Warehouse</label>
+                  <label htmlFor="snowflake-warehouse" className="block text-[11px] text-zinc-400 mb-1">Warehouse</label>
                   <Input
+                    id="snowflake-warehouse"
                     placeholder="COMPUTE_WH"
                     value={warehouse}
                     onChange={(e) => setWarehouse(e.target.value)}
@@ -798,8 +805,9 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-zinc-400 mb-1">Database</label>
+                  <label htmlFor="snowflake-database" className="block text-[11px] text-zinc-400 mb-1">Database</label>
                   <Input
+                    id="snowflake-database"
                     placeholder="ANALYTICS_DB"
                     value={database}
                     onChange={(e) => setDatabase(e.target.value)}
@@ -807,8 +815,9 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-zinc-400 mb-1">Schema</label>
+                  <label htmlFor="snowflake-schema" className="block text-[11px] text-zinc-400 mb-1">Schema</label>
                   <Input
+                    id="snowflake-schema"
                     placeholder="PUBLIC"
                     value={schema}
                     onChange={(e) => setSchema(e.target.value)}
@@ -816,8 +825,9 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-zinc-400 mb-1">Role</label>
+                  <label htmlFor="snowflake-role" className="block text-[11px] text-zinc-400 mb-1">Role</label>
                   <Input
+                    id="snowflake-role"
                     placeholder="READONLY_ROLE"
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
@@ -1091,7 +1101,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
               /* MONOSPACE SQL EDITOR */
               <div className="p-3.5 sm:p-4 rounded-xl bg-[#0e1017] border border-white/10 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-1.5">
-                  <label className="block text-xs font-medium text-zinc-300 font-mono">
+                  <label htmlFor="snowflake-sql-editor" className="block text-xs font-medium text-zinc-300 font-mono">
                     Snowflake SQL Query (Monospace Editor)
                   </label>
                   <span className="text-[10px] text-zinc-500 font-mono">
@@ -1100,6 +1110,8 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                 </div>
 
                 <textarea
+                  id="snowflake-sql-editor"
+                  aria-label="Snowflake SQL Query"
                   rows={5}
                   value={customSql}
                   onChange={(e) => setCustomSql(e.target.value)}
@@ -1128,19 +1140,20 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
             {/* Resolved Execution Query Preview & Label */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
               <div className="md:col-span-2">
-                <label className="block text-[11px] text-zinc-400 mb-1 font-mono">
+                <span className="block text-[11px] text-zinc-400 mb-1 font-mono">
                   Resolved Execution Query
-                </label>
+                </span>
                 <div className="p-2.5 rounded-lg bg-black/40 border border-white/5 font-mono text-[11px] text-zinc-300 truncate">
                   {activeQuery || "Select a table or enter SQL..."}
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] text-zinc-400 mb-1">
+                <label htmlFor="snowflake-dataset-label" className="block text-[11px] text-zinc-400 mb-1">
                   Dataset Label
                 </label>
                 <Input
+                  id="snowflake-dataset-label"
                   placeholder="e.g. sales_transactions"
                   value={datasetLabel}
                   onChange={(e) => setDatasetLabel(e.target.value)}
@@ -1197,17 +1210,20 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                         </tr>
                       </thead>
                       <tbody>
-                        {previewData.rows.map((row, i) => (
-                          <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
-                            {previewData.columns.map((col) => (
-                              <td key={col} className="p-2 whitespace-nowrap">
-                                {row[col] !== null && row[col] !== undefined
-                                  ? String(row[col])
-                                  : <span className="text-zinc-600 italic">null</span>}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
+                        {previewData.rows.map((row) => {
+                          const rowSignature = previewData.columns.slice(0, 3).map((col) => String(row[col] ?? '')).join('::');
+                          return (
+                            <tr key={`row-${rowSignature}`} className="border-b border-white/5 hover:bg-white/[0.02]">
+                              {previewData.columns.map((col) => (
+                                <td key={col} className="p-2 whitespace-nowrap">
+                                  {row[col] !== null && row[col] !== undefined
+                                    ? String(row[col])
+                                    : <span className="text-zinc-600 italic">null</span>}
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
