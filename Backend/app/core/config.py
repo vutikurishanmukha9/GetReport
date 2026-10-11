@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     API_KEY: str = ""
     # Set to True only if you strictly mandate API_KEY to be configured.
     REQUIRE_AUTH: bool = False
+    # Secret Key used for HKDF session vault and stream ticket signing
+    SECRET_KEY: str = "getreport-vault-secret-key-32b"
     
     # Max length for chat questions (prompt injection mitigation)
     MAX_CHAT_QUESTION_LENGTH: int = 500

@@ -94,10 +94,6 @@ export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness })
 
   return (
     <Card className="relative border border-border/80 bg-card/95 backdrop-blur-xl shadow-premium rounded-3xl overflow-hidden mt-6">
-      {/* Ambient Radial Telemetry Aura */}
-      <div
-        className={`absolute -top-24 -right-24 w-80 h-80 rounded-full ${statusTheme.glowBg} blur-3xl pointer-events-none transition-all duration-700`}
-      />
 
       {/* Header Section */}
       <CardHeader className="border-b border-border/60 bg-muted/15 px-6 py-5 relative z-10">
@@ -123,7 +119,7 @@ export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness })
             <span
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-mono font-bold tracking-wider shadow-xs ${statusTheme.pillClass}`}
             >
-              <span className={`w-2 h-2 rounded-full ${statusTheme.dotClass} animate-pulse`} />
+              <span className={`w-2 h-2 rounded-full ${statusTheme.dotClass}`} />
               {statusTheme.statusLabel}
             </span>
           </div>

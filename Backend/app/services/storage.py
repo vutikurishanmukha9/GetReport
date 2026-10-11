@@ -171,7 +171,16 @@ class LocalStorageProvider(StorageProvider):
     def get_absolute_path(self, file_ref: str) -> str:
         # Strictly sanitize and resolve path within base_dir
         base_resolved = self.base_dir.resolve()
-        # Strip directory components to avoid path traversal
+
+        # Check if file_ref directly points to an existing file within base_dir
+        try:
+            candidate = Path(file_ref).resolve()
+            if candidate.is_relative_to(base_resolved) and candidate.exists():
+                return str(candidate)
+        except Exception:
+            pass
+
+        # Strip directory components to avoid path traversal for simple filenames
         safe_filename = Path(file_ref).name
         target_path = (self.base_dir / safe_filename).resolve()
 

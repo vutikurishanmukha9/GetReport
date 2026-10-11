@@ -16,6 +16,7 @@ from pathlib import Path
 
 from app.core.config import settings
 from app.core.task_dispatcher import register_task
+from app.core.auth import validate_task_id
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.services.storage import get_storage_provider
 from app.services.rag_service import rag_service
@@ -523,6 +524,89 @@ async def rag_ingest_task(ctx: Optional[dict], task_id: str, text: str):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Task 5: Asynchronous Snowflake Data Extraction
+# ─────────────────────────────────────────────────────────────────────────────
+
+@register_task("app.tasks.import_snowflake")
+@register_task("import_snowflake_task")
+async def import_snowflake_task(
+    ctx: Optional[dict],
+    user_id: str,
+    session_id: str,
+    task_id: str,
+    query: str,
+    output_path: str,
+    byte_limit: int = 150 * 1024 * 1024,
+):
+    """
+    Asynchronously streams Snowflake query results into local Parquet,
+    profiles dataset out-of-core with DuckDB, and transitions to inspection review.
+    """
+    logger.info("Starting import_snowflake_task for task_id=%s", task_id)
+    validate_task_id(task_id)
+
+    from app.services.snowflake.vault import get_snowflake_vault
+    from app.services.snowflake.driver import get_snowflake_driver
+    from app.services.snowflake.executor import execute_and_stream_snowflake
+    from app.services.snowflake.profiler import profile_parquet_out_of_core
+
+    vault = get_snowflake_vault()
+    creds = vault.retrieve_session(user_id, session_id, refresh_ttl=False)
+
+    if not creds:
+        err_msg = "ERR_SNOWFLAKE_SESSION_EXPIRED: Connection session expired before extraction started. Please reconnect."
+        logger.error(err_msg)
+        title_task_manager.fail_job(task_id, err_msg)
+        return
+
+    try:
+        title_task_manager.update_progress(task_id, 15, "Executing Snowflake query and streaming batches...")
+        driver = get_snowflake_driver(use_mock=bool(creds.get("use_mock")))
+        redis_client = vault._get_redis_client()
+
+        extract_summary = await asyncio.to_thread(
+            execute_and_stream_snowflake,
+            driver=driver,
+            session_config=creds,
+            query=query,
+            output_path=output_path,
+            task_id=task_id,
+            byte_limit=byte_limit,
+            redis_client=redis_client,
+        )
+
+        title_task_manager.update_progress(task_id, 35, "Extract complete. Running out-of-core DuckDB profiling...")
+        profile = await asyncio.to_thread(profile_parquet_out_of_core, output_path)
+
+        filename = os.path.basename(output_path)
+        file_ref = output_path
+
+        # Transition into inspection pipeline for data health scoring & review gate
+        await inspect_file_task(ctx, task_id, file_ref, filename)
+
+        # Append Snowflake extraction metadata to job result
+        job = title_task_manager.get_job(task_id)
+        if job and job.result:
+            job.result["snowflake_meta"] = {
+                "query_id": extract_summary.get("query_id"),
+                "total_rows": extract_summary.get("total_rows"),
+                "total_bytes": extract_summary.get("total_bytes"),
+                "truncated": extract_summary.get("truncated", False),
+                "profile": profile,
+            }
+            title_task_manager.update_status(task_id, job.status, job.result)
+
+    except Exception as e:
+        logger.error("Snowflake ingestion failed for task %s: %s", task_id, e, exc_info=True)
+        title_task_manager.fail_job(task_id, f"Snowflake Ingestion Error: {e}")
+        if os.path.exists(output_path):
+            try:
+                os.remove(output_path)
+            except Exception:
+                pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # ARQ Worker Settings (For Production Deployment: arq app.tasks_arq.WorkerSettings)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -540,6 +624,8 @@ try:
             func(generate_pdf_task, name="generate_pdf_task"),
             func(rag_ingest_task, name="app.tasks.rag_ingest"),
             func(rag_ingest_task, name="rag_ingest_task"),
+            func(import_snowflake_task, name="app.tasks.import_snowflake"),
+            func(import_snowflake_task, name="import_snowflake_task"),
         ]
         _redis_url = settings.REDIS_URL or "redis://localhost:6379/0"
         try:

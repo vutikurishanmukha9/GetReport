@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Upload, FileSpreadsheet, X, Shield, Lock, Trash2 } from "lucide-react";
+import { Upload, FileSpreadsheet, X, Shield, Lock, Trash2, Database } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { api } from "@/services/api";
 import { DataHealthCheck } from "./DataHealthCheck";
 import { IssueLedger } from "./IssueLedger";
 import { ProcessPipeline } from "./ProcessPipeline";
+import { SnowflakeConnectModal } from "./SnowflakeConnectModal";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
 import type { JobTaskResult } from "@/services/api";
 
@@ -48,6 +49,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   // New States for Interactive Cleaning
   const [taskId, setTaskId] = useState<string | null>(null);
   const [inspectionData, setInspectionData] = useState<InspectionResult | null>(null);
+  const [isSnowflakeModalOpen, setIsSnowflakeModalOpen] = useState(false);
 
   // Track what we are waiting for
   const [expectedPhase, setExpectedPhase] = useState<'INSPECTION' | 'ANALYSIS' | null>(null);
@@ -349,9 +351,9 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
               </p>
             </div>
 
-            {/* Browse Button */}
+            {/* Browse Button & Snowflake Connector */}
             {!isProcessing && (
-              <div className="mt-5">
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
                 <label className="inline-block">
                   <input
                     type="file"
@@ -360,13 +362,29 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                     onChange={handleFileSelect}
                     className="sr-only"
                   />
-                  <Button asChild variant="outline" size="default" className="cursor-pointer border-white/10 bg-[#121420] text-zinc-100 hover:bg-white/10 transition-all duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]">
+                  <Button asChild variant="outline" size="default" className="cursor-pointer border-white/10 bg-[#121420] text-zinc-100 hover:bg-white/10 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]">
                     <span className="text-xs font-semibold flex items-center gap-2">
                       <Upload className="h-3.5 w-3.5 text-primary" />
                       Browse Files to Stage
                     </span>
                   </Button>
                 </label>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="default"
+                  onClick={() => setIsSnowflakeModalOpen(true)}
+                  className="cursor-pointer border-white/10 bg-[#121420] text-zinc-100 hover:bg-white/10 hover:border-white/20 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]"
+                >
+                  <span className="text-xs font-semibold flex items-center gap-2">
+                    <Database className="h-3.5 w-3.5 text-blue-400" />
+                    <span>Connect Snowflake Warehouse</span>
+                    <span className="px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-widest text-zinc-400 bg-white/[0.06] border border-white/10 rounded leading-none">
+                      Beta
+                    </span>
+                  </span>
+                </Button>
               </div>
             )}
 
@@ -443,13 +461,16 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                       </div>
 
                       {!isProcessing && (
-                        <button
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
                           onClick={() => removeFileFromStaging(idx)}
-                          className="h-7 w-7 rounded-lg text-rose-400 hover:text-white hover:bg-rose-600 border border-transparent hover:border-rose-600 transition-all flex items-center justify-center cursor-pointer shadow-2xs active:scale-90"
+                          className="h-7 w-7 rounded-lg text-rose-400 hover:text-white hover:bg-rose-600 border border-transparent hover:border-rose-600 p-0"
                           title="Delete this file from staging"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        </Button>
                       )}
                     </motion.div>
                   );
@@ -559,6 +580,21 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
           </Link>
         </div>
       </motion.div>
+
+      {/* Snowflake Data Warehouse Integration Modal */}
+      <SnowflakeConnectModal
+        isOpen={isSnowflakeModalOpen}
+        onClose={() => setIsSnowflakeModalOpen(false)}
+        onImportStarted={(importedTaskId) => {
+          setTaskId(importedTaskId);
+          setIsProcessing(true);
+          setExpectedPhase('INSPECTION');
+          toast({
+            title: "Snowflake Ingestion Active",
+            description: "Streaming Snowflake records into the inspection audit engine...",
+          });
+        }}
+      />
     </motion.div>
   );
 };

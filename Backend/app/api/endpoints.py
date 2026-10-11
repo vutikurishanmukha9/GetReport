@@ -11,13 +11,12 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.core.limiter import limiter, ANALYZE_LIMIT
-from app.core.auth import verify_api_key, validate_task_id
+from app.core.auth import verify_api_key, validate_task_id, check_task_ownership
 from app.core.task_dispatcher import dispatch_task
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.services.analysis_config import AnalysisConfig
 
-# Import sub-routers
-from app.api.routes import upload, status, report, chat, issues
+from app.api.routes import upload, status, report, chat, issues, snowflake
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -28,6 +27,7 @@ router.include_router(status.router, tags=["status"])
 router.include_router(report.router, tags=["report"])
 router.include_router(chat.router, tags=["chat"])
 router.include_router(issues.router, tags=["issues"])
+router.include_router(snowflake.router, tags=["snowflake"])
 
 
 class StreamTicketResponse(BaseModel):
@@ -83,6 +83,9 @@ async def start_analysis(
     if not job:
         logger.error(f"Job {task_id} NOT FOUND.")
         raise HTTPException(404, "Job not found")
+
+    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    check_task_ownership(job.owner_id, caller_owner_id)
 
     logger.info(f"Job {task_id} status: {job.status}")
 

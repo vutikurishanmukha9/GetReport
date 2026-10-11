@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FileSpreadsheet, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const MobileFloatingBar = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -56,15 +57,17 @@ export const MobileFloatingBar = () => {
           </Link>
 
           {/* Right Pod: Solid White Primary CTA Button with 44px min touch target */}
-          <Link to="/workspace" className="shrink-0">
-            <button
-              type="button"
-              className="min-h-[44px] h-10 px-4 rounded-full bg-white hover:bg-zinc-100 text-black font-sans font-bold text-xs tracking-tight shadow-[0_2px_12px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] border border-white flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
-            >
+          <Button
+            asChild
+            variant="launch"
+            size="sm"
+            className="shrink-0 min-h-[44px] h-10 px-4 rounded-full shadow-[0_2px_12px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)]"
+          >
+            <Link to="/workspace">
               <span>Start Free</span>
               <ArrowRight className="h-3.5 w-3.5 text-black" />
-            </button>
-          </Link>
+            </Link>
+          </Button>
 
         </div>
       </div>

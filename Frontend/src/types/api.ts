@@ -154,6 +154,14 @@ export interface AnalysisResult {
   unsupervised_learning?: ClusteringResult;
   timing_ms: number;
   insights?: string | InsightResult; // Optional: Can be string or object depending on merge
+  snowflake_meta?: {
+    query_id?: string;
+    total_rows?: number;
+    total_bytes?: number;
+    truncated?: boolean;
+    sampled?: boolean;
+    profile?: Record<string, unknown>;
+  };
 }
 
 export interface ChartReport {
@@ -283,3 +291,72 @@ export interface InspectionResult {
   raw_file_path: string;
   stage: "INSPECTION";
 }
+
+// ─── Snowflake Integration Types ─────────────────────────────────────────────
+
+export interface SnowflakeConnectParams {
+  account: string;
+  user: string;
+  warehouse?: string;
+  database?: string;
+  schema?: string;
+  role?: string;
+  auth_type: "key_pair" | "password";
+  private_key_pem?: string;
+  private_key_passphrase?: string;
+  password?: string;
+  use_mock?: boolean;
+}
+
+export interface SnowflakeConnectResponse {
+  session_id: string;
+  account: string;
+  user: string;
+  warehouse?: string;
+  database?: string;
+  schema?: string;
+  message: string;
+}
+
+export interface SnowflakeDatabase {
+  name: string;
+  comment?: string;
+}
+
+export interface SnowflakeSchema {
+  name: string;
+  database: string;
+  comment?: string;
+}
+
+export interface SnowflakeObject {
+  name: string;
+  type: "TABLE" | "VIEW";
+  database: string;
+  schema: string;
+  row_count?: number;
+  bytes?: number;
+  comment?: string;
+}
+
+export interface SnowflakePreviewResponse {
+  columns: string[];
+  rows: Record<string, PrimitiveValue>[];
+  total_preview_rows: number;
+  query: string;
+}
+
+export interface SnowflakeImportResponse {
+  task_id: string;
+  filename: string;
+  status: string;
+  message: string;
+}
+
+export interface SnowflakeDeleteResponse {
+  task_id: string;
+  status: string;
+  deleted_files: number;
+  message: string;
+}
+

@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 export const QuickLaunchDock = () => {
   return (
@@ -17,24 +18,28 @@ export const QuickLaunchDock = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 relative z-10">
-            <Link to="/workspace" className="w-full sm:w-auto">
-              <button
-                type="button"
-                className="w-full sm:w-auto min-h-[48px] h-12 px-7 rounded-full bg-white hover:bg-zinc-100 text-black font-sans font-bold text-sm tracking-tight shadow-[0_2px_16px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] border border-white transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer group"
-              >
+            <Button
+              asChild
+              variant="launch"
+              size="xl"
+              className="w-full sm:w-auto min-h-[48px] px-7 rounded-full shadow-[0_2px_16px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] group"
+            >
+              <Link to="/workspace">
                 <span>Start Checking Your Data Free</span>
                 <ArrowRight className="h-4 w-4 text-black transition-transform duration-200 group-hover:translate-x-1" />
-              </button>
-            </Link>
+              </Link>
+            </Button>
 
-            <Link to="/how-it-works" className="w-full sm:w-auto">
-              <button
-                type="button"
-                className="w-full sm:w-auto min-h-[48px] h-12 px-6 rounded-full border border-white/10 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 font-sans font-semibold text-sm transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center cursor-pointer"
-              >
+            <Button
+              asChild
+              variant="outline"
+              size="xl"
+              className="w-full sm:w-auto min-h-[48px] px-6 rounded-full border-white/10 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200"
+            >
+              <Link to="/how-it-works">
                 <span>See How It Works</span>
-              </button>
-            </Link>
+              </Link>
+            </Button>
           </div>
 
           {/* Micro trust indicators */}

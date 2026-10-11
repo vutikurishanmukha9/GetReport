@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, X, AlertTriangle, AlertCircle, Info, Lock, CheckCheck, XCircle } from 'lucide-react';
 import { api } from '@/services/api';
+import { Button } from '@/components/ui/button';
 
 // Types
 interface Issue {
@@ -249,13 +250,15 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                 </div>
 
                 <div className="mt-8 flex justify-center">
-                    <button
+                    <Button
                         onClick={onProceed}
-                        className="px-8 py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display font-semibold rounded-xl border border-violet-400/40 ring-1 ring-white/20 shadow-[0_4px_14px_-2px_rgba(124,58,237,0.38),inset_0_1px_1px_rgba(255,255,255,0.3)] transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 cursor-pointer"
+                        variant="launch"
+                        size="lg"
+                        className="px-8 py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display font-semibold rounded-xl border border-violet-400/40 ring-1 ring-white/20 shadow-[0_4px_14px_-2px_rgba(124,58,237,0.38),inset_0_1px_1px_rgba(255,255,255,0.3)]"
                     >
                         <Lock className="w-4 h-4" />
-                        Proceed to Analysis
-                    </button>
+                        <span>Proceed to Analysis</span>
+                    </Button>
                 </div>
             </div>
         );
@@ -312,20 +315,26 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
                     {!locked && (
                         <div className="flex flex-wrap items-center gap-2">
-                            <button
+                            <Button
                                 onClick={handleApproveAll}
                                 disabled={loading !== null || !hasPending}
-                                className="px-3.5 py-1.5 border border-emerald-500/30 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 rounded-xl text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5 shadow-2xs hover:shadow-xs cursor-pointer t-spring-press"
+                                variant="saveAll"
+                                size="sm"
+                                className="px-3.5 py-1.5"
                             >
-                                <CheckCheck className="w-4 h-4 text-emerald-400" /> Approve All
-                            </button>
-                            <button
+                                <CheckCheck className="w-4 h-4 text-emerald-400" />
+                                <span>Approve All</span>
+                            </Button>
+                            <Button
                                 onClick={handleRejectAll}
                                 disabled={loading !== null || !hasPending}
-                                className="px-3.5 py-1.5 border border-rose-500/30 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 rounded-xl text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5 shadow-2xs hover:shadow-xs cursor-pointer t-spring-press"
+                                variant="deleteAll"
+                                size="sm"
+                                className="px-3.5 py-1.5"
                             >
-                                <XCircle className="w-4 h-4 text-rose-400" /> Reject All
-                            </button>
+                                <XCircle className="w-4 h-4 text-rose-400" />
+                                <span>Reject All</span>
+                            </Button>
                         </div>
                     )}
                 </div>
@@ -423,22 +432,26 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                 <td className="px-6 py-4 text-right">
                                     {!locked && issue.status === 'pending' && (
                                         <div className="flex justify-end items-center gap-2">
-                                            <button
+                                            <Button
                                                 onClick={() => handleApprove(issue.id)}
                                                 disabled={loading !== null}
-                                                className="w-8 h-8 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/30 rounded-full border border-emerald-500/30 flex items-center justify-center shadow-2xs hover:shadow-xs cursor-pointer disabled:opacity-50 t-spring-press"
+                                                variant="save"
+                                                size="icon-sm"
+                                                className="w-8 h-8 rounded-full"
                                                 title="Approve Fix"
                                             >
-                                                <Check className="w-4 h-4 text-emerald-400" />
-                                            </button>
-                                            <button
+                                                <Check className="w-3.5 h-3.5 text-white" />
+                                            </Button>
+                                            <Button
                                                 onClick={() => handleReject(issue.id)}
                                                 disabled={loading !== null}
-                                                className="w-8 h-8 bg-rose-500/15 text-rose-300 hover:bg-rose-500/30 rounded-full border border-rose-500/30 flex items-center justify-center shadow-2xs hover:shadow-xs cursor-pointer disabled:opacity-50 t-spring-press"
+                                                variant="delete"
+                                                size="icon-sm"
+                                                className="w-8 h-8 rounded-full"
                                                 title="Reject Fix"
                                             >
-                                                <X className="w-4 h-4 text-rose-400" />
-                                            </button>
+                                                <X className="w-3.5 h-3.5 text-rose-400" />
+                                            </Button>
                                         </div>
                                     )}
                                     {issue.status !== 'pending' && (
@@ -486,14 +499,16 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         )}
                     </div>
 
-                    <button
+                    <Button
                         onClick={handleLockAndProceed}
                         disabled={loading !== null || hasPending || locked}
-                        className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold shadow-premium hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+                        variant="default"
+                        size="lg"
+                        className="px-6 py-2.5 font-semibold"
                     >
                         <Lock className="w-4 h-4" />
-                        Lock & Proceed to Analysis
-                    </button>
+                        <span>Lock & Proceed to Analysis</span>
+                    </Button>
                 </div>
             </div>
         </div>

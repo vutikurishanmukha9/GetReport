@@ -46,6 +46,21 @@
             <span class="detail-label">Variable Types</span>
             <span class="detail-value">{{ metadata.numeric_columns | default(0) | int }} Num / {{ metadata.categorical_columns | default(0) | int }} Cat</span>
         </div>
+        {% if analysis.get('snowflake_meta') %}
+        {% set sfm = analysis.snowflake_meta %}
+        {% if sfm.get('truncated') %}
+        <div class="title-page__detail-item" style="border-left: 3px solid #e11d48; background: #fff1f2; padding: 6px 10px; border-radius: 4px;">
+            <span class="detail-label" style="color: #9f1239; font-weight: bold;">Ingestion Status</span>
+            <span class="detail-value" style="color: #be123c; font-weight: bold;">Truncated at Limit (150MB Ceiling)</span>
+        </div>
+        {% endif %}
+        {% if sfm.get('sampled') %}
+        <div class="title-page__detail-item" style="border-left: 3px solid #2563eb; background: #eff6ff; padding: 6px 10px; border-radius: 4px;">
+            <span class="detail-label" style="color: #1e40af; font-weight: bold;">Sampling Status</span>
+            <span class="detail-value" style="color: #1d4ed8; font-weight: bold;">Sampled (10% Bernoulli Subsample)</span>
+        </div>
+        {% endif %}
+        {% endif %}
     </div>
 </div>
 

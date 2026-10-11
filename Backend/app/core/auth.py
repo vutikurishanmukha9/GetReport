@@ -149,16 +149,18 @@ def validate_task_id(task_id: str) -> str:
 
 def check_task_ownership(task_owner_id: str | None, caller_owner_id: str | None) -> None:
     """
-    Enforces tenant boundary isolation (VULN-04 / CWE-285).
-    If a task has an assigned owner_id and a caller_owner_id is provided,
-    they must match or an HTTP 403 Forbidden is raised.
+    Enforces strict tenant boundary isolation (VULN-04 / CWE-285 / CWE-639).
+    If a task has an assigned owner_id, the caller must supply a matching owner_id.
+    Missing or mismatched identity raises an HTTP 403 Forbidden.
     """
-    if task_owner_id and caller_owner_id and task_owner_id != caller_owner_id:
-        logger.warning(
-            f"Tenant boundary violation: Caller '{caller_owner_id}' attempted to access "
-            f"task owned by '{task_owner_id}'."
-        )
-        raise HTTPException(
-            status_code=403,
-            detail="Access denied: You do not have permission to access this resource."
-        )
+    if task_owner_id:
+        if not caller_owner_id or task_owner_id != caller_owner_id:
+            logger.warning(
+                f"Tenant boundary violation: Caller '{caller_owner_id or '<anonymous>'}' attempted to access "
+                f"task owned by '{task_owner_id}'."
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: You do not have permission to access this resource."
+            )
+

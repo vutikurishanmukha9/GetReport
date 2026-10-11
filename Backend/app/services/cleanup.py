@@ -19,23 +19,19 @@ def cleanup_old_files(directory: str, max_age_seconds: int = 86400):
     count = 0
     
     try:
-        for filename in os.listdir(directory):
-            file_path = os.path.join(directory, filename)
-            # Skip directories
-            if not os.path.isfile(file_path):
-                continue
-                
-            file_age = now - os.path.getmtime(file_path)
-            
-            if file_age > max_age_seconds:
+        for root, dirs, files in os.walk(directory):
+            for filename in files:
+                file_path = os.path.join(root, filename)
                 try:
-                    os.remove(file_path)
-                    count += 1
+                    file_age = now - os.path.getmtime(file_path)
+                    if file_age > max_age_seconds:
+                        os.remove(file_path)
+                        count += 1
                 except Exception as e:
-                    logger.warning(f"Failed to delete old file {filename}: {e}")
-        
+                    logger.warning(f"Failed to inspect or delete old file {file_path}: {e}")
+
         if count > 0:
-            logger.info(f"Cleanup: Removed {count} old files (>{max_age_seconds}s) from {directory}.")
+            logger.info(f"Cleanup: Removed {count} old files (>{max_age_seconds}s) recursively from {directory}.")
             
     except Exception as e:
         logger.error(f"Cleanup failed for {directory}: {e}")

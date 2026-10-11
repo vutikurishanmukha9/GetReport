@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { 
-  UploadCloud, Search, FileDown, ArrowRight, Cpu, 
+  Upload, Search, FileDown, ArrowRight, Cpu, 
   CheckCircle2, Terminal, ChevronRight, ChevronLeft, 
   ShieldCheck, Layers, RefreshCw, Activity, Code2
 } from "lucide-react";
@@ -14,7 +14,7 @@ import { Footer } from "@/components/Footer";
 interface PipelineStep {
   id: string;
   stepNum: string;
-  icon: typeof UploadCloud;
+  icon: typeof Upload;
   title: string;
   shortDesc: string;
   fullDesc: string;
@@ -29,7 +29,7 @@ const pipelineSteps: PipelineStep[] = [
   {
     id: "ingest",
     stepNum: "01",
-    icon: UploadCloud,
+    icon: Upload,
     title: "Polars Zero-Copy Ingestion",
     shortDesc: "Streaming buffer parsing with automatic encoding and delimiter detection.",
     fullDesc: "When a file is uploaded, our engine memory-maps the raw binary directly into Polars ChunkedArrays. It samples the first 1,000 lines to resolve CSV delimiters, UTF-8/CP1252 encodings, and infers strict Arrow data types without touching disk storage.",

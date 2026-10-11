@@ -397,10 +397,14 @@ def test_tenant_boundary_ownership_check():
     # Matching tenant allowed
     check_task_ownership(task_owner_id="tenant-123", caller_owner_id="tenant-123")
 
-    # Single-tenant / backward compatibility (either is None) allowed
+    # Un-owned tasks allow callers (single-tenant / backward compatibility mode)
     check_task_ownership(task_owner_id=None, caller_owner_id="tenant-123")
-    check_task_ownership(task_owner_id="tenant-123", caller_owner_id=None)
     check_task_ownership(task_owner_id=None, caller_owner_id=None)
+
+    # Missing caller identity attempting to access owned task must be rejected (BOLA defense)
+    with pytest.raises(HTTPException) as exc_info:
+        check_task_ownership(task_owner_id="tenant-123", caller_owner_id=None)
+    assert exc_info.value.status_code == 403
 
     # Mismatch forbidden
     with pytest.raises(HTTPException) as exc_info:

@@ -285,9 +285,42 @@
       ]
     ]
   )
-)
-
 #v(10pt)
+
+// Snowflake Ingestion Compliance Indicators
+#if "snowflake_meta" in analysis and analysis.snowflake_meta != none [
+  #let sfm = analysis.snowflake_meta
+  #if sfm.at("truncated", default: false) [
+    #block(
+      width: 100%,
+      fill: rgb("#fff1f2"),
+      stroke: 0.5pt + rgb("#f43f5e"),
+      radius: 4pt,
+      inset: (x: 8pt, y: 5pt),
+      [
+        #text(size: 7.5pt, weight: "bold", fill: rgb("#be123c"))[
+          TRUNCATED AT SAFETY LIMIT: Dataset extraction safely capped at 150MB memory ceiling.
+        ]
+      ]
+    )
+    #v(6pt)
+  ]
+  #if sfm.at("sampled", default: false) [
+    #block(
+      width: 100%,
+      fill: rgb("#eff6ff"),
+      stroke: 0.5pt + rgb("#3b82f6"),
+      radius: 4pt,
+      inset: (x: 8pt, y: 5pt),
+      [
+        #text(size: 7.5pt, weight: "bold", fill: rgb("#1d4ed8"))[
+          BERNOULLI SAMPLED: Analysis executed on 10% representative statistical sample.
+        ]
+      ]
+    )
+    #v(6pt)
+  ]
+]
 
 // Executive Health & Trust Matrix Card
 #if "confidence_scores" in analysis and analysis.confidence_scores != none [

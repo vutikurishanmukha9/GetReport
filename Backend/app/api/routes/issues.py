@@ -9,7 +9,7 @@ from datetime import datetime
 import logging
 
 from app.core.limiter import limiter, STATUS_LIMIT
-from app.core.auth import verify_api_key, validate_task_id
+from app.core.auth import verify_api_key, validate_task_id, check_task_ownership
 from app.services.task_manager import title_task_manager, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -33,11 +33,13 @@ def _recalc_summary(issues: list) -> dict:
     return summary
 
 
-async def _get_job_and_ledger(task_id: str):
-    """Helper: get job and validate it's in approval phase with a ledger."""
+async def _get_job_and_ledger(task_id: str, caller_owner_id: str | None = None):
+    """Helper: get job, verify tenant ownership, and validate it's in approval phase with a ledger."""
     job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         raise HTTPException(404, "Job not found")
+    
+    check_task_ownership(job.owner_id, caller_owner_id)
     
     if job.status != TaskStatus.WAITING_FOR_USER:
         raise HTTPException(400, "Job is not in approval phase")
@@ -58,6 +60,9 @@ async def get_issues(request: Request, task_id: str, _auth: None = Depends(verif
     if not job:
         raise HTTPException(404, "Job not found")
     
+    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    check_task_ownership(job.owner_id, caller_owner_id)
+
     if not job.result:
         raise HTTPException(400, "No inspection data available")
     
@@ -73,7 +78,8 @@ async def get_issues(request: Request, task_id: str, _auth: None = Depends(verif
 async def approve_issue(request: Request, task_id: str, issue_id: str, body: IssueActionRequest = None, _auth: None = Depends(verify_api_key)):
     """Approve a single issue for execution."""
     validate_task_id(task_id)
-    job, ledger_data = await _get_job_and_ledger(task_id)
+    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
     
     for issue in ledger_data.get("issues", []):
         if issue["id"] == issue_id:
@@ -92,7 +98,8 @@ async def approve_issue(request: Request, task_id: str, issue_id: str, body: Iss
 async def reject_issue(request: Request, task_id: str, issue_id: str, body: IssueActionRequest = None, _auth: None = Depends(verify_api_key)):
     """Reject an issue - fix will not be applied."""
     validate_task_id(task_id)
-    job, ledger_data = await _get_job_and_ledger(task_id)
+    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
     
     for issue in ledger_data.get("issues", []):
         if issue["id"] == issue_id:
@@ -111,7 +118,8 @@ async def reject_issue(request: Request, task_id: str, issue_id: str, body: Issu
 async def approve_all_issues(request: Request, task_id: str, _auth: None = Depends(verify_api_key)):
     """Approve all pending issues."""
     validate_task_id(task_id)
-    job, ledger_data = await _get_job_and_ledger(task_id)
+    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
     
     count = 0
     for issue in ledger_data.get("issues", []):
@@ -129,7 +137,8 @@ async def approve_all_issues(request: Request, task_id: str, _auth: None = Depen
 async def reject_all_issues(request: Request, task_id: str, _auth: None = Depends(verify_api_key)):
     """Reject all pending issues."""
     validate_task_id(task_id)
-    job, ledger_data = await _get_job_and_ledger(task_id)
+    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
     
     count = 0
     for issue in ledger_data.get("issues", []):
@@ -147,7 +156,8 @@ async def reject_all_issues(request: Request, task_id: str, _auth: None = Depend
 async def lock_issues(request: Request, task_id: str, _auth: None = Depends(verify_api_key)):
     """Lock the issue ledger - no more changes allowed."""
     validate_task_id(task_id)
-    job, ledger_data = await _get_job_and_ledger(task_id)
+    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
     
     pending = sum(1 for i in ledger_data.get("issues", []) if i["status"] == "pending")
     if pending > 0:

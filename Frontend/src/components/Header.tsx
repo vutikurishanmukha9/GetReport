@@ -141,15 +141,17 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 <span>Start Over</span>
               </Button>
             ) : location.pathname !== "/workspace" ? (
-              <Link to="/workspace" className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-xl">
-                <button 
-                  type="button"
-                  className="h-9 px-4 rounded-xl bg-white hover:bg-slate-100 text-black font-hero font-bold text-xs tracking-tight shadow-[0_4px_14px_-2px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white/90 flex items-center gap-2 group transition-all duration-150 hover:-translate-y-0.5 active:scale-95 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
-                >
+              <Button
+                asChild
+                variant="launch"
+                size="sm"
+                className="h-9 px-4 rounded-xl group"
+              >
+                <Link to="/workspace">
                   <span>Start Free</span>
                   <ArrowRight className="h-3.5 w-3.5 text-black/80 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0" />
-                </button>
-              </Link>
+                </Link>
+              </Button>
             ) : (
               <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px] font-hero font-medium">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -161,12 +163,14 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
               <div className="md:hidden">
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                   <SheetTrigger asChild>
-                    <button
-                      className="h-9 w-9 rounded-xl bg-[#14161f] hover:bg-[#1a1d29] border border-white/10 flex items-center justify-center text-slate-200 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-xl bg-[#14161f] hover:bg-[#1a1d29] border-white/10 text-slate-200"
                       aria-label="Open Navigation Menu"
                     >
                       <Menu className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </SheetTrigger>
                   <SheetContent
                     side="right"

@@ -12,7 +12,7 @@ import re
 import html
 
 from app.core.limiter import limiter, REPORT_LIMIT
-from app.core.auth import verify_api_key, validate_task_id
+from app.core.auth import verify_api_key, validate_task_id, check_task_ownership
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.core.task_dispatcher import dispatch_task
 
@@ -41,7 +41,7 @@ class DeriveConceptRequest(BaseModel):
     formula_or_intent: str
     description: Optional[str] = ""
 
-# ─── Path Traversal Guard (VULN-05) ─────────────────────────────────────────
+# ─── Tenant Boundary & Path Guards ──────────────────────────────────────────
 
 ALLOWED_OUTPUT_DIR = os.path.abspath("outputs")
 
@@ -62,6 +62,21 @@ def _sanitize_download_filename(filename: str) -> str:
     return re.sub(r'[^a-zA-Z0-9_.-]', '_', filename)
 
 
+async def _get_authorized_job(request: Optional[Request], task_id: str, require_result: bool = False):
+    """
+    Validates task_id format, retrieves job, and enforces strict tenant isolation (BOLA / CWE-285).
+    """
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    caller_owner_id = (request.headers.get("x-user-id") or request.headers.get("x-consumer-id")) if request is not None else None
+    check_task_ownership(job.owner_id, caller_owner_id)
+    if require_result and not job.result:
+        raise HTTPException(400, "Job analysis result not found or not ready yet")
+    return job
+
+
 # ─── PDF Generation & Download ──────────────────────────────────────────────
 
 @router.post("/jobs/{task_id}/report")
@@ -71,15 +86,10 @@ async def generate_persistent_report(
     _auth: None = Depends(verify_api_key),
 ):
     """
-    Triggers PDF generation via Celery and returns immediately.
+    Triggers PDF generation via Celery/ARQ and returns immediately.
     Frontend should poll /jobs/{task_id}/report/status until ready.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job:
-        raise HTTPException(404, "Job not found")
-    if not job.result:
-        raise HTTPException(400, "Job analysis not ready yet")
+    job = await _get_authorized_job(request, task_id, require_result=True)
     
     try:
         await title_task_manager.set_report_status_async(task_id, "generating")
@@ -95,16 +105,14 @@ async def generate_persistent_report(
 @router.get("/jobs/{task_id}/report/status")
 async def get_report_status(
     task_id: str,
+    request: Request = None,
     _auth: None = Depends(verify_api_key),
 ):
     """
     Check if the PDF report has been generated and is ready for download.
     Returns: { status: 'generating' | 'ready' | 'not_started', path?: string }
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job:
-        raise HTTPException(404, "Job not found")
+    job = await _get_authorized_job(request, task_id)
     
     if job.report_path and os.path.exists(job.report_path):
         return {"status": "ready", "download_url": f"/api/jobs/{task_id}/report"}
@@ -119,15 +127,15 @@ async def get_report_status(
 @router.get("/jobs/{task_id}/report")
 async def download_report(
     task_id: str,
+    request: Request = None,
     _auth: None = Depends(verify_api_key),
 ):
     """
     Downloads the persisted PDF report.
     Returns 202 if still generating, 200 + file if ready.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.report_path:
+    job = await _get_authorized_job(request, task_id)
+    if not job.report_path:
         raise HTTPException(404, "Report not found. Generate it first.")
     
     # Path traversal guard (VULN-05)
@@ -158,10 +166,7 @@ async def download_full_report_pdf(
     """
     from app.services.report_generator import generate_pdf_report
     
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found or not completed")
+    job = await _get_authorized_job(request, task_id, require_result=True)
     
     analysis = job.result
     if "analysis" not in analysis:
@@ -197,16 +202,14 @@ async def download_full_report_pdf(
 
 @router.get("/jobs/{task_id}/dag")
 async def get_transformation_dag(
+    request: Request,
     task_id: str,
     _auth: None = Depends(verify_api_key),
 ):
     """
     Get the complete transformation DAG for a job.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found")
+    job = await _get_authorized_job(request, task_id, require_result=True)
     
     dag_data = job.result.get("transformation_dag")
     if not dag_data:
@@ -227,10 +230,7 @@ async def export_transformation_dag(
     """
     from app.services.transformation_dag import from_dict
     
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found")
+    job = await _get_authorized_job(request, task_id, require_result=True)
     
     dag_data = job.result.get("transformation_dag")
     if not dag_data:
@@ -251,14 +251,12 @@ async def export_transformation_dag(
 
 @router.get("/jobs/{task_id}/dag/summary")
 async def get_dag_summary(
+    request: Request,
     task_id: str,
     _auth: None = Depends(verify_api_key),
 ):
     """Get a high-level summary of the transformation DAG."""
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found")
+    job = await _get_authorized_job(request, task_id, require_result=True)
     
     dag_data = job.result.get("transformation_dag")
     if not dag_data:
@@ -269,14 +267,12 @@ async def get_dag_summary(
 
 @router.get("/jobs/{task_id}/dag/{node_id}")
 async def get_dag_node(
+    request: Request,
     task_id: str, node_id: str,
     _auth: None = Depends(verify_api_key),
 ):
     """Get details of a single transformation node."""
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found")
+    job = await _get_authorized_job(request, task_id, require_result=True)
     
     dag_data = job.result.get("transformation_dag")
     if not dag_data:
@@ -295,16 +291,14 @@ async def get_dag_node(
 
 @router.get("/jobs/{task_id}/comparison")
 async def get_comparison_report(
+    request: Request,
     task_id: str,
     _auth: None = Depends(verify_api_key),
 ):
     """
     Get the Data Quality Comparison Report (Before vs After).
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found")
+    job = await _get_authorized_job(request, task_id, require_result=True)
     
     report = job.result.get("comparison_report")
     if not report:
@@ -315,14 +309,12 @@ async def get_comparison_report(
 
 @router.get("/jobs/{task_id}/history")
 async def get_historical_comparison(
+    request: Request,
     task_id: str,
     _auth: None = Depends(verify_api_key),
 ):
     """Return additive schema-drift and trend data for this dataset run."""
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found or analysis not complete")
+    job = await _get_authorized_job(request, task_id, require_result=True)
     return job.result.get("historical_comparison", {"schema_drift": {"baseline_available": False, "status": "no_baseline"}})
 
 class GenerateReportRequest(BaseModel):
@@ -369,10 +361,7 @@ async def export_cleaned_data_or_report(
     Exports the audited/cleaned dataset or HTML report bundle.
     Supported formats: 'csv', 'parquet', 'html'.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found or analysis not complete")
+    job = await _get_authorized_job(request, task_id, require_result=True)
 
     clean_fmt = export_format.lower()
     raw_base = _sanitize_download_filename(job.filename or "dataset")
@@ -497,10 +486,7 @@ async def query_dataset_sql(
     Executes an analytical read-only SQL query against the cleaned dataset
     using in-process DuckDB.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found or analysis not complete")
+    job = await _get_authorized_job(request, task_id, require_result=True)
 
     from app.services.storage import get_storage_provider
     from app.services.duckdb_engine import DuckDBAnalyticalSession, DuckDBSecurityError
@@ -565,10 +551,7 @@ async def get_job_sql_schema(
     Returns DuckDB schema introspection for the dataset registered in the job.
     Includes tables, column names, column data types, nullability, and sample preview values.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found or analysis not complete")
+    job = await _get_authorized_job(request, task_id, require_result=True)
 
     from app.services.storage import get_storage_provider
     from app.services.duckdb_engine import DuckDBAnalyticalSession
@@ -599,7 +582,7 @@ async def get_job_sql_schema(
         }
     except Exception as e:
         logger.error(f"Error fetching SQL schema for task {task_id}: {e}", exc_info=True)
-        raise HTTPException(500, f"Failed to inspect SQL schema: {str(e)}")
+        raise HTTPException(500, "Failed to inspect SQL schema due to an internal server error.")
     finally:
         session.close()
 
@@ -617,10 +600,7 @@ async def export_great_expectations_suite(
     Generates and exports an industry-standard Great Expectations Suite JSON
     based on the cleaned dataset, quality scoring, and approved issue ledger actions.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found or analysis not complete")
+    job = await _get_authorized_job(request, task_id, require_result=True)
 
     from app.services.storage import get_storage_provider
     from app.services.data_processing import load_dataframe
@@ -675,10 +655,7 @@ async def create_golden_query(
     """
     Saves a verified analytical SQL query as a Golden KPI for zero-latency retrieval.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job:
-        raise HTTPException(404, "Job not found")
+    job = await _get_authorized_job(request, task_id)
 
     from app.services.golden_query_service import GoldenQueryService
     try:
@@ -706,10 +683,7 @@ async def list_golden_queries(
     """
     Lists all verified Golden KPI queries saved for a job dataset.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job:
-        raise HTTPException(404, "Job not found")
+    job = await _get_authorized_job(request, task_id)
 
     from app.services.golden_query_service import GoldenQueryService
     queries = await GoldenQueryService.get_golden_queries_async(task_id)
@@ -727,10 +701,7 @@ async def delete_golden_query(
     """
     Deletes a golden query by ID.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job:
-        raise HTTPException(404, "Job not found")
+    job = await _get_authorized_job(request, task_id)
 
     from app.services.golden_query_service import GoldenQueryService
     await GoldenQueryService.delete_golden_query_async(task_id=task_id, query_id=query_id)
@@ -751,10 +722,7 @@ async def execute_sandboxed_python(
     Executes Python/Polars analysis code in a secure AST-sandboxed runtime.
     Captures stdout/stderr, generated plots (base64 PNG), and execution metrics.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job or dataset result not found")
+    job = await _get_authorized_job(request, task_id, require_result=True)
 
     cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
     if not cleaned_file_ref:
@@ -788,10 +756,7 @@ async def derive_virtual_concept(
     Synthesizes and derives a virtual analytical metric/concept into the dataset,
     audited through the TransformationDAG, persisting the augmented dataset.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job or dataset result not found")
+    job = await _get_authorized_job(request, task_id, require_result=True)
 
     cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
     if not cleaned_file_ref:
@@ -834,8 +799,8 @@ async def derive_virtual_concept(
     except (ValueError, RuntimeError) as err:
         raise HTTPException(400, str(err))
     except Exception as err:
-        logger.error(f"Concept derivation failed for task {task_id}: {err}")
-        raise HTTPException(500, f"Concept derivation failed: {str(err)}")
+        logger.error(f"Concept derivation failed for task {task_id}: {err}", exc_info=True)
+        raise HTTPException(500, "Concept derivation failed due to an internal server error.")
 
     # Write augmented DataFrame back to storage
     buffer = io.BytesIO()
@@ -880,10 +845,7 @@ async def list_derived_concepts(
     """
     Lists all virtual concepts derived for this job dataset.
     """
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job or not job.result:
-        raise HTTPException(404, "Job not found")
+    job = await _get_authorized_job(request, task_id, require_result=True)
 
     concepts = job.result.get("derived_concepts")
     if concepts is not None:

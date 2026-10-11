@@ -273,6 +273,27 @@ export const ReportGeneration = ({
     }
   };
 
+  const [isDeletingExtract, setIsDeletingExtract] = useState(false);
+
+  const handleDeleteExtract = async () => {
+    if (!taskId) return;
+    if (!window.confirm("Permanently delete this extracted dataset and purge cached files from storage?")) return;
+    setIsDeletingExtract(true);
+    try {
+      await api.deleteSnowflakeExtract(taskId);
+      toast({
+        title: "Extract Purged",
+        description: "Local data extract permanently deleted from storage.",
+      });
+      onReset();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Could not delete extract.";
+      toast({ title: "Purge Failed", description: msg, variant: "destructive" });
+    } finally {
+      setIsDeletingExtract(false);
+    }
+  };
+
   // Load DuckDB schema introspection when tab is active
   useEffect(() => {
     if (activeMainTab === "sql" && taskId && !sqlSchema && !loadingSchema) {
@@ -496,26 +517,26 @@ export const ReportGeneration = ({
       critical_issues: noIssues,
       ml_readiness: undefined,
       columns: info.columns.map(col => {
-      const missing = info.missing_values[col] || { count: 0, percentage: 0 };
-      const completeness = 100 - missing.percentage;
-      let grade = "A";
-      if (completeness < 50) grade = "F";
-      else if (completeness < 75) grade = "C";
-      else if (completeness < 90) grade = "B";
+        const missing = info.missing_values[col] || { count: 0, percentage: 0 };
+        const completeness = 100 - missing.percentage;
+        let grade = "A";
+        if (completeness < 50) grade = "F";
+        else if (completeness < 75) grade = "C";
+        else if (completeness < 90) grade = "B";
 
-      return {
-        column: col,
-        completeness,
-        consistency: 92,
-        validity: 95,
-        stability: 88,
-        overall: (completeness + 92 + 95 + 88) / 4,
-        grade,
-        issues: missing.count > 0 ? [`${missing.count} missing rows`] : []
-      };
-    })
-  };
-}, [info.columns, info.missing_values]);
+        return {
+          column: col,
+          completeness,
+          consistency: 92,
+          validity: 95,
+          stability: 88,
+          overall: (completeness + 92 + 95 + 88) / 4,
+          grade,
+          issues: missing.count > 0 ? [`${missing.count} missing rows`] : []
+        };
+      })
+    };
+  }, [info.columns, info.missing_values]);
 
   const confidence = analysis.confidence_scores || fallbackConfidenceScores;
   const datasetGrade = confidence.dataset_grade || "B";
@@ -561,8 +582,6 @@ export const ReportGeneration = ({
 
         {/* ─── Top Command Center Hero Bar ─── */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-6 sm:p-8 bg-card border border-border/80 rounded-3xl shadow-premium relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-
           <div className="flex items-center gap-5 z-10">
             {/* Seal / Letter Grade Badge */}
             <div className={`flex flex-col items-center justify-center h-20 w-20 sm:h-24 sm:w-24 rounded-2xl ${getGradeColorClass(datasetGrade)} border shadow-sm shrink-0`}>
@@ -572,10 +591,26 @@ export const ReportGeneration = ({
             </div>
 
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground tracking-tight">
                   {filename ? filename.replace(/\.[^/.]+$/, "") : "Dataset Analysis"}
                 </h1>
+                {analysis?.snowflake_meta && (
+                  <Badge variant="outline" className="text-[10px] font-mono uppercase bg-white/[0.04] text-zinc-300 border-white/10 inline-flex items-center gap-1.5">
+                    <span>Snowflake</span>
+                    <span className="px-1 py-0.5 text-[8px] font-mono font-semibold uppercase tracking-widest text-zinc-400 bg-white/[0.06] border border-white/10 rounded leading-none">Beta</span>
+                  </Badge>
+                )}
+                {analysis?.snowflake_meta?.truncated && (
+                  <Badge variant="outline" className="text-[10px] font-mono uppercase bg-rose-500/15 text-rose-400 border-rose-500/30">
+                    Truncated at Limit (150MB Ceiling)
+                  </Badge>
+                )}
+                {analysis?.snowflake_meta?.sampled && (
+                  <Badge variant="outline" className="text-[10px] font-mono uppercase bg-blue-500/15 text-blue-400 border-blue-500/30">
+                    Sampled (10% Bernoulli)
+                  </Badge>
+                )}
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground font-mono">
                 {info.rows.toLocaleString()} rows • {info.columns.length} columns • {(info.memory_usage_mb || 0).toFixed(2)} MB in-memory
@@ -609,6 +644,20 @@ export const ReportGeneration = ({
               <BookOpen className="h-4 w-4 text-primary" />
               <span>HTML Briefing</span>
             </Button>
+
+            {analysis?.snowflake_meta && (
+              <Button
+                size="lg"
+                variant="outline"
+                disabled={isDeletingExtract}
+                className="rounded-xl border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs flex items-center gap-1.5 px-3"
+                onClick={handleDeleteExtract}
+                title="Permanently purge cached extract from disk"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-rose-400" />
+                <span>Purge Extract</span>
+              </Button>
+            )}
 
             <Button
               size="lg"
@@ -785,11 +834,10 @@ export const ReportGeneration = ({
                           key={t.id}
                           type="button"
                           onClick={() => setActiveChartTab(t.id)}
-                          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold tracking-tight transition-all shrink-0 ${
-                            isActive
+                          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold tracking-tight transition-all shrink-0 ${isActive
                               ? "bg-primary text-primary-foreground shadow-2xs"
                               : "bg-secondary/40 hover:bg-secondary text-muted-foreground hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           <Icon className="h-3.5 w-3.5" />
                           <span>{t.label}</span>
@@ -840,11 +888,10 @@ export const ReportGeneration = ({
                             key={`dist-tab-${item.column}`}
                             type="button"
                             onClick={() => setActiveDistIndex(idx)}
-                            className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 ${
-                              activeDistIndex === idx
+                            className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 ${activeDistIndex === idx
                                 ? "bg-primary text-primary-foreground shadow-2xs"
                                 : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                            }`}
+                              }`}
                           >
                             {item.column}
                           </button>
@@ -880,11 +927,10 @@ export const ReportGeneration = ({
                               key={`bar-tab-${item.column}`}
                               type="button"
                               onClick={() => setActiveBarIndex(idx)}
-                              className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 ${
-                                activeBarIndex === idx
+                              className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 ${activeBarIndex === idx
                                   ? "bg-primary text-primary-foreground shadow-2xs"
                                   : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                              }`}
+                                }`}
                             >
                               {item.column}
                             </button>
@@ -893,11 +939,10 @@ export const ReportGeneration = ({
                             <button
                               type="button"
                               onClick={() => setActiveBarIndex(-1)}
-                              className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 ${
-                                activeBarIndex === -1
+                              className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 ${activeBarIndex === -1
                                   ? "bg-primary text-primary-foreground shadow-2xs"
                                   : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                              }`}
+                                }`}
                             >
                               {charts.donut_chart.column} (Donut)
                             </button>
@@ -958,11 +1003,10 @@ export const ReportGeneration = ({
                             key={`box-tab-${item.column}`}
                             type="button"
                             onClick={() => setActiveBoxIndex(idx)}
-                            className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 ${
-                              activeBoxIndex === idx
+                            className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all shrink-0 ${activeBoxIndex === idx
                                 ? "bg-primary text-primary-foreground shadow-2xs"
                                 : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                            }`}
+                              }`}
                           >
                             {item.column}
                           </button>
@@ -971,11 +1015,10 @@ export const ReportGeneration = ({
                           <button
                             type="button"
                             onClick={() => setActiveBoxIndex(-1)}
-                            className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
-                              activeBoxIndex === -1
+                            className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${activeBoxIndex === -1
                                 ? "bg-primary text-primary-foreground shadow-2xs"
                                 : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                            }`}
+                              }`}
                           >
                             {charts.scatter_plot.columns} (Scatter)
                           </button>
@@ -1058,27 +1101,24 @@ export const ReportGeneration = ({
                     <button
                       type="button"
                       onClick={() => setLedgerGradeFilter("all")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
-                        ledgerGradeFilter === "all" ? "bg-card text-foreground border border-border/80 shadow-xs" : "text-muted-foreground hover:text-foreground"
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${ledgerGradeFilter === "all" ? "bg-card text-foreground border border-border/80 shadow-xs" : "text-muted-foreground hover:text-foreground"
+                        }`}
                     >
                       All ({confidence.columns.length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setLedgerGradeFilter("A")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
-                        ledgerGradeFilter === "A" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-xs" : "text-muted-foreground hover:text-foreground"
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${ledgerGradeFilter === "A" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-xs" : "text-muted-foreground hover:text-foreground"
+                        }`}
                     >
                       Grade A
                     </button>
                     <button
                       type="button"
                       onClick={() => setLedgerGradeFilter("attention")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
-                        ledgerGradeFilter === "attention" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-xs" : "text-muted-foreground hover:text-foreground"
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${ledgerGradeFilter === "attention" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-xs" : "text-muted-foreground hover:text-foreground"
+                        }`}
                     >
                       Flags
                     </button>
@@ -1106,9 +1146,8 @@ export const ReportGeneration = ({
                     return (
                       <div
                         key={c.column}
-                        className={`border rounded-2xl transition-all duration-200 ${
-                          isExpanded ? 'border-primary bg-primary/5' : 'border-border/80 bg-card hover:bg-muted/20'
-                        }`}
+                        className={`border rounded-2xl transition-all duration-200 ${isExpanded ? 'border-primary bg-primary/5' : 'border-border/80 bg-card hover:bg-muted/20'
+                          }`}
                       >
                         <button
                           type="button"
@@ -1491,11 +1530,10 @@ export const ReportGeneration = ({
                           key={filterKey}
                           type="button"
                           onClick={() => setSchemaTypeFilter(filterKey)}
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-medium transition-colors cursor-pointer ${
-                            schemaTypeFilter === filterKey
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-medium transition-colors cursor-pointer ${schemaTypeFilter === filterKey
                               ? "bg-primary text-primary-foreground font-bold shadow-2xs"
                               : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                          }`}
+                            }`}
                         >
                           {filterKey.toUpperCase()}
                         </button>
@@ -1533,15 +1571,14 @@ export const ReportGeneration = ({
                               >
                                 <div className="flex items-center gap-1.5 min-w-0">
                                   <span
-                                    className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${
-                                      isNum
+                                    className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${isNum
                                         ? "bg-blue-500/10 text-blue-500 border border-blue-500/20"
                                         : isTxt
-                                        ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                                        : isDate
-                                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                                        : "bg-muted text-muted-foreground"
-                                    }`}
+                                          ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                          : isDate
+                                            ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                                            : "bg-muted text-muted-foreground"
+                                      }`}
                                   >
                                     {isNum ? "NUM" : isTxt ? "TXT" : isDate ? "DATE" : "DATA"}
                                   </span>

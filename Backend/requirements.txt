@@ -5,13 +5,16 @@ granian>=1.6.0
 python-multipart>=0.0.9
 pydantic-settings>=2.2.1
 
-# Database, Async Queues & Celery
+# Database, Async Queues & Snowflake
 celery[redis]>=5.3.6
 arq>=0.26.1
 redis>=5.0.3
 psycopg2-binary>=2.9.9
 asyncpg
 aiosqlite
+snowflake-connector-python>=3.7.0
+cryptography>=42.0.0
+sqlglot>=23.0.0
 
 # Data Processing
 polars>=1.2.1

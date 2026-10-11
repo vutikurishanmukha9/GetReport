@@ -1,4 +1,18 @@
-import type { IssueLedgerData, ApiResponse, InspectionResult, CleaningRulesMap, DataRow, PrimitiveValue } from "@/types/api";
+import type {
+    IssueLedgerData,
+    ApiResponse,
+    InspectionResult,
+    CleaningRulesMap,
+    DataRow,
+    PrimitiveValue,
+    SnowflakeConnectParams,
+    SnowflakeConnectResponse,
+    SnowflakeDatabase,
+    SnowflakeSchema,
+    SnowflakeObject,
+    SnowflakePreviewResponse,
+    SnowflakeImportResponse,
+} from "@/types/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 const REQUEST_TIMEOUT_MS = 45_000;
@@ -643,5 +657,63 @@ export const api = {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const host = API_BASE_URL.replace(/^https?:\/\//, "");
         return `${protocol}//${host}/ws/status/${taskId}`;
+    },
+
+    // ─── Snowflake Data Warehouse Ingestion ─────────────────────────────────
+
+    connectSnowflake: (params: SnowflakeConnectParams): Promise<SnowflakeConnectResponse> => {
+        return fetchClient<SnowflakeConnectResponse>("/snowflake/connect", {
+            method: "POST",
+            body: JSON.stringify(params),
+        });
+    },
+
+    listSnowflakeDatabases: (sessionId: string): Promise<{ databases: SnowflakeDatabase[] }> => {
+        return fetchClient<{ databases: SnowflakeDatabase[] }>(`/snowflake/databases?session_id=${encodeURIComponent(sessionId)}`);
+    },
+
+    listSnowflakeSchemas: (sessionId: string, databaseName: string): Promise<{ schemas: SnowflakeSchema[] }> => {
+        return fetchClient<{ schemas: SnowflakeSchema[] }>(`/snowflake/schemas?session_id=${encodeURIComponent(sessionId)}&database_name=${encodeURIComponent(databaseName)}`);
+    },
+
+    listSnowflakeObjects: (sessionId: string, databaseName: string, schemaName: string): Promise<{ objects: SnowflakeObject[] }> => {
+        return fetchClient<{ objects: SnowflakeObject[] }>(`/snowflake/objects?session_id=${encodeURIComponent(sessionId)}&database_name=${encodeURIComponent(databaseName)}&schema_name=${encodeURIComponent(schemaName)}`);
+    },
+
+    previewSnowflakeQuery: (sessionId: string, query: string, limit = 50): Promise<SnowflakePreviewResponse> => {
+        return fetchClient<SnowflakePreviewResponse>("/snowflake/preview", {
+            method: "POST",
+            body: JSON.stringify({ session_id: sessionId, query, limit }),
+        });
+    },
+
+    importSnowflakeQuery: (sessionId: string, query: string, datasetName?: string, byteLimit?: number): Promise<SnowflakeImportResponse> => {
+        return fetchClient<SnowflakeImportResponse>("/snowflake/import", {
+            method: "POST",
+            body: JSON.stringify({
+                session_id: sessionId,
+                query,
+                dataset_name: datasetName,
+                byte_limit: byteLimit,
+            }),
+        });
+    },
+
+    cancelSnowflakeQuery: (taskId: string): Promise<{ task_id: string; status: string; message: string }> => {
+        return fetchClient<{ task_id: string; status: string; message: string }>(`/snowflake/cancel/${encodeURIComponent(taskId)}`, {
+            method: "POST",
+        });
+    },
+
+    disconnectSnowflake: (sessionId: string): Promise<{ session_id: string; message: string }> => {
+        return fetchClient<{ session_id: string; message: string }>(`/snowflake/disconnect/${encodeURIComponent(sessionId)}`, {
+            method: "POST",
+        });
+    },
+
+    deleteSnowflakeExtract: (taskId: string): Promise<{ task_id: string; status: string; deleted_files: number; message: string }> => {
+        return fetchClient<{ task_id: string; status: string; deleted_files: number; message: string }>(`/snowflake/delete-extract/${encodeURIComponent(taskId)}`, {
+            method: "POST",
+        });
     },
 };

@@ -186,15 +186,18 @@ async def websocket_status(websocket: WebSocket, task_id: str):
     # §6: Protocol-level authentication — accept key via first message, not URL query
     await websocket.accept()
     
+    caller_user_id = websocket.headers.get("x-user-id") or websocket.headers.get("x-consumer-id")
     if settings.API_KEY or settings.REQUIRE_AUTH:
         try:
             # Wait up to 5s for the auth message
             auth_msg = await asyncio.wait_for(websocket.receive_text(), timeout=5.0)
             auth_data = json.loads(auth_msg)
-            if auth_data.get("type") != "auth" or not verify_ws_api_key(auth_data.get("api_key")):
+            if auth_data.get("type") != "auth" or not verify_ws_api_key(auth_data.get("api_key"), auth_data.get("ticket")):
                 await websocket.send_json({"type": "error", "message": "Unauthorized"})
                 await websocket.close(code=4001, reason="Unauthorized")
                 return
+            if not caller_user_id and auth_data.get("user_id"):
+                caller_user_id = auth_data.get("user_id")
         except (asyncio.TimeoutError, json.JSONDecodeError, Exception):
             await websocket.send_json({"type": "error", "message": "Auth timeout or invalid format"})
             await websocket.close(code=4001, reason="Unauthorized")
@@ -214,7 +217,17 @@ async def websocket_status(websocket: WebSocket, task_id: str):
         await websocket.send_json({"type": "error", "message": "Too many connections"})
         await websocket.close(code=4002, reason="Too many connections")
         return
-    
+
+    # Verify task exists and verify tenant ownership
+    job = await title_task_manager.get_job_async(task_id)
+    if job and job.owner_id:
+        try:
+            check_task_ownership(job.owner_id, caller_user_id)
+        except HTTPException:
+            await websocket.send_json({"type": "error", "message": "Access denied: Unauthorized tenant access."})
+            await websocket.close(code=4003, reason="Forbidden")
+            return
+
     _active_ws_connections += 1
     logger.info(f"WebSocket connected for task {task_id} (active: {_active_ws_connections})")
     
@@ -236,7 +249,6 @@ async def websocket_status(websocket: WebSocket, task_id: str):
 
     try:
         # 1. Immediate Initial Hydration (0ms latency for client)
-        job = await title_task_manager.get_job_async(task_id)
         if job:
             initial_payload = {
                 "type": "initial_state",

@@ -116,13 +116,23 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
             <FileSpreadsheet className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground truncate">
                 Dataset Ingestion Preview
               </h1>
               <Badge variant="outline" className="text-[10px] font-mono uppercase bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
                 Validated
               </Badge>
+              {analysis?.snowflake_meta?.truncated && (
+                <Badge variant="outline" className="text-[10px] font-mono uppercase bg-rose-500/15 text-rose-400 border-rose-500/30">
+                  Truncated at Limit (150MB Ceiling)
+                </Badge>
+              )}
+              {analysis?.snowflake_meta?.sampled && (
+                <Badge variant="outline" className="text-[10px] font-mono uppercase bg-blue-500/15 text-blue-400 border-blue-500/30">
+                  Sampled (10% Bernoulli)
+                </Badge>
+              )}
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground font-mono mt-0.5">
               Automated schema extraction complete • Ready for deep visual synthesis

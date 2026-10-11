@@ -6,13 +6,15 @@
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0%2B-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev/)
+[![UI](https://img.shields.io/badge/UI-BeUI%20%7C%20Obsidian%20Executive-000000?logo=react)](https://beui.dev/)
+[![Warehouse](https://img.shields.io/badge/Warehouse-Snowflake%20Arrow%20Stream%20%28Beta%29-29B5E8?logo=snowflake)](https://www.snowflake.com/)
 [![Google Antigravity SDK](https://img.shields.io/badge/Agent-Google%20Antigravity%20SDK-4285F4?logo=google)](https://ai.google.dev/)
 [![Polars](https://img.shields.io/badge/Engine-Polars%20Rust-CD412B?logo=rust)](https://pola.rs/)
 [![DuckDB](https://img.shields.io/badge/OLAP-DuckDB%201.0%2B-FFF000?logo=duckdb)](https://duckdb.org/)
 [![PostgreSQL](https://img.shields.io/badge/Database-Neon%20PostgreSQL-336791?logo=postgresql)](https://neon.tech/)
 [![Typst](https://img.shields.io/badge/PDF_Engine-Typst%200.15%2B-239DAD)](https://typst.app/)
 [![Security](https://img.shields.io/badge/Security-0%20Vulnerabilities%20%7C%20Audit%20Hardened-brightgreen?logo=shield)](https://github.com/)
-[![Tests](https://img.shields.io/badge/Tests-387%20Passed-brightgreen)](https://github.com/)
+[![Tests](https://img.shields.io/badge/Tests-446%20Passed-brightgreen)](https://github.com/)
 [![ML Anomaly Detection](https://img.shields.io/badge/ML-HistGradientBoosting%20%7C%20scikit--learn-F7931E?logo=scikitlearn)](https://scikit-learn.org/)
 
 ---
@@ -22,6 +24,7 @@
 
 GetReport unifies high-performance data processing, mathematical profiling, and agentic AI:
 - **Zero-Copy Hybrid Engine**: Combines **Polars (Rust)** for streaming aggregations with **DuckDB** for in-process SQL OLAP queries over Apache Arrow tables.
+- **Direct Snowflake Warehouse Ingestion (Beta)**: Direct cloud data warehouse connectivity supporting RSA Key-Pair and password authentication, dedicated read-only role enforcement, in-memory AES-256 session encryption, and zero-copy Arrow streaming into parquet.
 - **Row Intelligence & Self-Supervised Anomaly Detection**: 4-tier row triage hierarchy (`PROTECT`, `REVIEW`, `FIX`, `EXCLUDE`) ensuring bit-identical preservation of clean records, automatic pruning of non-data rows (headers, totals, footers) before profiling, gated smart imputation against synthetic data hallucination, and cross-column relationship violation detection via out-of-fold `HistGradientBoostingRegressor`.
 - **Advanced Statistical Profiling & Time-Series**: Non-parametric dispersion estimators (MAD, IQR, Trimmed Mean), Bowley quartile skewness, Phik ($\Phi_K$) non-linear correlation matrices, Kats/Mann-Kendall trend detection, and Benford's Law forensic audits.
 - **High-Dimensional Visual Analytics**: Multi-parameter Parallel Coordinates plots powered by HiPlot and responsive SVG charts.
@@ -127,17 +130,24 @@ GetReport enforces defense-in-depth security across every ingestion, execution, 
 - **CRLF & Header Injection Defense (CWE-113) (`VULN-09`)**: Request ID middleware validates all incoming `X-Request-ID` headers against a strict whitelist regex (`^[a-zA-Z0-9_-]{1,64}$`), discarding any newline (`\r`, `\n`) or delimiter injection payloads.
 - **DuckDB Native Sandbox**: Native C++ external access disabled (`SET enable_external_access = false;`), preventing local file inclusion (LFI), network calls, or unauthorized file reads.
 
-### 9. Modern Frontend & Human-Centric UI/UX Architecture
+### 9. Direct Snowflake Cloud Warehouse Ingestion (Beta)
+- **Dedicated Read-Only Enforcement**: Pure read-only extract execution (`GRANT SELECT` role validation), guarded by strict AST query verification preventing any mutation, DDL, or data alteration statements.
+- **Dual Enterprise Authentication**: Full support for both encrypted/unencrypted PKCS#8 RSA Key-Pair authentication (`.pem`, `.key` with passphrase) and standard database user credentials.
+- **In-Memory Encrypted Session Vault**: Ephemeral storage of warehouse credentials using HKDF key derivation and AES-256-GCM authenticated encryption. Sensitive private keys and passwords never touch disk storage or server logs, expiring automatically via configurable TTL.
+- **Live Warehouse Object Explorer**: Real-time hierarchy traversal of databases, schemas, tables, and views with metadata reflection (row estimates, storage bytes, and Arrow data types).
+- **Out-of-Core Streaming Ingestion**: Directly streams query results into high-performance Apache Arrow batches and compressed Parquet chunks, bounded by cooperative query cancellation, configurable row ceilings, and Bernoulli table sampling.
+
+### 10. Modern Frontend & Executive UI/UX Architecture
 GetReport pairs its backend engine with an agency-grade, accessible user interface:
-- **Customer-First Language (Jargon-Free Interface)**: Technical jargon ("Rust Ingest", "Polars Arrow Vector", "AST Sandboxing") has been replaced with intuitive business concepts ("Automated Spreadsheet Quality Audit", "Instant Scan < 2s", "Human-in-the-Loop Transparency", "Quality Score").
+- **Obsidian Dark & Linear-Grade Aesthetic**: Built on high-contrast, calm dark architecture with deep slate backdrops, micro-dot technical grids, and zero-distraction ambient surfaces.
+- **Anti-Slop Utilitarian Philosophy**: Completely purged of sparkles, decorative AI gimmick shapes, and shifting hue-rotations. Pure focus on high information density, sharp contrast, and executive clarity.
+- **BeUI Animated Interaction System**: Interactive elements upgraded with BeUI motion components for fluid state transitions, tactile press physics, and keyboard accessibility.
+- **Respectable Micro-Badge Architecture**: Understated, razor-sharp graphite micro-badges (such as the refined `Beta` indicator) providing clear status without visual clutter.
+- **Customer-First Language (Jargon-Free Interface)**: Technical data engineering concepts presented through intuitive executive summaries, data hygiene audits, and automated quality grades.
 - **Double-Bezel Hardware Architecture**: Concentric dual-layer frosted glass enclosures (`bg-slate-900/[0.06] backdrop-blur-2xl ring-1 ring-slate-900/10` outer bezel + `bg-white/95 backdrop-blur-xl` inner core) featured on both the floating desktop navigation header and the mobile bottom action bar.
-- **Ergonomic Semantic Button System**: Custom 12px squircle geometry (`rounded-xl`) with specialized semantic states and tactile active press feedback (`active:scale-95`):
-  - **Save & Save All**: Forest Emerald with specular highlight sheen and micro-elevation.
-  - **Delete & Delete All**: Refined Ruby/Crimson with destructive confirmation styling.
-  - **Launch & Start Free**: Signature Royal Iris / Amethyst jewel gradient (`from-violet-600 via-purple-600 to-indigo-600`) with top specular highlight and drop shadow.
-- **Architectural 2-Line Hero Typography**: Powered by **Plus Jakarta Sans** (`font-hero`), strictly enforcing a balanced 2-line desktop reading rhythm with zero orphan words, responsive `text-balance`, and a luminous Iris gradient.
-- **Continuous Section Flow**: Optimized vertical pacing with tight, intentional section paddings (`py-10 sm:py-14`) and header margins (`mb-6 sm:mb-8`), eliminating dead scrolling space while maintaining visual impact.
-- **Mobile-First Touch Ergonomics**: Fully responsive mobile floating bar with an animated `100% Private` status indicator, swipeable spreadsheet previews, and touch targets calibrated for mobile devices.
+- **Ergonomic Semantic Button System**: Custom 12px squircle geometry (`rounded-xl`) with specialized semantic states and tactile active press feedback (`active:scale-95`).
+- **Architectural 2-Line Hero Typography**: Powered by **Plus Jakarta Sans** (`font-hero`), strictly enforcing a balanced 2-line desktop reading rhythm with zero orphan words and responsive `text-balance`.
+- **Mobile-First Touch Ergonomics**: Fully responsive mobile floating bar with an animated `100% Private` status indicator, touch-calibrated key file uploaders, and swipeable data preview grids.
 
 ---
 
@@ -148,9 +158,10 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 |---|---|
 | **Framework** | React 18 + Vite |
 | **Language** | TypeScript 5.8 |
+| **UI Components** | BeUI Animated Components, Shadcn/UI primitives, Radix UI |
 | **Typography** | Plus Jakarta Sans, Mont, JetBrains Mono |
-| **Styling** | Tailwind CSS 3.4, Vanilla CSS, Shadcn/UI primitives |
-| **Design Architecture** | Double-Bezel Frosted Glass, Squircle Geometry, Royal Iris Jewel Palette |
+| **Styling** | Tailwind CSS 3.4, Vanilla CSS |
+| **Design Architecture** | Obsidian Executive Dark, Linear-grade Micro-Badges, Double-Bezel Frosted Glass |
 | **Sanitization** | DOMPurify |
 | **Charts & Motion** | Recharts, Framer Motion, Lucide React |
 | **State & Data** | TanStack Query v5 |
@@ -160,6 +171,8 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 |---|---|
 | **Framework** | FastAPI (Python 3.12+) with Pydantic v2 |
 | **OLAP Engine** | DuckDB 1.0+ (In-Process, Apache Arrow Zero-Copy) |
+| **Warehouse** | Snowflake Connector (`snowflake-connector-python` with PyArrow engine) |
+| **Session Security** | In-Memory HKDF + AES-256-GCM Credential Vault |
 | **Data & ML Engines** | Polars (Rust Core), DuckDB, NumPy, SciPy, Scikit-Learn |
 | **AI Agent** | Google Antigravity SDK (`google-antigravity`) |
 | **LLM Providers** | Google Gemini (2.5/3.7 Flash), OpenRouter, OpenAI |
@@ -179,6 +192,17 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 - `POST /api/upload/join`: Multi-dataset relational joins (`inner`, `left`, `full`, `anti`, `semi`).
 - `GET /api/status/{task_id}`: Polling endpoint for job progress and structured results.
 - `WS /api/ws/status/{task_id}`: Real-time WebSocket stream with 15s heartbeats and Redis PubSub.
+
+### Snowflake Warehouse (Beta)
+- `POST /api/snowflake/connect`: Validates credentials and initializes an encrypted in-memory session.
+- `GET /api/snowflake/databases`: Lists accessible databases for the authenticated session.
+- `GET /api/snowflake/schemas`: Lists schemas in a given database (`?database=NAME`).
+- `GET /api/snowflake/tables`: Lists tables and views with metadata (`?database=NAME&schema=NAME`).
+- `POST /api/snowflake/preview`: Previews the top 100 rows with Arrow data types and null counts.
+- `POST /api/snowflake/import`: Queues asynchronous streaming extraction into an analytical parquet dataset.
+- `POST /api/snowflake/cancel/{task_id}`: Cooperatively cancels an active extraction query.
+- `DELETE /api/snowflake/session`: Immediately purges session credentials from the memory vault.
+- `DELETE /api/snowflake/extract/{task_id}`: Safely cleans up a completed warehouse extract file.
 
 ### OLAP & Data Contracts
 - `POST /api/jobs/{task_id}/query-sql`: Executes read-only, hardware-accelerated SQL via in-process DuckDB over zero-copy Arrow batches (memory-bounded).
@@ -262,16 +286,11 @@ pytest -q
 ```
 
 ```
-........................................................................ [ 18%]
-........................................................................ [ 37%]
-...................................................................s.... [ 55%]
-........................................................................ [ 74%]
-........................................................................ [ 92%]
-............................                                             [100%]
-================== 387 passed, 1 skipped in 60.25s (100%) ==================
+================== 446 passed in 74.15s (100%) ==================
 ```
 
 ### Test Suite Highlights
+- **15 Snowflake Warehouse Integration Tests** (`test_snowflake_integration.py`): Validates account identifier format sanitization, double-quote identifier SQL safety, Arrow schema compilation, batch normalization, PKCS#8 RSA private key DER serialization, HKDF/AES-256 encrypted session vault lifecycle, driver metadata discovery, streaming parquet extraction, cooperative query cancellation, and session teardown.
 - **22 Row Intelligence & Machine Learning Tests** (`test_row_intelligence.py`): Validates 4-tier triage exclusivity, bit-identical immutability on clean records, safe non-data row pruning, gated imputation on sparse rows, and self-supervised multi-column anomaly detection (`HistGradientBoostingRegressor`) with contrastive driver explanations.
 - **17 Security Verification Tests** (`test_security_audit.py`): Validates complete 0-vulnerability posture across the full application surface:
   - DuckDB LFI rejection and C++ engine filesystem block (`SET enable_external_access = false;`)
@@ -289,7 +308,7 @@ pytest -q
 - **14 Sandboxing & Synthesis Tests** (`test_sandboxed_analyst.py`, `test_concept_synthesizer.py`, `test_phase3_api_endpoints.py`): Validates sandboxed execution, plot rendering, thread timeout termination, and DAG persistence.
 - **Kats & Time-Series Tests** (`test_timeseries_kats.py`): Validates Mann-Kendall monotonic trend tests, seasonal decomposition, and changepoint detection.
 - **HiPlot Parallel Coordinates Tests** (`test_hiplot_service.py`): Validates multi-dimensional parallel coordinate rendering and parameter bounds.
-- **Frontend Production Build**: Verified with `npm run build` (0 TypeScript errors, clean bundle compilation).
+- **Frontend Production Build & Typecheck**: Verified with `npm run build` and `tsc --noEmit` (0 TypeScript errors, clean bundle compilation).
 
 ---
 

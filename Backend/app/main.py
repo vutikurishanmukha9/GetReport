@@ -59,6 +59,14 @@ if settings.DATABASE_URL and any("localhost" in o for o in _cors_origins):
         "Set CORS_ORIGINS env var to restrict origins in production."
     )
 
+# Security: warn if default static SECRET_KEY is active in production
+if settings.DATABASE_URL or settings.API_KEY:
+    if settings.SECRET_KEY == "getreport-vault-secret-key-32b":
+        _logging.getLogger("security").critical(
+            "CRITICAL SECURITY WARNING: SECRET_KEY is using the default hardcoded repository secret while API_KEY/DATABASE_URL is active. "
+            "Set a cryptographically random SECRET_KEY environment variable for production deployments."
+        )
+
 # Ensure Vercel production and preview domains are permitted
 if "https://get-report.vercel.app" not in _cors_origins and "*" not in _cors_origins:
     _cors_origins.append("https://get-report.vercel.app")
