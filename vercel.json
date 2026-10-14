@@ -11,6 +11,6 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://getreport-backend.onrender.com/api"
+    "VITE_API_URL": "https://getreport.onrender.com/api"
   }
 }

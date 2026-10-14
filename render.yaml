@@ -11,7 +11,7 @@
 
 services:
   - type: web
-    name: getreport-backend
+    name: getreport
     runtime: docker
     dockerfilePath: ./Backend/Dockerfile
     dockerContext: .
@@ -70,4 +70,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://getreport-backend.onrender.com/api
+        value: https://getreport.onrender.com/api

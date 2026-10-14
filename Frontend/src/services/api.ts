@@ -14,7 +14,17 @@ import type {
     SnowflakeImportResponse,
 } from "@/types/api";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+function normalizeApiBaseUrl(rawUrl?: string): string {
+    const isProd = import.meta.env.PROD || (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1");
+    const fallback = isProd ? "https://getreport.onrender.com/api" : "http://localhost:8000/api";
+    let url = (rawUrl || fallback).trim().replace(/\/+$/, "");
+    if (!url.endsWith("/api")) {
+        url = `${url}/api`;
+    }
+    return url;
+}
+
+const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
 const REQUEST_TIMEOUT_MS = 45_000;
 
 // ─── Response Types ─────────────────────────────────────────────────────────
@@ -56,7 +66,8 @@ function getAuthHeaders(extraHeaders: HeadersInit = {}): Headers {
 }
 
 async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    const url = `${API_BASE_URL}${cleanEndpoint}`;
     const headers = getAuthHeaders(options.headers);
     if (!headers.has("Content-Type") && options.body) {
         headers.set("Content-Type", "application/json");
@@ -688,9 +699,10 @@ export const api = {
      * Get the WebSocket URL for real-time status updates.
      */
     getWebSocketUrl: (taskId: string): string => {
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const host = API_BASE_URL.replace(/^https?:\/\//, "");
-        return `${protocol}//${host}/ws/status/${taskId}`;
+        const isSecure = API_BASE_URL.startsWith("https:") || (typeof window !== "undefined" && window.location.protocol === "https:");
+        const protocol = isSecure ? "wss:" : "ws:";
+        const hostAndPath = API_BASE_URL.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+        return `${protocol}//${hostAndPath}/ws/status/${encodeURIComponent(taskId)}`;
     },
 
     /**
