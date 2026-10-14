@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from app.core.config import settings
 from app.core.limiter import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
@@ -41,7 +42,7 @@ app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan, docs_url=None, red
 
 # Rate Limiting
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Security Headers (VULN-10)
 app.add_middleware(SecurityHeadersMiddleware)
@@ -74,6 +75,19 @@ if "https://getreport.vercel.app" not in _cors_origins and "*" not in _cors_orig
     _cors_origins.append("https://getreport.vercel.app")
 
 _allow_all = "*" in _cors_origins
+
+# CORS-aware Rate Limit Handler (ensures 429 carries CORS headers so browser shows 429 instead of CORS error)
+def _cors_rate_limit_handler(request, exc):
+    response = _rate_limit_exceeded_handler(request, exc)
+    origin = request.headers.get("origin")
+    if origin and (_allow_all or origin in _cors_origins or "vercel.app" in origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+app.add_exception_handler(RateLimitExceeded, _cors_rate_limit_handler)
 
 # CORS Middleware (Restricts Vercel preview domains strictly to GetReport prefixes)
 app.add_middleware(

@@ -8,7 +8,7 @@ import logging
 
 from app.core.limiter import limiter, CHAT_LIMIT
 from app.core.config import settings
-from app.core.auth import verify_api_key, validate_task_id, check_task_ownership
+from app.core.auth import verify_api_key, validate_task_id, check_task_ownership, get_authenticated_owner_id
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.services.rag_service import rag_service, SecurityGuard
 
@@ -34,7 +34,7 @@ async def chat_with_job(
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found.")
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    caller_owner_id = get_authenticated_owner_id()
     check_task_ownership(job.owner_id, caller_owner_id)
     if job.status != TaskStatus.COMPLETED:
          raise HTTPException(400, "Job is not completed yet.")
@@ -66,7 +66,7 @@ async def chat_stream_with_job(
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found.")
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    caller_owner_id = get_authenticated_owner_id()
     check_task_ownership(job.owner_id, caller_owner_id)
     if job.status != TaskStatus.COMPLETED:
          raise HTTPException(400, "Job is not completed yet.")

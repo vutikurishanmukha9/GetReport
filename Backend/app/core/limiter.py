@@ -42,7 +42,8 @@ def _get_real_client_ip(request: Request) -> str:
 
         xff = request.headers.get("X-Forwarded-For", "")
         if xff:
-            candidate = xff.split(",")[0].strip()
+            # Behind a trusted reverse proxy, the proxy appends the verified client IP at the end
+            candidate = xff.split(",")[-1].strip()
             try:
                 ipaddress.ip_address(candidate)
                 return candidate
@@ -78,7 +79,7 @@ limiter = Limiter(
 UPLOAD_LIMIT = "10/minute"
 ANALYZE_LIMIT = "30/minute"
 CHAT_LIMIT = "60/minute"
-STATUS_LIMIT = "120/minute"
+STATUS_LIMIT = "300/minute"
 REPORT_LIMIT = "20/minute"
 
 logger.info(f"Rate limiting {'ENABLED' if settings.RATE_LIMIT_ENABLED else 'DISABLED'}")

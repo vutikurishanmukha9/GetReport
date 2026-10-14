@@ -36,6 +36,10 @@ services:
         sync: false
       - key: API_KEY
         sync: false
+      - key: REQUIRE_AUTH
+        value: "true"
+      - key: SECRET_KEY
+        sync: false
       - key: PDF_ENGINE
         value: typst
       - key: CORS_ORIGINS

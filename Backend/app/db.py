@@ -98,8 +98,12 @@ class AsyncPostgresCursor:
         # Regex to handle standard SQL ('') and Postgres (\') escaping
         pattern = r"(\'(?:[^'\\]|\\.|'')*\'|\"(?:[^\"\\]|\\.|\"\")*\")|\?"
         pg_sql = re.sub(pattern, replace_placeholder, sql)
-        
-        self._last_result = await self.conn.fetch(pg_sql, *sanitized_params)
+        stripped = sql.strip().upper()
+        if stripped.startswith(("SELECT", "WITH", "SHOW")) or " RETURNING " in stripped:
+            self._last_result = await self.conn.fetch(pg_sql, *sanitized_params)
+        else:
+            await self.conn.execute(pg_sql, *sanitized_params)
+            self._last_result = []
         return self
 
     async def fetchone(self) -> Optional[Any]:
@@ -414,14 +418,15 @@ def _create_core_tables_explicit(cursor):
 
 def _enable_vector_extension(cursor):
     cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
-    cursor.execute("""
+    dim = int(getattr(settings, "EMBEDDING_DIMENSION", 768))
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS document_chunks (
             id SERIAL PRIMARY KEY,
             task_id TEXT NOT NULL,
             content TEXT,
             chunk_index INTEGER,
             metadata JSONB,
-            embedding vector(1536),
+            embedding vector({dim}),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)

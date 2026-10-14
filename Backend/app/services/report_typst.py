@@ -31,17 +31,14 @@ logger = logging.getLogger(__name__)
 # Primary template path
 _TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
 _PRIMARY_TEMPLATE = _TEMPLATE_DIR / "audit_report.typ"
-_FALLBACK_TEMPLATE = Path(__file__).parent / "templates" / "audit_report.typ"
 
 
 def _get_template_content() -> str:
-    """Read the audit_report.typ template from the primary or fallback path."""
+    """Read the audit_report.typ template from the primary templates directory."""
     if _PRIMARY_TEMPLATE.exists():
         return _PRIMARY_TEMPLATE.read_text(encoding="utf-8")
-    if _FALLBACK_TEMPLATE.exists():
-        return _FALLBACK_TEMPLATE.read_text(encoding="utf-8")
     raise FileNotFoundError(
-        f"Typst template not found at '{_PRIMARY_TEMPLATE}' or '{_FALLBACK_TEMPLATE}'"
+        f"Typst template not found at '{_PRIMARY_TEMPLATE}'"
     )
 
 

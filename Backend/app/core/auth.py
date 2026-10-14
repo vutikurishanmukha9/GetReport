@@ -9,7 +9,7 @@ import logging
 import secrets
 import time
 import threading
-from fastapi import HTTPException, Security, Query, WebSocket
+from fastapi import HTTPException, Security, Query, WebSocket, Request
 from fastapi.security import APIKeyHeader
 from app.core.config import settings
 
@@ -152,6 +152,7 @@ def check_task_ownership(task_owner_id: str | None, caller_owner_id: str | None)
     Enforces strict tenant boundary isolation (VULN-04 / CWE-285 / CWE-639).
     If a task has an assigned owner_id, the caller must supply a matching owner_id.
     Missing or mismatched identity raises an HTTP 403 Forbidden.
+    Un-owned tasks (task_owner_id is None) allow callers in single-tenant / backward-compatibility mode.
     """
     if task_owner_id:
         if not caller_owner_id or task_owner_id != caller_owner_id:
@@ -163,4 +164,20 @@ def check_task_ownership(task_owner_id: str | None, caller_owner_id: str | None)
                 status_code=403,
                 detail="Access denied: You do not have permission to access this resource."
             )
+
+
+def get_authenticated_owner_id(request: Request | None = None) -> str | None:
+    """Return the caller principal for tenant boundary isolation.
+
+    If an explicit x-user-id or x-consumer-id header is provided, it is returned.
+    Otherwise, if API_KEY authentication is configured, returns 'api-key:shared'.
+    In local unauthenticated development without identity headers, returns None.
+    """
+    if request is not None:
+        caller = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+        if caller:
+            return caller.strip()
+    if not settings.API_KEY:
+        return None
+    return "api-key:shared"
 

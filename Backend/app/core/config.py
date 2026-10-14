@@ -22,10 +22,10 @@ class Settings(BaseSettings):
     # API Key: If set, all endpoints require X-API-Key header.
     # Leave empty to disable auth.
     API_KEY: str = ""
-    # Set to True only if you strictly mandate API_KEY to be configured.
+    # In production deployments (e.g. Render blueprint), REQUIRE_AUTH=true is set in env.
     REQUIRE_AUTH: bool = False
-    # Secret Key used for HKDF session vault and stream ticket signing
-    SECRET_KEY: str = "getreport-vault-secret-key-32b"
+    # Secret used for Snowflake vault key derivation. Must be configured for persistent deployments.
+    SECRET_KEY: str = ""
     
     # Max length for chat questions (prompt injection mitigation)
     MAX_CHAT_QUESTION_LENGTH: int = 500
@@ -61,6 +61,9 @@ class Settings(BaseSettings):
 
     # ─── PDF Engine ──────────────────────────────────────────────────────
     PDF_ENGINE: str = "typst"  # "typst" (default, ultra-fast, <25MB RAM) or "reportlab" (fallback)
+    
+    # ─── RAG & Embeddings ────────────────────────────────────────────────
+    EMBEDDING_DIMENSION: int = 768  # 768 for Google Gemini (default), 1536 for OpenAI
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

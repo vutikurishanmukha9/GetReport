@@ -12,7 +12,7 @@ import re
 import html
 
 from app.core.limiter import limiter, REPORT_LIMIT
-from app.core.auth import verify_api_key, validate_task_id, check_task_ownership
+from app.core.auth import verify_api_key, validate_task_id, check_task_ownership, get_authenticated_owner_id
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.core.task_dispatcher import dispatch_task
 
@@ -70,7 +70,7 @@ async def _get_authorized_job(request: Optional[Request], task_id: str, require_
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found")
-    caller_owner_id = (request.headers.get("x-user-id") or request.headers.get("x-consumer-id")) if request is not None else None
+    caller_owner_id = get_authenticated_owner_id()
     check_task_ownership(job.owner_id, caller_owner_id)
     if require_result and not job.result:
         raise HTTPException(400, "Job analysis result not found or not ready yet")
@@ -172,10 +172,10 @@ async def download_full_report_pdf(
     if "analysis" not in analysis:
         raise HTTPException(400, "Invalid job result format")
     
-    params = {}
-    params.update(analysis.get("analysis", {}))
+    raw_analysis = analysis.get("analysis", {})
+    params = dict(raw_analysis)
     params["cleaning_report"] = analysis.get("cleaning_report")
-    params["metadata"] = analysis.get("info")
+    params["metadata"] = raw_analysis.get("metadata") or analysis.get("info")
     params["comparison_report"] = analysis.get("comparison_report")
     
     charts = analysis.get("charts", {})
@@ -337,10 +337,11 @@ async def generate_report_direct(
         pdf_buffer, meta = await run_in_threadpool(
             generate_pdf_report, body.analysis, body.charts, body.filename
         )
+        safe_filename = _sanitize_download_filename(body.filename)
         return Response(
             content=pdf_buffer.getvalue(),
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename={body.filename}"}
+            headers={"Content-Disposition": f"attachment; filename={safe_filename}"}
         )
     except Exception as e:
         logger.error(f"Direct PDF Generation failed: {str(e)}", exc_info=True)

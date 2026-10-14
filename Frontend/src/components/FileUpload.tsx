@@ -1,5 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
-import { Upload, FileSpreadsheet, X, Shield, Lock, Trash2, Database } from "lucide-react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import {
+  Upload, FileSpreadsheet, Shield, Lock, Trash2, Database,
+  ArrowRightLeft, Link2, Sparkles, AlertCircle
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +48,11 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   // Join options for multi-dataset upload
   const [joinKey, setJoinKey] = useState<string>("id");
   const [joinType, setJoinType] = useState<"inner" | "left" | "outer">("inner");
+  const [joinMode, setJoinMode] = useState<"common" | "asymmetric">("common");
+  const [fileHeaders, setFileHeaders] = useState<Record<string, string[]>>({});
+  const fileHeadersRef = useRef(fileHeaders);
+  fileHeadersRef.current = fileHeaders;
+  const [keyMapping, setKeyMapping] = useState<Record<string, string>>({});
 
   // New States for Interactive Cleaning
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -153,12 +161,157 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
     });
   }, [validateFile, toast]);
 
+  // Helper to sniff headers from text files client-side without full server roundtrip
+  const sniffHeaders = async (file: File): Promise<string[]> => {
+    try {
+      const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+      if (ext === ".csv" || ext === ".tsv" || ext === ".txt") {
+        const slice = file.slice(0, 32768);
+        const text = await slice.text();
+        const firstLine = text.split(/\r?\n/)[0];
+        if (firstLine) {
+          const sep = ext === ".tsv" || firstLine.includes("\t") ? "\t" : (firstLine.includes(";") ? ";" : ",");
+          const cols = firstLine
+            .split(sep)
+            .map(c => c.trim().replace(/^["']|["']$/g, ""))
+            .filter(Boolean);
+          if (cols.length > 0) return cols;
+        }
+      }
+    } catch (err) {
+      console.debug("Client-side header sniff failed for", file.name, err);
+    }
+    return [];
+  };
+
+  // Inspect headers whenever staged files change
+  useEffect(() => {
+    if (stagedFiles.length === 0) {
+      setFileHeaders({});
+      setKeyMapping({});
+      return;
+    }
+
+    let active = true;
+
+    const inspectAll = async () => {
+      const needed = stagedFiles.filter(f => !fileHeadersRef.current[f.name]);
+      if (needed.length === 0) return;
+
+      const loadedMap: Record<string, string[]> = {};
+      const needsBackendInspect: File[] = [];
+
+      for (const f of needed) {
+        const cols = await sniffHeaders(f);
+        if (cols.length > 0) {
+          loadedMap[f.name] = cols;
+        } else {
+          needsBackendInspect.push(f);
+        }
+      }
+
+      if (needsBackendInspect.length > 0) {
+        try {
+          const res = await api.inspectHeaders(needsBackendInspect);
+          for (const item of res.files) {
+            if (item.columns && item.columns.length > 0) {
+              loadedMap[item.filename] = item.columns;
+            }
+          }
+        } catch (err) {
+          console.debug("Backend inspectHeaders fallback failed:", err);
+        }
+      }
+
+      if (active) {
+        setFileHeaders(prev => ({ ...prev, ...loadedMap }));
+      }
+    };
+
+    inspectAll();
+
+    return () => {
+      active = false;
+    };
+  }, [stagedFiles]);
+
+  // Auto-detect join key and foreign-key relationships when file headers are loaded
+  useEffect(() => {
+    if (stagedFiles.length < 2) return;
+
+    const f1 = stagedFiles[0];
+    const f2 = stagedFiles[1];
+    const cols1 = fileHeaders[f1.name] || [];
+    const cols2 = fileHeaders[f2.name] || [];
+
+    if (cols1.length === 0 || cols2.length === 0) return;
+
+    // 1. Check for exact common column
+    const common = cols1.filter(c => cols2.includes(c));
+    if (common.length > 0) {
+      const preferred = common.find(c => /(_id|^id|key|code)$/i.test(c)) || common[0];
+      setJoinKey(preferred);
+      setJoinMode("common");
+      setKeyMapping({ [f1.name]: preferred, [f2.name]: preferred });
+      return;
+    }
+
+    // 2. Asymmetric / Foreign Key Detection (e.g. deliveries.match_id = matches.id)
+    setJoinMode("asymmetric");
+
+    const name1Clean = f1.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const name2Clean = f2.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    let left = cols1.find(c => /(_id|^id)$/i.test(c)) || cols1[0];
+    let right = cols2.find(c => /(_id|^id)$/i.test(c)) || cols2[0];
+
+    // Check if f1 has foreign key referencing f2 (e.g. deliveries has match_id, matches has id)
+    const fk1 = cols1.find(c => {
+      const cLow = c.toLowerCase();
+      return cLow.endsWith("_id") && name2Clean.includes(cLow.replace("_id", ""));
+    });
+    if (fk1 && cols2.includes("id")) {
+      left = fk1;
+      right = "id";
+    } else {
+      // Check if f2 has foreign key referencing f1
+      const fk2 = cols2.find(c => {
+        const cLow = c.toLowerCase();
+        return cLow.endsWith("_id") && name1Clean.includes(cLow.replace("_id", ""));
+      });
+      if (fk2 && cols1.includes("id")) {
+        left = "id";
+        right = fk2;
+      }
+    }
+
+    setKeyMapping({
+      [f1.name]: left,
+      [f2.name]: right,
+    });
+  }, [stagedFiles, fileHeaders]);
+
   const removeFileFromStaging = (index: number) => {
+    const target = stagedFiles[index];
     setStagedFiles(prev => prev.filter((_, i) => i !== index));
+    if (target) {
+      setFileHeaders(prev => {
+        const updated = { ...prev };
+        delete updated[target.name];
+        return updated;
+      });
+      setKeyMapping(prev => {
+        const updated = { ...prev };
+        delete updated[target.name];
+        return updated;
+      });
+    }
   };
 
   const clearStaging = () => {
     setStagedFiles([]);
+    setFileHeaders({});
+    setKeyMapping({});
     setInspectionData(null);
     setExpectedPhase(null);
     setTaskId(null);
@@ -178,9 +331,33 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
         const { task_id } = await api.uploadFile(fileToProcess);
         setTaskId(task_id);
       } else {
-        toast({ title: "Joining Datasets...", description: `Merging ${stagedFiles.length} datasets on '${joinKey}' (${joinType} join)...` });
-        const { task_id } = await api.uploadJoinedFiles(stagedFiles, joinKey, joinType);
-        setTaskId(task_id);
+        if (joinMode === "asymmetric" && stagedFiles.length === 2) {
+          const leftFile = stagedFiles[0];
+          const rightFile = stagedFiles[1];
+          const leftKey = keyMapping[leftFile.name] || joinKey;
+          const rightKey = keyMapping[rightFile.name] || joinKey;
+
+          toast({
+            title: "Joining Datasets...",
+            description: `Merging '${leftFile.name}' (${leftKey}) and '${rightFile.name}' (${rightKey}) via ${joinType} join...`
+          });
+          const { task_id } = await api.uploadJoinedFiles(
+            stagedFiles,
+            undefined,
+            joinType,
+            leftKey,
+            rightKey,
+            { [leftFile.name]: leftKey, [rightFile.name]: rightKey }
+          );
+          setTaskId(task_id);
+        } else {
+          toast({
+            title: "Joining Datasets...",
+            description: `Merging ${stagedFiles.length} datasets on '${joinKey}' (${joinType} join)...`
+          });
+          const { task_id } = await api.uploadJoinedFiles(stagedFiles, joinKey, joinType);
+          setTaskId(task_id);
+        }
       }
       
       setExpectedPhase('INSPECTION');
@@ -478,61 +655,318 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
               </div>
 
               {/* Join Configuration (Shown when multiple files are staged) */}
-              {stagedFiles.length > 1 && !isProcessing && (
-                <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-display font-bold text-primary uppercase tracking-wider">
-                      Multi-Dataset Join Configuration
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">Polars Engine</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <label htmlFor="primary-join-key" className="block text-muted-foreground font-medium mb-1">Primary Join Key Column</label>
-                      <input
-                        id="primary-join-key"
-                        type="text"
-                        value={joinKey}
-                        onChange={(e) => setJoinKey(e.target.value)}
-                        placeholder="e.g. id, user_id, date"
-                        className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
-                      />
+              {stagedFiles.length > 1 && !isProcessing && (() => {
+                const f1 = stagedFiles[0];
+                const f2 = stagedFiles[1];
+                const cols1 = fileHeaders[f1?.name] || [];
+                const cols2 = fileHeaders[f2?.name] || [];
+                const commonCols = stagedFiles.length > 1 && stagedFiles.every(f => (fileHeaders[f.name]?.length || 0) > 0)
+                  ? (fileHeaders[stagedFiles[0].name] || []).filter(c =>
+                      stagedFiles.every(f => (fileHeaders[f.name] || []).includes(c))
+                    )
+                  : [];
+
+                const missingInFiles = joinMode === "common" && joinKey.trim()
+                  ? stagedFiles
+                      .filter(f => {
+                        const headers = fileHeaders[f.name];
+                        return headers && headers.length > 0 && !headers.includes(joinKey.trim());
+                      })
+                      .map(f => f.name)
+                  : [];
+
+                return (
+                  <div className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 shadow-premium space-y-3.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                          <ArrowRightLeft className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-display font-bold text-white tracking-wide">
+                              Multi-Dataset Join Configuration
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-mono border border-indigo-500/30">
+                              Polars Engine
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-zinc-400">
+                            {stagedFiles.length === 2 && joinMode === "asymmetric"
+                              ? "Relational cross-dataset key mapping"
+                              : `Matching rows across ${stagedFiles.length} staged datasets`}
+                          </p>
+                        </div>
+                      </div>
+
+                      {stagedFiles.length === 2 && (
+                        <div className="inline-flex rounded-lg p-0.5 bg-black/40 border border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => setJoinMode("common")}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                              joinMode === "common"
+                                ? "bg-white/10 text-white shadow-sm"
+                                : "text-zinc-400 hover:text-zinc-200"
+                            }`}
+                          >
+                            Single Key
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setJoinMode("asymmetric")}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                              joinMode === "asymmetric"
+                                ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 shadow-sm"
+                                : "text-zinc-400 hover:text-zinc-200"
+                            }`}
+                          >
+                            <Sparkles className="h-3 w-3 text-indigo-400" />
+                            Key Mapping
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <label htmlFor="join-strategy-select" className="block text-muted-foreground font-medium mb-1">Join Strategy</label>
-                      <select
-                        id="join-strategy-select"
-                        aria-label="Join Strategy"
-                        value={joinType}
-                        // SAFETY: Select element options strictly constrain values to 'inner' | 'left' | 'outer'
-                        onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
-                        className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-sans text-xs"
-                      >
-                        <option value="inner">Inner Join (Matched Rows)</option>
-                        <option value="left">Left Join (Keep Base Dataset)</option>
-                        <option value="outer">Outer Join (All Rows)</option>
-                      </select>
-                    </div>
+
+                    {/* Mode 1: Asymmetric Key Mapping (e.g. deliveries.match_id = matches.id) */}
+                    {joinMode === "asymmetric" && stagedFiles.length === 2 ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-11 gap-2.5 items-center">
+                          {/* Left Dataset Key */}
+                          <div className="md:col-span-5 p-3 rounded-xl bg-black/30 border border-white/10 space-y-1.5">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-zinc-200 font-semibold truncate max-w-[170px]" title={f1.name}>
+                                {f1.name}
+                              </span>
+                              <span className="text-[10px] text-zinc-500 font-mono">Left Dataset</span>
+                            </div>
+                            <label htmlFor="left-join-select" className="text-[10px] text-zinc-400 font-medium block">
+                              Join Key Column
+                            </label>
+                            {cols1.length > 0 ? (
+                              <select
+                                id="left-join-select"
+                                value={keyMapping[f1.name] || ""}
+                                onChange={(e) =>
+                                  setKeyMapping(prev => ({ ...prev, [f1.name]: e.target.value }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs cursor-pointer"
+                              >
+                                {cols1.map(col => (
+                                  <option key={col} value={col}>
+                                    {col}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                id="left-join-select"
+                                type="text"
+                                value={keyMapping[f1.name] || ""}
+                                onChange={(e) =>
+                                  setKeyMapping(prev => ({ ...prev, [f1.name]: e.target.value }))
+                                }
+                                placeholder="e.g. match_id"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
+                              />
+                            )}
+                          </div>
+
+                          {/* Linking Center Indicator */}
+                          <div className="md:col-span-1 flex flex-col items-center justify-center py-1">
+                            <div className="h-7 w-7 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                              <Link2 className="h-3.5 w-3.5" />
+                            </div>
+                          </div>
+
+                          {/* Right Dataset Key */}
+                          <div className="md:col-span-5 p-3 rounded-xl bg-black/30 border border-white/10 space-y-1.5">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-zinc-200 font-semibold truncate max-w-[170px]" title={f2.name}>
+                                {f2.name}
+                              </span>
+                              <span className="text-[10px] text-zinc-500 font-mono">Right Dataset</span>
+                            </div>
+                            <label htmlFor="right-join-select" className="text-[10px] text-zinc-400 font-medium block">
+                              Matching Key Column
+                            </label>
+                            {cols2.length > 0 ? (
+                              <select
+                                id="right-join-select"
+                                value={keyMapping[f2.name] || ""}
+                                onChange={(e) =>
+                                  setKeyMapping(prev => ({ ...prev, [f2.name]: e.target.value }))
+                                }
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs cursor-pointer"
+                              >
+                                {cols2.map(col => (
+                                  <option key={col} value={col}>
+                                    {col}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                id="right-join-select"
+                                type="text"
+                                value={keyMapping[f2.name] || ""}
+                                onChange={(e) =>
+                                  setKeyMapping(prev => ({ ...prev, [f2.name]: e.target.value }))
+                                }
+                                placeholder="e.g. id"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Join Strategy & Summary Banner */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                          <div>
+                            <label htmlFor="join-strategy-select" className="block text-zinc-400 font-medium mb-1 text-xs">
+                              Join Strategy
+                            </label>
+                            <select
+                              id="join-strategy-select"
+                              aria-label="Join Strategy"
+                              value={joinType}
+                              onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
+                              className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-sans text-xs cursor-pointer"
+                            >
+                              <option value="inner">Inner Join (Matched Rows Only)</option>
+                              <option value="left">Left Join (Keep All in {f1.name})</option>
+                              <option value="outer">Full Outer Join (Keep All Rows)</option>
+                            </select>
+                          </div>
+                          <div className="flex items-end">
+                            <div className="w-full p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[11px] text-indigo-300 flex items-center gap-1.5">
+                              <Sparkles className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                              <span className="truncate">
+                                Linking <strong className="text-white font-mono">{f1.name}.{keyMapping[f1.name] || '?'}</strong> = <strong className="text-white font-mono">{f2.name}.{keyMapping[f2.name] || '?'}</strong>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Mode 2: Single Key */
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <label htmlFor="primary-join-key" className="block text-zinc-400 font-medium mb-1">
+                              Primary Join Key Column
+                            </label>
+                            {commonCols.length > 0 ? (
+                              <select
+                                id="primary-join-key"
+                                value={joinKey}
+                                onChange={(e) => setJoinKey(e.target.value)}
+                                className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs cursor-pointer"
+                              >
+                                {commonCols.map(col => (
+                                  <option key={col} value={col}>
+                                    {col} (Found in all {stagedFiles.length} files)
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                id="primary-join-key"
+                                type="text"
+                                value={joinKey}
+                                onChange={(e) => setJoinKey(e.target.value)}
+                                placeholder="e.g. id, match_id, user_id"
+                                className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <label htmlFor="join-strategy-select-common" className="block text-zinc-400 font-medium mb-1">
+                              Join Strategy
+                            </label>
+                            <select
+                              id="join-strategy-select-common"
+                              aria-label="Join Strategy"
+                              value={joinType}
+                              onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
+                              className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-sans text-xs cursor-pointer"
+                            >
+                              <option value="inner">Inner Join (Matched Rows)</option>
+                              <option value="left">Left Join (Keep Base Dataset)</option>
+                              <option value="outer">Outer Join (All Rows)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Missing key warning banner */}
+                        {missingInFiles.length > 0 && (
+                          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <AlertCircle className="h-4 w-4 shrink-0 text-amber-400" />
+                              <span>
+                                Key <strong className="text-white font-mono">'{joinKey}'</strong> is not present in <strong>{missingInFiles.join(", ")}</strong>.
+                              </span>
+                            </div>
+                            {stagedFiles.length === 2 && (
+                              <button
+                                type="button"
+                                onClick={() => setJoinMode("asymmetric")}
+                                className="text-xs font-semibold text-amber-200 hover:text-white underline cursor-pointer shrink-0"
+                              >
+                                Switch to Key Mapping
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Manual "Start Analysis" CTA Button */}
-              {!isProcessing && (
-                <div className="pt-2">
-                  <button
-                    onClick={startAnalysisPipeline}
-                    className="w-full min-h-[48px] h-12 rounded-full bg-white hover:bg-zinc-100 text-black font-sans font-bold text-sm tracking-tight shadow-[0_2px_16px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] border border-white transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <FileSpreadsheet className="h-4 w-4 text-black" />
-                    <span>
-                      {stagedFiles.length > 1
-                        ? `Start Joined Analysis (${stagedFiles.length} Datasets on '${joinKey}')`
-                        : "Start Analysis & Audit (1 Dataset)"}
-                    </span>
-                  </button>
-                </div>
-              )}
+              {!isProcessing && (() => {
+                const f1 = stagedFiles[0];
+                const f2 = stagedFiles[1];
+                const isAsym = joinMode === "asymmetric" && stagedFiles.length === 2;
+                const missingInFiles = joinMode === "common" && joinKey.trim()
+                  ? stagedFiles
+                      .filter(f => {
+                        const headers = fileHeaders[f.name];
+                        return headers && headers.length > 0 && !headers.includes(joinKey.trim());
+                      })
+                      .map(f => f.name)
+                  : [];
+
+                const isDisabled = stagedFiles.length > 1 && (
+                  isAsym
+                    ? !keyMapping[f1?.name] || !keyMapping[f2?.name]
+                    : !joinKey.trim() || missingInFiles.length > 0
+                );
+
+                const buttonLabel = stagedFiles.length > 1
+                  ? isAsym && f1 && f2
+                    ? `Start Joined Analysis (${f1.name}.${keyMapping[f1.name] || '?'} = ${f2.name}.${keyMapping[f2.name] || '?'})`
+                    : `Start Joined Analysis (${stagedFiles.length} Datasets on '${joinKey}')`
+                  : "Start Analysis & Audit (1 Dataset)";
+
+                return (
+                  <div className="pt-2">
+                    <button
+                      onClick={startAnalysisPipeline}
+                      disabled={isDisabled}
+                      className={`w-full min-h-[48px] h-12 rounded-full font-sans font-bold text-sm tracking-tight transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer ${
+                        isDisabled
+                          ? "bg-zinc-800 text-zinc-500 border border-zinc-700/50 cursor-not-allowed"
+                          : "bg-white hover:bg-zinc-100 text-black shadow-[0_2px_16px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] border border-white hover:-translate-y-0.5 active:scale-95"
+                      }`}
+                    >
+                      <FileSpreadsheet className={`h-4 w-4 ${isDisabled ? "text-zinc-500" : "text-black"}`} />
+                      <span className="truncate px-2">{buttonLabel}</span>
+                    </button>
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
         </CardContent>

@@ -6,7 +6,6 @@ python-multipart>=0.0.9
 pydantic-settings>=2.2.1
 
 # Database, Async Queues & Snowflake
-celery[redis]>=5.3.6
 arq>=0.26.1
 redis>=5.0.3
 psycopg2-binary>=2.9.9

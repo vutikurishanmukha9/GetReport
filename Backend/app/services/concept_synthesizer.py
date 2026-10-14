@@ -119,11 +119,19 @@ class VirtualConceptSynthesizer:
                             raise ConceptSynthesizerSecurityViolation(
                                 f"Polars function 'pl.{node.func.attr}' is not permitted in concept expressions."
                             )
+            elif isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
+                raise ConceptSynthesizerSecurityViolation("Comprehensions are prohibited in concept expressions.")
             elif isinstance(node, ast.Attribute):
                 if node.attr.startswith("__") or node.attr in cls.FORBIDDEN_ATTRIBUTES:
                     raise ConceptSynthesizerSecurityViolation(f"Accessing private attribute '{node.attr}' is prohibited.")
                 if node.attr in cls.FORBIDDEN_EXPR_METHODS:
                     raise ConceptSynthesizerSecurityViolation(f"Accessing method '{node.attr}' is prohibited.")
+                # Whitelist all attribute accesses on pl regardless of whether it's an immediate call
+                if isinstance(node.value, ast.Name) and node.value.id == "pl":
+                    if node.attr not in cls.ALLOWED_POLARS_ROOTS:
+                        raise ConceptSynthesizerSecurityViolation(
+                            f"Polars attribute 'pl.{node.attr}' is not permitted in concept expressions."
+                        )
             elif isinstance(node, ast.Subscript):
                 if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str):
                     if node.slice.value.startswith("__"):

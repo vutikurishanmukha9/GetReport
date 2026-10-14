@@ -41,7 +41,7 @@ const sanitizeMessageHtml = (rawText: string): string => {
       "b", "strong", "i", "em", "code", "pre", "h3", "h4",
       "br", "ul", "ol", "li", "span", "p"
     ],
-    ALLOWED_ATTR: ["class"],
+    ALLOWED_ATTR: [],
   });
 };
 

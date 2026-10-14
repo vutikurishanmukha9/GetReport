@@ -52,7 +52,15 @@ class EncryptedSessionVault:
     """
 
     def __init__(self, secret_key: Optional[str] = None):
-        raw_key = secret_key or getattr(settings, "SECRET_KEY", None) or "getreport-vault-default-key-32b"
+        raw_key = secret_key or getattr(settings, "SECRET_KEY", None)
+        if not raw_key:
+            if settings.DATABASE_URL or settings.REDIS_URL:
+                raise RuntimeError("SECRET_KEY must be configured when persistent services are enabled.")
+            # Local-only fallback: process-scoped and intentionally not suitable
+            # for Redis or multi-process persistence.
+            raw_key = secrets.token_urlsafe(32)
+        if len(raw_key.encode("utf-8")) < 32:
+            raise ValueError("SECRET_KEY must contain at least 32 bytes.")
         self.secret_key = raw_key.encode("utf-8")
         # In-memory storage fallback for local dev when Redis is not running
         self._memory_store: Dict[str, Tuple[bytes, float, float]] = {}  # session_id -> (ciphertext, expires_at, created_at)
@@ -177,8 +185,10 @@ class EncryptedSessionVault:
         ciphertext = packed_blob[28:]
 
         candidate_users = [user_id]
-        if user_id != "default_user":
-            candidate_users.append("default_user")
+        if not settings.REQUIRE_AUTH:
+            for fallback in ("local-development", "default_user"):
+                if fallback not in candidate_users:
+                    candidate_users.append(fallback)
 
         for candidate in candidate_users:
             try:

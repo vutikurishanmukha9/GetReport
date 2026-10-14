@@ -416,51 +416,6 @@ def _detect_summary_rows_and_mid_headers(df: pl.DataFrame) -> list[Issue]:
     return issues
 
 
-def _detect_fuzzy_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
-    """Detect fuzzy near-duplicate text entities using string token ratio matching."""
-    issues = []
-    n_rows = df.height
-    if n_rows == 0:
-        return issues
-
-    from difflib import SequenceMatcher
-
-    for col in df.columns:
-        col_lower = col.lower()
-        if df[col].dtype == pl.Utf8 and any(kw in col_lower for kw in ("name", "company", "vendor", "customer", "city", "brand")):
-            non_null = df[col].drop_nulls().str.strip_chars()
-            uniques = non_null.unique().to_list()
-            
-            # Limit check to top 80 unique entity values to prevent CPU timeout
-            if 5 <= len(uniques) <= 80:
-                fuzzy_pairs = []
-                for i in range(len(uniques)):
-                    for j in range(i + 1, len(uniques)):
-                        val1, val2 = str(uniques[i]), str(uniques[j])
-                        if val1.lower() != val2.lower() and abs(len(val1) - len(val2)) <= 5:
-                            ratio = SequenceMatcher(None, val1.lower(), val2.lower()).ratio()
-                            if ratio >= 0.88:
-                                fuzzy_pairs.append((val1, val2))
-                                if len(fuzzy_pairs) >= 5:
-                                    break
-                    if len(fuzzy_pairs) >= 5:
-                        break
-
-                if fuzzy_pairs:
-                    issues.append(Issue(
-                        id=_generate_id(),
-                        issue_type="duplicates",
-                        severity="medium",
-                        column=col,
-                        affected_rows=len(fuzzy_pairs) * 2,
-                        affected_pct=round(len(fuzzy_pairs) * 2 / n_rows * 100, 2),
-                        description=f"Fuzzy near-duplicates detected in '{col}': e.g. '{fuzzy_pairs[0][0]}' vs '{fuzzy_pairs[0][1]}'",
-                        suggested_fix="Normalize fuzzy text entities",
-                        fix_code=f"# Entity resolution: df = df.with_columns(pl.col('{col}').replace('{fuzzy_pairs[0][1]}', '{fuzzy_pairs[0][0]}'))",
-                    ))
-
-    return issues
-
 
 def _detect_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
     """Detect duplicate rows with enhanced diagnostics.
@@ -695,6 +650,10 @@ def _detect_fuzzy_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
     for col in df.columns:
         if df[col].dtype != pl.Utf8:
             continue
+        
+        col_lower = col.lower()
+        if col_lower.endswith(("_id", "_uuid", "_key", "_code", "_date", "_timestamp")) or col_lower in ("id", "uuid", "guid", "key", "date", "timestamp"):
+            continue
             
         res = disambiguate_categorical_entities(df, col, threshold=0.80)
         reps = res.get("replacements", {})
@@ -715,7 +674,7 @@ def _detect_fuzzy_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
                 affected_pct=pct,
                 description=f"Fuzzy entity near-duplicates detected in '{col}': {len(reps)} variants ({mapping_str})",
                 suggested_fix=f"Standardize near-duplicate variants in '{col}' to canonical values",
-                fix_code=f"df = df.with_columns(pl.col('{col}').replace({fix_dict_repr}).alias('{col}'))",
+                fix_code=f"df = df.with_columns(pl.col({repr(col)}).replace({fix_dict_repr}).alias({repr(col)}))",
             ))
             
     return issues
@@ -1560,6 +1519,9 @@ def apply_remediation(
     if not issues_to_apply:
         return df
 
+    class SafeDateTime:
+        now = staticmethod(datetime.now)
+
     safe_builtins = {
         "abs": abs,
         "all": all,
@@ -1591,9 +1553,16 @@ def apply_remediation(
     safe_globals = {
         "__builtins__": safe_builtins,
         "pl": pl,
-        "datetime": datetime,
-        "re": re,
+        "datetime": SafeDateTime,
     }
+
+    forbidden_remediation_attrs = frozenset({
+        "sys", "modules", "os", "subprocess", "builtins", "eval", "exec", "open", "compile",
+        "__import__", "globals", "locals", "pipe", "map_elements", "read_csv", "write_csv",
+        "read_excel", "write_excel", "read_parquet", "write_parquet", "scan_parquet", "scan_csv",
+        "read_database", "read_database_uri", "read_ipc", "write_ipc", "read_avro", "write_avro",
+        "ctypes", "ctypeslib", "shutil", "io", "pathlib", "posix", "socket", "urllib", "requests",
+    })
 
     loc_env = {"df": df, "pl": pl}
     for issue in issues_to_apply:
@@ -1602,16 +1571,22 @@ def apply_remediation(
                 # Validate fix_code AST to ensure no unauthorized imports, dunders, or builtins
                 tree = ast.parse(issue.fix_code, mode="exec")
                 for node in ast.walk(tree):
-                    if isinstance(node, (ast.Import, ast.ImportFrom)):
-                        raise ValueError("Imports are prohibited in remediation fix code.")
-                    elif isinstance(node, ast.Attribute) and node.attr.startswith("__"):
-                        raise ValueError(f"Accessing private attribute '{node.attr}' is prohibited in remediation code.")
-                    elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-                        if node.func.id in ("eval", "exec", "open", "compile", "__import__", "globals", "locals"):
-                            raise ValueError(f"Function '{node.func.id}' is prohibited in remediation code.")
+                    if isinstance(node, (ast.Import, ast.ImportFrom, ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Lambda)):
+                        raise ValueError(f"Construct '{type(node).__name__}' is prohibited in remediation code.")
+                    elif isinstance(node, ast.Attribute):
+                        if node.attr.startswith("__") or node.attr in forbidden_remediation_attrs:
+                            raise ValueError(f"Accessing attribute '{node.attr}' is prohibited in remediation code.")
+                    elif isinstance(node, ast.Name):
+                        if node.id.startswith("__") or node.id in ("eval", "exec", "open", "compile", "__import__", "globals", "locals", "sys", "os", "subprocess"):
+                            raise ValueError(f"Function or identifier '{node.id}' is prohibited in remediation code.")
+                    elif isinstance(node, ast.Subscript):
+                        if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str) and node.slice.value.startswith("__"):
+                            raise ValueError("Accessing private dictionary key is prohibited in remediation code.")
 
                 exec(issue.fix_code, safe_globals, loc_env)
-                df = loc_env["df"]
+                new_df = loc_env.get("df")
+                if isinstance(new_df, pl.DataFrame):
+                    df = new_df
                 logger.info("Applied remediation fix for issue %s (%s: %s)", issue.id, issue.issue_type, issue.column)
         except Exception as e:
             logger.warning("Failed to apply remediation fix for issue %s: %s", issue.id, e)

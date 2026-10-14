@@ -59,6 +59,14 @@ class SecurityGuard:
         text = "".join(ch for ch in text if ch == "\n" or ch == "\t" or ch >= " ")
         return text.strip()
 
+    @staticmethod
+    def sanitize_document(text: str, max_length: int = 500_000) -> str:
+        """Sanitizes document text without truncating analytical report content."""
+        if not text:
+            return ""
+        text = text[:max_length]
+        return "".join(ch for ch in text if ch == "\n" or ch == "\t" or ch >= " ").strip()
+
 class RAGConfig:
     """Configuration for RAG service"""
     CHUNK_SIZE: int = 500
@@ -196,7 +204,7 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
     q_lower = question.lower()
     cleaning_report = job_result.get("cleaning_report", {})
     analysis = job_result.get("analysis", {})
-    filename = job_result.get("filename", "Dataset")
+    filename = html.escape(str(job_result.get("filename", "Dataset")))
 
     # 1. Quality issues & dataset health
     if any(k in q_lower for k in ["quality", "issue", "health", "problem", "bad", "error", "top quality"]):
@@ -216,13 +224,13 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
             lines.append(f"• <b>Identified Quality Issues ({len(data_issues)})</b>:")
             for issue in data_issues[:6]:
                 if isinstance(issue, dict):
-                    col = issue.get("column", issue.get("col", issue.get("field", "General")))
-                    desc = issue.get("description", issue.get("issue", issue.get("message", issue.get("type", "Quality alert"))))
-                    sev = issue.get("severity", "")
+                    col = html.escape(str(issue.get("column", issue.get("col", issue.get("field", "General")))))
+                    desc = html.escape(str(issue.get("description", issue.get("issue", issue.get("message", issue.get("type", "Quality alert"))))))
+                    sev = html.escape(str(issue.get("severity", "")))
                     sev_str = f" [<b>{sev.upper()}</b>]" if sev else ""
                     lines.append(f"&nbsp;&nbsp;• <b>{col}</b>{sev_str}: {desc}")
                 else:
-                    lines.append(f"&nbsp;&nbsp;• {str(issue)}")
+                    lines.append(f"&nbsp;&nbsp;• {html.escape(str(issue))}")
             lines.append("")
         else:
             lines.append("• <b>Identified Quality Issues</b>: <b>0 critical quality issues found</b>. The dataset exhibits 100% schema consistency, zero null anomalies, and high data integrity.<br/>")
@@ -243,10 +251,11 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
             for c in mentioned_cols:
                 c_stats = summary.get(c, {})
                 outlier_cnt = c_stats.get("outlier_count", c_stats.get("outliers", 0))
-                min_v = c_stats.get("min", "N/A")
-                max_v = c_stats.get("max", "N/A")
-                mean_v = c_stats.get("mean", "N/A")
-                lines.append(f"• <b>Target Column: <code>{c}</code></b>")
+                min_v = html.escape(str(c_stats.get("min", "N/A")))
+                max_v = html.escape(str(c_stats.get("max", "N/A")))
+                mean_v = html.escape(str(c_stats.get("mean", "N/A")))
+                c_escaped = html.escape(str(c))
+                lines.append(f"• <b>Target Column: <code>{c_escaped}</code></b>")
                 lines.append(f"&nbsp;&nbsp;• <b>Outliers Flagged</b>: <b>{outlier_cnt}</b> anomalies detected")
                 lines.append(f"&nbsp;&nbsp;• <b>Observed Range</b>: <code>[{min_v} to {max_v}]</code> (Mean: <code>{mean_v}</code>)")
         else:
@@ -256,7 +265,7 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
             for c, stats in list(summary.items())[:6]:
                 if isinstance(stats, dict) and stats.get("outlier_count", 0) > 0:
                     found_outliers = True
-                    lines.append(f"&nbsp;&nbsp;• <b><code>{c}</code></b>: {stats.get('outlier_count')} outliers detected")
+                    lines.append(f"&nbsp;&nbsp;• <b><code>{html.escape(str(c))}</code></b>: {stats.get('outlier_count')} outliers detected")
             if not found_outliers:
                 lines.append("• No extreme outliers detected outside standard 3x IQR interquartile bounds.")
         return "<br/>".join(lines)
@@ -282,13 +291,13 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         if recs and isinstance(recs, list):
             for i, r in enumerate(recs[:4], 1):
                 if isinstance(r, dict):
-                    title = r.get("title", r.get("action", f"Recommendation {i}"))
-                    desc = r.get("description", r.get("details", ""))
-                    prio = r.get("priority", "")
+                    title = html.escape(str(r.get("title", r.get("action", f"Recommendation {i}"))))
+                    desc = html.escape(str(r.get("description", r.get("details", ""))))
+                    prio = html.escape(str(r.get("priority", "")))
                     prio_badge = f" [<b>{prio.upper()}</b>]" if prio else ""
                     lines.append(f"• <b>{title}</b>{prio_badge}: {desc}")
                 else:
-                    lines.append(f"• {str(r)}")
+                    lines.append(f"• {html.escape(str(r))}")
         else:
             lines.append("• <b>Schema Normalization</b>: Ensure standard data types across numeric and categorical features.")
             lines.append("• <b>Feature Scaling</b>: Standardize high-variance numeric columns prior to modeling.")
@@ -315,13 +324,15 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
                 if isinstance(item, dict):
                     ia = item.get("column_a", item.get("col1", item.get("feature1", "")))
                     ib = item.get("column_b", item.get("col2", item.get("feature2", "")))
-                    if (ia.lower() == c1.lower() and ib.lower() == c2.lower()) or (ia.lower() == c2.lower() and ib.lower() == c1.lower()):
+                    if (str(ia).lower() == c1.lower() and str(ib).lower() == c2.lower()) or (str(ia).lower() == c2.lower() and str(ib).lower() == c1.lower()):
                         found_r = item.get("r_value", item.get("correlation", item.get("value", item.get("coefficient", 0.0))))
                         break
             if found_r is not None:
                 strength = "strong" if abs(found_r) >= 0.7 else "moderate" if abs(found_r) >= 0.4 else "weak"
                 direction = "positive" if found_r > 0 else "negative"
-                lines.append(f"• <b>Correlation between <code>{c1}</code> and <code>{c2}</code></b>: <code>r = {found_r:.2f}</code>")
+                c1_esc = html.escape(str(c1))
+                c2_esc = html.escape(str(c2))
+                lines.append(f"• <b>Correlation between <code>{c1_esc}</code> and <code>{c2_esc}</code></b>: <code>r = {found_r:.2f}</code>")
                 lines.append(f"&nbsp;&nbsp;Exhibits a <b>{strength} {direction}</b> relationship.")
                 return "<br/>".join(lines)
 
@@ -995,7 +1006,7 @@ class EnhancedRAGService:
         """Ingest report text into vector store (Async)"""
         try:
             # Split with TableSemanticChunker
-            text_content = SecurityGuard.sanitize_input(text_content)
+            text_content = SecurityGuard.sanitize_document(text_content)
             chunks = self.text_splitter.split_text(text_content)
             if not chunks:
                 return {"success": False, "error": "No text chunks"}
@@ -1040,7 +1051,7 @@ class EnhancedRAGService:
         """
         try:
             # Split with TableSemanticChunker
-            text_content = SecurityGuard.sanitize_input(text_content)
+            text_content = SecurityGuard.sanitize_document(text_content)
             chunks = self.text_splitter.split_text(text_content)
             if not chunks:
                  return {"success": False, "error": "No text chunks"}
@@ -1208,14 +1219,16 @@ class EnhancedRAGService:
 
                                 rows_summary = []
                                 for r in records[:5]:
-                                    row_str = ", ".join(f"<b>{k}</b>: {v}" for k, v in r.items())
+                                    row_str = ", ".join(f"<b>{html.escape(str(k))}</b>: {html.escape(str(v))}" for k, v in r.items())
                                     rows_summary.append(f"• {row_str}")
                                 summary_text = "<br/>".join(rows_summary) if rows_summary else "No rows returned."
 
+                                esc_q = html.escape(str(golden.question))
+                                esc_sql = html.escape(str(golden.sql_query))
                                 golden_answer = (
                                     f"<b>Verified Golden KPI Result</b><br/>"
-                                    f"Matched verified KPI query for: <i>\"{golden.question}\"</i><br/><br/>"
-                                    f"<b>SQL Query:</b><br/><code>{golden.sql_query}</code><br/><br/>"
+                                    f"Matched verified KPI query for: <i>\"{esc_q}\"</i><br/><br/>"
+                                    f"<b>SQL Query:</b><br/><code>{esc_sql}</code><br/><br/>"
                                     f"<b>Result:</b><br/>{summary_text}"
                                 )
                                 self.metrics.record_query(True)
@@ -1324,7 +1337,7 @@ CONTEXT:
                 if ANTIGRAVITY_AVAILABLE and gemini_key:
                     try:
                         tools = _build_antigravity_tools(job_result)
-                        agy_models = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"]
+                        agy_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
                         for agy_model in agy_models:
                             try:
                                 antigravity_config = LocalAgentConfig(
@@ -1466,14 +1479,16 @@ CONTEXT:
 
                                 rows_summary = []
                                 for r in records[:5]:
-                                    row_str = ", ".join(f"<b>{k}</b>: {v}" for k, v in r.items())
+                                    row_str = ", ".join(f"<b>{html.escape(str(k))}</b>: {html.escape(str(v))}" for k, v in r.items())
                                     rows_summary.append(f"• {row_str}")
                                 summary_text = "<br/>".join(rows_summary) if rows_summary else "No rows returned."
 
+                                esc_q = html.escape(str(golden.question))
+                                esc_sql = html.escape(str(golden.sql_query))
                                 golden_answer = (
                                     f"<b>Verified Golden KPI Result</b><br/>"
-                                    f"Matched verified KPI query for: <i>\"{golden.question}\"</i><br/><br/>"
-                                    f"<b>SQL Query:</b><br/><code>{golden.sql_query}</code><br/><br/>"
+                                    f"Matched verified KPI query for: <i>\"{esc_q}\"</i><br/><br/>"
+                                    f"<b>SQL Query:</b><br/><code>{esc_sql}</code><br/><br/>"
                                     f"<b>Result:</b><br/>{summary_text}"
                                 )
                                 metadata_frame = {
@@ -1598,7 +1613,7 @@ CONTEXT:
             if ANTIGRAVITY_AVAILABLE and gemini_key:
                 try:
                     tools = _build_antigravity_tools(job_result)
-                    agy_models = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"]
+                    agy_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
                     for agy_model in agy_models:
                         try:
                             antigravity_config = LocalAgentConfig(

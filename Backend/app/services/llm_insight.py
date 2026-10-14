@@ -38,7 +38,7 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templat
 _jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR), trim_blocks=True, lstrip_blocks=True)
 
 # ─── Constants ───────────────────────────────────────────────────────────────
-OPENAI_MODEL: str           = "gemini-3.7-flash"                  # default fallback model alias
+OPENAI_MODEL: str           = "gemini-2.5-flash"                  # default fallback model alias
 MAX_TOKENS: int             = 500
 API_TIMEOUT_SECONDS: float  = 30.0
 MAX_RETRIES: int            = 2                   # fewer retries per model, more models
@@ -48,10 +48,9 @@ RETRY_MAX_DELAY_SEC: float  = 8.0
 # Google Gemini OpenAI-Compatible Endpoints
 GEMINI_BASE_URL: str        = "https://generativelanguage.googleapis.com/v1beta/openai/"
 GEMINI_MODELS: list[str]    = [
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash-lite",
     "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
     "gemini-2.5-pro",
 ]
 
@@ -61,9 +60,8 @@ OPENROUTER_BASE_URL: str    = "https://openrouter.ai/api/v1"
 OPENROUTER_PAID_MODELS: list[str] = [
     "google/gemini-2.5-flash",        # 1. Primary
     "moonshotai/kimi-k2.5",           # 2. First fallback
-    "deepseek/deepseek-v4-flash",     # 3. Second fallback
-    "qwen/qwen3.6-flash",             # 4. Third fallback
-    "z-ai/glm-5.5-air",               # 5. Final fallback
+    "deepseek/deepseek-chat",         # 3. Second fallback
+    "qwen/qwen-2.5-72b-instruct",     # 4. Third fallback
 ]
 
 # OpenRouter Free Models (Zero-cost fallbacks when paid credits are exhausted)

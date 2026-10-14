@@ -448,6 +448,10 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
       }
     }
     setSessionId(null);
+    setPrivateKeyPem("");
+    setPrivateKeyPassphrase("");
+    setPassword("");
+    setPrivateKeyFileName("");
     setStep("auth");
     setPreviewData(null);
     setSelectedObjectMeta(null);

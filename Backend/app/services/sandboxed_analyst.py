@@ -91,7 +91,10 @@ class SandboxedAnalystAgent:
     FORBIDDEN_ATTRIBUTES: Set[str] = {
         "__class__", "__subclasses__", "__bases__", "__base__",
         "__globals__", "__code__", "__reduce__", "__reduce_ex__",
-        "__mro__", "__dict__", "__builtins__", "__init__", "__new__"
+        "__mro__", "__dict__", "__builtins__", "__init__", "__new__",
+        # Disallow module traversal and low-level subsystem access
+        "sys", "modules", "os", "subprocess", "builtins", "ctypes", "ctypeslib",
+        "shutil", "io", "pathlib", "posix", "socket", "urllib", "requests",
     }
 
     # §1: Methods on in-scope objects (pl, np, plt) that allow file I/O or escape
@@ -213,10 +216,12 @@ class SandboxedAnalystAgent:
                             if "__" in node.func.value.value:
                                 raise SandboxedSecurityViolation("Introspective format strings are prohibited.")
 
-            # Check for dunder attribute exploration / jailbreaks
+            # Check for dunder attribute exploration / jailbreaks / forbidden methods
             elif isinstance(node, ast.Attribute):
                 if node.attr.startswith("__") or node.attr in cls.FORBIDDEN_ATTRIBUTES:
-                    raise SandboxedSecurityViolation(f"Accessing private attribute '{node.attr}' is prohibited.")
+                    raise SandboxedSecurityViolation(f"Accessing private or restricted attribute '{node.attr}' is prohibited.")
+                if node.attr in cls.FORBIDDEN_METHOD_CALLS:
+                    raise SandboxedSecurityViolation(f"Referencing or calling method '{node.attr}' is prohibited in the sandbox.")
 
             # Check for dunder subscript access (e.g. obj["__builtins__"])
             elif isinstance(node, ast.Subscript):
@@ -321,8 +326,10 @@ class SandboxedAnalystAgent:
             if thread.ident:
                 try:
                     import ctypes
-                    tid = ctypes.c_long(thread.ident)
-                    ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(SystemExit))
+                    tid = ctypes.c_ulong(thread.ident)
+                    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, ctypes.py_object(SystemExit))
+                    if res > 1:
+                        ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
                 except Exception:
                     pass
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0

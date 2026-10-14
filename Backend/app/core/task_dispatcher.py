@@ -9,6 +9,7 @@ import asyncio
 import logging
 import os
 import threading
+import time
 from typing import Any, Callable, Dict, Optional
 
 from app.core.config import settings
@@ -19,6 +20,8 @@ logger = logging.getLogger(__name__)
 _TASK_REGISTRY: Dict[str, Callable] = {}
 _arq_pool: Optional[Any] = None
 _redis_available: Optional[bool] = None
+_redis_last_checked: float = 0.0
+_REDIS_RETRY_INTERVAL_SECONDS: float = 60.0
 _pool_lock = asyncio.Lock() if hasattr(asyncio, "Lock") else None
 
 
@@ -30,24 +33,30 @@ def register_task(name: str):
     return decorator
 
 
-def check_redis_available() -> bool:
+def check_redis_available(force_refresh: bool = False) -> bool:
     """
     Check if Redis is reachable with a fast timeout.
-    Result is cached to prevent repeated connection attempts in offline environments.
+    Result is cached with a 60-second retry interval if unavailable,
+    allowing self-healing if Redis experiences a transient startup delay.
     """
-    global _redis_available
-    if _redis_available is not None:
-        return _redis_available
+    global _redis_available, _redis_last_checked
+    now = time.monotonic()
+    if not force_refresh and _redis_available is True:
+        return True
+    if not force_refresh and _redis_available is False and (now - _redis_last_checked < _REDIS_RETRY_INTERVAL_SECONDS):
+        return False
 
     redis_url = (settings.REDIS_URL or "").strip()
     if not redis_url:
         _redis_available = False
+        _redis_last_checked = now
         logger.info("Task Dispatcher: No REDIS_URL configured. Using in-memory native asyncio task runner.")
         return False
 
     # In cloud environments (Render, Railway, etc.), avoid attempting connection to localhost
     if (os.environ.get("RENDER") or os.environ.get("PORT")) and ("localhost" in redis_url or "127.0.0.1" in redis_url):
         _redis_available = False
+        _redis_last_checked = now
         logger.info("Task Dispatcher: Localhost Redis specified in cloud environment. Falling back to in-memory runner.")
         return False
 
@@ -56,10 +65,12 @@ def check_redis_available() -> bool:
         client = redis.from_url(redis_url, socket_connect_timeout=5.0, socket_timeout=5.0)
         client.ping()
         _redis_available = True
+        _redis_last_checked = now
         logger.info("Task Dispatcher: Redis connection verified at %s (ARQ Mode active).", redis_url)
     except Exception as e:
         _redis_available = False
-        logger.info("Task Dispatcher: Redis not reachable (%s). Falling back to in-memory native asyncio task runner.", e)
+        _redis_last_checked = now
+        logger.info("Task Dispatcher: Redis not reachable (%s). Falling back to in-memory native asyncio task runner (retry in %ss).", e, int(_REDIS_RETRY_INTERVAL_SECONDS))
 
     return _redis_available
 

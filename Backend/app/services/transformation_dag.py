@@ -401,8 +401,23 @@ class TransformationDAG:
         if not rows:
             return "No transformations recorded"
         
-        # Create CSV
+        # Create CSV with spreadsheet formula neutralization (CWE-1236)
         df = pl.DataFrame(rows)
+        for c in df.columns:
+            if df[c].dtype == pl.Utf8:
+                df = df.with_columns(
+                    pl.when(
+                        pl.col(c).str.starts_with("=")
+                        | pl.col(c).str.starts_with("+")
+                        | pl.col(c).str.starts_with("-")
+                        | pl.col(c).str.starts_with("@")
+                        | pl.col(c).str.starts_with("\t")
+                        | pl.col(c).str.starts_with("\r")
+                    )
+                    .then(pl.concat_str([pl.lit("'"), pl.col(c)]))
+                    .otherwise(pl.col(c))
+                    .alias(c)
+                )
         return df.write_csv()
 
 

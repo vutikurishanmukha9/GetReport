@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     content TEXT,
     chunk_index INTEGER,
     metadata JSONB,
-    embedding vector(1536),
+    embedding vector(768), -- Default 768 for Google Gemini; use vector(1536) if OpenAI is configured
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

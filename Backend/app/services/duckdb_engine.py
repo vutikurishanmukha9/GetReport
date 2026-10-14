@@ -114,13 +114,23 @@ class DuckDBAnalyticalSession:
         Caps rows via Polars .head() before materializing into Python dicts to prevent OOM.
         """
         self.validate_sql_safety(sql)
+        clean_sql = sql.rstrip(";").strip()
+        capped_limit = min(max_rows, 1000) if (max_rows is not None and max_rows > 0) else None
+
+        # Enforce limit at DuckDB execution plan level to prevent memory exhaustion on un-indexed/Cartesian queries
+        first_token = clean_sql.split()[0].upper()
+        if capped_limit and first_token in ("SELECT", "WITH", "VALUES"):
+            wrapped_sql = f"SELECT * FROM ({clean_sql}) AS _subquery LIMIT {capped_limit}"
+        else:
+            wrapped_sql = clean_sql
+
         try:
             if params:
-                result_pl = self.conn.execute(sql, params).pl()
+                result_pl = self.conn.execute(wrapped_sql, params).pl()
             else:
-                result_pl = self.conn.execute(sql).pl()
-            if max_rows is not None and max_rows > 0:
-                result_pl = result_pl.head(min(max_rows, 1000))
+                result_pl = self.conn.execute(wrapped_sql).pl()
+            if capped_limit:
+                result_pl = result_pl.head(capped_limit)
             return result_pl.to_dicts()
         except Exception as e:
             logger.error(f"DuckDB query execution error: {e} | Query: {sql}")

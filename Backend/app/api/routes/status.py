@@ -11,7 +11,7 @@ import time
 
 from app.core.limiter import limiter, STATUS_LIMIT
 from app.core.config import settings
-from app.core.auth import verify_api_key, verify_ws_api_key, validate_task_id, check_task_ownership
+from app.core.auth import verify_api_key, verify_ws_api_key, validate_task_id, check_task_ownership, get_authenticated_owner_id
 from app.services.task_manager import title_task_manager, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ async def get_task_status(
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    caller_owner_id = get_authenticated_owner_id()
     check_task_ownership(job.owner_id, caller_owner_id)
 
     result_data = None
@@ -87,7 +87,7 @@ async def stream_task_status(
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    caller_owner_id = get_authenticated_owner_id()
     check_task_ownership(job.owner_id, caller_owner_id)
 
     async def _event_generator():
@@ -186,7 +186,7 @@ async def websocket_status(websocket: WebSocket, task_id: str):
     # §6: Protocol-level authentication — accept key via first message, not URL query
     await websocket.accept()
     
-    caller_user_id = websocket.headers.get("x-user-id") or websocket.headers.get("x-consumer-id")
+    caller_user_id = get_authenticated_owner_id()
     if settings.API_KEY or settings.REQUIRE_AUTH:
         try:
             # Wait up to 5s for the auth message
@@ -196,8 +196,6 @@ async def websocket_status(websocket: WebSocket, task_id: str):
                 await websocket.send_json({"type": "error", "message": "Unauthorized"})
                 await websocket.close(code=4001, reason="Unauthorized")
                 return
-            if not caller_user_id and auth_data.get("user_id"):
-                caller_user_id = auth_data.get("user_id")
         except (asyncio.TimeoutError, json.JSONDecodeError, Exception):
             await websocket.send_json({"type": "error", "message": "Auth timeout or invalid format"})
             await websocket.close(code=4001, reason="Unauthorized")
@@ -220,7 +218,7 @@ async def websocket_status(websocket: WebSocket, task_id: str):
 
     # Verify task exists and verify tenant ownership
     job = await title_task_manager.get_job_async(task_id)
-    if job and job.owner_id:
+    if job:
         try:
             check_task_ownership(job.owner_id, caller_user_id)
         except HTTPException:

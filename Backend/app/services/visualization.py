@@ -52,7 +52,6 @@ def _fig_to_base64(fig) -> str:
     fig.savefig(buf, format="png", bbox_inches="tight", dpi=CHART_DPI, pil_kwargs={"optimize": True})
     fig.clf()
     plt.close(fig)
-    plt.close("all")
     buf.seek(0)
     b64 = base64.b64encode(buf.read()).decode("utf-8")
     del buf
@@ -64,7 +63,6 @@ def _fig_to_svg(fig) -> str:
     fig.savefig(buf, format="svg", bbox_inches="tight")
     fig.clf()
     plt.close(fig)
-    plt.close("all")
     buf.seek(0)
     svg_str = buf.getvalue()
     del buf

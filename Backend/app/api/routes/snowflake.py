@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core.auth import verify_api_key, check_task_ownership, validate_task_id
+from app.core.auth import verify_api_key, check_task_ownership, validate_task_id, get_authenticated_owner_id
 from app.core.config import settings
 from app.core.limiter import limiter
 from app.core.task_dispatcher import dispatch_task
@@ -74,7 +74,7 @@ class SnowflakeImportRequest(BaseModel):
 
 # ─── Helper: Session Credential Resolver ─────────────────────────────────────
 
-def _resolve_session_config(session_id: str, user_id: str = "default_user") -> Dict[str, Any]:
+def _resolve_session_config(session_id: str, user_id: str = "local-development") -> Dict[str, Any]:
     vault = get_snowflake_vault()
     creds = vault.retrieve_session(user_id, session_id, refresh_ttl=True)
     if not creds:
@@ -150,7 +150,7 @@ async def connect_snowflake(
         )
 
     # 4. Store in encrypted vault (15-min sliding TTL)
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id") or "default_user"
+    caller_owner_id = get_authenticated_owner_id(request) or "local-development"
     user_id = caller_owner_id
     vault = get_snowflake_vault()
     session_id = vault.store_session(user_id, session_creds)
@@ -173,7 +173,7 @@ async def list_databases(
     _auth: None = Depends(verify_api_key),
 ):
     """Discovers available databases using SHOW DATABASES (zero warehouse compute cost)."""
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id") or "default_user"
+    caller_owner_id = get_authenticated_owner_id() or "local-development"
     creds = _resolve_session_config(session_id, user_id=caller_owner_id)
     driver = get_snowflake_driver(use_mock=bool(creds.get("use_mock")))
     try:
@@ -193,7 +193,7 @@ async def list_schemas(
     _auth: None = Depends(verify_api_key),
 ):
     """Discovers schemas inside a database using SHOW SCHEMAS IN DATABASE."""
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id") or "default_user"
+    caller_owner_id = get_authenticated_owner_id() or "local-development"
     creds = _resolve_session_config(session_id, user_id=caller_owner_id)
     driver = get_snowflake_driver(use_mock=bool(creds.get("use_mock")))
     try:
@@ -216,7 +216,7 @@ async def list_objects(
     _auth: None = Depends(verify_api_key),
 ):
     """Discovers tables and views with row counts and byte estimations."""
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id") or "default_user"
+    caller_owner_id = get_authenticated_owner_id() or "local-development"
     creds = _resolve_session_config(session_id, user_id=caller_owner_id)
     driver = get_snowflake_driver(use_mock=bool(creds.get("use_mock")))
     try:
@@ -241,7 +241,7 @@ async def preview_query(
     if not is_valid:
         raise HTTPException(status_code=400, detail=err_msg)
 
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id") or "default_user"
+    caller_owner_id = get_authenticated_owner_id() or "local-development"
     creds = _resolve_session_config(payload.session_id, user_id=caller_owner_id)
     driver = get_snowflake_driver(use_mock=bool(creds.get("use_mock")))
     try:
@@ -268,8 +268,8 @@ async def start_snowflake_import(
     if not is_valid:
         raise HTTPException(status_code=400, detail=err_msg)
 
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
-    user_id = caller_owner_id or "default_user"
+    caller_owner_id = get_authenticated_owner_id(request)
+    user_id = caller_owner_id or "local-development"
 
     # Validate that the session is still active
     creds = _resolve_session_config(payload.session_id, user_id=user_id)
@@ -321,7 +321,7 @@ async def cancel_snowflake_query(
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    caller_owner_id = get_authenticated_owner_id(request)
     check_task_ownership(job.owner_id, caller_owner_id)
 
     vault = get_snowflake_vault()
@@ -355,7 +355,7 @@ async def delete_snowflake_extract(
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    caller_owner_id = get_authenticated_owner_id(request)
     check_task_ownership(job.owner_id, caller_owner_id)
 
     # 1. Cooperative cancel signal in Redis if still active

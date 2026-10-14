@@ -36,7 +36,7 @@ COPY Backend/ .
 
 # Create necessary directories for runtime
 RUN mkdir -p /app/temp_uploads /app/outputs /app/temp_cache /app/data && \
-    chmod -R 777 /app/temp_uploads /app/outputs /app/temp_cache /app/data
+    chmod -R 750 /app/temp_uploads /app/outputs /app/temp_cache /app/data
 
 # Start script
 RUN dos2unix ./start.sh && chmod +x ./start.sh
@@ -57,5 +57,5 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 
 EXPOSE 8000
 
-# Run both Celery and Granian (Rust ASGI) via script
+# Run ARQ worker and Granian (Rust ASGI) via start.sh
 CMD ["./start.sh"]

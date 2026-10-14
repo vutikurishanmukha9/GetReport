@@ -32,6 +32,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef<number>(0);
+  const pollFailureCountRef = useRef<number>(0);
   const taskIdRef = useRef<string | null>(null);
   const statusRef = useRef<UseTaskStatusResult['status']>('CONNECTING');
 
@@ -83,22 +84,36 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     }
   }, [setTaskStatus, stopPolling, clearWatchdog]);
 
-  // HTTP Polling fallback function (runs as resilient backup)
+  // HTTP Polling fallback function (runs as resilient backup with backoff)
   const pollStatus = useCallback(async (taskId: string) => {
     try {
       const data: StatusResponse = await api.getTaskStatus(taskId);
+      pollFailureCountRef.current = 0;
       applyStatusUpdate(data);
-    } catch (err) {
+    } catch (err: any) {
+      pollFailureCountRef.current = (pollFailureCountRef.current || 0) + 1;
       console.warn("HTTP Status poll warning:", err);
+
+      // Backoff if rate-limited or repeatedly failing to avoid request storms
+      const isRateLimited = err?.message?.includes("429") || err?.message?.includes("Rate limit");
+      const backoffDelay = isRateLimited ? 8000 : Math.min(10000, 2500 + pollFailureCountRef.current * 1500);
+
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = setInterval(() => {
+          pollStatus(taskId);
+        }, backoffDelay);
+      }
     }
   }, [applyStatusUpdate]);
 
   const startPolling = useCallback((taskId: string) => {
     stopPolling();
+    pollFailureCountRef.current = 0;
     pollStatus(taskId);
     pollIntervalRef.current = setInterval(() => {
       pollStatus(taskId);
-    }, 2000);
+    }, 2500);
   }, [pollStatus, stopPolling]);
 
   // Reset watchdog on frame arrival (if no frame for 25s, reconnect)
@@ -129,6 +144,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     stopPolling();
     setIsConnected(false);
     retryCountRef.current = 0;
+    pollFailureCountRef.current = 0;
     setTaskStatus('DISCONNECTED');
   }, [setTaskStatus, stopPolling, clearWatchdog]);
 
@@ -161,7 +177,11 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
           },
           onError: (err) => {
             console.warn("SSE stream interrupted or unavailable; falling back to WebSocket/polling.", err);
-            // Fall back to polling if SSE encounters an error
+            // Teardown the SSE stream to prevent continuous background reconnection loops
+            if (eventSourceUnsubRef.current) {
+              eventSourceUnsubRef.current();
+              eventSourceUnsubRef.current = null;
+            }
             startPolling(taskId);
           }
         });

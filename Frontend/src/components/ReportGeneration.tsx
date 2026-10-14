@@ -188,6 +188,24 @@ export const ReportGeneration = ({
         setProgress(10);
 
         try {
+          // Check if report was already pre-compiled during Stage 2 analysis pipeline
+          const repStatus = await api.getReportStatus(taskId);
+          if (repStatus.status === "ready") {
+            if (!mounted) return;
+            setStatus("Downloading PDF…");
+            setProgress(100);
+
+            const blob = await api.downloadReportBlob(taskId);
+            if (!mounted) return;
+            const url = window.URL.createObjectURL(blob);
+            setDownloadUrl(url);
+            setStatus("Report ready!");
+            onComplete();
+            toast({ title: "Report Ready", description: "PDF loaded from compiled cache." });
+            setIsGenerating(false);
+            return;
+          }
+
           await api.generatePersistentReport(taskId);
         } catch (error) {
           if (!mounted) return;
@@ -379,14 +397,18 @@ export const ReportGeneration = ({
   const downloadSqlCsv = () => {
     if (!sqlResult || sqlResult.records.length === 0) return;
     const cols = sqlResult.columns;
-    const lines = [cols.join(",")];
+    const sanitizeCsvCell = (val: unknown): string => {
+      if (val === null || val === undefined) return '""';
+      let str = String(val);
+      // Neutralize spreadsheet formula injection (CWE-1236)
+      if (/^[=+\-@\t\r]/.test(str)) {
+        str = "'" + str;
+      }
+      return `"${str.replace(/"/g, '""')}"`;
+    };
+    const lines = [cols.map(sanitizeCsvCell).join(",")];
     for (const row of sqlResult.records) {
-      const rowLine = cols.map(c => {
-        const val = row[c];
-        if (val === null || val === undefined) return "";
-        const str = String(val).replace(/"/g, '""');
-        return `"${str}"`;
-      }).join(",");
+      const rowLine = cols.map(c => sanitizeCsvCell(row[c])).join(",");
       lines.push(rowLine);
     }
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });

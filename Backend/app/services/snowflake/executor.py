@@ -59,8 +59,9 @@ def execute_and_stream_snowflake(
         except Exception as e:
             logger.debug("Could not store active query sfqid in Redis: %s", e)
 
-    # 2. Polling loop with timeout and cancel checks
+    # 2. Polling loop with timeout, cancel checks, and backoff
     start_time = time.time()
+    poll_interval = 1.0
     while driver.is_query_running(session_config, sfqid):
         # Check cancellation
         if redis_client:
@@ -81,7 +82,8 @@ def execute_and_stream_snowflake(
             driver.abort_query(session_config, sfqid)
             raise QueryTimeoutException(f"Query exceeded statement deadline of {STATEMENT_TIMEOUT_SECONDS} seconds.")
 
-        time.sleep(1.0)
+        time.sleep(poll_interval)
+        poll_interval = min(poll_interval * 1.25, 3.0)
 
     # 3. Stream Arrow batches to local Parquet
     logger.info("Query %s finished execution. Beginning batch stream to disk...", sfqid)

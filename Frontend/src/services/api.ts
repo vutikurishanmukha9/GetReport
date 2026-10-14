@@ -82,7 +82,7 @@ async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Prom
         if (contentType && contentType.indexOf("application/json") !== -1) {
             try {
                 const errorData = await response.json();
-                errorMessage = errorData.detail || errorData.message || errorMessage;
+                errorMessage = errorData.detail || errorData.error || errorData.message || errorMessage;
             } catch {
                 errorMessage = response.statusText || errorMessage;
             }
@@ -252,12 +252,22 @@ export const api = {
     },
 
     /**
-     * Upload and join multiple files on a primary key column.
+     * Upload and join multiple files on a primary key column or asymmetric keys.
      */
-    uploadJoinedFiles: async (files: File[], joinKey: string, joinType: string = "inner"): Promise<{ task_id: string; message: string }> => {
+    uploadJoinedFiles: async (
+        files: File[],
+        joinKey?: string,
+        joinType: string = "inner",
+        leftOn?: string,
+        rightOn?: string,
+        keyMapping?: Record<string, string>
+    ): Promise<{ task_id: string; message: string }> => {
         const formData = new FormData();
         files.forEach(f => formData.append("files", f));
-        formData.append("join_key", joinKey);
+        if (joinKey) formData.append("join_key", joinKey);
+        if (leftOn) formData.append("left_on", leftOn);
+        if (rightOn) formData.append("right_on", rightOn);
+        if (keyMapping) formData.append("key_mapping", JSON.stringify(keyMapping));
         formData.append("join_type", joinType);
 
         const response = await fetch(`${API_BASE_URL}/upload/join`, {
@@ -268,6 +278,30 @@ export const api = {
 
         if (!response.ok) {
             let errorMessage = `Joined upload failed: ${response.statusText}`;
+            try {
+                const data = await response.json();
+                errorMessage = data.detail || errorMessage;
+            } catch {}
+            throw new Error(errorMessage);
+        }
+        return response.json();
+    },
+
+    /**
+     * Pre-flight inspection of column headers for staged files.
+     */
+    inspectHeaders: async (files: File[]): Promise<{ files: Array<{ filename: string; columns: string[] }> }> => {
+        const formData = new FormData();
+        files.forEach(f => formData.append("files", f));
+
+        const response = await fetch(`${API_BASE_URL}/upload/inspect-headers`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: formData,
+        });
+
+        if (!response.ok) {
+            let errorMessage = `Header inspection failed: ${response.statusText}`;
             try {
                 const data = await response.json();
                 errorMessage = data.detail || errorMessage;

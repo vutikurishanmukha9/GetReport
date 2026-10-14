@@ -23,7 +23,8 @@ from app.services.report_styles import ReportMetadata
 logger = logging.getLogger(__name__)
 
 # ─── Template directory & Jinja Environment ──────────────────────────────────
-_TEMPLATE_DIR = Path(__file__).parent / "templates"
+_TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
+
 _JINJA_ENV = Environment(
     loader=FileSystemLoader(str(_TEMPLATE_DIR)),
     autoescape=True,

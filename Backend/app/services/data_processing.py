@@ -618,13 +618,21 @@ def compute_streaming_summary_stats(lazy_df: pl.LazyFrame) -> dict[str, Any]:
 
 def join_datasets(
     dfs_dict: dict[str, pl.DataFrame],
-    join_key: str,
-    how: str = "inner"
+    join_key: str | None = None,
+    how: str = "inner",
+    left_on: str | None = None,
+    right_on: str | None = None,
+    key_mapping: dict[str, str] | None = None,
 ) -> pl.DataFrame:
     """
     Polars-optimized multi-dataset join engine.
-    Joins multiple datasets on a common key column (e.g., 'id', 'user_id', 'date').
-    Appends suffix to overlapping non-key columns.
+    Joins multiple datasets on a common key column, asymmetric keys (left_on/right_on),
+    or a per-dataset key mapping dictionary.
+    
+    Features:
+    - Auto-detection of common foreign keys (e.g. deliveries.match_id = matches.id)
+    - Automatic datatype alignment (e.g. casts Int32 vs Int64 or Int vs String)
+    - Numeric suffix disambiguation for overlapping non-key column names
     """
     if not dfs_dict:
         raise ValueError("No datasets provided for join.")
@@ -633,37 +641,132 @@ def join_datasets(
     if len(file_names) == 1:
         return dfs_dict[file_names[0]]
 
-    # Standardize join_key to snake_case
-    clean_key = _to_snake_case(join_key)
-    
+    # Helper: resolve a column in a dataframe with fuzzy/snake/case-insensitive/suffix matching
+    def _resolve_col(df: pl.DataFrame, col_target: str | None, fallback_candidates: list[str]) -> str | None:
+        if col_target:
+            clean = _to_snake_case(col_target)
+            if clean in df.columns:
+                return clean
+            if col_target in df.columns:
+                return col_target
+            lower_map = {c.lower(): c for c in df.columns}
+            if clean.lower() in lower_map:
+                return lower_map[clean.lower()]
+            if col_target.lower() in lower_map:
+                return lower_map[col_target.lower()]
+            # Suffix match (e.g. if target is "id" and column is "match_id")
+            if clean.lower() == "id":
+                id_cols = [c for c in df.columns if c.lower().endswith("_id")]
+                if len(id_cols) == 1:
+                    return id_cols[0]
+                # If fallback candidates (e.g. other table names) match
+                for cand in fallback_candidates:
+                    cand_clean = re.sub(r'[^a-zA-Z0-9]', '', cand.lower())
+                    for ic in id_cols:
+                        if any(part in cand_clean for part in ic.lower().split("_")):
+                            return ic
+
+        # Try fallback candidates (e.g. if another dataset's key exists here)
+        for cand in fallback_candidates:
+            if cand in df.columns:
+                return cand
+            cand_clean = _to_snake_case(cand)
+            if cand_clean in df.columns:
+                return cand_clean
+            lower_map = {c.lower(): c for c in df.columns}
+            if cand.lower() in lower_map:
+                return lower_map[cand.lower()]
+            if cand_clean.lower() in lower_map:
+                return lower_map[cand_clean.lower()]
+
+        return None
+
+    def _align_key_types(df_a: pl.DataFrame, col_a: str, df_b: pl.DataFrame, col_b: str) -> tuple[pl.DataFrame, pl.DataFrame]:
+        dtype_a = df_a[col_a].dtype
+        dtype_b = df_b[col_b].dtype
+        if dtype_a == dtype_b:
+            return df_a, df_b
+        # If one is string or categorical, cast both to string
+        if dtype_a in (pl.Utf8, pl.Categorical) or dtype_b in (pl.Utf8, pl.Categorical):
+            return df_a.with_columns(pl.col(col_a).cast(pl.Utf8)), df_b.with_columns(pl.col(col_b).cast(pl.Utf8))
+        # If both are integer types
+        if dtype_a.is_integer() and dtype_b.is_integer():
+            return df_a.with_columns(pl.col(col_a).cast(pl.Int64)), df_b.with_columns(pl.col(col_b).cast(pl.Int64))
+        # If both are numeric
+        if dtype_a.is_numeric() and dtype_b.is_numeric():
+            return df_a.with_columns(pl.col(col_a).cast(pl.Float64)), df_b.with_columns(pl.col(col_b).cast(pl.Float64))
+        # Fallback to string
+        return df_a.with_columns(pl.col(col_a).cast(pl.Utf8)), df_b.with_columns(pl.col(col_b).cast(pl.Utf8))
+
     base_name = file_names[0]
     base_df = dfs_dict[base_name]
-    if clean_key not in base_df.columns:
-        matched_cols = [c for c in base_df.columns if c.lower() == clean_key.lower()]
-        if matched_cols:
-            clean_key = matched_cols[0]
+
+    # Resolve base key
+    base_key_target = None
+    if key_mapping and base_name in key_mapping:
+        base_key_target = key_mapping[base_name]
+    elif left_on:
+        base_key_target = left_on
+    elif join_key:
+        base_key_target = join_key
+
+    # Collect column names and table names from other datasets for candidate matching
+    other_columns_pool: list[str] = []
+    other_table_names: list[str] = []
+    for fn in file_names[1:]:
+        other_table_names.append(os.path.splitext(fn)[0])
+        other_columns_pool.extend(dfs_dict[fn].columns)
+
+    resolved_base_key = _resolve_col(base_df, base_key_target, other_columns_pool + other_table_names)
+    if not resolved_base_key:
+        common = [c for c in base_df.columns if c in other_columns_pool]
+        if common:
+            id_common = [c for c in common if "id" in c.lower() or "key" in c.lower()]
+            resolved_base_key = id_common[0] if id_common else common[0]
         else:
-            raise KeyError(f"Join key '{join_key}' not found in primary dataset '{base_name}'. Available: {base_df.columns}")
+            raise KeyError(
+                f"Join key '{base_key_target or join_key or 'id'}' not found in primary dataset '{base_name}'. "
+                f"Available columns: {base_df.columns}"
+            )
 
     result_df = base_df
 
     for idx, fname in enumerate(file_names[1:], start=1):
         other_df = dfs_dict[fname]
         
-        other_key = clean_key
-        if other_key not in other_df.columns:
-            matched_cols = [c for c in other_df.columns if c.lower() == clean_key.lower()]
-            if matched_cols:
-                other_key = matched_cols[0]
+        other_key_target = None
+        if key_mapping and fname in key_mapping:
+            other_key_target = key_mapping[fname]
+        elif right_on and idx == 1:
+            other_key_target = right_on
+        elif join_key:
+            other_key_target = join_key
+        else:
+            other_key_target = resolved_base_key
+
+        resolved_other_key = _resolve_col(
+            other_df,
+            other_key_target,
+            [resolved_base_key, "id", f"{os.path.splitext(fname)[0]}_id", f"{os.path.splitext(base_name)[0]}_id"]
+        )
+
+        if not resolved_other_key:
+            common = [c for c in other_df.columns if c in result_df.columns]
+            if common:
+                resolved_other_key = common[0]
             else:
-                raise KeyError(f"Join key '{join_key}' not found in dataset '{fname}'. Available: {other_df.columns}")
+                raise KeyError(
+                    f"Join key '{other_key_target or join_key or 'id'}' not found in dataset '{fname}'. "
+                    f"Available columns: {other_df.columns}"
+                )
 
+        # Datatype alignment between result_df[resolved_base_key] and other_df[resolved_other_key]
+        result_df, other_df = _align_key_types(result_df, resolved_base_key, other_df, resolved_other_key)
+
+        # Rename overlapping non-key columns in other_df
         col_rename = {}
-        if other_key != clean_key:
-            col_rename[other_key] = clean_key
-
         for c in other_df.columns:
-            if c != other_key and c in result_df.columns:
+            if c != resolved_other_key and c in result_df.columns:
                 safe_name = f"{c}_{idx+1}"
                 col_rename[c] = safe_name
         
@@ -673,10 +776,19 @@ def join_datasets(
         how_mode = how.lower()
         if how_mode == "outer":
             how_mode = "full"
-        if how_mode not in ("inner", "left", "full"):
+        if how_mode not in ("inner", "left", "full", "semi", "anti"):
             how_mode = "inner"
 
-        result_df = result_df.join(other_df, on=clean_key, how=how_mode, coalesce=True)
+        if resolved_base_key == resolved_other_key:
+            result_df = result_df.join(other_df, on=resolved_base_key, how=how_mode, coalesce=True)
+        else:
+            result_df = result_df.join(
+                other_df,
+                left_on=resolved_base_key,
+                right_on=resolved_other_key,
+                how=how_mode,
+                coalesce=True,
+            )
 
     return _sanitize_and_coerce_df(result_df)
 

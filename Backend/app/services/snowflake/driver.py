@@ -9,6 +9,7 @@ import abc
 import datetime
 import decimal
 import logging
+import re
 import time
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
@@ -156,7 +157,9 @@ class RealSnowflakeDriver(SnowflakeIngestDriver):
             # 1. Fetch tables
             tbl_sql = f"SHOW TABLES IN SCHEMA {schema_ident} LIMIT {limit}"
             if from_last:
-                tbl_sql += f" FROM '{from_last}'"
+                safe_from_last = re.sub(r"[^a-zA-Z0-9_$ \-]", "", from_last).strip()
+                if safe_from_last:
+                    tbl_sql += f" FROM '{safe_from_last}'"
             cur.execute(tbl_sql)
             for r in cur.fetchall():
                 # SHOW TABLES returns: (created_on, name, database_name, schema_name, kind, comment, cluster_by, rows, bytes, owner, ...)
@@ -197,11 +200,11 @@ class RealSnowflakeDriver(SnowflakeIngestDriver):
             return records, cols
 
     def submit_query_async(self, config: Dict[str, Any], query: str) -> str:
-        conn = self._create_connection(config)
-        cur = conn.cursor()
-        cur.execute_async(query)
-        sfqid = cur.sfqid
-        return sfqid
+        with self._create_connection(config) as conn:
+            cur = conn.cursor()
+            cur.execute_async(query)
+            sfqid = cur.sfqid
+            return sfqid
 
     def is_query_running(self, config: Dict[str, Any], query_id: str) -> bool:
         with self._create_connection(config) as conn:
@@ -228,7 +231,22 @@ class RealSnowflakeDriver(SnowflakeIngestDriver):
         cur.get_results_from_sfqid(query_id)
         desc = cur.description
         batches = cur.fetch_arrow_batches()
-        return batches, desc
+
+        def _cleanup_generator():
+            try:
+                for b in batches:
+                    yield b
+            finally:
+                try:
+                    cur.close()
+                except Exception:
+                    pass
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+        return _cleanup_generator(), desc
 
 
 class MockSnowflakeDriver(SnowflakeIngestDriver):

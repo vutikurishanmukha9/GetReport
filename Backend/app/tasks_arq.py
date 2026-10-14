@@ -35,7 +35,7 @@ from app.services.analysis_config import AnalysisConfig
 from app.services.dataset_versioning import build_schema_profile, build_historical_comparison
 from app.services.comparison import comparison_service
 from app.services.visualization import generate_charts
-from app.services.llm_insight import generate_insights_sync
+from app.services.llm_insight import generate_insights, generate_insights_sync
 from app.services.report_generator import generate_pdf_report
 
 logger = logging.getLogger(__name__)
@@ -335,7 +335,7 @@ async def resume_analysis_pipeline_task(
 
         async def _run_insights():
             try:
-                insights = await asyncio.to_thread(generate_insights_sync, analysis_result)
+                insights = await generate_insights(analysis_result)
                 return insights.to_dict() if hasattr(insights, "to_dict") else dict(insights)
             except Exception as i_err:
                 logger.error("Insights generation error: %s", i_err, exc_info=True)
@@ -502,6 +502,26 @@ async def rag_ingest_task(ctx: Optional[dict], task_id: str, text: str):
     logger.info("Starting rag_ingest_task for task_id=%s (text length: %d chars)", task_id, len(text))
     try:
         await asyncio.to_thread(rag_service.ingest_report_blocking, task_id, text)
+
+        # Wire TableSemanticChunker for structured profiling entity chunks
+        job = title_task_manager.get_job(task_id)
+        if job and job.result:
+            try:
+                from app.core.rag_utils import TableSemanticChunker
+                chunker = TableSemanticChunker()
+                ledger_issues = job.result.get("ledger_issues", job.result.get("issues", []))
+                structured_chunks = chunker.chunk_dataset_profile(job.result, ledger_issues)
+                if structured_chunks:
+                    combined_structured = "\n\n".join(c["content"] for c in structured_chunks)
+                    await asyncio.to_thread(
+                        rag_service.ingest_report_blocking,
+                        task_id,
+                        combined_structured,
+                        {"source": "semantic_profile"}
+                    )
+                    logger.info("Indexed %d structured profile entity chunks for task %s", len(structured_chunks), task_id)
+            except Exception as chunk_err:
+                logger.warning("Could not index semantic profile chunks: %s", chunk_err)
 
         # Build and persist Dataset Knowledge Graph
         def _graph_worker():

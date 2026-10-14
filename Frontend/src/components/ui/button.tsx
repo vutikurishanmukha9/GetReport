@@ -29,15 +29,15 @@ const buttonVariants = cva(
           "text-foreground underline-offset-4 hover:underline p-0 h-auto font-normal",
         // Dedicated High-End Semantic Action Variants
         save:
-          "bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-950/50 border border-emerald-400/40 ring-1 ring-white/10 font-semibold",
+          "bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-zinc-950 border border-emerald-500/35 hover:border-emerald-400 shadow-[0_2px_12px_-2px_rgba(16,185,129,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] font-semibold transition-all duration-150",
         saveAll:
-          "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-950/60 border border-emerald-400/50 ring-1 ring-white/15 font-bold",
+          "bg-gradient-to-r from-emerald-500/20 via-emerald-500/25 to-teal-500/20 hover:from-emerald-500 hover:via-emerald-400 hover:to-teal-400 text-emerald-300 hover:text-zinc-950 border border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_20px_-3px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] font-semibold transition-all duration-200",
         delete:
-          "border border-border/80 bg-background/50 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 shadow-2xs font-medium transition-colors",
+          "bg-zinc-900/60 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-200 border border-white/10 hover:border-rose-500/35 shadow-2xs font-medium transition-all duration-150",
         deleteAll:
-          "bg-rose-950/30 text-rose-300 border border-rose-500/30 hover:bg-rose-600 hover:text-white hover:border-rose-600 shadow-2xs font-bold transition-all duration-150",
+          "bg-gradient-to-r from-rose-500/10 via-rose-500/15 to-rose-500/10 hover:from-rose-500/25 hover:via-rose-500/30 hover:to-rose-500/20 text-rose-300 hover:text-rose-100 border border-rose-500/30 hover:border-rose-500/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] font-semibold transition-all duration-150",
         launch:
-          "bg-white text-black hover:bg-zinc-100 shadow-[0_4px_20px_-2px_rgba(255,255,255,0.25),inset_0_1px_0_rgba(255,255,255,0.9)] border border-white font-bold",
+          "bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:via-teal-400 hover:to-emerald-300 text-zinc-950 font-bold shadow-[0_0_30px_-5px_rgba(16,185,129,0.5),inset_0_1px_0_rgba(255,255,255,0.7)] border border-emerald-300/60 transition-all duration-200",
         glow:
           "border border-blue-500/40 bg-blue-950/25 text-blue-300 hover:bg-blue-500/20 hover:border-blue-500/60 shadow-[0_0_16px_-4px_rgba(59,130,246,0.3)] font-semibold",
       },

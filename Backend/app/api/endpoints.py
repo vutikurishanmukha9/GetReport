@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.core.limiter import limiter, ANALYZE_LIMIT
-from app.core.auth import verify_api_key, validate_task_id, check_task_ownership
+from app.core.auth import verify_api_key, validate_task_id, check_task_ownership, get_authenticated_owner_id
 from app.core.task_dispatcher import dispatch_task
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.services.analysis_config import AnalysisConfig
@@ -84,7 +84,7 @@ async def start_analysis(
         logger.error(f"Job {task_id} NOT FOUND.")
         raise HTTPException(404, "Job not found")
 
-    caller_owner_id = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
+    caller_owner_id = get_authenticated_owner_id()
     check_task_ownership(job.owner_id, caller_owner_id)
 
     logger.info(f"Job {task_id} status: {job.status}")
