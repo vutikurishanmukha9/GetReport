@@ -2,6 +2,7 @@
 Upload Route — Single-Pass Zero-Copy Ingestion Endpoint.
 """
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks, Request, Depends
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 import logging
 import os

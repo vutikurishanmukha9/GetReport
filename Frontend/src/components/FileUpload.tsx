@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Upload, FileSpreadsheet, Shield, Lock, Trash2, Database,
-  ArrowRightLeft, Link2, Sparkles, AlertCircle
+  ArrowRightLeft, Link2, AlertCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -721,7 +721,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                                 : "text-zinc-400 hover:text-zinc-200"
                             }`}
                           >
-                            <Sparkles className="h-3 w-3 text-indigo-400" />
+                            <Link2 className="h-3 w-3 text-indigo-400" />
                             Key Mapping
                           </button>
                         </div>
@@ -840,7 +840,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                           </div>
                           <div className="flex items-end">
                             <div className="w-full p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[11px] text-indigo-300 flex items-center gap-1.5">
-                              <Sparkles className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                              <Link2 className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
                               <span className="truncate">
                                 Linking <strong className="text-white font-mono">{f1.name}.{keyMapping[f1.name] || '?'}</strong> = <strong className="text-white font-mono">{f2.name}.{keyMapping[f2.name] || '?'}</strong>
                               </span>

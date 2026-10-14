@@ -15,8 +15,7 @@ import {
     Copy, 
     Check as CheckIcon,
     ChevronDown,
-    ChevronUp,
-    Sparkles
+    ChevronUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/services/api';
@@ -757,7 +756,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                 </div>
                             ) : (
                                 <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs sm:text-sm font-medium shadow-[0_0_15px_-4px_rgba(16,185,129,0.2)]">
-                                    <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
+                                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
                                     <span>All issues reviewed! Dataset is ready to be locked and analyzed.</span>
                                 </div>
                             )}

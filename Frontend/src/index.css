@@ -336,8 +336,11 @@ Strictly dark theme only across all surfaces. All colors HSL.
 .animate-marquee-flow {
   display: flex;
   width: max-content;
-  animation: marqueeFlow 26s linear infinite;
+  animation: marqueeFlow var(--marquee-speed, 16s) linear infinite;
   will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
 }
 
 .animate-marquee-flow:hover {

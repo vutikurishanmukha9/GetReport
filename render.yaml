@@ -37,7 +37,7 @@ services:
       - key: API_KEY
         sync: false
       - key: REQUIRE_AUTH
-        value: "true"
+        value: "false"
       - key: SECRET_KEY
         sync: false
       - key: PDF_ENGINE
