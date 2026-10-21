@@ -46,23 +46,35 @@ plt.rcParams.update({
     "figure.dpi": CHART_DPI,
 })
 
-def _fig_to_base64(fig) -> str:
+from matplotlib.figure import Figure
+
+def _create_figure(figsize: tuple[float, float] = (8.0, 6.0), dpi: int = CHART_DPI):
+    """Instantiate an isolated, thread-safe Figure without using global pyplot state."""
+    fig = Figure(figsize=figsize, dpi=dpi)
+    ax = fig.subplots()
+    return fig, ax
+
+def _create_figure_grid(nrows: int, ncols: int, figsize: tuple[float, float], dpi: int = CHART_DPI, sharex: bool = False):
+    """Instantiate an isolated multi-axis Figure grid."""
+    fig = Figure(figsize=figsize, dpi=dpi)
+    axes = fig.subplots(nrows=nrows, ncols=ncols, sharex=sharex)
+    return fig, axes
+
+def _fig_to_base64(fig: Figure) -> str:
     """Convert Matplotlib figure to Base64 string with PNG compression optimization and immediate memory reclamation."""
     buf = io.BytesIO()
     fig.savefig(buf, format="png", bbox_inches="tight", dpi=CHART_DPI, pil_kwargs={"optimize": True})
-    fig.clf()
-    plt.close(fig)
+    fig.clear()
     buf.seek(0)
     b64 = base64.b64encode(buf.read()).decode("utf-8")
     del buf
     return b64
 
-def _fig_to_svg(fig) -> str:
+def _fig_to_svg(fig: Figure) -> str:
     """Convert Matplotlib figure to clean vector SVG XML with immediate memory reclamation."""
     buf = io.StringIO()
     fig.savefig(buf, format="svg", bbox_inches="tight")
-    fig.clf()
-    plt.close(fig)
+    fig.clear()
     buf.seek(0)
     svg_str = buf.getvalue()
     del buf
@@ -147,7 +159,7 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
                     "brand_corr", ["#6366f1", "#ffffff", "#f97316"]
                 )
                 
-                fig, ax = plt.subplots(figsize=(8, 6.5))
+                fig, ax = _create_figure(figsize=(8, 6.5))
                 im = ax.imshow(corr_matrix, cmap=brand_cmap, vmin=-1, vmax=1, aspect="auto")
                 
                 if len(target_cols_for_corr) <= 10:
@@ -204,7 +216,7 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
             if len(data) == 0: continue
             
             color = BRAND_PALETTE[idx % len(BRAND_PALETTE)]
-            fig, ax = plt.subplots(figsize=(6.5, 4))
+            fig, ax = _create_figure(figsize=(6.5, 4))
             
             n_bins, bins, patches = ax.hist(data, bins=25, color=color, edgecolor="white",
                                              alpha=0.85, linewidth=0.5)
@@ -261,7 +273,7 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
             n = len(labels)
             bar_colors = [BRAND_PALETTE[i % len(BRAND_PALETTE)] for i in range(n)]
             
-            fig, ax = plt.subplots(figsize=(7, 4.5))
+            fig, ax = _create_figure(figsize=(7, 4.5))
             bars = ax.barh(labels[::-1], counts[::-1], color=bar_colors[::-1],
                           edgecolor="white", linewidth=0.5)
             
@@ -330,7 +342,7 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
                         group_medians[c] = float(np.median(vals))
                 
                 if groups:
-                    fig, ax = plt.subplots(figsize=(7, 5))
+                    fig, ax = _create_figure(figsize=(7, 5))
                     bp = ax.boxplot(groups, tick_labels=group_labels, patch_artist=True,
                                     medianprops=dict(color="#ef4444", linewidth=2),
                                     whiskerprops=dict(color=BRAND_SECONDARY),
@@ -393,7 +405,7 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
                 rng_idx = np.random.choice(len(x_data), 2000, replace=False)
                 x_data, y_data = x_data[rng_idx], y_data[rng_idx]
             
-            fig, ax = plt.subplots(figsize=(7, 5))
+            fig, ax = _create_figure(figsize=(7, 5))
             ax.scatter(x_data, y_data, c=BRAND_PRIMARY, alpha=0.4, s=12, edgecolors="none")
             
             z = np.polyfit(x_data.astype(float), y_data.astype(float), 1)
@@ -454,7 +466,7 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
                 n = len(labels)
                 pie_colors = [BRAND_PALETTE[i % len(BRAND_PALETTE)] for i in range(n)]
                 
-                fig, ax = plt.subplots(figsize=(6.5, 5))
+                fig, ax = _create_figure(figsize=(6.5, 5))
                 wedges, texts, autotexts = ax.pie(
                     sizes, labels=None, colors=pie_colors, autopct="%1.1f%%",
                     startangle=90, pctdistance=0.78,
@@ -504,7 +516,6 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     # Log summary
     chart_summary = {k: len(v) if isinstance(v, list) else 1 for k, v in charts.items()}
     logger.info(f"Visualization: Generated charts summary: {chart_summary}")
-    plt.close("all")
     gc.collect()
     return charts, warnings
 
@@ -739,7 +750,7 @@ def generate_stl_decomposition_chart(df: pl.DataFrame, date_col: str, numeric_co
         stl = STL(series, period=7, seasonal=13)
         res = stl.fit()
 
-        fig, axes = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
+        fig, axes = _create_figure_grid(4, 1, figsize=(10, 8), sharex=True)
         fig.suptitle(f"STL Seasonal Decomposition — {numeric_col}", fontsize=14, fontweight="bold", color=BRAND_TEXT)
 
         axes[0].plot(series.index, series.values, color=BRAND_PRIMARY, lw=1.5)
@@ -759,7 +770,7 @@ def generate_stl_decomposition_chart(df: pl.DataFrame, date_col: str, numeric_co
         axes[3].set_ylabel("Residual", fontsize=9, fontweight="bold")
         axes[3].grid(True, alpha=0.3)
 
-        plt.tight_layout()
+        fig.tight_layout()
         return _fig_to_base64(fig)
     except Exception as err:
         logger.warning(f"STL chart rendering failed: {err}")
@@ -772,7 +783,7 @@ def generate_er_relationship_diagram(relationships: list[dict]) -> str | None:
         return None
 
     try:
-        fig, ax = plt.subplots(figsize=(8, len(relationships) * 1.5 + 2))
+        fig, ax = _create_figure(figsize=(8, len(relationships) * 1.5 + 2))
         ax.axis("off")
         ax.set_title("Multi-Table Entity Relationship & Referential Map", fontsize=14, fontweight="bold", pad=20)
 
@@ -801,7 +812,7 @@ def generate_er_relationship_diagram(relationships: list[dict]) -> str | None:
 
         ax.set_xlim(0, 1)
         ax.set_ylim(-0.5, len(relationships))
-        plt.tight_layout()
+        fig.tight_layout()
         return _fig_to_base64(fig)
     except Exception as err:
         logger.warning(f"ER diagram rendering failed: {err}")

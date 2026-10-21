@@ -269,10 +269,14 @@ async def resume_analysis_pipeline_task(
 
         df = await asyncio.to_thread(load_dataframe, file_path)
 
-        def _clean_worker():
-            return clean_data(df, rules, None, filename)
+        def _clean_and_compare_worker():
+            cleaned_df, cleaning_report, transformation_dag = clean_data(df, rules, None, filename)
+            comp_report = comparison_service.compare(df, cleaned_df)
+            return cleaned_df, cleaning_report, transformation_dag, comp_report
 
-        cleaned_df, cleaning_report, transformation_dag = await asyncio.to_thread(_clean_worker)
+        cleaned_df, cleaning_report, transformation_dag, comparison_report = await asyncio.to_thread(_clean_and_compare_worker)
+        del df
+        gc.collect()
 
         # Persist intermediate cleaned data (Parquet)
         buffer = BytesIO()
@@ -305,11 +309,7 @@ async def resume_analysis_pipeline_task(
                 prev_job.result if prev_job else None,
                 sch_profile,
             )
-            # Compare with original dataset
-            orig_df = load_dataframe(file_path)
-            comp_report = comparison_service.compare(orig_df, cleaned_df)
-            del orig_df
-            return analysis_res, ds_info, iss_ledger, sch_profile, hist_comp, comp_report
+            return analysis_res, ds_info, iss_ledger, sch_profile, hist_comp
 
         (
             analysis_result,
@@ -317,7 +317,6 @@ async def resume_analysis_pipeline_task(
             issue_ledger,
             schema_profile,
             historical_comparison,
-            comparison_report,
         ) = await asyncio.to_thread(_analysis_worker)
 
         config_snapshot = analysis_config.snapshot()

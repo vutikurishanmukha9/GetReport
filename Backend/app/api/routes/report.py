@@ -70,7 +70,7 @@ async def _get_authorized_job(request: Optional[Request], task_id: str, require_
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found")
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     check_task_ownership(job.owner_id, caller_owner_id)
     if require_result and not job.result:
         raise HTTPException(400, "Job analysis result not found or not ready yet")

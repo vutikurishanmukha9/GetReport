@@ -796,15 +796,21 @@ export const api = {
     },
 
     listSnowflakeDatabases: (sessionId: string): Promise<{ databases: SnowflakeDatabase[] }> => {
-        return fetchClient<{ databases: SnowflakeDatabase[] }>(`/snowflake/databases?session_id=${encodeURIComponent(sessionId)}`);
+        return fetchClient<{ databases: SnowflakeDatabase[] }>("/snowflake/databases", {
+            headers: { "X-Snowflake-Session-Id": sessionId },
+        });
     },
 
     listSnowflakeSchemas: (sessionId: string, databaseName: string): Promise<{ schemas: SnowflakeSchema[] }> => {
-        return fetchClient<{ schemas: SnowflakeSchema[] }>(`/snowflake/schemas?session_id=${encodeURIComponent(sessionId)}&database_name=${encodeURIComponent(databaseName)}`);
+        return fetchClient<{ schemas: SnowflakeSchema[] }>(`/snowflake/schemas?database_name=${encodeURIComponent(databaseName)}`, {
+            headers: { "X-Snowflake-Session-Id": sessionId },
+        });
     },
 
     listSnowflakeObjects: (sessionId: string, databaseName: string, schemaName: string): Promise<{ objects: SnowflakeObject[] }> => {
-        return fetchClient<{ objects: SnowflakeObject[] }>(`/snowflake/objects?session_id=${encodeURIComponent(sessionId)}&database_name=${encodeURIComponent(databaseName)}&schema_name=${encodeURIComponent(schemaName)}`);
+        return fetchClient<{ objects: SnowflakeObject[] }>(`/snowflake/objects?database_name=${encodeURIComponent(databaseName)}&schema_name=${encodeURIComponent(schemaName)}`, {
+            headers: { "X-Snowflake-Session-Id": sessionId },
+        });
     },
 
     previewSnowflakeQuery: (sessionId: string, query: string, limit = 50): Promise<SnowflakePreviewResponse> => {
@@ -833,8 +839,9 @@ export const api = {
     },
 
     disconnectSnowflake: (sessionId: string): Promise<{ session_id: string; message: string }> => {
-        return fetchClient<{ session_id: string; message: string }>(`/snowflake/disconnect/${encodeURIComponent(sessionId)}`, {
+        return fetchClient<{ session_id: string; message: string }>("/snowflake/disconnect", {
             method: "POST",
+            headers: { "X-Snowflake-Session-Id": sessionId },
         });
     },
 

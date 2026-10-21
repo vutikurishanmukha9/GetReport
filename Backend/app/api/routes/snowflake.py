@@ -7,7 +7,7 @@ import os
 import uuid
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.auth import verify_api_key, check_task_ownership, validate_task_id, get_authenticated_owner_id
@@ -83,6 +83,16 @@ def _resolve_session_config(session_id: str, user_id: str = "local-development")
             detail="ERR_SNOWFLAKE_SESSION_EXPIRED: Your Snowflake connection session has expired or is invalid. Please reconnect.",
         )
     return creds
+
+
+def _extract_effective_session_id(header_session_id: Optional[str], fallback_session_id: Optional[str]) -> str:
+    effective_id = (header_session_id or fallback_session_id or "").strip()
+    if not effective_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Active Snowflake session token is required in X-Snowflake-Session-Id header or session_id query parameter."
+        )
+    return effective_id
 
 
 # ─── API Endpoints ───────────────────────────────────────────────────────────
@@ -169,12 +179,14 @@ async def connect_snowflake(
 @router.get("/databases")
 async def list_databases(
     request: Request,
-    session_id: str = Query(..., description="Active session token"),
+    session_id: Optional[str] = Query(None, description="Active session token (fallback)"),
+    x_snowflake_session_id: Optional[str] = Header(None, alias="X-Snowflake-Session-Id", description="Active session token header"),
     _auth: None = Depends(verify_api_key),
 ):
     """Discovers available databases using SHOW DATABASES (zero warehouse compute cost)."""
-    caller_owner_id = get_authenticated_owner_id() or "local-development"
-    creds = _resolve_session_config(session_id, user_id=caller_owner_id)
+    caller_owner_id = get_authenticated_owner_id(request) or "local-development"
+    effective_session_id = _extract_effective_session_id(x_snowflake_session_id, session_id)
+    creds = _resolve_session_config(effective_session_id, user_id=caller_owner_id)
     driver = get_snowflake_driver(use_mock=bool(creds.get("use_mock")))
     try:
         databases = driver.discover_databases(creds)
@@ -188,13 +200,15 @@ async def list_databases(
 @router.get("/schemas")
 async def list_schemas(
     request: Request,
-    session_id: str = Query(..., description="Active session token"),
     database_name: str = Query(..., description="Database name to browse"),
+    session_id: Optional[str] = Query(None, description="Active session token (fallback)"),
+    x_snowflake_session_id: Optional[str] = Header(None, alias="X-Snowflake-Session-Id", description="Active session token header"),
     _auth: None = Depends(verify_api_key),
 ):
     """Discovers schemas inside a database using SHOW SCHEMAS IN DATABASE."""
-    caller_owner_id = get_authenticated_owner_id() or "local-development"
-    creds = _resolve_session_config(session_id, user_id=caller_owner_id)
+    caller_owner_id = get_authenticated_owner_id(request) or "local-development"
+    effective_session_id = _extract_effective_session_id(x_snowflake_session_id, session_id)
+    creds = _resolve_session_config(effective_session_id, user_id=caller_owner_id)
     driver = get_snowflake_driver(use_mock=bool(creds.get("use_mock")))
     try:
         schemas = driver.discover_schemas(creds, database_name)
@@ -208,16 +222,18 @@ async def list_schemas(
 @router.get("/objects")
 async def list_objects(
     request: Request,
-    session_id: str = Query(..., description="Active session token"),
     database_name: str = Query(..., description="Database name"),
     schema_name: str = Query(..., description="Schema name"),
+    session_id: Optional[str] = Query(None, description="Active session token (fallback)"),
+    x_snowflake_session_id: Optional[str] = Header(None, alias="X-Snowflake-Session-Id", description="Active session token header"),
     limit: int = Query(500, ge=1, le=1000),
     from_last: Optional[str] = Query(None, description="Paging cursor"),
     _auth: None = Depends(verify_api_key),
 ):
     """Discovers tables and views with row counts and byte estimations."""
-    caller_owner_id = get_authenticated_owner_id() or "local-development"
-    creds = _resolve_session_config(session_id, user_id=caller_owner_id)
+    caller_owner_id = get_authenticated_owner_id(request) or "local-development"
+    effective_session_id = _extract_effective_session_id(x_snowflake_session_id, session_id)
+    creds = _resolve_session_config(effective_session_id, user_id=caller_owner_id)
     driver = get_snowflake_driver(use_mock=bool(creds.get("use_mock")))
     try:
         objects = driver.discover_objects(creds, database_name, schema_name, limit=limit, from_last=from_last)
@@ -241,7 +257,7 @@ async def preview_query(
     if not is_valid:
         raise HTTPException(status_code=400, detail=err_msg)
 
-    caller_owner_id = get_authenticated_owner_id() or "local-development"
+    caller_owner_id = get_authenticated_owner_id(request) or "local-development"
     creds = _resolve_session_config(payload.session_id, user_id=caller_owner_id)
     driver = get_snowflake_driver(use_mock=bool(creds.get("use_mock")))
     try:
@@ -403,12 +419,15 @@ async def delete_snowflake_extract(
     }
 
 
+@router.post("/disconnect")
 @router.post("/disconnect/{session_id}")
 async def disconnect_snowflake(
-    session_id: str,
+    session_id: Optional[str] = None,
+    x_snowflake_session_id: Optional[str] = Header(None, alias="X-Snowflake-Session-Id"),
     _auth: None = Depends(verify_api_key),
 ):
     """Explicitly purges Snowflake credentials and closes pooled connections."""
+    target_session_id = _extract_effective_session_id(x_snowflake_session_id, session_id)
     vault = get_snowflake_vault()
-    vault.invalidate_session(session_id)
-    return {"session_id": session_id, "message": "Snowflake session invalidated and credentials purged."}
+    vault.invalidate_session(target_session_id)
+    return {"session_id": target_session_id, "message": "Snowflake session invalidated and credentials purged."}

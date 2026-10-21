@@ -166,14 +166,14 @@ def check_task_ownership(task_owner_id: str | None, caller_owner_id: str | None)
             )
 
 
-def get_authenticated_owner_id(request: Request | None = None) -> str | None:
+def get_authenticated_owner_id(request: Request | WebSocket | None = None) -> str | None:
     """Return the caller principal for tenant boundary isolation.
 
     If an explicit x-user-id or x-consumer-id header is provided, it is returned.
     Otherwise, if API_KEY authentication is configured, returns 'api-key:shared'.
     In local unauthenticated development without identity headers, returns None.
     """
-    if request is not None:
+    if request is not None and hasattr(request, "headers"):
         caller = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
         if caller:
             return caller.strip()

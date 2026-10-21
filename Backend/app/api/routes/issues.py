@@ -60,7 +60,7 @@ async def get_issues(request: Request, task_id: str, _auth: None = Depends(verif
     if not job:
         raise HTTPException(404, "Job not found")
     
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     check_task_ownership(job.owner_id, caller_owner_id)
 
     if not job.result:
@@ -78,7 +78,7 @@ async def get_issues(request: Request, task_id: str, _auth: None = Depends(verif
 async def approve_issue(request: Request, task_id: str, issue_id: str, body: IssueActionRequest = None, _auth: None = Depends(verify_api_key)):
     """Approve a single issue for execution."""
     validate_task_id(task_id)
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
     
     for issue in ledger_data.get("issues", []):
@@ -98,7 +98,7 @@ async def approve_issue(request: Request, task_id: str, issue_id: str, body: Iss
 async def reject_issue(request: Request, task_id: str, issue_id: str, body: IssueActionRequest = None, _auth: None = Depends(verify_api_key)):
     """Reject an issue - fix will not be applied."""
     validate_task_id(task_id)
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
     
     for issue in ledger_data.get("issues", []):
@@ -124,7 +124,7 @@ async def modify_issue(
 ):
     """Modify the suggested fix code for an issue."""
     validate_task_id(task_id)
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
 
     if ledger_data.get("locked"):
@@ -148,7 +148,7 @@ async def modify_issue(
 async def approve_all_issues(request: Request, task_id: str, _auth: None = Depends(verify_api_key)):
     """Approve all pending issues."""
     validate_task_id(task_id)
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
     
     count = 0
@@ -167,7 +167,7 @@ async def approve_all_issues(request: Request, task_id: str, _auth: None = Depen
 async def reject_all_issues(request: Request, task_id: str, _auth: None = Depends(verify_api_key)):
     """Reject all pending issues."""
     validate_task_id(task_id)
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
     
     count = 0
@@ -186,7 +186,7 @@ async def reject_all_issues(request: Request, task_id: str, _auth: None = Depend
 async def lock_issues(request: Request, task_id: str, _auth: None = Depends(verify_api_key)):
     """Lock the issue ledger - no more changes allowed."""
     validate_task_id(task_id)
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
     
     pending = sum(1 for i in ledger_data.get("issues", []) if i["status"] == "pending")

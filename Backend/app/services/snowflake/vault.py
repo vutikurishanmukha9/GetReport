@@ -185,10 +185,6 @@ class EncryptedSessionVault:
         ciphertext = packed_blob[28:]
 
         candidate_users = [user_id]
-        if not settings.REQUIRE_AUTH:
-            for fallback in ("local-development", "default_user"):
-                if fallback not in candidate_users:
-                    candidate_users.append(fallback)
 
         for candidate in candidate_users:
             try:

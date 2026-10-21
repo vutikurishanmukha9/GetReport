@@ -84,7 +84,7 @@ async def start_analysis(
         logger.error(f"Job {task_id} NOT FOUND.")
         raise HTTPException(404, "Job not found")
 
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     check_task_ownership(job.owner_id, caller_owner_id)
 
     logger.info(f"Job {task_id} status: {job.status}")

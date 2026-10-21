@@ -104,7 +104,7 @@ async def upload_file(
         )
 
         # Create Task (with tenant owner tracking)
-        caller_owner_id = get_authenticated_owner_id()
+        caller_owner_id = get_authenticated_owner_id(request)
         task_id = await title_task_manager.create_job_async(safe_filename, file_hash=file_hash, owner_id=caller_owner_id)
 
         # Start Inspection Task (Phase 1) - VIA UNIFIED TASK DISPATCHER (ARQ / In-Memory)
@@ -182,7 +182,7 @@ async def upload_files_batch(
             max_bytes
         )
 
-        caller_owner_id = get_authenticated_owner_id()
+        caller_owner_id = get_authenticated_owner_id(request)
         task_id = await title_task_manager.create_job_async(safe_filename, batch_id=batch_id, file_hash=file_hash, owner_id=caller_owner_id)
         await dispatch_task("app.tasks.inspect_file", task_id, file_ref, safe_filename)
 
@@ -333,7 +333,7 @@ async def upload_and_join_files(
         csv_bytes.seek(0)
 
         file_hash = hashlib.sha256(csv_bytes.getvalue()).hexdigest()
-        caller_owner_id = get_authenticated_owner_id()
+        caller_owner_id = get_authenticated_owner_id(request)
         task_id = await title_task_manager.create_job_async(joined_filename, file_hash=file_hash, owner_id=caller_owner_id)
 
         joined_file_ref = storage.save_upload(csv_bytes, joined_filename)

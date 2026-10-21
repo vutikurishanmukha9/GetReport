@@ -34,7 +34,7 @@ async def chat_with_job(
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found.")
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     check_task_ownership(job.owner_id, caller_owner_id)
     if job.status != TaskStatus.COMPLETED:
          raise HTTPException(400, "Job is not completed yet.")
@@ -66,7 +66,7 @@ async def chat_stream_with_job(
     job = await title_task_manager.get_job_async(task_id)
     if not job:
         raise HTTPException(404, "Job not found.")
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     check_task_ownership(job.owner_id, caller_owner_id)
     if job.status != TaskStatus.COMPLETED:
          raise HTTPException(400, "Job is not completed yet.")

@@ -44,7 +44,7 @@ async def get_task_status(
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     check_task_ownership(job.owner_id, caller_owner_id)
 
     result_data = None
@@ -87,7 +87,7 @@ async def stream_task_status(
     if not job:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    caller_owner_id = get_authenticated_owner_id()
+    caller_owner_id = get_authenticated_owner_id(request)
     check_task_ownership(job.owner_id, caller_owner_id)
 
     async def _event_generator():
@@ -186,7 +186,7 @@ async def websocket_status(websocket: WebSocket, task_id: str):
     # §6: Protocol-level authentication — accept key via first message, not URL query
     await websocket.accept()
     
-    caller_user_id = get_authenticated_owner_id()
+    caller_user_id = get_authenticated_owner_id(websocket)
     if settings.API_KEY or settings.REQUIRE_AUTH:
         try:
             # Wait up to 5s for the auth message

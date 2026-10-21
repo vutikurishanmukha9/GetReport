@@ -440,22 +440,27 @@ def test_snowflake_pagination_and_delete_extract():
     client = TestClient(app)
 
     # 1. Connect
-    res = client.post("/api/snowflake/connect", json={
-        "account": "test-acct",
-        "user": "test-user",
-        "warehouse": "ANALYTICS_WH",
-        "database": "ANALYTICS_DB",
-        "schema": "PUBLIC",
-        "auth_type": "password",
-        "password": "mock-password-123",
-        "use_mock": True,
-    })
+    res = client.post(
+        "/api/snowflake/connect",
+        json={
+            "account": "test-acct",
+            "user": "test-user",
+            "warehouse": "ANALYTICS_WH",
+            "database": "ANALYTICS_DB",
+            "schema": "PUBLIC",
+            "auth_type": "password",
+            "password": "mock-password-123",
+            "use_mock": True,
+        },
+        headers={"x-user-id": "compliance_user_1"},
+    )
     assert res.status_code == 200
     session_id = res.json()["session_id"]
 
     # 2. Test pagination with from_last on objects
     res_page1 = client.get(
-        f"/api/snowflake/objects?session_id={session_id}&database_name=ANALYTICS_DB&schema_name=PUBLIC&limit=1"
+        f"/api/snowflake/objects?session_id={session_id}&database_name=ANALYTICS_DB&schema_name=PUBLIC&limit=1",
+        headers={"x-user-id": "compliance_user_1"},
     )
     assert res_page1.status_code == 200
     p1_data = res_page1.json()
@@ -464,7 +469,8 @@ def test_snowflake_pagination_and_delete_extract():
     first_name = p1_data["objects"][0]["name"]
 
     res_page2 = client.get(
-        f"/api/snowflake/objects?session_id={session_id}&database_name=ANALYTICS_DB&schema_name=PUBLIC&limit=1&from_last={first_name}"
+        f"/api/snowflake/objects?session_id={session_id}&database_name=ANALYTICS_DB&schema_name=PUBLIC&limit=1&from_last={first_name}",
+        headers={"x-user-id": "compliance_user_1"},
     )
     assert res_page2.status_code == 200
     p2_data = res_page2.json()

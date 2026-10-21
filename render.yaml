@@ -39,7 +39,7 @@ services:
       - key: REQUIRE_AUTH
         value: "false"
       - key: SECRET_KEY
-        sync: false
+        generateValue: true
       - key: PDF_ENGINE
         value: typst
       - key: CORS_ORIGINS

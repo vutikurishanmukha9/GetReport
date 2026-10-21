@@ -239,13 +239,13 @@ def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
         # ── Fix suggestion based on dtype & mechanism ──
         dtype = df[col].dtype
         if mechanism == "MNAR":
-            fix_code = f"# MNAR field: create missingness flag column before imputation\ndf = df.with_columns(pl.col('{col}').is_null().cast(pl.Int8).alias('{col}_is_missing'))"
+            fix_code = f"# MNAR field: create missingness flag column before imputation\ndf = df.with_columns(pl.col({repr(col)}).is_null().cast(pl.Int8).alias({repr(col + '_is_missing')}))"
             suggested_fix = "Create missingness indicator flag column (MNAR preservation)"
         elif dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.Int16, pl.Int8, pl.UInt32, pl.UInt64):
-            fix_code = f"df = df.with_columns(pl.col('{col}').fill_null(pl.col('{col}').median()))"
+            fix_code = f"df = df.with_columns(pl.col({repr(col)}).fill_null(pl.col({repr(col)}).median()))"
             suggested_fix = "Fill with median value"
         else:
-            fix_code = f"df = df.with_columns(pl.col('{col}').fill_null(pl.col('{col}').mode().first()))"
+            fix_code = f"df = df.with_columns(pl.col({repr(col)}).fill_null(pl.col({repr(col)}).mode().first()))"
             suggested_fix = "Fill with most common value"
 
         desc = f"{null_pct:.1f}% missing values ({null_count:,} rows) - {pattern}"
@@ -297,7 +297,7 @@ def _detect_business_rule_violations(df: pl.DataFrame) -> list[Issue]:
                         affected_pct=pct,
                         description=f"{invalid_count:,} invalid email address formats detected in '{col}'",
                         suggested_fix="Filter out or flag invalid email syntax",
-                        fix_code=f"df = df.filter(pl.col('{col}').str.contains(r'{email_regex}') | pl.col('{col}').is_null())",
+                        fix_code=f"df = df.filter(pl.col({repr(col)}).str.contains(r'{email_regex}') | pl.col({repr(col)}).is_null())",
                     ))
 
         # ── 2. Out of Range Age ──
@@ -316,7 +316,7 @@ def _detect_business_rule_violations(df: pl.DataFrame) -> list[Issue]:
                         affected_pct=pct,
                         description=f"{age_out_bounds:,} age values out of human range [0, 120]",
                         suggested_fix="Clip age values to range [0, 120]",
-                        fix_code=f"df = df.with_columns(pl.col('{col}').clip(0, 120))",
+                        fix_code=f"df = df.with_columns(pl.col({repr(col)}).clip(0, 120))",
                     ))
 
         # ── 3. Future Dates ──
@@ -336,7 +336,7 @@ def _detect_business_rule_violations(df: pl.DataFrame) -> list[Issue]:
                         affected_pct=pct,
                         description=f"{future_count:,} dates in '{col}' occur in the future (exceed current timestamp)",
                         suggested_fix="Filter out future dated records",
-                        fix_code=f"df = df.filter(pl.col('{col}') <= pl.lit(datetime.now()))",
+                        fix_code=f"df = df.filter(pl.col({repr(col)}) <= pl.lit(datetime.now()))",
                     ))
 
     # ── 4. Cross-Field Date Chronology Violations (e.g. ship_date < order_date) ──
@@ -359,7 +359,7 @@ def _detect_business_rule_violations(df: pl.DataFrame) -> list[Issue]:
                         affected_pct=pct,
                         description=f"Chronology error: {invalid_seq_count:,} rows where '{end_col}' is earlier than '{start_col}'",
                         suggested_fix=f"Filter out rows where '{end_col}' < '{start_col}'",
-                        fix_code=f"df = df.filter((pl.col('{end_col}') >= pl.col('{start_col}')) | pl.col('{end_col}').is_null() | pl.col('{start_col}').is_null())",
+                        fix_code=f"df = df.filter((pl.col({repr(end_col)}) >= pl.col({repr(start_col)})) | pl.col({repr(end_col)}).is_null() | pl.col({repr(start_col)}).is_null())",
                     ))
             except Exception:
                 pass
@@ -393,7 +393,7 @@ def _detect_summary_rows_and_mid_headers(df: pl.DataFrame) -> list[Issue]:
                     affected_pct=pct,
                     description=f"{repeated_headers:,} repeated header row(s) detected mid-file in column '{col}'",
                     suggested_fix=f"Filter out repeated header rows",
-                    fix_code=f"df = df.filter(pl.col('{col}').str.to_lowercase() != '{col.lower()}')",
+                    fix_code=f"df = df.filter(pl.col({repr(col)}).str.to_lowercase() != {repr(col.lower())})",
                 ))
 
             # ── 2. Summary / Total rows ──
@@ -410,7 +410,7 @@ def _detect_summary_rows_and_mid_headers(df: pl.DataFrame) -> list[Issue]:
                     affected_pct=pct,
                     description=f"{summary_count:,} aggregate summary/total row(s) detected mixed into dataset",
                     suggested_fix=f"Filter out aggregate summary rows",
-                    fix_code=f"df = df.filter(~pl.col('{col}').str.to_lowercase().str.strip_chars().is_in({list(SUMMARY_KEYWORDS)}))",
+                    fix_code=f"df = df.filter(~pl.col({repr(col)}).str.to_lowercase().str.strip_chars().is_in({list(SUMMARY_KEYWORDS)}))",
                 ))
 
     return issues
@@ -523,7 +523,7 @@ def _detect_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
                         affected_pct=pct,
                         description=f"Primary key conflict: {conflicts:,} duplicate IDs in '{key_col}' with non-identical attribute values",
                         suggested_fix=f"Deduplicate on key column '{key_col}'",
-                        fix_code=f"df = df.unique(subset=['{key_col}'], keep='first')",
+                        fix_code=f"df = df.unique(subset=[{repr(key_col)}], keep='first')",
                     ))
     except Exception:
         pass
@@ -697,7 +697,7 @@ def _detect_empty_column_issues(df: pl.DataFrame) -> list[Issue]:
                 affected_pct=100.0,
                 description=f"Column is entirely empty",
                 suggested_fix="Drop empty column",
-                fix_code=f"df = df.drop('{col}')",
+                fix_code=f"df = df.drop({repr(col)})",
             ))
     
     return issues
@@ -720,7 +720,7 @@ def _detect_constant_column_issues(df: pl.DataFrame) -> list[Issue]:
                 affected_pct=100.0,
                 description=f"Column has only one unique value",
                 suggested_fix="Consider dropping (no predictive value)",
-                fix_code=f"df = df.drop('{col}')",
+                fix_code=f"df = df.drop({repr(col)})",
             ))
     
     return issues
@@ -757,11 +757,11 @@ def _detect_type_mismatch_issues(
 
             if not code:
                 if suggested == "datetime":
-                    code = f"df = df.with_columns(pl.col('{col}').str.to_datetime())"
+                    code = f"df = df.with_columns(pl.col({repr(col)}).str.to_datetime())"
                 elif suggested == "integer":
-                    code = f"df = df.with_columns(pl.col('{col}').cast(pl.Int64))"
+                    code = f"df = df.with_columns(pl.col({repr(col)}).cast(pl.Int64))"
                 elif suggested == "float":
-                    code = f"df = df.with_columns(pl.col('{col}').cast(pl.Float64))"
+                    code = f"df = df.with_columns(pl.col({repr(col)}).cast(pl.Float64))"
 
             # Include sample values for clarity
             samples_str = ""
@@ -818,7 +818,7 @@ def _detect_type_mismatch_issues(
                     affected_pct=100.0,
                     description=f"Column contains boolean-like values ({', '.join(sorted(unique_vals))}) stored as strings - samples: {sample[:3]}",
                     suggested_fix="Convert to Boolean",
-                    fix_code=f"df = df.with_columns(pl.col('{col}').str.to_lowercase().is_in(['true','yes','1','t','y']).alias('{col}'))",
+                    fix_code=f"df = df.with_columns(pl.col({repr(col)}).str.to_lowercase().is_in(['true','yes','1','t','y']).alias({repr(col)}))",
                 ))
                 already_flagged.add(col)
                 continue
@@ -841,7 +841,7 @@ def _detect_type_mismatch_issues(
                 affected_pct=100.0,
                 description=f"String column appears numeric ({match_ratio:.0%} of sampled values parse as numbers) - samples: {sample[:3]}",
                 suggested_fix=f"Convert to {target_type}",
-                fix_code=f"df = df.with_columns(pl.col('{col}').cast(pl.{target_type}, strict=False))",
+                fix_code=f"df = df.with_columns(pl.col({repr(col)}).cast(pl.{target_type}, strict=False))",
             ))
             already_flagged.add(col)
 
@@ -996,10 +996,10 @@ def _detect_outlier_issues(
             fix_code = f"# Review outliers in '{col}' - values outside [{lower:.2f}, {upper:.2f}]"
         elif pct < 15:
             suggested_fix = f"Winsorize to IQR bounds [{lower:.2f}, {upper:.2f}]"
-            fix_code = f"df = df.with_columns(pl.col('{col}').clip({lower:.2f}, {upper:.2f}))"
+            fix_code = f"df = df.with_columns(pl.col({repr(col)}).clip({lower:.2f}, {upper:.2f}))"
         else:
             suggested_fix = f"Clip to range [{lower:.2f}, {upper:.2f}]"
-            fix_code = f"df = df.with_columns(pl.col('{col}').clip({lower:.2f}, {upper:.2f}))"
+            fix_code = f"df = df.with_columns(pl.col({repr(col)}).clip({lower:.2f}, {upper:.2f}))"
 
         issues.append(Issue(
             id=_generate_id(),
@@ -1095,11 +1095,11 @@ def _detect_masked_null_issues(df: pl.DataFrame) -> list[Issue]:
             severity: Severity = "high" if masked_pct >= 10 else ("medium" if masked_pct >= 3 else "low")
             
             if dtype in (pl.Utf8, pl.String):
-                fix_code = f"df = df.with_columns(pl.when(pl.col('{col}').str.to_lowercase().str.strip_chars().is_in({list(MASKED_NULL_PATTERNS)})).then(None).otherwise(pl.col('{col}')).alias('{col}'))"
+                fix_code = f"df = df.with_columns(pl.when(pl.col({repr(col)}).str.to_lowercase().str.strip_chars().is_in({list(MASKED_NULL_PATTERNS)})).then(None).otherwise(pl.col({repr(col)})).alias({repr(col)}))"
             elif dtype.is_float():
-                fix_code = f"df = df.with_columns(pl.when(pl.col('{col}').cast(pl.Float64).is_in([-999.0, -9999.0, 9999.0, 99999.0])).then(None).otherwise(pl.col('{col}')).alias('{col}'))"
+                fix_code = f"df = df.with_columns(pl.when(pl.col({repr(col)}).cast(pl.Float64).is_in([-999.0, -9999.0, 9999.0, 99999.0])).then(None).otherwise(pl.col({repr(col)})).alias({repr(col)}))"
             else:
-                fix_code = f"df = df.with_columns(pl.when(pl.col('{col}').cast(pl.Int64).is_in([-999, -9999, 9999, 99999])).then(None).otherwise(pl.col('{col}')).alias('{col}'))"
+                fix_code = f"df = df.with_columns(pl.when(pl.col({repr(col)}).cast(pl.Int64).is_in([-999, -9999, 9999, 99999])).then(None).otherwise(pl.col({repr(col)})).alias({repr(col)}))"
 
             issues.append(Issue(
                 id=_generate_id(),
@@ -1146,7 +1146,7 @@ def _detect_whitespace_and_case_issues(df: pl.DataFrame) -> list[Issue]:
                 affected_pct=pct,
                 description=f"{space_diff:,} values have leading/trailing whitespace pollution",
                 suggested_fix="Trim leading and trailing whitespace",
-                fix_code=f"df = df.with_columns(pl.col('{col}').str.strip_chars().alias('{col}'))",
+                fix_code=f"df = df.with_columns(pl.col({repr(col)}).str.strip_chars().alias({repr(col)}))",
             ))
 
         # ── 2. Case fragmentation in categorical columns ──
@@ -1164,7 +1164,7 @@ def _detect_whitespace_and_case_issues(df: pl.DataFrame) -> list[Issue]:
                 affected_pct=100.0,
                 description=f"Case fragmentation: {n_unique_raw} raw distinct values reduce to {n_unique_lower} when lowercased ({diff} casing variations)",
                 suggested_fix="Normalize text to title case",
-                fix_code=f"df = df.with_columns(pl.col('{col}').str.to_titlecase().alias('{col}'))",
+                fix_code=f"df = df.with_columns(pl.col({repr(col)}).str.to_titlecase().alias({repr(col)}))",
             ))
 
     return issues
@@ -1259,7 +1259,7 @@ def _detect_extreme_skewness_issues(df: pl.DataFrame) -> list[Issue]:
                 min_val = non_null.min()
                 if min_val is not None and min_val >= 0:
                     suggested_fix = "Apply log1p transformation to stabilize variance and normalize tail"
-                    fix_code = f"df = df.with_columns(pl.col('{col}').log1p().alias('{col}_log1p'))"
+                    fix_code = f"df = df.with_columns(pl.col({repr(col)}).log1p().alias({repr(col + '_log1p')}))"
                 else:
                     suggested_fix = "Apply Box-Cox / Yeo-Johnson power or quantile transformation"
                     fix_code = f"# Extreme skewness ({skew_val:.2f}) for '{col}': apply power or quantile transformation"
@@ -1324,10 +1324,9 @@ def _detect_rare_category_issues(df: pl.DataFrame) -> list[Issue]:
                 f"May cause high-variance one-hot encoding or out-of-vocabulary test errors."
             )
             suggested_fix = "Group rare categories into an 'Other' bucket"
-            escaped_cats = [c.replace("'", "\\'") for c in rare_categories[:20]]
             fix_code = (
-                f"df = df.with_columns(pl.when(pl.col('{col}').is_in({escaped_cats}))"
-                f".then(pl.lit('Other')).otherwise(pl.col('{col}')).alias('{col}'))"
+                f"df = df.with_columns(pl.when(pl.col({repr(col)}).is_in({rare_categories[:20]}))"
+                f".then(pl.lit('Other')).otherwise(pl.col({repr(col)})).alias({repr(col)}))"
             )
 
             issues.append(Issue(
@@ -1564,21 +1563,32 @@ def apply_remediation(
         "ctypes", "ctypeslib", "shutil", "io", "pathlib", "posix", "socket", "urllib", "requests",
     })
 
+    allowed_names = set(safe_builtins.keys()) | {"df", "pl", "datetime"}
+    forbidden_ast_nodes = (
+        ast.Import, ast.ImportFrom,
+        ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Lambda,
+        ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp,
+        ast.While, ast.For, ast.AsyncFor,
+        ast.With, ast.AsyncWith,
+        ast.Try,
+        ast.Global, ast.Nonlocal, ast.Delete,
+    )
+
     loc_env = {"df": df, "pl": pl}
     for issue in issues_to_apply:
         try:
             if issue.fix_code and not issue.fix_code.startswith("#"):
-                # Validate fix_code AST to ensure no unauthorized imports, dunders, or builtins
+                # Validate fix_code AST to ensure no unauthorized imports, dunders, loops, comprehensions, or builtins
                 tree = ast.parse(issue.fix_code, mode="exec")
                 for node in ast.walk(tree):
-                    if isinstance(node, (ast.Import, ast.ImportFrom, ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Lambda)):
+                    if isinstance(node, forbidden_ast_nodes):
                         raise ValueError(f"Construct '{type(node).__name__}' is prohibited in remediation code.")
                     elif isinstance(node, ast.Attribute):
                         if node.attr.startswith("__") or node.attr in forbidden_remediation_attrs:
                             raise ValueError(f"Accessing attribute '{node.attr}' is prohibited in remediation code.")
                     elif isinstance(node, ast.Name):
-                        if node.id.startswith("__") or node.id in ("eval", "exec", "open", "compile", "__import__", "globals", "locals", "sys", "os", "subprocess"):
-                            raise ValueError(f"Function or identifier '{node.id}' is prohibited in remediation code.")
+                        if node.id not in allowed_names:
+                            raise ValueError(f"Identifier '{node.id}' is prohibited in remediation code.")
                     elif isinstance(node, ast.Subscript):
                         if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str) and node.slice.value.startswith("__"):
                             raise ValueError("Accessing private dictionary key is prohibited in remediation code.")
