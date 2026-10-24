@@ -137,6 +137,20 @@ async def dispatch_task(task_name: str, *args: Any, **kwargs: Any) -> str:
                 _redis_available = False
                 logger.warning("ARQ enqueue failed (%s). Falling back to in-memory execution.", arq_err)
 
+    # Production Guard: If durable queue is required (explicitly or in production/Render), do not silently drop to in-memory dispatch
+    is_durable_required = bool(
+        getattr(settings, "REQUIRE_DURABLE_JOBS", False)
+        or (getattr(settings, "ENVIRONMENT", "").lower() == "production")
+        or (os.environ.get("RENDER") and settings.REDIS_URL)
+    )
+    if is_durable_required and not redis_online:
+        logger.critical("PRODUCTION QUEUE ERROR: Redis is unreachable but durable job dispatch is required.")
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=503,
+            detail="Background queue service unavailable. Durable job execution is required in production.",
+        )
+
     # In-memory execution fallback (Local Dev & zero-Redis environments)
     _ensure_registry_loaded()
     handler = _TASK_REGISTRY.get(task_name)
@@ -185,6 +199,16 @@ def dispatch_task_sync(task_name: str, *args: Any, **kwargs: Any) -> str:
             return "in-memory"
     except RuntimeError:
         pass
+
+    # Production Guard: If durable queue is required, do not silently drop to daemon thread
+    is_durable_required = bool(
+        getattr(settings, "REQUIRE_DURABLE_JOBS", False)
+        or (getattr(settings, "ENVIRONMENT", "").lower() == "production")
+        or (os.environ.get("RENDER") and settings.REDIS_URL)
+    )
+    if is_durable_required and not check_redis_available():
+        logger.critical("PRODUCTION QUEUE ERROR: Redis is unreachable but durable job dispatch is required.")
+        raise RuntimeError("Background queue service unavailable. Durable job execution is required in production.")
 
     # No running event loop in current thread: dispatch via worker thread
     _ensure_registry_loaded()

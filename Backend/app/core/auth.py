@@ -80,15 +80,16 @@ async def verify_api_key(
     - If settings.API_KEY is set, accepts valid X-API-Key header or stream ticket.
     - Deprecated: ?api_key= query parameter is accepted with a security warning log.
     """
+    is_auth_enforced = settings.REQUIRE_AUTH or (getattr(settings, "ENVIRONMENT", "").lower() == "production")
     if not settings.API_KEY:
-        if settings.REQUIRE_AUTH:
-            # Fail closed only when explicit REQUIRE_AUTH is configured
-            logger.critical("SECURITY: REQUIRE_AUTH is enabled but API_KEY is empty. Rejecting all requests.")
+        if is_auth_enforced:
+            # Fail closed when explicit REQUIRE_AUTH is configured or in production
+            logger.critical("SECURITY: Authentication is enforced but API_KEY is empty. Rejecting all requests.")
             raise HTTPException(
                 status_code=503,
                 detail="Service misconfigured: authentication is required but not configured.",
             )
-        # Auth disabled
+        # Auth disabled in development
         return
 
     # 1. Stream ticket validation (preferred for SSE / browser GET requests)
@@ -122,11 +123,12 @@ def verify_ws_api_key(api_key: str | None, ticket: str | None = None) -> bool:
     Returns True if authorized, False otherwise.
     Fail-closed only if REQUIRE_AUTH is True but API_KEY is empty.
     """
+    is_auth_enforced = settings.REQUIRE_AUTH or (getattr(settings, "ENVIRONMENT", "").lower() == "production")
     if not settings.API_KEY:
-        if settings.REQUIRE_AUTH:
-            logger.critical("SECURITY: REQUIRE_AUTH is enabled but API_KEY is empty. Rejecting WebSocket.")
+        if is_auth_enforced:
+            logger.critical("SECURITY: Authentication is enforced but API_KEY is empty. Rejecting WebSocket.")
             return False
-        return True  # Auth disabled
+        return True  # Auth disabled in development
     if ticket and consume_stream_ticket(ticket):
         return True
     return bool(api_key and secrets.compare_digest(api_key, settings.API_KEY))

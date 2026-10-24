@@ -101,6 +101,12 @@ class RealSnowflakeDriver(SnowflakeIngestDriver):
             "role": config.get("role"),
             "client_prefetch_threads": 1,  # Memory-constrained container safety
             "query_tag": "getreport-ingest",
+            "login_timeout": 15,          # 15s login timeout
+            "network_timeout": 30,        # 30s socket network timeout
+            "session_parameters": {
+                "STATEMENT_TIMEOUT_IN_SECONDS": 60,         # Maximum 60s statement execution cap
+                "STATEMENT_QUEUED_TIMEOUT_IN_SECONDS": 30,  # Max 30s queue wait
+            },
         }
 
         if config.get("private_key_der"):

@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: str = "60/minute"
     MAX_UPLOAD_SIZE_MB: int = 50
     
+    # ─── Environment & Runtime Governance ────────────────────────────────
+    ENVIRONMENT: str = "development" # "development", "staging", "production"
+    REQUIRE_DURABLE_JOBS: bool = False # If True or in production, queue fails closed if Redis is offline
+    ENABLE_CODE_EXECUTION: bool = False # Secure default: arbitrary python execution disabled
+    
     # ─── Security ─────────────────────────────────────────────────────────
     # API Key: If set, all endpoints require X-API-Key header.
     # Leave empty to disable auth.

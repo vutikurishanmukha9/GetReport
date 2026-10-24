@@ -192,6 +192,94 @@ class DatasetGraphStore:
 
         return "\n".join(lines)
 
+    def cluster(self, resolution: float = 1.0) -> Dict[str, Any]:
+        """
+        Executes Graphify Leiden clustering, hub naming, cohesion scoring,
+        God Node identification, and surprising connection discovery.
+        """
+        if not HAS_NETWORKX or self.graph is None or self.graph.number_of_nodes() == 0:
+            return {}
+
+        from app.services.graphify.cluster_bridge import cluster_and_analyze_dataset_graph
+        communities, community_labels, analysis = cluster_and_analyze_dataset_graph(
+            self.graph, resolution=resolution
+        )
+        self.graph.graph["communities"] = communities
+        self.graph.graph["community_labels"] = community_labels
+        self.graph.graph["analysis_metadata"] = analysis
+        return analysis
+
+    def get_analysis(self) -> Dict[str, Any]:
+        """Returns topological analysis metadata if available."""
+        if not HAS_NETWORKX or self.graph is None:
+            return {}
+        return self.graph.graph.get("analysis_metadata", {})
+
+    def get_communities(self) -> Dict[int, List[str]]:
+        """Returns detected community clusters."""
+        if not HAS_NETWORKX or self.graph is None:
+            return {}
+        return self.graph.graph.get("communities", {})
+
+    def get_community_labels(self) -> Dict[int, str]:
+        """Returns community hub labels."""
+        if not HAS_NETWORKX or self.graph is None:
+            return {}
+        return self.graph.graph.get("community_labels", {})
+
+    def find_path(self, source_id: str, target_id: str) -> Dict[str, Any]:
+        """Finds shortest and causal paths between two entities."""
+        from app.services.graphify.query_bridge import find_causal_path
+        return find_causal_path(self.graph, source_id, target_id)
+
+    def get_blast_radius(self, node_id: str) -> Dict[str, Any]:
+        """Calculates upstream dependencies and downstream blast radius for a node."""
+        from app.services.graphify.query_bridge import compute_blast_radius
+        return compute_blast_radius(self.graph, node_id)
+
+    def search_entities(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Sub-millisecond fuzzy entity search via trigrams and token scoring."""
+        from app.services.graphify.query_bridge import search_graph_entities
+        return search_graph_entities(self.graph, query, limit=limit)
+
+    def generate_html(self, output_html_path: str) -> str:
+        """Generates a standalone, self-contained interactive Vis.js HTML view."""
+        from app.services.graphify.export_bridge import generate_interactive_html
+        comms = self.get_communities()
+        return generate_interactive_html(self.graph, comms, output_html_path)
+
+    def generate_svg(self, output_svg_path: str) -> str:
+        """Generates a vector SVG for Typst PDF embedding."""
+        from app.services.graphify.export_bridge import generate_typst_vector_svg
+        comms = self.get_communities()
+        labels = self.get_community_labels()
+        return generate_typst_vector_svg(self.graph, output_svg_path, comms, labels)
+
+    def attach_sql(self, sql_text: str, dialect: str = "snowflake") -> Dict[str, Any]:
+        """Parses a SQL query and bridges its table/view lineage into this graph."""
+        from app.services.graphify.sql_lineage_bridge import attach_sql_lineage_to_dataset_graph
+        return attach_sql_lineage_to_dataset_graph(self.graph, sql_text, dialect=dialect)
+
+    def get_layers(self) -> List[Dict[str, Any]]:
+        """Classifies the graph into Understand-Anything canonical architectural layers."""
+        from app.services.understand_anything.layer_detector import detect_dataset_layers
+        return detect_dataset_layers(self.graph)
+
+    def get_audit_tour(self, analysis_results: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """Generates an ordered, pedagogical investigation tour of dataset bottlenecks."""
+        from app.services.understand_anything.tour_generator import generate_dataset_audit_tour
+        return generate_dataset_audit_tour(self.graph, analysis_results=analysis_results)
+
+    def get_fingerprint(self) -> Dict[str, Any]:
+        """Computes a deterministic structural SHA-256 fingerprint for drift detection."""
+        from app.services.understand_anything.fingerprint import compute_dataset_fingerprint
+        return compute_dataset_fingerprint(self.graph)
+
+    def to_understand_anything_json(self, project_name: str = "Dataset Audit", description: str = "") -> Dict[str, Any]:
+        """Exports the graph in full Understand-Anything KnowledgeGraph schema format."""
+        from app.services.understand_anything.exporter import export_to_understand_anything_schema
+        return export_to_understand_anything_schema(self.graph, project_name=project_name, description=description)
+
     def to_json(self) -> str:
         """Serialize the graph to a JSON string compatible with networkx json_graph."""
         if not HAS_NETWORKX or self.graph is None:

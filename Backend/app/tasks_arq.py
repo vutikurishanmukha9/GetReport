@@ -422,7 +422,10 @@ async def resume_analysis_pipeline_task(
         except Exception:
             pass
 
-        del df, cleaned_df, analysis_data
+        try:
+            del cleaned_df
+        except (NameError, UnboundLocalError):
+            pass
         gc.collect()
         return final_result
 

@@ -281,6 +281,17 @@ def build_dataset_graph(
                     }
                 )
 
+    # 9. Execute Graphify Leiden Clustering, Hub Naming, and Forensic Topological Analysis
+    try:
+        analysis_metadata = store.cluster()
+        logger.info(
+            f"Graphify clustered task {task_id}: {analysis_metadata.get('total_communities', 0)} communities, "
+            f"{len(analysis_metadata.get('god_nodes', []))} god nodes, "
+            f"{len(analysis_metadata.get('surprising_connections', []))} surprising connections."
+        )
+    except Exception as cluster_err:
+        logger.warning(f"Graphify clustering pass encountered warning for task {task_id}: {cluster_err}")
+
     logger.info(
         f"Built dataset knowledge graph for task {task_id}: "
         f"{store.graph.number_of_nodes()} nodes, {store.graph.number_of_edges()} edges"
