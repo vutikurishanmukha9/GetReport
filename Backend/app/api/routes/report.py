@@ -723,6 +723,12 @@ async def execute_sandboxed_python(
     Executes Python/Polars analysis code in a secure AST-sandboxed runtime.
     Captures stdout/stderr, generated plots (base64 PNG), and execution metrics.
     """
+    if not getattr(settings, "ENABLE_CODE_EXECUTION", False):
+        raise HTTPException(
+            status_code=403,
+            detail="Arbitrary code execution is disabled in this environment for security.",
+        )
+
     job = await _get_authorized_job(request, task_id, require_result=True)
 
     cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")

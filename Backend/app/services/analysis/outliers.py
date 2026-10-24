@@ -164,6 +164,7 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
         # ── 5. Multivariate Outlier Detection via Isolation Forest & LOF ──
         if len(numeric_cols) >= 2 and n_rows >= 20:
             try:
+                import numpy as np
                 from sklearn.ensemble import IsolationForest
                 from sklearn.neighbors import LocalOutlierFactor
 
@@ -173,14 +174,36 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
                     pl.col(c).cast(pl.Float64, strict=False).fill_null(0.0)
                     for c in eval_cols
                 ]).to_numpy()
-                if len(clean_arr) >= 20:
-                    iso = IsolationForest(contamination=0.02, random_state=42, n_estimators=100)
-                    iso_preds = iso.fit_predict(clean_arr)
-                    iso_outliers = int((iso_preds == -1).sum())
 
-                    lof = LocalOutlierFactor(n_neighbors=15, contamination=0.02)
-                    lof_preds = lof.fit_predict(clean_arr)
-                    high_conf_multivariate = int(((iso_preds == -1) & (lof_preds == -1)).sum())
+                # Safeguard: LOF has O(N^2) distance memory & complexity.
+                # If n_rows > 10,000, sample down to 10,000 to prevent O(N^2) memory and CPU lockups.
+                MAX_MULTIVARIATE_SAMPLES = 10000
+                total_samples = len(clean_arr)
+                if total_samples > MAX_MULTIVARIATE_SAMPLES:
+                    rng = np.random.default_rng(42)
+                    sample_indices = rng.choice(total_samples, size=MAX_MULTIVARIATE_SAMPLES, replace=False)
+                    eval_arr = clean_arr[sample_indices]
+                    sample_size = MAX_MULTIVARIATE_SAMPLES
+                else:
+                    eval_arr = clean_arr
+                    sample_size = total_samples
+
+                if sample_size >= 20:
+                    iso = IsolationForest(contamination=0.02, random_state=42, n_estimators=100, n_jobs=-1)
+                    iso_preds = iso.fit_predict(eval_arr)
+                    sample_iso_outliers = int((iso_preds == -1).sum())
+
+                    lof = LocalOutlierFactor(n_neighbors=15, contamination=0.02, n_jobs=-1)
+                    lof_preds = lof.fit_predict(eval_arr)
+                    sample_high_conf = int(((iso_preds == -1) & (lof_preds == -1)).sum())
+
+                    if sample_size < total_samples:
+                        # Extrapolate counts back to total population
+                        high_conf_multivariate = int(round((sample_high_conf / sample_size) * total_samples))
+                        iso_outliers = int(round((sample_iso_outliers / sample_size) * total_samples))
+                    else:
+                        high_conf_multivariate = sample_high_conf
+                        iso_outliers = sample_iso_outliers
 
                     if high_conf_multivariate > 0:
                         outliers["_multivariate_summary"] = {
@@ -189,6 +212,7 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
                             "columns_evaluated": eval_cols,
                             "isolation_forest_count": iso_outliers,
                             "high_confidence_multivariate_count": high_conf_multivariate,
+                            "sampled": sample_size < total_samples,
                         }
             except Exception as ml_err:
                 logger.debug("Multivariate outlier detection skipped: %s", ml_err)

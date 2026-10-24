@@ -667,6 +667,9 @@ def _build_antigravity_tools(job_result: Optional[Dict[str, Any]]):
         Args:
             python_code: Safe Python code operating on 'df' (Polars DataFrame) or 'pl'/'np'.
         """
+        if not getattr(settings, "ENABLE_CODE_EXECUTION", False):
+            return "Sandboxed Python execution is disabled in this environment for security."
+
         if not job_result:
             return "Dataset not loaded."
         cleaned_file_ref = job_result.get("cleaned_file_ref") or job_result.get("_file_ref")
@@ -796,6 +799,11 @@ class EnhancedRAGService:
                 ledger_issues = job_result.get("ledger_issues", job_result.get("issues", []))
                 store = build_dataset_graph(task_id, job_result, ledger_issues)
                 store.save_to_file(graph_path)
+                try:
+                    html_path = graph_path.replace(".json", ".html")
+                    store.generate_html(html_path)
+                except Exception as html_err:
+                    logger.debug(f"Could not generate HTML graph for {task_id}: {html_err}")
                 if not hasattr(self, "_graph_cache"):
                     self._graph_cache = {}
                 self._graph_cache[task_id] = (store, datetime.now())
@@ -1272,6 +1280,18 @@ class EnhancedRAGService:
                             entity_ids.append(col_id)
                         elif graph_store.graph.has_node(kw):
                             entity_ids.append(kw)
+                        else:
+                            # Fuzzy trigram fallback
+                            fuzzy_matches = graph_store.search_entities(kw, limit=1)
+                            if fuzzy_matches:
+                                entity_ids.append(fuzzy_matches[0]["id"])
+
+                    # If no entities matched routing keywords, search query directly
+                    if not entity_ids:
+                        direct_matches = graph_store.search_entities(sanitized_q, limit=2)
+                        for dm in direct_matches:
+                            entity_ids.append(dm["id"])
+
                     if entity_ids:
                         local_subgraph = graph_store.get_local_subgraph(entity_ids, max_hops=1)
                         subgraph_md = graph_store.format_subgraph_markdown(local_subgraph)
@@ -1281,6 +1301,12 @@ class EnhancedRAGService:
                             if n.get("entity_type") in ("FeatureColumn", "DataQualityIssue"):
                                 sources_list.insert(0, f"[Knowledge Graph] {n.get('entity_type')}: {n.get('name', n.get('id'))}")
 
+                        # If 2 or more entities are identified, extract explicit causal path
+                        if len(entity_ids) >= 2:
+                            causal = graph_store.find_path(entity_ids[0], entity_ids[1])
+                            if causal.get("found") and causal.get("explanation_markdown"):
+                                graph_context_blocks.append(causal["explanation_markdown"])
+
                     # Global thematic relation retrieval for dataset-wide questions
                     hl_kws = routing.get("hl_keywords", [])
                     if hl_kws:
@@ -1289,6 +1315,25 @@ class EnhancedRAGService:
                             relations_md = graph_store.format_global_relations_markdown(global_rels)
                             if relations_md:
                                 graph_context_blocks.append(relations_md)
+
+                    # Understand-Anything Guided Audit Tour and Layers injection
+                    if any(term in sanitized_q.lower() for term in ["tour", "overview", "walkthrough", "step", "layer", "architecture", "structure", "audit", "summary"]):
+                        try:
+                            tour_steps = graph_store.get_audit_tour(job_result.get("analysis") if job_result else None)
+                            if tour_steps:
+                                tour_md = ["### 🧭 Guided Data Audit Tour (Pedagogical Overview)"]
+                                for s in tour_steps:
+                                    tour_md.append(f"- **Step {s['order']}: {s['title']}**: {s['description']} *(Insight: {s.get('auditInsight', '')})*")
+                                graph_context_blocks.append("\n".join(tour_md))
+                            
+                            layers = graph_store.get_layers()
+                            if layers:
+                                layer_md = ["### 🏗️ Dataset Architectural Layers"]
+                                for l in layers:
+                                    layer_md.append(f"- **{l['name']}**: {l['description']} ({l.get('nodeCount', len(l.get('nodeIds', [])))} entities)")
+                                graph_context_blocks.append("\n".join(layer_md))
+                        except Exception as tour_err:
+                            logger.debug("Failed retrieving audit tour/layers: %s", tour_err)
 
                 # 4. Build Structured Context, Conversation History & Polars Facts
                 structured_context = []
@@ -1555,6 +1600,25 @@ CONTEXT:
                         relations_md = graph_store.format_global_relations_markdown(global_rels)
                         if relations_md:
                             graph_context_blocks.append(relations_md)
+
+                # Understand-Anything Guided Audit Tour and Layers injection
+                if any(term in sanitized_q.lower() for term in ["tour", "overview", "walkthrough", "step", "layer", "architecture", "structure", "audit", "summary"]):
+                    try:
+                        tour_steps = graph_store.get_audit_tour(job_result.get("analysis") if job_result else None)
+                        if tour_steps:
+                            tour_md = ["### 🧭 Guided Data Audit Tour (Pedagogical Overview)"]
+                            for s in tour_steps:
+                                tour_md.append(f"- **Step {s['order']}: {s['title']}**: {s['description']} *(Insight: {s.get('auditInsight', '')})*")
+                            graph_context_blocks.append("\n".join(tour_md))
+                        
+                        layers = graph_store.get_layers()
+                        if layers:
+                            layer_md = ["### 🏗️ Dataset Architectural Layers"]
+                            for l in layers:
+                                layer_md.append(f"- **{l['name']}**: {l['description']} ({l.get('nodeCount', len(l.get('nodeIds', [])))} entities)")
+                            graph_context_blocks.append("\n".join(layer_md))
+                    except Exception as tour_err:
+                        logger.debug("Failed retrieving audit tour/layers: %s", tour_err)
 
             # 4. Extract targeted column metrics & Polars exact calculations
             targeted_facts = _extract_targeted_structured_context(sanitized_q, job_result)
