@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { 
   ArrowDownLeft, 
   ArrowUpRight, 
@@ -122,13 +121,6 @@ const FLOWING_DOCUMENTS = [
 ];
 
 export const EngineTrustBar = () => {
-  const [speedMultiplier, setSpeedMultiplier] = useState<"gentle" | "brisk" | "turbo">("brisk");
-
-  const speedStyles: Record<"gentle" | "brisk" | "turbo", string> = {
-    gentle: "22s",
-    brisk: "14s",
-    turbo: "9s",
-  };
 
   const renderMiniPreview = (previewType: "sheet" | "report" | "code", ext: string) => {
     if (previewType === "sheet") {
@@ -207,49 +199,6 @@ export const EngineTrustBar = () => {
               <ArrowUpRight className="h-3 w-3" />
               <span>Export Deliverable</span>
             </span>
-
-            {/* Interactive Stream Flow Speed Switcher */}
-            <div className="flex items-center gap-1 ml-1 sm:ml-3 pl-2 sm:pl-3 border-l border-white/10">
-              <span className="text-zinc-400 text-[10px] mr-0.5 font-medium">
-                Speed:
-              </span>
-              <button
-                type="button"
-                onClick={() => setSpeedMultiplier("gentle")}
-                className={`px-2 py-0.5 rounded text-[10px] transition-colors cursor-pointer ${
-                  speedMultiplier === "gentle"
-                    ? "bg-white/20 text-white font-bold"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-                }`}
-                title="Gentle speed (22s)"
-              >
-                1x
-              </button>
-              <button
-                type="button"
-                onClick={() => setSpeedMultiplier("brisk")}
-                className={`px-2 py-0.5 rounded text-[10px] transition-colors cursor-pointer ${
-                  speedMultiplier === "brisk"
-                    ? "bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-                }`}
-                title="Brisk speed (14s)"
-              >
-                1.5x
-              </button>
-              <button
-                type="button"
-                onClick={() => setSpeedMultiplier("turbo")}
-                className={`px-2 py-0.5 rounded text-[10px] transition-colors cursor-pointer ${
-                  speedMultiplier === "turbo"
-                    ? "bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-                }`}
-                title="Turbo speed (9s)"
-              >
-                2.5x
-              </button>
-            </div>
           </div>
         </div>
 
@@ -259,7 +208,7 @@ export const EngineTrustBar = () => {
       <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent_0%,black_6%,black_94%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_6%,black_94%,transparent_100%)] group py-4 sm:py-5">
         <div 
           className="animate-marquee-flow flex items-center gap-4 sm:gap-5"
-          style={{ "--marquee-speed": speedStyles[speedMultiplier] } as React.CSSProperties}
+          style={{ "--marquee-speed": "9s" } as React.CSSProperties}
         >
           {FLOWING_DOCUMENTS.map((doc) => {
             const IconComponent = doc.icon;
