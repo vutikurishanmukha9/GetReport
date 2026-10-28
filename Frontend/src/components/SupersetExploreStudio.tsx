@@ -431,9 +431,9 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
           
           {/* Section: Chart Type Picker */}
           <div className="space-y-2">
-            <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
               Visualization Type
-            </label>
+            </span>
             <div className="grid grid-cols-3 gap-2">
               {CHART_TYPES.map((ct) => {
                 const Icon = ct.icon;
@@ -478,9 +478,9 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
           {/* Section: Metric (Y-Axis / Measure) */}
           <div className="space-y-2">
-            <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
               Metric & Aggregation (Y-Axis)
-            </label>
+            </span>
             <div className="grid grid-cols-2 gap-2">
               {/* Aggregation Function */}
               <select
@@ -519,7 +519,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
           {/* Section: Secondary Breakdown (Series) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+              <label htmlFor="secondary-dimension-select" className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
                 Secondary Breakdown
               </label>
               <span className="text-[10px] text-slate-400 font-mono">Optional</span>
@@ -545,7 +545,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
           {/* Section: Limits & Sorting */}
           <div className="grid grid-cols-2 gap-3 pt-2">
             <div className="space-y-1.5">
-              <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
+              <label htmlFor="row-limit-select" className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
                 Row Limit
               </label>
               <select
@@ -564,7 +564,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
+              <label htmlFor="sort-order-select" className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
                 Sort Order
               </label>
               <select
@@ -582,9 +582,9 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
           {/* Section: Color Palette */}
           <div className="space-y-2 pt-2 border-t border-slate-800/80">
-            <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
               Color Palette
-            </label>
+            </span>
             <div className="space-y-1.5">
               {COLOR_PALETTES.map((pal) => (
                 <button
