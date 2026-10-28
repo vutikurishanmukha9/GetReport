@@ -113,6 +113,26 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const [queryResult, setQueryResult] = useState<any>(null);
   const [viewMode, setViewMode] = useState<"chart" | "data">("chart");
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [mobileTab, setMobileTab] = useState<"chart" | "controls">("chart");
+
+  // Dynamic Chart Auto-Resize on viewport / orientation changes
+  useEffect(() => {
+    const handleResize = () => {
+      if (echartsRef.current) {
+        try {
+          echartsRef.current.getEchartsInstance?.()?.resize();
+        } catch {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    const timer = setTimeout(handleResize, 120);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(timer);
+    };
+  }, [mobileTab, isFullscreen, viewMode]);
 
   // 1. Load available datasets if switching is enabled or if initialTaskId is absent
   useEffect(() => {
@@ -268,16 +288,16 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     }`}>
       
       {/* ─── Top Studio Header Bar ─── */}
-      <div className="px-5 py-3.5 border-b border-slate-800 bg-[#0c0d12] flex flex-wrap items-center justify-between gap-4">
+      <div className="px-3.5 sm:px-5 py-3 border-b border-slate-800 bg-[#0c0d12] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         
         {/* Left: Branding & Dataset Identity */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 w-full sm:w-auto">
           <div className="h-9 w-9 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-zinc-300 shrink-0">
             <Sliders className="h-4 w-4" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold tracking-tight text-white">
+              <span className="text-sm font-semibold tracking-tight text-white truncate">
                 Interactive Visual Analytics
               </span>
             </div>
@@ -288,6 +308,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 <div className="flex items-center gap-1.5">
                   <Database className="h-3.5 w-3.5 text-slate-400" />
                   <select
+                    id="dataset-select"
+                    aria-label="Select dataset to explore"
                     value={selectedTaskId}
                     onChange={(e) => {
                       const newId = e.target.value;
@@ -295,7 +317,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                       const match = availableDatasets.find(d => d.task_id === newId);
                       if (match) setActiveDatasetMeta(match);
                     }}
-                    className="bg-[#121215] border border-slate-700 text-xs rounded px-2 py-0.5 text-slate-200 focus:outline-none focus:border-white/40 font-mono"
+                    className="bg-[#121215] border border-slate-700 text-xs rounded px-2 py-0.5 text-slate-200 focus:outline-none focus:border-white/40 font-mono max-w-[180px] xs:max-w-[240px] sm:max-w-xs truncate"
                   >
                     {availableDatasets.map((d) => (
                       <option key={d.task_id} value={d.task_id}>
@@ -318,7 +340,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 self-end sm:self-auto">
           {/* Refresh Query */}
           <Button
             size="sm"
@@ -369,11 +391,43 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         </div>
       </div>
 
+      {/* ─── Mobile View Switcher Tab (Mobile Only) ─── */}
+      <div className="lg:hidden px-3.5 py-2.5 bg-[#0a0b10] border-b border-slate-800/80 flex items-center justify-center">
+        <div className="grid grid-cols-2 p-1 rounded-xl bg-black/50 border border-white/10 w-full max-w-sm">
+          <button
+            type="button"
+            onClick={() => setMobileTab("chart")}
+            className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium transition cursor-pointer ${
+              mobileTab === "chart"
+                ? "bg-white/10 text-white border border-white/20 shadow-xs font-semibold"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <BarChart3 className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Chart & Visuals</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("controls")}
+            className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium transition cursor-pointer ${
+              mobileTab === "controls"
+                ? "bg-white/10 text-white border border-white/20 shadow-xs font-semibold"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <Sliders className="h-3.5 w-3.5 text-amber-400" />
+            <span>Query Controls</span>
+          </button>
+        </div>
+      </div>
+
       {/* ─── Two-Column Explore Split Layout ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
         
         {/* ──── LEFT PANEL: Superset Explore Controls (4 cols) ──── */}
-        <div className="lg:col-span-4 p-5 border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#0c0d12] space-y-6">
+        <div className={`lg:col-span-4 p-4 sm:p-5 border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#0c0d12] space-y-5 sm:space-y-6 ${
+          mobileTab === "controls" ? "block" : "hidden lg:block"
+        }`}>
           
           {/* Section: Chart Type Picker */}
           <div className="space-y-2">
@@ -404,10 +458,12 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
           {/* Section: Dimension (X-Axis / Group By) */}
           <div className="space-y-2">
-            <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+            <label htmlFor="dimension-select" className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
               Dimension (Group By / X-Axis)
             </label>
             <select
+              id="dimension-select"
+              aria-label="Dimension (Group By / X-Axis)"
               value={dimension}
               onChange={(e) => setDimension(e.target.value)}
               className="w-full bg-[#0e1017] border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-white/40 font-mono"
@@ -428,6 +484,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
             <div className="grid grid-cols-2 gap-2">
               {/* Aggregation Function */}
               <select
+                id="aggregate-select"
+                aria-label="Aggregation Function"
                 value={aggregate}
                 onChange={(e) => setAggregate(e.target.value)}
                 className="bg-[#0e1017] border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-white/40 font-mono"
@@ -441,6 +499,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Column Selection (or disabled if row count) */}
               <select
+                id="metric-select"
+                aria-label="Metric Column"
                 value={metric}
                 onChange={(e) => setMetric(e.target.value)}
                 disabled={aggregate === "COUNT" && !metric}
@@ -465,6 +525,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               <span className="text-[10px] text-slate-400 font-mono">Optional</span>
             </div>
             <select
+              id="secondary-dimension-select"
+              aria-label="Secondary Breakdown"
               value={secondaryDimension}
               onChange={(e) => setSecondaryDimension(e.target.value)}
               className="w-full bg-[#0e1017] border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-white/40 font-mono"
@@ -487,6 +549,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 Row Limit
               </label>
               <select
+                id="row-limit-select"
+                aria-label="Row Limit"
                 value={rowLimit}
                 onChange={(e) => setRowLimit(Number(e.target.value))}
                 className="w-full bg-[#0e1017] border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-white/40 font-mono"
@@ -504,6 +568,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 Sort Order
               </label>
               <select
+                id="sort-order-select"
+                aria-label="Sort Order"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
                 className="w-full bg-[#0e1017] border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-white/40 font-mono"
@@ -541,10 +607,23 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
             </div>
           </div>
 
+          {/* Mobile Apply & View CTA */}
+          <div className="lg:hidden pt-3 border-t border-slate-800/80">
+            <Button
+              type="button"
+              onClick={() => setMobileTab("chart")}
+              className="w-full bg-white hover:bg-zinc-200 text-black font-semibold text-xs h-9 justify-center gap-2 cursor-pointer shadow-xs"
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span>Apply & View Visual Chart</span>
+            </Button>
+          </div>
         </div>
 
         {/* ──── RIGHT CANVAS: Live Visualization & KPIs (8 cols) ──── */}
-        <div className="lg:col-span-8 p-5 sm:p-6 flex flex-col justify-between space-y-6 bg-[#07080a]">
+        <div className={`lg:col-span-8 p-3.5 sm:p-6 flex flex-col justify-between space-y-4 sm:space-y-6 bg-[#07080a] ${
+          mobileTab === "chart" ? "flex" : "hidden lg:flex"
+        }`}>
           
           {/* Top: Superset BigNumber KPI Cards */}
           {queryResult?.kpis && (
@@ -592,10 +671,10 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
           )}
 
           {/* Main Chart or Table Canvas */}
-          <div className="flex-1 min-h-[460px] rounded-xl border border-slate-800 bg-[#0c0d12] p-4 flex flex-col relative">
+          <div className="flex-1 min-h-[380px] sm:min-h-[460px] rounded-xl border border-slate-800 bg-[#0c0d12] p-3 sm:p-4 flex flex-col relative">
             
             {/* View Switcher: Chart vs Raw Data */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-2">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 pb-3 border-b border-slate-800/80 mb-2">
               <div className="flex items-center gap-1.5 bg-[#0e1017] p-1 rounded-lg border border-slate-800">
                 <button
                   onClick={() => setViewMode("chart")}
@@ -634,11 +713,11 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
             {/* View Mode 1: Interactive ECharts Canvas */}
             {viewMode === "chart" && chartType !== "table" && queryResult?.echarts_option && (
-              <div className="flex-1 w-full min-h-[400px]">
+              <div className="flex-1 w-full min-h-[320px] sm:min-h-[400px]">
                 <ReactECharts
                   ref={echartsRef}
                   option={queryResult.echarts_option}
-                  style={{ height: "420px", width: "100%" }}
+                  style={{ height: "100%", minHeight: "340px", width: "100%" }}
                   theme="dark"
                   notMerge={true}
                   lazyUpdate={true}
@@ -648,7 +727,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
             {/* View Mode 2: Aggregated Data Table */}
             {(viewMode === "data" || chartType === "table") && queryResult?.records && (
-              <div className="flex-1 overflow-x-auto min-h-[400px]">
+              <div className="flex-1 overflow-x-auto min-h-[320px] sm:min-h-[400px] -mx-1 px-1 sm:mx-0 sm:px-0 scrollbar-thin">
                 <table className="w-full text-left text-xs font-mono">
                   <thead className="bg-[#0e1017] text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
                     <tr>
