@@ -64,7 +64,7 @@ export const FeaturesSection = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8 items-stretch">
             
             {/* Tile 1: Interactive Issue Ledger (Spans 2 columns) */}
-            <div className="lg:col-span-2 rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d14] border border-white/10 p-5 sm:p-7 lg:p-8 shadow-2xl flex flex-col justify-between">
+            <div className="lg:col-span-2 rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-7 lg:p-8 shadow-2xl flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3.5 sm:pb-4">
                   <div className="flex items-center gap-2.5 sm:gap-3">
@@ -193,13 +193,13 @@ export const FeaturesSection = () => {
             <div className="lg:col-span-1 flex flex-col gap-5 sm:gap-6 justify-between">
               
               {/* Card 2A: Instant Filters & Search */}
-              <div className="rounded-[1.5rem] sm:rounded-[1.75rem] bg-[#0c0d14] border border-white/10 p-5 sm:p-6 shadow-xl flex flex-col justify-between flex-1">
+              <div className="rounded-[1.5rem] sm:rounded-[1.75rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-6 shadow-xl flex flex-col justify-between flex-1">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="h-8 w-8 rounded-xl bg-sky-500/10 border border-sky-500/25 text-sky-400 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-xl bg-white/[0.05] border border-white/10 text-zinc-300 flex items-center justify-center">
                       <Terminal className="h-4 w-4" />
                     </div>
-                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-300 bg-white/[0.05] px-2 py-0.5 rounded-full border border-white/10">
                       Sub-second
                     </span>
                   </div>
@@ -213,9 +213,9 @@ export const FeaturesSection = () => {
                     Slice customer tiers or revenue categories without waiting or crashing your spreadsheet.
                   </p>
 
-                  <div className="p-2.5 bg-[#121420] rounded-xl border border-white/10 space-y-1 font-sans text-xs">
+                  <div className="p-2.5 bg-[#121215] rounded-xl border border-white/10 space-y-1 font-sans text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-sky-300 font-medium text-[10.5px]">High-Value Accounts</span>
+                      <span className="text-zinc-200 font-medium text-[10.5px]">High-Value Accounts</span>
                       <span className="text-[10px] font-mono text-emerald-300 font-semibold bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
                         500 rows verified
                       </span>
@@ -226,19 +226,19 @@ export const FeaturesSection = () => {
                   </div>
                 </div>
 
-                <div className="pt-3 mt-3 border-t border-white/10 text-[10px] font-mono text-sky-300 font-medium">
+                <div className="pt-3 mt-3 border-t border-white/10 text-[10px] font-mono text-zinc-400 font-medium">
                   Instant Local Processing
                 </div>
               </div>
 
               {/* Card 2B: Multi-Column Visual Discovery */}
-              <div className="rounded-[1.5rem] sm:rounded-[1.75rem] bg-[#0c0d14] border border-white/10 p-5 sm:p-6 shadow-xl flex flex-col justify-between flex-1">
+              <div className="rounded-[1.5rem] sm:rounded-[1.75rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-6 shadow-xl flex flex-col justify-between flex-1">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="h-8 w-8 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-xl bg-white/[0.05] border border-white/10 text-zinc-300 flex items-center justify-center">
                       <Sliders className="h-4 w-4" />
                     </div>
-                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-300 bg-white/[0.05] px-2 py-0.5 rounded-full border border-white/10">
                       Visual Sparklines
                     </span>
                   </div>
@@ -252,21 +252,21 @@ export const FeaturesSection = () => {
                     Slide across dates, revenue, and categories to spot anomalies and correlations instantly.
                   </p>
 
-                  <div className="p-2.5 bg-[#121420] rounded-xl border border-white/10 space-y-1.5 font-sans text-xs">
-                    <div className="flex items-center justify-between text-[10.5px] text-indigo-300 font-medium">
+                  <div className="p-2.5 bg-[#121215] rounded-xl border border-white/10 space-y-1.5 font-sans text-xs">
+                    <div className="flex items-center justify-between text-[10.5px] text-zinc-300 font-medium">
                       <span>Cohort Distribution</span>
-                      <span className="font-mono text-indigo-200 font-semibold">+24.8% Active</span>
+                      <span className="font-mono text-emerald-400 font-semibold">+24.8% Active</span>
                     </div>
                     <div className="grid grid-cols-4 gap-1.5 h-6 items-end pt-0.5">
-                      <div className="bg-indigo-500/30 rounded-t h-[40%]" />
-                      <div className="bg-indigo-500/50 rounded-t h-[65%]" />
-                      <div className="bg-indigo-500/70 rounded-t h-[85%]" />
-                      <div className="bg-indigo-500 rounded-t h-[100%]" />
+                      <div className="bg-emerald-500/30 rounded-t h-[40%]" />
+                      <div className="bg-emerald-500/50 rounded-t h-[65%]" />
+                      <div className="bg-emerald-500/70 rounded-t h-[85%]" />
+                      <div className="bg-emerald-500 rounded-t h-[100%]" />
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-3 mt-3 border-t border-white/10 text-[10px] font-mono text-indigo-300 font-medium">
+                <div className="pt-3 mt-3 border-t border-white/10 text-[10px] font-mono text-zinc-400 font-medium">
                   Interactive Visual Charts
                 </div>
               </div>
@@ -278,7 +278,7 @@ export const FeaturesSection = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
             
             {/* Tile 4: Outlier & Anomaly Detection */}
-            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d14] border border-white/10 p-5 sm:p-7 shadow-xl flex flex-col justify-between">
+            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-7 shadow-xl flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-400 flex items-center justify-center">
                   <Activity className="h-5 w-5" />
@@ -294,11 +294,11 @@ export const FeaturesSection = () => {
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 text-xs font-sans">
-                  <div className="p-2.5 rounded-xl bg-[#121420] border border-white/10 text-center">
+                  <div className="p-2.5 rounded-xl bg-[#121215] border border-white/10 text-center">
                     <span className="text-[10px] text-zinc-400 block font-medium">Data Balance</span>
                     <span className="font-bold text-white text-xs sm:text-sm mt-0.5 block">Healthy & Normal</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-[#121420] border border-white/10 text-center">
+                  <div className="p-2.5 rounded-xl bg-[#121215] border border-white/10 text-center">
                     <span className="text-[10px] text-zinc-400 block font-medium">Conflict Check</span>
                     <span className="font-bold text-emerald-400 text-xs sm:text-sm mt-0.5 block">0 Conflicts</span>
                   </div>
@@ -311,7 +311,7 @@ export const FeaturesSection = () => {
             </div>
 
             {/* Tile 5: Formula Protection & Safety Guard */}
-            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d14] border border-white/10 p-5 sm:p-7 shadow-xl flex flex-col justify-between">
+            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-7 shadow-xl flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-teal-500/10 border border-teal-500/25 text-teal-400 flex items-center justify-center">
                   <Cpu className="h-5 w-5" />
@@ -327,11 +327,11 @@ export const FeaturesSection = () => {
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 text-xs font-sans">
-                  <div className="p-2.5 rounded-xl bg-[#121420] border border-white/10 text-center">
+                  <div className="p-2.5 rounded-xl bg-[#121215] border border-white/10 text-center">
                     <span className="text-[10px] text-zinc-400 block font-medium">Formula Trees</span>
                     <span className="font-bold text-white text-xs sm:text-sm mt-0.5 block">100% Protected</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-[#121420] border border-white/10 text-center">
+                  <div className="p-2.5 rounded-xl bg-[#121215] border border-white/10 text-center">
                     <span className="text-[10px] text-zinc-400 block font-medium">Syntax Validation</span>
                     <span className="font-bold text-emerald-400 text-xs sm:text-sm mt-0.5 block">Zero Errors</span>
                   </div>
@@ -344,7 +344,7 @@ export const FeaturesSection = () => {
             </div>
 
             {/* Tile 6: Export in Any Format */}
-            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d14] border border-white/10 p-5 sm:p-7 shadow-xl flex flex-col justify-between">
+            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-7 shadow-xl flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 flex items-center justify-center">
                   <FileSpreadsheet className="h-5 w-5" />
@@ -359,7 +359,7 @@ export const FeaturesSection = () => {
                   Download cleaned spreadsheets ready for your team, alongside executive PDF briefs and automated pipeline quality rules.
                 </p>
 
-                <div className="p-2.5 sm:p-3 bg-[#121420] border border-white/10 rounded-xl space-y-1.5 font-sans text-[11px]">
+                <div className="p-2.5 sm:p-3 bg-[#121215] border border-white/10 rounded-xl space-y-1.5 font-sans text-[11px]">
                   <div className="text-zinc-200 font-medium flex items-center gap-1.5">
                     <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 stroke-[2.5]" />
                     <span>Clean Excel Spreadsheet (.xlsx)</span>

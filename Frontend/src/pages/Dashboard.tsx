@@ -68,8 +68,8 @@ export const Dashboard = () => {
           {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border/80 pb-6">
             <div>
-              <h1 className="text-3xl font-display font-bold text-foreground tracking-tight uppercase">
-                Audit History Dashboard
+              <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground tracking-tight">
+                Audit History & Reports
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
                 View past dataset quality audits, inspect transformation DAGs, and download reports.
@@ -77,7 +77,7 @@ export const Dashboard = () => {
             </div>
 
             <Link to="/workspace">
-              <Button size="sm" className="rounded-full shadow-premium gap-2">
+              <Button size="sm" className="rounded-full shadow-sm bg-white hover:bg-zinc-100 text-black font-semibold gap-2 border border-white">
                 <FileSpreadsheet className="h-4 w-4" />
                 New Dataset Audit
               </Button>

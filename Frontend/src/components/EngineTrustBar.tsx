@@ -152,7 +152,7 @@ export const EngineTrustBar = () => {
             <span className="text-emerald-400 text-[8px] px-1 rounded bg-emerald-500/10 font-bold">99.4%</span>
           </div>
           <div className="space-y-1 pt-0.5">
-            <div className="h-1.5 bg-sky-500/30 rounded w-full group-hover/card:bg-sky-500/40 transition-colors duration-250" />
+            <div className="h-1.5 bg-zinc-500/30 rounded w-full group-hover/card:bg-zinc-500/40 transition-colors duration-250" />
             <div className="h-1.5 bg-violet-500/30 rounded w-3/4 group-hover/card:bg-violet-500/40 transition-colors duration-250" />
             <div className="h-1.5 bg-emerald-500/30 rounded w-5/6 group-hover/card:bg-emerald-500/40 transition-colors duration-250" />
           </div>
@@ -191,7 +191,7 @@ export const EngineTrustBar = () => {
               <ArrowLeftRight className="h-3 w-3" />
               <span>Input & Output (Both)</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">
               <ArrowDownLeft className="h-3 w-3" />
               <span>Input Ingestion</span>
             </span>
@@ -228,14 +228,14 @@ export const EngineTrustBar = () => {
                 }
               : isInput
               ? {
-                  cardBorder: "border-white/10 hover:border-indigo-500/50",
-                  cardBg: "bg-[#0c0d14] hover:bg-[#0f1220]",
-                  cardShadow: "shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(99,102,241,0.35),0_0_24px_rgba(99,102,241,0.12)]",
-                  sheenBg: "bg-gradient-to-b from-indigo-500/12 via-indigo-500/3 to-transparent",
-                  badge: "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 group-hover/card:border-indigo-400/60",
-                  icon: "text-indigo-400 group-hover/card:text-indigo-300",
-                  dot: "bg-indigo-400 group-hover/card:bg-indigo-300 group-hover/card:shadow-[0_0_8px_#818cf8]",
-                  dogEarFold: "group-hover/card:border-b-[#141830]",
+                  cardBorder: "border-white/10 hover:border-amber-500/40",
+                  cardBg: "bg-[#0c0d12] hover:bg-[#141310]",
+                  cardShadow: "shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(245,158,11,0.2),0_0_24px_rgba(245,158,11,0.08)]",
+                  sheenBg: "bg-gradient-to-b from-amber-500/10 via-amber-500/2 to-transparent",
+                  badge: "bg-amber-500/15 text-amber-300 border border-amber-500/30 group-hover/card:border-amber-400/60",
+                  icon: "text-amber-400 group-hover/card:text-amber-300",
+                  dot: "bg-amber-400 group-hover/card:bg-amber-300 group-hover/card:shadow-[0_0_8px_#fbbf24]",
+                  dogEarFold: "group-hover/card:border-b-[#261f14]",
                 }
               : {
                   cardBorder: "border-white/10 hover:border-emerald-500/50",

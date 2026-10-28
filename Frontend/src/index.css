@@ -58,9 +58,9 @@
 .bg-mesh-hero {
   background-color: #07080a;
   background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(99, 102, 241, 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 40% at 85% 25%, rgba(56, 189, 248, 0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 15% 75%, rgba(139, 92, 246, 0.05) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(255, 255, 255, 0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 85% 25%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 15% 75%, rgba(255, 255, 255, 0.02) 0%, transparent 60%);
   background-size: 100% 100%;
 }
 
@@ -70,15 +70,11 @@
   overflow: hidden;
   background-color: #07080a;
   background:
-    /* Obsidian deep radial ambient sheen (Raycast/Linear aesthetic) */
     radial-gradient(ellipse 90% 65% at 50% -12%,
-      rgba(99, 102, 241, 0.15) 0%,
-      rgba(56, 189, 248, 0.05) 45%,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.01) 45%,
       rgba(7, 8, 10, 0) 75%),
-    radial-gradient(ellipse 60% 40% at 20% 30%,
-      rgba(139, 92, 246, 0.06) 0%,
-      rgba(7, 8, 10, 0) 70%),
-    linear-gradient(180deg, #07080a 0%, #08090d 100%);
+    linear-gradient(180deg, #07080a 0%, #08080a 100%);
 }
 
 .hero-grain-overlay {
@@ -101,53 +97,53 @@ Strictly dark theme only across all surfaces. All colors HSL.
 @layer base {
   :root,
   .dark {
-    /* Pure Raycast/Linear Obsidian Canvas (#07080A) */
-    --background: 224 71% 3%;
-    /* Crisp Off-White Typography (#F8FAFC) */
-    --foreground: 210 20% 98%;
+    /* Pure Raycast/Linear Obsidian Canvas (#07080A) - Strictly Neutral */
+    --background: 0 0% 3.5%;
+    /* Crisp Off-White Typography (#F4F4F6) */
+    --foreground: 0 0% 98%;
 
-    /* Elevated Dark Surfaces (#0C0D12 & #12141C) */
-    --card: 224 35% 6%;
-    --card-foreground: 210 20% 98%;
+    /* Elevated Dark Surfaces (#0D0D10 & #121215) */
+    --card: 240 4% 6%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 224 35% 7%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 240 4% 7%;
+    --popover-foreground: 0 0% 98%;
 
     /* High-Precision Solid White Primary CTA Pill (#FFFFFF) */
     --primary: 0 0% 100%;
-    --primary-foreground: 224 71% 4%;
+    --primary-foreground: 0 0% 4%;
 
-    /* Charcoal Secondary Surface (#14161F) */
-    --secondary: 224 25% 12%;
-    --secondary-foreground: 210 20% 98%;
+    /* Charcoal Secondary Surface (#1B1B1E) */
+    --secondary: 240 3% 11%;
+    --secondary-foreground: 0 0% 96%;
 
-    /* Muted Slate (#12141C & #94A3B8) */
-    --muted: 224 25% 11%;
-    --muted-foreground: 215 16% 62%;
+    /* Muted Slate (#18181B & #9999A0) */
+    --muted: 240 3% 10%;
+    --muted-foreground: 240 3% 60%;
 
-    /* Subtle Focus Accent (#181A24) */
-    --accent: 224 25% 14%;
-    --accent-foreground: 210 20% 98%;
+    /* Subtle Focus Accent (#212125) */
+    --accent: 240 3% 13%;
+    --accent-foreground: 0 0% 98%;
 
     /* Destructive Deep Ruby (#E11D48) */
     --destructive: 347 77% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Hairlines: 1px translucent dark borders (#1F2330 / rgba(255,255,255,0.08)) */
-    --border: 224 20% 16%;
-    --input: 224 20% 16%;
-    --ring: 217 91% 60%;
+    /* Hairlines: 1px translucent dark borders (#232428 / rgba(255,255,255,0.08)) */
+    --border: 240 3% 15%;
+    --input: 240 3% 15%;
+    --ring: 0 0% 90%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 224 71% 3%;
-    --sidebar-foreground: 210 20% 98%;
+    --sidebar-background: 0 0% 3.5%;
+    --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 224 71% 4%;
-    --sidebar-accent: 224 25% 12%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 224 20% 16%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 240 3% 11%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 3% 15%;
+    --sidebar-ring: 0 0% 90%;
   }
 }
 
@@ -165,7 +161,7 @@ Strictly dark theme only across all surfaces. All colors HSL.
   textarea:-webkit-autofill:hover,
   textarea:-webkit-autofill:focus,
   textarea:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px #10121b inset !important;
+    -webkit-box-shadow: 0 0 0 1000px #121215 inset !important;
     -webkit-text-fill-color: #f1f5f9 !important;
     caret-color: #f1f5f9 !important;
     border-color: rgba(255, 255, 255, 0.15) !important;

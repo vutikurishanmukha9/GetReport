@@ -157,7 +157,7 @@ export const Documentation = () => {
                       href="#issue-ledger" 
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
                     >
-                      <Layers className="h-4 w-4 text-blue-600 shrink-0" />
+                      <Layers className="h-4 w-4 text-zinc-300 shrink-0" />
                       <span>3. Issue Ledger DAG Categories</span>
                     </a>
                     <a 
@@ -298,7 +298,7 @@ export const Documentation = () => {
               {/* Section 3: Issue Ledger & DAG Categories */}
               <section id="issue-ledger" className="space-y-4 scroll-mt-28">
                 <div className="flex items-center gap-3 border-b border-border/80 pb-2.5">
-                  <div className="p-2 bg-blue-500/10 text-blue-700 rounded-xl">
+                  <div className="p-2 bg-white/[0.05] text-zinc-300 rounded-xl">
                     <Layers className="h-5 w-5" />
                   </div>
                   <div>
@@ -396,7 +396,7 @@ export const Documentation = () => {
               {/* Section 5: Architecture Specs & Security */}
               <section id="security" className="space-y-4 scroll-mt-28">
                 <div className="flex items-center gap-3 border-b border-border/80 pb-2.5">
-                  <div className="p-2 bg-blue-500/10 text-blue-700 rounded-xl">
+                  <div className="p-2 bg-white/[0.05] text-zinc-300 rounded-xl">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>

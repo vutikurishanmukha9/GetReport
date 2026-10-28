@@ -1,0 +1,51 @@
+# ─── GetReport Root .dockerignore for Render Deployment ────────────────────────
+# Excludes heavy frontend assets, local virtual environments, and caches from Docker context
+
+# Git & IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Frontend (Frontend is deployed separately as a static site on Render / Vercel)
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.oxlintrc.json
+Frontend/tools/
+
+# Superset submodule / companion repo
+superset/
+Design MD/
+OpenSandbox/
+
+# Python caches and local virtualenvs
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.hypothesis
+.mypy_cache
+.ruff_cache
+venv/
+.venv/
+Backend/venv/
+Backend/.pytest_cache/
+Backend/.hypothesis/
+
+# Local databases and runtime temp files
+*.db
+tasks.db
+app.db
+Backend/*.db
+temp_uploads/
+temp_cache/
+outputs/
+Backend/temp_uploads/
+Backend/temp_cache/
+Backend/outputs/
+data/
+
+# OS artifacts
+.DS_Store
+Thumbs.db

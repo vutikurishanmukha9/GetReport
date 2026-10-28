@@ -124,7 +124,7 @@ export const Pricing = () => {
                   <Badge className="bg-primary text-primary-foreground text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-0.5 rounded-md">
                     COMMUNITY & ENTERPRISE
                   </Badge>
-                  <span className="text-xs font-mono text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-semibold">
+                  <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-semibold">
                     Active Release
                   </span>
                 </div>
@@ -139,7 +139,7 @@ export const Pricing = () => {
               <div className="flex flex-col items-start sm:items-end shrink-0">
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-4xl sm:text-5xl font-display font-extrabold text-foreground">$0</span>
-                  <span className="text-xs text-emerald-700 font-mono font-bold uppercase tracking-wider">FREE FOREVER</span>
+                  <span className="text-xs text-emerald-400 font-mono font-bold uppercase tracking-wider">FREE FOREVER</span>
                 </div>
                 <span className="text-[10px] text-muted-foreground font-mono mt-0.5">Apache 2.0 / Open Source</span>
               </div>
@@ -210,7 +210,7 @@ export const Pricing = () => {
                           {cat.category}
                         </h3>
                       </div>
-                      <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
+                      <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
                         Unlocked
                       </Badge>
                     </div>

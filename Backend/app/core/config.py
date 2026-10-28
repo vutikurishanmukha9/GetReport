@@ -69,10 +69,21 @@ class Settings(BaseSettings):
     
     # ─── RAG & Embeddings ────────────────────────────────────────────────
     EMBEDDING_DIMENSION: int = 768  # 768 for Google Gemini (default), 1536 for OpenAI
+
+    # ─── Apache Superset Companion Integration ───────────────────────────
+    SUPERSET_URL: str = "http://localhost:8088"
+    SUPERSET_ADMIN_USERNAME: str = "admin"
+    SUPERSET_ADMIN_PASSWORD: str = "admin"
+    SUPERSET_GUEST_TOKEN_SECRET: str = "getreport-superset-secret-key-change-in-prod-2026"
+    SUPERSET_DEFAULT_DASHBOARD_ID: str = "1"
+    SUPERSET_DB_URL: str = "postgresql://superset:superset_password@localhost:5433/superset"
+    SUPERSET_ENABLED: bool = False
+    SUPERSET_EXTERNAL_COMPANION_ENABLED: bool = False
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
+
 
 # Ensure Polars does not exceed thread limit on multi-core VMs
 if "POLARS_MAX_THREADS" not in os.environ:

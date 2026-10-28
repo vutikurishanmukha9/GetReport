@@ -313,7 +313,7 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
       {/* Top Header & HUD Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-400">
+          <div className="p-2 bg-white/[0.05] border border-white/10 rounded-lg text-zinc-300">
             <Sliders className="w-5 h-5" />
           </div>
           <div>
@@ -341,7 +341,7 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
           {/* Color By Selector */}
           {numericDims.length > 0 && (
             <div className="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/80 px-2.5 py-1 rounded-lg">
-              <Layers className="w-3.5 h-3.5 text-blue-400" />
+              <Layers className="w-3.5 h-3.5 text-zinc-300" />
               <span className="text-slate-400">Color:</span>
               <select
                 id="hiplot-color-column-select"
@@ -375,7 +375,7 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
             <button
               onClick={handleIsolateClick}
               disabled={filteredIndices.size === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-lg shadow-lg shadow-blue-500/20 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black font-medium rounded-lg shadow-sm transition"
             >
               <Filter className="w-3 h-3" />
               Isolate Selection

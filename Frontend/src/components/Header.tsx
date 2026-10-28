@@ -72,6 +72,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
     { to: "/pricing", label: "Pricing" },
     { to: "/documentation", label: "Docs" },
     { to: "/examples", label: "Examples" },
+    { to: "/analytics", label: "BI Analytics" },
   ];
 
   const shouldBeVisible = isVisible || mobileMenuOpen;
@@ -135,7 +136,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 variant="outline"
                 size="sm"
                 onClick={onReset}
-                className="h-9 px-3.5 rounded-xl border-white/15 bg-[#14161f] text-slate-200 hover:bg-[#1a1d29] hover:text-white hover:border-white/25 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-hero font-semibold text-xs gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="h-9 px-3.5 rounded-xl border-white/15 bg-[#16171b] text-slate-200 hover:bg-[#1a1d29] hover:text-white hover:border-white/25 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-hero font-semibold text-xs gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <RotateCcw className="h-3.5 w-3.5 text-slate-300" />
                 <span>Start Over</span>
@@ -166,7 +167,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9 rounded-xl bg-[#14161f] hover:bg-[#1a1d29] border-white/10 text-slate-200"
+                      className="h-9 w-9 rounded-xl bg-[#16171b] hover:bg-[#1a1d29] border-white/10 text-slate-200"
                       aria-label="Open Navigation Menu"
                     >
                       <Menu className="h-4 w-4" />

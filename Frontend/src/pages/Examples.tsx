@@ -234,7 +234,7 @@ export const Examples = () => {
                       {/* Grade Badge */}
                       <div className="self-start sm:self-auto sm:text-right shrink-0">
                         <Badge className={`font-mono font-bold text-xs px-2.5 py-0.5 rounded-lg ${
-                          item.grade === "A" ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" : "bg-blue-500/10 text-blue-700 border-blue-500/30"
+                          item.grade === "A" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-white/5 text-zinc-300 border-white/10"
                         }`}>
                           Grade {item.grade} • {item.gradeScore}%
                         </Badge>

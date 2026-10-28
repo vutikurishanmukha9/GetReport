@@ -131,7 +131,7 @@ export const Contact = () => {
               {/* Open Source Community Card */}
               <Card className="border border-border bg-card shadow-premium p-4 sm:p-5 rounded-2xl space-y-3 t-card-lift">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-700">
+                  <div className="p-2 rounded-xl bg-white/[0.05] text-zinc-300">
                     <MessageSquare className="h-4 w-4" />
                   </div>
                   <div>
@@ -156,7 +156,7 @@ export const Contact = () => {
                     className="flex items-center justify-between p-2.5 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors"
                   >
                     <span>LinkedIn Profile</span>
-                    <Linkedin className="h-3.5 w-3.5 text-blue-600" />
+                    <Linkedin className="h-3.5 w-3.5 text-zinc-300" />
                   </a>
                 </div>
               </Card>

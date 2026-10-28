@@ -555,7 +555,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   className="cursor-pointer border-white/10 bg-[#121420] text-zinc-100 hover:bg-white/10 hover:border-white/20 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]"
                 >
                   <span className="text-xs font-semibold flex items-center gap-2">
-                    <Database className="h-3.5 w-3.5 text-blue-400" />
+                    <Database className="h-3.5 w-3.5 text-zinc-300" />
                     <span>Connect Snowflake Warehouse</span>
                     <span className="px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-widest text-zinc-400 bg-white/[0.06] border border-white/10 rounded leading-none">
                       Beta
@@ -679,7 +679,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   <div className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 shadow-premium space-y-3.5">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
                       <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        <div className="p-1.5 rounded-lg bg-white/[0.06] text-zinc-300 border border-white/10">
                           <ArrowRightLeft className="h-4 w-4" />
                         </div>
                         <div>
@@ -687,7 +687,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                             <span className="text-xs font-display font-bold text-white tracking-wide">
                               Multi-Dataset Join Configuration
                             </span>
-                            <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-mono border border-indigo-500/30">
+                            <span className="px-1.5 py-0.5 rounded-md bg-white/[0.06] text-zinc-300 text-[10px] font-mono border border-white/10">
                               Polars Engine
                             </span>
                           </div>
@@ -717,11 +717,11 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                             onClick={() => setJoinMode("asymmetric")}
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all flex items-center gap-1 cursor-pointer ${
                               joinMode === "asymmetric"
-                                ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 shadow-sm"
+                                ? "bg-white/[0.12] text-white border border-white/20 shadow-sm"
                                 : "text-zinc-400 hover:text-zinc-200"
                             }`}
                           >
-                            <Link2 className="h-3 w-3 text-indigo-400" />
+                            <Link2 className="h-3 w-3 text-zinc-300" />
                             Key Mapping
                           </button>
                         </div>
@@ -750,7 +750,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                                 onChange={(e) =>
                                   setKeyMapping(prev => ({ ...prev, [f1.name]: e.target.value }))
                                 }
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs cursor-pointer"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs cursor-pointer"
                               >
                                 {cols1.map(col => (
                                   <option key={col} value={col}>
@@ -767,14 +767,14 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                                   setKeyMapping(prev => ({ ...prev, [f1.name]: e.target.value }))
                                 }
                                 placeholder="e.g. match_id"
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs"
                               />
                             )}
                           </div>
 
                           {/* Linking Center Indicator */}
                           <div className="md:col-span-1 flex flex-col items-center justify-center py-1">
-                            <div className="h-7 w-7 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                            <div className="h-7 w-7 rounded-full bg-white/[0.06] border border-white/10 text-zinc-300 flex items-center justify-center">
                               <Link2 className="h-3.5 w-3.5" />
                             </div>
                           </div>
@@ -797,7 +797,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                                 onChange={(e) =>
                                   setKeyMapping(prev => ({ ...prev, [f2.name]: e.target.value }))
                                 }
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs cursor-pointer"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs cursor-pointer"
                               >
                                 {cols2.map(col => (
                                   <option key={col} value={col}>
@@ -814,7 +814,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                                   setKeyMapping(prev => ({ ...prev, [f2.name]: e.target.value }))
                                 }
                                 placeholder="e.g. id"
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs"
                               />
                             )}
                           </div>
@@ -831,7 +831,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                               aria-label="Join Strategy"
                               value={joinType}
                               onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
-                              className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-sans text-xs cursor-pointer"
+                              className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-sans text-xs cursor-pointer"
                             >
                               <option value="inner">Inner Join (Matched Rows Only)</option>
                               <option value="left">Left Join (Keep All in {f1.name})</option>
@@ -839,8 +839,8 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                             </select>
                           </div>
                           <div className="flex items-end">
-                            <div className="w-full p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[11px] text-indigo-300 flex items-center gap-1.5">
-                              <Link2 className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                            <div className="w-full p-2 rounded-lg bg-white/[0.04] border border-white/10 text-[11px] text-zinc-300 flex items-center gap-1.5">
+                              <Link2 className="h-3.5 w-3.5 text-zinc-300 shrink-0" />
                               <span className="truncate">
                                 Linking <strong className="text-white font-mono">{f1.name}.{keyMapping[f1.name] || '?'}</strong> = <strong className="text-white font-mono">{f2.name}.{keyMapping[f2.name] || '?'}</strong>
                               </span>
@@ -861,7 +861,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                                 id="primary-join-key"
                                 value={joinKey}
                                 onChange={(e) => setJoinKey(e.target.value)}
-                                className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs cursor-pointer"
+                                className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs cursor-pointer"
                               >
                                 {commonCols.map(col => (
                                   <option key={col} value={col}>
@@ -876,7 +876,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                                 value={joinKey}
                                 onChange={(e) => setJoinKey(e.target.value)}
                                 placeholder="e.g. id, match_id, user_id"
-                                className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-mono text-xs"
+                                className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs"
                               />
                             )}
                           </div>
@@ -889,7 +889,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                               aria-label="Join Strategy"
                               value={joinType}
                               onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
-                              className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-indigo-500 font-sans text-xs cursor-pointer"
+                              className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-sans text-xs cursor-pointer"
                             >
                               <option value="inner">Inner Join (Matched Rows)</option>
                               <option value="left">Left Join (Keep Base Dataset)</option>
@@ -1009,7 +1009,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
         <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-muted-foreground">
           <span>Enterprise privacy standards built-in</span>
-          <Link to="/privacy" className="text-primary hover:underline font-medium">
+          <Link to="/privacy-policy" className="text-zinc-200 hover:text-white hover:underline font-medium">
             Read Security Architecture &rarr;
           </Link>
         </div>

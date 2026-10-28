@@ -284,6 +284,14 @@ async def resume_analysis_pipeline_task(
         buffer.seek(0)
         cleaned_file_ref = storage.save_upload(buffer, f"cleaned_{task_id}.parquet")
 
+        # In-memory Superset Explore engine reads cleaned_file_ref directly with zero external latency
+        if getattr(settings, "SUPERSET_EXTERNAL_COMPANION_ENABLED", False):
+            from app.services.superset_service import superset_service
+            try:
+                await superset_service.sync_dataset_to_superset(task_id, cleaned_df)
+            except Exception as sup_err:
+                logger.warning(f"Non-blocking external Superset sync notice: {sup_err}")
+
         # Step 2: Statistical Analysis
         title_task_manager.update_progress(task_id, 60, "Running deep statistical analysis...")
         top_cats = rules.get("top_categories", 10)

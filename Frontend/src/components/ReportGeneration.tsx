@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { MLReadinessCard } from "./MLReadinessCard";
 import { HiPlotParallelCoordinates, type HiPlotPayload, type HiPlotDimension } from "./HiPlotParallelCoordinates";
+import { SupersetExploreStudio } from "./SupersetExploreStudio";
 
 // Safe, memoized image container to prevent expensive base64 re-renders
 const SafeChartImage = memo(({ base64Src, alt, className }: { base64Src: string; alt: string; className?: string }) => {
@@ -63,12 +64,12 @@ interface ReportGenerationProps {
 
 const getGradeColorClass = (g: string) => {
   switch (g.toUpperCase()) {
-    case 'A': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    case 'B': return 'bg-zinc-100 text-zinc-900 border-zinc-200';
-    case 'C': return 'bg-amber-50 text-amber-700 border-amber-200';
-    case 'D': return 'bg-orange-50 text-orange-700 border-orange-200';
-    case 'F': return 'bg-red-50 text-red-750 border-red-200';
-    default: return 'bg-muted text-muted-foreground border-border';
+    case 'A': return 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30';
+    case 'B': return 'bg-zinc-800/60 text-zinc-200 border-white/15';
+    case 'C': return 'bg-amber-950/40 text-amber-400 border-amber-500/30';
+    case 'D': return 'bg-orange-950/40 text-orange-400 border-orange-500/30';
+    case 'F': return 'bg-rose-950/40 text-rose-400 border-rose-500/30';
+    default: return 'bg-white/[0.04] text-zinc-300 border-white/10';
   }
 };
 
@@ -629,7 +630,7 @@ export const ReportGeneration = ({
                   </Badge>
                 )}
                 {analysis?.snowflake_meta?.sampled && (
-                  <Badge variant="outline" className="text-[10px] font-mono uppercase bg-blue-500/15 text-blue-400 border-blue-500/30">
+                  <Badge variant="outline" className="text-[10px] font-mono uppercase bg-white/[0.06] text-zinc-300 border-white/10">
                     Sampled (10% Bernoulli)
                   </Badge>
                 )}
@@ -649,10 +650,10 @@ export const ReportGeneration = ({
           <div className="flex flex-wrap items-center gap-2.5 z-10 w-full md:w-auto">
             <Button
               size="lg"
-              className="flex-1 md:flex-none rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display text-sm font-bold tracking-tight shadow-[0_4px_16px_-2px_rgba(124,58,237,0.38),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-violet-400/40 ring-1 ring-white/20 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 px-5 cursor-pointer"
+              className="flex-1 md:flex-none rounded-xl bg-white hover:bg-zinc-100 text-black font-sans text-sm font-bold tracking-tight shadow-sm border border-white transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 px-5 cursor-pointer"
               onClick={downloadFile}
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 text-black" />
               <span>Download PDF</span>
               <ChevronRight className="h-4 w-4 opacity-70" />
             </Button>
@@ -745,11 +746,19 @@ export const ReportGeneration = ({
               <span>DuckDB SQL Studio</span>
             </TabsTrigger>
 
+                        <TabsTrigger
+              value="bi_analytics"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
+            >
+              <BarChart3 className="h-4 w-4" />
+              <span>Interactive BI</span>
+            </TabsTrigger>
+
             <TabsTrigger
               value="export"
               className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 text-black" />
               <span>Export Hub</span>
             </TabsTrigger>
           </TabsList>
@@ -1596,7 +1605,7 @@ export const ReportGeneration = ({
                                 >
                                   <span
                                     className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${isNum
-                                        ? "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                                        ? "bg-white/10 text-zinc-300 border border-white/20"
                                         : isTxt
                                           ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                                           : isDate
@@ -2097,7 +2106,7 @@ export const ReportGeneration = ({
               {/* Great Expectations */}
               <Card className="border border-border/80 bg-card shadow-premium rounded-3xl p-6 flex flex-col justify-between hover:border-primary/40 transition-all">
                 <div className="space-y-3">
-                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-xl bg-white/[0.05] text-zinc-300 flex items-center justify-center">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
@@ -2128,6 +2137,14 @@ export const ReportGeneration = ({
                 </div>
               </Card>
             </div>
+          </TabsContent>
+                  {/* ──── TAB 7: SUPERSET INTERACTIVE BI ──── */}
+          <TabsContent value="bi_analytics" className="space-y-6 animate-in fade-in duration-300">
+            <SupersetExploreStudio
+              taskId={taskId || undefined}
+              datasetName={filename}
+              allowDatasetSwitching={false}
+            />
           </TabsContent>
         </Tabs>
       </div>

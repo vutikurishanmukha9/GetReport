@@ -92,6 +92,10 @@ chroma_db/
 .claude/
 .gemini/
 
-Design MD
+Design MD/
+OpenSandbox/
 
-OpenSandbox
+# ─── Business Intelligence Companion ───────────────────────
+superset/
+
+

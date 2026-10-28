@@ -8,11 +8,11 @@ export const QuickLaunchDock = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
         <div className="rounded-[1.75rem] sm:rounded-[2.5rem] bg-[#0c0d14] text-white shadow-2xl p-7 sm:p-10 text-center space-y-4 sm:space-y-5 relative overflow-hidden border border-white/10">
           <div className="space-y-3 max-w-xl mx-auto relative z-10">
-            <h2 className="text-2xl xs:text-3xl sm:text-4xl font-display font-black text-white tracking-[-0.02em] leading-tight">
-              Ready to check and clean your data?
+            <h2 className="text-2xl xs:text-3xl sm:text-4xl font-display font-extrabold text-white tracking-[-0.03em] leading-tight">
+              Ready to audit and certify your data?
             </h2>
             <p className="text-xs sm:text-base text-zinc-400 leading-relaxed font-sans font-normal">
-              No account or credit card required. Upload any Excel or CSV file to immediately find errors, fix duplicates, and get a clear quality score.
+              Zero setup or infrastructure required. Run streaming schema checks, inspect transformation lineage, and compile publication-ready PDF reports in seconds.
             </p>
           </div>
 
@@ -22,10 +22,10 @@ export const QuickLaunchDock = () => {
               asChild
               variant="launch"
               size="xl"
-              className="w-full sm:w-auto min-h-[48px] px-7 rounded-full shadow-[0_2px_16px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] group"
+              className="w-full sm:w-auto min-h-[44px] h-11 px-7 rounded-full shadow-sm group"
             >
               <Link to="/workspace">
-                <span>Start Checking Your Data Free</span>
+                <span>Launch Ingestion Studio</span>
                 <ArrowRight className="h-4 w-4 text-black transition-transform duration-200 group-hover:translate-x-1" />
               </Link>
             </Button>
@@ -34,27 +34,27 @@ export const QuickLaunchDock = () => {
               asChild
               variant="outline"
               size="xl"
-              className="w-full sm:w-auto min-h-[48px] px-6 rounded-full border-white/10 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200"
+              className="w-full sm:w-auto min-h-[44px] h-11 px-6 rounded-full border-white/10 bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200"
             >
               <Link to="/how-it-works">
-                <span>See How It Works</span>
+                <span>View Architecture</span>
               </Link>
             </Button>
           </div>
 
-          {/* Micro trust indicators */}
+          {/* Technical indicators */}
           <div className="pt-5 sm:pt-6 border-t border-white/10 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-[10px] sm:text-[11px] font-mono text-zinc-400 relative z-10">
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
-              <span>Works with any spreadsheet</span>
+              <span>Zero-Copy In-Memory Polars Core</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
-              <span>100% Private (Never leaves your device)</span>
+              <span>100% Ephemeral (Zero persistent storage)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
-              <span>Free to use, no signup needed</span>
+              <span>Cryptographic DAG Audit Trail</span>
             </div>
           </div>
         </div>

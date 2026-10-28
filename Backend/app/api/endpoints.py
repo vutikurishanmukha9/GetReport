@@ -16,7 +16,7 @@ from app.core.task_dispatcher import dispatch_task
 from app.services.task_manager import title_task_manager, TaskStatus
 from app.services.analysis_config import AnalysisConfig
 
-from app.api.routes import upload, status, report, chat, issues, snowflake, graph
+from app.api.routes import upload, status, report, chat, issues, snowflake, graph, analytics
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -29,6 +29,8 @@ router.include_router(chat.router, tags=["chat"])
 router.include_router(issues.router, tags=["issues"])
 router.include_router(snowflake.router, tags=["snowflake"])
 router.include_router(graph.router, tags=["graph"])
+router.include_router(analytics.router, tags=["analytics"])
+
 
 
 class StreamTicketResponse(BaseModel):

@@ -8,8 +8,8 @@ export const ArchitectureSection = () => {
       engine: "Excel, CSV, or data files",
       description: "Drag and drop your spreadsheet of any size. GetReport instantly scans your columns, verifies formats, and prepares your audit in seconds.",
       badge: "Under 2 Seconds",
-      accentBg: "bg-sky-500/10 border-sky-500/25 text-sky-400",
-      badgeColor: "bg-sky-500/10 text-sky-300 border-sky-500/25",
+      accentBg: "bg-white/[0.04] border-white/10 text-zinc-300",
+      badgeColor: "bg-white/[0.04] text-zinc-300 border-white/10",
       icon: Cpu,
     },
     {
@@ -18,8 +18,8 @@ export const ArchitectureSection = () => {
       engine: "Automated quality check",
       description: "Automatically detects blank cells, duplicate rows, broken formats, and unusual numbers that could distort your metrics.",
       badge: "Instant Quality Score",
-      accentBg: "bg-violet-500/10 border-violet-500/25 text-violet-400",
-      badgeColor: "bg-violet-500/10 text-violet-300 border-violet-500/25",
+      accentBg: "bg-amber-500/10 border-amber-500/25 text-amber-400",
+      badgeColor: "bg-amber-500/10 text-amber-300 border-amber-500/25",
       icon: Layers,
     },
     {

@@ -47,7 +47,7 @@ export const HeroSection = () => {
                 animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
                 exit={{ y: -36, opacity: 0, filter: "blur(6px)" }}
                 transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-indigo-300"
+                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-zinc-400"
               >
                 {SAAS_HIGHLIGHTS[index]}
               </motion.span>

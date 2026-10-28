@@ -16,7 +16,7 @@ import { Footer } from "@/components/Footer";
 // Module scope pure function for Confidence Grade calculation
 const getConfidenceGrade = (score: number) => {
   if (score >= 90) return { grade: "A", label: "Production Ready", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" };
-  if (score >= 80) return { grade: "B", label: "Minor Issues", color: "bg-sky-500/10 text-sky-400 border-sky-500/30" };
+  if (score >= 80) return { grade: "B", label: "Minor Issues", color: "bg-white/10 text-zinc-300 border-white/20" };
   if (score >= 70) return { grade: "C", label: "Needs Remediation", color: "bg-amber-500/10 text-amber-400 border-amber-500/30" };
   if (score >= 60) return { grade: "D", label: "High Risk", color: "bg-orange-500/10 text-orange-400 border-orange-500/30" };
   return { grade: "F", label: "Critical Anomalies", color: "bg-rose-500/10 text-rose-400 border-rose-500/30" };
@@ -510,7 +510,7 @@ export const Features = () => {
             {/* Bento Tile 2: Multi-Dataset Relational Joins */}
             <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-white/[0.05] text-zinc-300 flex items-center justify-center">
                   <ArrowLeftRight className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
@@ -526,10 +526,10 @@ export const Features = () => {
                 <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
                   <div className="flex items-center justify-between text-muted-foreground text-[10px]">
                     <span>users.csv (10.4k)</span>
-                    <span className="text-sky-400 font-bold">⟷ INNER JOIN ⟷</span>
+                    <span className="text-zinc-200 font-bold">⟷ INNER JOIN ⟷</span>
                     <span>orders.parquet (84k)</span>
                   </div>
-                  <div className="flex items-center justify-between bg-sky-500/10 text-sky-300 p-1.5 rounded-lg border border-sky-500/20 text-[10px]">
+                  <div className="flex items-center justify-between bg-white/[0.05] text-zinc-300 p-1.5 rounded-lg border border-white/10 text-[10px]">
                     <span>Key: customer_id</span>
                     <span>Match: 99.2% (14 Orphan Keys)</span>
                   </div>
@@ -853,7 +853,7 @@ export const Features = () => {
                   <Activity className="h-3.5 w-3.5 text-primary" /> Sub-50ms Execution
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Lock className="h-3.5 w-3.5 text-sky-400" /> Zero Disk Writes
+                  <Lock className="h-3.5 w-3.5 text-emerald-400" /> Zero Disk Writes
                 </span>
               </div>
             </div>

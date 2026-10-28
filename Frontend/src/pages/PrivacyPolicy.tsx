@@ -48,7 +48,7 @@ export const PrivacyPolicy = () => {
             </Card>
 
             <Card className="p-4 sm:p-5 border border-border bg-card shadow-premium space-y-2 rounded-2xl t-card-lift">
-              <div className="h-9 w-9 rounded-xl bg-blue-500/10 text-blue-700 flex items-center justify-center">
+              <div className="h-9 w-9 rounded-xl bg-white/[0.05] text-zinc-300 flex items-center justify-center">
                 <EyeOff className="h-4 w-4" />
               </div>
               <h3 className="font-display font-bold text-foreground text-xs sm:text-sm">Zero Model Training</h3>

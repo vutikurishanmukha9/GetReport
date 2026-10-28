@@ -80,7 +80,7 @@ _allow_all = "*" in _cors_origins
 def _cors_rate_limit_handler(request, exc):
     response = _rate_limit_exceeded_handler(request, exc)
     origin = request.headers.get("origin")
-    if origin and (_allow_all or origin in _cors_origins or "vercel.app" in origin):
+    if origin and (_allow_all or origin in _cors_origins or "vercel.app" in origin or "onrender.com" in origin):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "*"
@@ -94,7 +94,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if _allow_all else _cors_origins,
     # §3: Scoped to project owner's Vercel preview deploys only (not arbitrary forks)
-    allow_origin_regex=None if _allow_all else r"https://get-report-[a-z0-9]+-vutikurishanmukha9s-projects\.vercel\.app",
+    allow_origin_regex=None if _allow_all else r"https://.*\.onrender\.com|https://get-report.*\.vercel\.app",
     allow_credentials=not _allow_all,
     allow_methods=["*"],
     allow_headers=["*"],

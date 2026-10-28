@@ -488,7 +488,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
         <DialogHeader className="space-y-2 border-b border-white/10 pb-4 pr-7 sm:pr-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start sm:items-center gap-3 min-w-0">
-              <div className="p-2 sm:p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-zinc-300 shrink-0">
                 <Database className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
               <div className="min-w-0">
@@ -515,7 +515,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                 <button
                   type="button"
                   onClick={handleUseDemo}
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 transition-colors cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-white/[0.05] hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
                   title="Auto-fill simulated sandbox credentials"
                 >
                   Auto-fill Demo
@@ -540,8 +540,8 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
         {step === "auth" && (
           <form onSubmit={handleConnect} className="space-y-4 pt-3">
             {/* Security Notice Card */}
-            <div className="p-3 rounded-xl bg-blue-950/25 border border-blue-500/20 text-blue-200/90 text-xs flex items-start gap-2.5 sm:gap-3">
-              <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0 mt-0.5">
+            <div className="p-3 rounded-xl bg-[#121215] border border-white/10 text-zinc-300 text-xs flex items-start gap-2.5 sm:gap-3">
+              <div className="p-1.5 rounded-lg bg-white/[0.05] border border-white/10 text-zinc-300 shrink-0 mt-0.5">
                 <ShieldCheck className="h-4 w-4" />
               </div>
               <div className="space-y-0.5 text-xs min-w-0">
@@ -552,7 +552,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  Connect using a Snowflake role with <code className="font-mono bg-black/50 px-1 py-0.5 rounded text-blue-300 text-[10px]">GRANT SELECT</code> privileges. GetReport executes pure read-only extracts with zero mutation capability.
+                  Connect using a Snowflake role with <code className="font-mono bg-black/50 px-1 py-0.5 rounded text-zinc-300 text-[10px]">GRANT SELECT</code> privileges. GetReport executes pure read-only extracts with zero mutation capability.
                 </p>
               </div>
             </div>
@@ -606,13 +606,13 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   className={cn(
                     "flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                     authType === "key_pair"
-                      ? "bg-blue-600/25 text-white border border-blue-500/30 shadow-xs"
+                      ? "bg-white/10 text-white border border-white/20 shadow-xs"
                       : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]"
                   )}
                 >
-                  <KeyRound className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                  <KeyRound className="h-3.5 w-3.5 text-zinc-300 shrink-0" />
                   <span className="truncate">RSA Key-Pair</span>
-                  <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-semibold border border-blue-500/30 shrink-0">
+                  <span className="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/10 text-zinc-200 font-semibold border border-white/20 shrink-0">
                     Recommended
                   </span>
                 </button>
@@ -623,7 +623,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   className={cn(
                     "flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer",
                     authType === "password"
-                      ? "bg-blue-600/25 text-white border border-blue-500/30 shadow-xs"
+                      ? "bg-white/10 text-white border border-white/20 shadow-xs"
                       : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]"
                   )}
                 >
@@ -638,7 +638,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
               <div className="p-3.5 rounded-xl bg-[#0e1017] border border-white/10 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
-                    <KeyRound className="h-3.5 w-3.5 text-blue-400" />
+                    <KeyRound className="h-3.5 w-3.5 text-zinc-300" />
                     <span>RSA Private Key</span>
                     <span className="text-rose-400">*</span>
                   </span>
@@ -712,7 +712,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                         aria-label="Raw RSA Private Key Content"
                         value={privateKeyPem}
                         onChange={(e) => setPrivateKeyPem(e.target.value)}
-                        className="w-full p-2.5 rounded-lg border border-white/10 bg-black/60 text-zinc-200 font-mono text-[10px] focus:outline-none focus:border-blue-500"
+                        className="w-full p-2.5 rounded-lg border border-white/10 bg-black/60 text-zinc-200 font-mono text-[10px] focus:outline-none focus:border-white/40"
                       />
                     )}
                   </div>
@@ -729,7 +729,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                     }}
                     onDrop={handlePemDrop}
                     className={`p-4 sm:p-5 rounded-xl border-2 border-dashed transition-colors flex flex-col items-center justify-center text-center cursor-pointer ${isDraggingPem
-                        ? "border-blue-500 bg-blue-500/10 text-blue-300"
+                        ? "border-white/50 bg-white/10 text-white"
                         : "border-white/15 bg-black/30 text-zinc-400 hover:border-white/30 hover:bg-black/40"
                       }`}
                   >
@@ -740,7 +740,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                         onChange={handleKeyFileUpload}
                         className="sr-only"
                       />
-                      <Upload className="h-5 w-5 mb-1.5 text-blue-400" />
+                      <Upload className="h-5 w-5 mb-1.5 text-zinc-300" />
                       <p className="text-xs font-medium text-zinc-200">
                         Tap to select private key file (.pem), or drag and drop
                       </p>
@@ -757,7 +757,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                     placeholder="Paste PKCS#8 or OpenSSL RSA private key PEM here..."
                     value={privateKeyPem}
                     onChange={(e) => setPrivateKeyPem(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-white/10 bg-black/40 text-zinc-200 font-mono text-[11px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/40"
+                    className="w-full p-2.5 rounded-xl border border-white/10 bg-black/40 text-zinc-200 font-mono text-[11px] focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20"
                   />
                 )}
 
@@ -852,7 +852,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
               <Switch
                 checked={useMock}
                 onCheckedChange={setUseMock}
-                className="data-[state=checked]:bg-blue-600 shrink-0"
+                className="data-[state=checked]:bg-emerald-500 shrink-0"
               />
             </div>
 
@@ -881,7 +881,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                 <Button
                   type="submit"
                   disabled={isConnecting}
-                  className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-5 shadow-lg shadow-blue-500/20 h-9"
+                  className="flex-1 sm:flex-none bg-white hover:bg-zinc-200 text-black font-semibold text-xs px-5 shadow-sm h-9"
                 >
                   {isConnecting ? (
                     <>
@@ -912,7 +912,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer text-center",
                     queryMode === "builder"
-                      ? "bg-blue-500/20 border border-blue-500/30 text-blue-300 font-semibold"
+                      ? "bg-white/10 border border-white/20 text-white font-semibold"
                       : "text-zinc-400 hover:text-white"
                   )}
                 >
@@ -924,7 +924,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer text-center",
                     queryMode === "sql"
-                      ? "bg-blue-500/20 border border-blue-500/30 text-blue-300 font-semibold"
+                      ? "bg-white/10 border border-white/20 text-white font-semibold"
                       : "text-zinc-400 hover:text-white"
                   )}
                 >
@@ -936,7 +936,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                 <Switch
                   checked={useSampling}
                   onCheckedChange={setUseSampling}
-                  className="data-[state=checked]:bg-blue-600 scale-90"
+                  className="data-[state=checked]:bg-emerald-500 scale-90"
                 />
                 <span className="text-[11px]">10% Bernoulli Subsample</span>
               </div>
@@ -969,7 +969,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                           >
                             <span className="flex items-center gap-1.5 truncate">
                               {isDbExpanded ? <ChevronDown className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-zinc-500 shrink-0" />}
-                              <Database className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                              <Database className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
                               <span className="truncate">{db.name}</span>
                             </span>
                           </button>
@@ -988,7 +988,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                                     >
                                       <span className="flex items-center gap-1.5 truncate">
                                         {isScExpanded ? <ChevronDown className="h-3 w-3 text-zinc-500 shrink-0" /> : <ChevronRight className="h-3 w-3 text-zinc-500 shrink-0" />}
-                                        <Folder className="h-3 w-3 text-indigo-400 shrink-0" />
+                                        <Folder className="h-3 w-3 text-zinc-400 shrink-0" />
                                         <span className="truncate">{sc.name}</span>
                                       </span>
                                     </button>
@@ -1005,7 +1005,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                                               className={cn(
                                                 "w-full flex items-center justify-between p-1 rounded text-left text-[11px] font-mono transition-colors",
                                                 isSelected
-                                                  ? "bg-blue-600/20 text-blue-300 font-semibold"
+                                                  ? "bg-white/10 text-white font-semibold"
                                                   : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
                                               )}
                                             >
@@ -1062,10 +1062,10 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
 
                   {/* Sample Row Calculations & Memory Budget Card */}
                   {sampleMetrics && (
-                    <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/20 text-xs space-y-2">
+                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-1.5">
-                        <span className="font-semibold text-blue-300 flex items-center gap-1.5 font-mono text-[11px]">
-                          <HardDrive className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                        <span className="font-semibold text-zinc-200 flex items-center gap-1.5 font-mono text-[11px]">
+                          <HardDrive className="h-3.5 w-3.5 text-zinc-300 shrink-0" />
                           Ingestion Budget Calculator
                         </span>
                         <Badge
@@ -1094,7 +1094,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   )}
 
                   {isLoadingMetadata && (
-                    <div className="flex items-center gap-2 text-xs text-blue-400">
+                    <div className="flex items-center gap-2 text-xs text-zinc-300">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       <span>Loading metadata from warehouse...</span>
                     </div>
@@ -1120,7 +1120,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   value={customSql}
                   onChange={(e) => setCustomSql(e.target.value)}
                   placeholder="SELECT * FROM ANALYTICS_DB.PUBLIC.TRANSACTIONS WHERE amount > 100"
-                  className="w-full p-3 rounded-lg border border-white/10 bg-[#08090e] text-zinc-100 font-mono text-xs focus:outline-none focus:border-blue-500"
+                  className="w-full p-3 rounded-lg border border-white/10 bg-[#08090e] text-zinc-100 font-mono text-xs focus:outline-none focus:border-white/40"
                 />
 
                 {sqlValidationError ? (
@@ -1132,7 +1132,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-zinc-500">
                     <span>Queries validated using Snowflake AST parser. Prohibits DDL/DML mutations.</span>
                     {useSampling && (
-                      <Badge variant="outline" className="text-[9px] bg-blue-500/10 text-blue-300 border-blue-500/30 self-start sm:self-auto">
+                      <Badge variant="outline" className="text-[9px] bg-white/5 text-zinc-300 border-white/10 self-start sm:self-auto">
                         10% Bernoulli Sampling Active
                       </Badge>
                     )}
@@ -1180,14 +1180,14 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   {isPreviewing ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <Eye className="h-3.5 w-3.5 text-blue-400" />
+                    <Eye className="h-3.5 w-3.5 text-zinc-300" />
                   )}
                   Preview 25 Rows
                 </Button>
 
                 <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px] text-zinc-500 font-mono">
                   {useSampling && (
-                    <Badge variant="outline" className="border-blue-500/30 bg-blue-500/10 text-blue-300 text-[10px]">
+                    <Badge variant="outline" className="border-white/10 bg-white/5 text-zinc-300 text-[10px]">
                       Sampled (10%)
                     </Badge>
                   )}
@@ -1250,7 +1250,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                 type="button"
                 onClick={handleImport}
                 disabled={!activeQuery || isImporting || Boolean(sqlValidationError)}
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-6 shadow-lg shadow-blue-500/20 h-9"
+                className="w-full sm:w-auto bg-white hover:bg-zinc-200 text-black font-semibold text-xs px-6 shadow-sm h-9"
               >
                 {isImporting ? (
                   <>

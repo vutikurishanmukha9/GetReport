@@ -373,7 +373,7 @@ export const HowItWorks = () => {
               </div>
 
               <div className="p-4 rounded-xl bg-muted/20 border border-border/60 space-y-1.5">
-                <Layers className="h-5 w-5 text-blue-600" />
+                <Layers className="h-5 w-5 text-zinc-300" />
                 <h3 className="font-bold text-foreground font-sans text-xs sm:text-sm">Reversible DAGs</h3>
                 <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
                   Every Issue Ledger transformation records inverse operations so you can inspect raw vs remediated states.

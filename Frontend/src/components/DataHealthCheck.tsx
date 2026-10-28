@@ -27,8 +27,8 @@ const getTypeStyle = (type: string) => {
     const t = (type || "").toLowerCase();
     if (t.includes("int") || t.includes("float") || t.includes("num")) {
         return {
-            icon: <Hash className="h-3 w-3 text-sky-400" />,
-            className: "bg-sky-500/10 text-sky-400 border-sky-500/25",
+            icon: <Hash className="h-3 w-3 text-zinc-300" />,
+            className: "bg-white/5 text-zinc-300 border-white/10",
         };
     }
     if (t.includes("datetime") || t.includes("date") || t.includes("time")) {
@@ -282,7 +282,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                         <SelectItem value="fill_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                             <span className="flex items-center justify-between w-full gap-2">
                                                                 <span className="flex items-center gap-2">
-                                                                    <Wrench className="w-3.5 h-3.5 text-sky-400" /> Fill with Median
+                                                                    <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Median
                                                                 </span>
                                                                 {issue?.action === "fill_median" && (
                                                                     <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
@@ -294,7 +294,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                         <SelectItem value="fill_mean" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                             <span className="flex items-center justify-between w-full gap-2">
                                                                 <span className="flex items-center gap-2">
-                                                                    <Wrench className="w-3.5 h-3.5 text-sky-400" /> Fill with Average
+                                                                    <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Average
                                                                 </span>
                                                                 {issue?.action === "fill_mean" && (
                                                                     <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
@@ -306,7 +306,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                         <SelectItem value="fill_mode" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                             <span className="flex items-center justify-between w-full gap-2">
                                                                 <span className="flex items-center gap-2">
-                                                                    <Wrench className="w-3.5 h-3.5 text-indigo-400" /> Fill with Most Frequent
+                                                                    <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Most Frequent
                                                                 </span>
                                                                 {issue?.action === "fill_mode" && (
                                                                     <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
@@ -338,7 +338,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 <SelectItem value="fill_mode" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center justify-between w-full gap-2">
                                                         <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-indigo-400" /> Fill with Most Frequent
+                                                            <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Most Frequent
                                                         </span>
                                                         {issue?.action === "fill_mode" && (
                                                             <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
@@ -350,7 +350,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 <SelectItem value="fill_value" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center justify-between w-full gap-2">
                                                         <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-indigo-400" /> Fill with &ldquo;Unknown&rdquo;
+                                                            <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with &ldquo;Unknown&rdquo;
                                                         </span>
                                                         {issue?.action === "fill_value" && (
                                                             <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
@@ -439,7 +439,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     size="lg"
                     onClick={handleSubmit}
                     disabled={isProcessing}
-                    className="w-full sm:w-auto min-w-[220px] rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-sm py-6 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-display border border-violet-400/40 ring-1 ring-white/20 shadow-[0_4px_14px_-2px_rgba(124,58,237,0.38),inset_0_1px_1px_rgba(255,255,255,0.3)] cursor-pointer"
+                    className="w-full sm:w-auto min-w-[220px] rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-sm py-6 bg-white hover:bg-zinc-200 text-black font-display shadow-md cursor-pointer"
                 >
                     {isProcessing ? (
                         "Processing…"

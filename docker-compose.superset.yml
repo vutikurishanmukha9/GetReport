@@ -1,0 +1,84 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: getreport_superset_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - superset_redis_data:/data
+
+  db:
+    image: postgres:15-alpine
+    container_name: getreport_superset_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - superset_db_data:/var/lib/postgresql/data
+
+  superset:
+    image: apache/superset:latest
+    container_name: getreport_superset_app
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    environment:
+      SUPERSET_SECRET_KEY: "getreport-superset-secret-key-change-in-prod-2026"
+      SUPERSET_GUEST_TOKEN_SECRET: "getreport-superset-secret-key-change-in-prod-2026"
+      DATABASE_DB: superset
+      DATABASE_HOST: db
+      DATABASE_PASSWORD: superset_password
+      DATABASE_USER: superset
+      DATABASE_PORT: 5432
+      DATABASE_DIALECT: postgresql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PYTHONPATH: /app/pythonpath
+    volumes:
+      - ./docker/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - superset_home:/app/superset_home
+    ports:
+      - "8088:8088"
+
+  superset-init:
+    image: apache/superset:latest
+    container_name: getreport_superset_init
+    depends_on:
+      - db
+      - redis
+    environment:
+      SUPERSET_SECRET_KEY: "getreport-superset-secret-key-change-in-prod-2026"
+      SUPERSET_GUEST_TOKEN_SECRET: "getreport-superset-secret-key-change-in-prod-2026"
+      DATABASE_DB: superset
+      DATABASE_HOST: db
+      DATABASE_PASSWORD: superset_password
+      DATABASE_USER: superset
+      DATABASE_PORT: 5432
+      DATABASE_DIALECT: postgresql
+      PYTHONPATH: /app/pythonpath
+    volumes:
+      - ./docker/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - superset_home:/app/superset_home
+    entrypoint: >
+      /bin/sh -c "
+        echo 'Upgrading Superset database schema...' &&
+        superset db upgrade &&
+        echo 'Creating default admin user...' &&
+        superset fab create-admin --username admin --firstname GetReport --lastname Admin --email admin@getreport.local --password admin || true &&
+        echo 'Initializing default roles and permissions...' &&
+        superset init &&
+        echo 'Superset initialization complete!'
+      "
+
+volumes:
+  superset_db_data:
+  superset_redis_data:
+  superset_home:

@@ -850,4 +850,88 @@ export const api = {
             method: "POST",
         });
     },
+
+    /**
+     * Lists recent audited datasets for interactive Superset Explore analytics.
+     */
+    listRecentDatasets: (limit = 10): Promise<{
+        datasets: Array<{
+            task_id: string;
+            filename: string;
+            rows: number;
+            columns_count: number;
+            columns: string[];
+            numeric_columns: string[];
+            categorical_columns: string[];
+            created_at: string;
+        }>;
+    }> => {
+        return fetchClient(`/analytics/datasets?limit=${limit}`);
+    },
+
+    /**
+     * Introspects dataset columns and data types for Apache Superset Explore studio.
+     */
+    getSupersetSchema: (taskId: string): Promise<{
+        task_id: string;
+        total_rows: number;
+        total_columns: number;
+        columns: Array<{
+            name: string;
+            type: number;
+            type_name: string;
+            is_numeric: boolean;
+            is_temporal: boolean;
+            null_count: number;
+            unique_values: number;
+        }>;
+        numeric_columns: string[];
+        categorical_columns: string[];
+        temporal_columns: string[];
+        color_palettes: string[];
+    }> => {
+        return fetchClient(`/analytics/explore/${encodeURIComponent(taskId)}/schema`);
+    },
+
+    /**
+     * Executes Superset Explore analytical aggregation query and retrieves ECharts options payload.
+     */
+    querySupersetExplore: (query: {
+        task_id: string;
+        chart_type: string;
+        dimension: string;
+        secondary_dimension?: string;
+        metric?: string;
+        aggregate: string;
+        row_limit: number;
+        sort_order: string;
+        color_palette: string;
+    }): Promise<{
+        task_id: string;
+        chart_type: string;
+        dimension: string;
+        secondary_dimension?: string;
+        metric?: string;
+        aggregate: string;
+        metric_label: string;
+        row_limit: number;
+        kpis: {
+            metric_label: string;
+            dimension_label: string;
+            total_rows: number;
+            sum: number | null;
+            mean: number | null;
+            max: number | null;
+            min: number | null;
+            unique_categories: number;
+        };
+        records: Array<Record<string, any>>;
+        total_groups: number;
+        echarts_option: Record<string, any>;
+    }> => {
+        return fetchClient("/analytics/explore/query", {
+            method: "POST",
+            body: JSON.stringify(query),
+        });
+    },
 };

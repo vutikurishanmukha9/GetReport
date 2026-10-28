@@ -65,7 +65,7 @@ export const Workspace = () => {
         {step === "upload" && (
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 max-w-6xl space-y-8 animate-in fade-in duration-300">
             <div className="text-center space-y-3">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-[11px] font-mono font-semibold tracking-wide">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
                 <span>Ingestion & In-Memory Pipeline</span>
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black text-foreground tracking-[-0.02em] leading-tight">
