@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { 
-  Mail, Linkedin, Send, Clock, 
+import {
+  Mail, Linkedin, Send, Clock,
   Copy, Check, MessageSquare, ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export const Contact = () => {
       `Name: ${firstName} ${lastName}\nEmail: ${email}\nTopic: ${selectedTopic}\n\nMessage:\n${message}`
     );
     window.location.href = `mailto:vutikurishanmukha@gmail.com?subject=${mailtoSubject}&body=${mailtoBody}`;
-    
+
     toast({ title: "Message Triggered", description: "Opening your default email client..." });
     setFirstName("");
     setLastName("");
@@ -59,7 +59,7 @@ export const Contact = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background animate-in fade-in duration-500">
-      <Header onReset={() => {}} showReset={false} />
+      <Header onReset={() => { }} showReset={false} />
 
       <main className="flex-1 pt-16 sm:pt-20">
         {/* Header */}
@@ -69,7 +69,7 @@ export const Contact = () => {
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
               Get in touch with our team.
             </h1>
-            
+
             <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
               Have questions regarding custom Polars transformation DAGs, on-premise Docker deployments, or security audits? We are here to help.
             </p>
@@ -79,10 +79,10 @@ export const Contact = () => {
         {/* Section: Main Contact Grid */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-            
+
             {/* Left Column: Direct Info Cards (Col 1-5) */}
             <div className="lg:col-span-5 space-y-4">
-              
+
               {/* Direct Email Card with Copy Button */}
               <Card className="border border-border bg-card shadow-premium p-4 sm:p-5 rounded-2xl space-y-3 t-card-lift">
                 <div className="flex items-center justify-between">
@@ -187,11 +187,10 @@ export const Contact = () => {
                           key={topic}
                           type="button"
                           onClick={() => setSelectedTopic(topic)}
-                          className={`px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer border ${
-                            selectedTopic === topic
-                              ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
-                              : "bg-muted/30 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
-                          }`}
+                          className={`px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer border ${selectedTopic === topic
+                            ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
+                            : "bg-muted/30 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                            }`}
                         >
                           {topic}
                         </button>

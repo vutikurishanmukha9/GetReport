@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 export const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background animate-in fade-in duration-500">
-      <Header onReset={() => {}} showReset={false} />
+      <Header onReset={() => { }} showReset={false} />
 
       <main className="flex-1 pt-16 sm:pt-20">
         {/* Header */}
@@ -16,7 +16,7 @@ export const PrivacyPolicy = () => {
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
               Privacy & in-memory guarantees.
             </h1>
-            
+
             <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
               Your raw tabular datasets are executed strictly in isolated ephemeral memory. We never sell, retain on disk, or train AI models on your proprietary records.
             </p>
@@ -25,7 +25,7 @@ export const PrivacyPolicy = () => {
 
         {/* Section: 4 Key Security Pillars */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-5xl space-y-6 sm:space-y-8">
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-4 sm:p-5 border border-border bg-card shadow-premium space-y-2 rounded-2xl t-card-lift">
               <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
@@ -70,7 +70,7 @@ export const PrivacyPolicy = () => {
 
           {/* Detailed Legal Breakdown */}
           <div className="border border-border/80 bg-card rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-premium space-y-6 text-xs sm:text-sm text-muted-foreground leading-relaxed font-sans">
-            
+
             <section className="space-y-2">
               <div className="flex items-center gap-2 border-b border-border/60 pb-2">
                 <span className="font-mono font-bold text-primary text-xs">SECTION 01</span>
