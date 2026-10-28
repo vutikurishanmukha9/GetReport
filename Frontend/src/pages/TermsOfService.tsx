@@ -45,7 +45,7 @@ export const TermsOfService = () => {
                 By accessing, uploading datasets to, or self-hosting GetReport, you agree to be bound by these Terms of Service and the accompanying Apache 2.0 open source license. If you do not agree with any portion of these terms, you must refrain from using the service.
               </p>
               <div className="p-2.5 bg-muted/40 rounded-xl border border-border/60 font-mono text-xs text-foreground flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                 <span>GetReport is completely free to use for both personal and commercial data audits.</span>
               </div>
             </Card>
@@ -53,11 +53,11 @@ export const TermsOfService = () => {
             {/* Section 2: Acceptable Use Policy */}
             <Card className="p-4 sm:p-6 border border-border bg-card shadow-premium space-y-3 rounded-2xl t-card-lift">
               <div className="flex items-center gap-2.5 border-b border-border/60 pb-2.5">
-                <div className="p-2 bg-rose-500/10 text-rose-700 rounded-xl">
+                <div className="p-2 bg-rose-500/10 text-rose-400 rounded-xl">
                   <FileText className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="font-mono text-xs text-rose-600 font-bold">CLAUSE 02</span>
+                  <span className="font-mono text-xs text-rose-400 font-bold">CLAUSE 02</span>
                   <h2 className="text-base sm:text-lg font-display font-bold text-foreground tracking-[-0.015em]">
                     2. Acceptable Use & Payload Safety
                   </h2>
@@ -71,11 +71,11 @@ export const TermsOfService = () => {
             {/* Section 3: Data Ownership & Intellectual Property */}
             <Card className="p-4 sm:p-6 border border-border bg-card shadow-premium space-y-3 rounded-2xl t-card-lift">
               <div className="flex items-center gap-2.5 border-b border-border/60 pb-2.5">
-                <div className="p-2 bg-emerald-500/10 text-emerald-700 rounded-xl">
+                <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
                   <Shield className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="font-mono text-xs text-emerald-600 font-bold">CLAUSE 03</span>
+                  <span className="font-mono text-xs text-emerald-400 font-bold">CLAUSE 03</span>
                   <h2 className="text-base sm:text-lg font-display font-bold text-foreground tracking-[-0.015em]">
                     3. Complete Data Ownership & Commercial Rights
                   </h2>
@@ -89,11 +89,11 @@ export const TermsOfService = () => {
             {/* Section 4: Limitation of Liability */}
             <Card className="p-4 sm:p-6 border border-border bg-card shadow-premium space-y-3 rounded-2xl t-card-lift">
               <div className="flex items-center gap-2.5 border-b border-border/60 pb-2.5">
-                <div className="p-2 bg-amber-500/10 text-amber-700 rounded-xl">
+                <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
                   <AlertCircle className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="font-mono text-xs text-amber-600 font-bold">CLAUSE 04</span>
+                  <span className="font-mono text-xs text-amber-400 font-bold">CLAUSE 04</span>
                   <h2 className="text-base sm:text-lg font-display font-bold text-foreground tracking-[-0.015em]">
                     4. Limitation of Liability & Audit Disclaimer
                   </h2>

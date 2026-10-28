@@ -300,7 +300,7 @@ function StepNode({ stage }: { stage: PipelineStage }) {
                             className="relative flex items-center justify-center"
                         >
                             <div className="absolute inset-0 rounded-full bg-primary/20 blur-sm" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(79,70,229,0.5)] relative z-10" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,255,255,0.4)] relative z-10" />
                         </motion.div>
                     )}
                     {isError && (
@@ -324,7 +324,7 @@ function StepNode({ stage }: { stage: PipelineStage }) {
 
             {/* Label & Icon */}
             <div className={`flex items-center gap-1.5 transition-colors duration-300
-                ${isCompleted ? "text-emerald-700 font-medium" :
+                ${isCompleted ? "text-emerald-400 font-medium" :
                   isActive ? "text-foreground font-display font-bold" :
                   isError ? "text-destructive font-semibold" :
                   "text-muted-foreground/60 font-medium"}
@@ -361,7 +361,7 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
                                 {isActive && (
                                     <div className="relative flex items-center justify-center">
                                         <div className="absolute inset-0 rounded-full bg-primary/20 blur-sm" />
-                                        <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(79,70,229,0.5)] relative z-10" />
+                                        <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,255,255,0.4)] relative z-10" />
                                     </div>
                                 )}
                                 {isError && (
@@ -373,7 +373,7 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
                             </div>
 
                              <span className={`text-sm tracking-tight transition-colors duration-300
-                                ${isCompleted ? "text-emerald-700 font-medium" :
+                                ${isCompleted ? "text-emerald-400 font-medium" :
                                 isActive ? "text-foreground font-display font-bold" :
                                 isError ? "text-destructive font-semibold" :
                                 "text-muted-foreground/60 font-medium"}

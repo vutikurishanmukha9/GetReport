@@ -287,7 +287,7 @@ export const Examples = () => {
                           {item.sampleColumns.map((col) => (
                             <div key={col.name} className="py-1 flex justify-between items-center text-xs">
                               <span className="font-semibold text-foreground">{col.name} <span className="text-[10px] text-muted-foreground">({col.type})</span></span>
-                              <span className="text-emerald-700 font-medium text-[11px]">{col.quality}</span>
+                              <span className="text-emerald-400 font-medium text-[11px]">{col.quality}</span>
                             </div>
                           ))}
                         </div>

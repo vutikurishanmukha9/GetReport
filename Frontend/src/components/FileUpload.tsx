@@ -51,7 +51,9 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
   const [joinMode, setJoinMode] = useState<"common" | "asymmetric">("common");
   const [fileHeaders, setFileHeaders] = useState<Record<string, string[]>>({});
   const fileHeadersRef = useRef(fileHeaders);
-  fileHeadersRef.current = fileHeaders;
+  useEffect(() => {
+    fileHeadersRef.current = fileHeaders;
+  }, [fileHeaders]);
   const [keyMapping, setKeyMapping] = useState<Record<string, string>>({});
 
   // New States for Interactive Cleaning
@@ -490,7 +492,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
               className={`
                 mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center 
                 rounded-full transition-all duration-200 shadow-premium border
-                ${isDragging ? "bg-primary/20 border-primary/50 text-primary" : "bg-[#121420] border-white/10 text-zinc-300"}
+                ${isDragging ? "bg-primary/20 border-primary/50 text-primary" : "bg-[#121215] border-white/10 text-zinc-300"}
               `}
               animate={{ scale: isDragging ? 1.08 : 1 }}
               transition={{ type: "spring", stiffness: 260 }}
@@ -539,7 +541,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                     onChange={handleFileSelect}
                     className="sr-only"
                   />
-                  <Button asChild variant="outline" size="default" className="cursor-pointer border-white/10 bg-[#121420] text-zinc-100 hover:bg-white/10 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]">
+                  <Button asChild variant="outline" size="default" className="cursor-pointer border-white/10 bg-[#121215] text-zinc-100 hover:bg-white/10 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]">
                     <span className="text-xs font-semibold flex items-center gap-2">
                       <Upload className="h-3.5 w-3.5 text-primary" />
                       Browse Files to Stage
@@ -552,7 +554,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   variant="outline"
                   size="default"
                   onClick={() => setIsSnowflakeModalOpen(true)}
-                  className="cursor-pointer border-white/10 bg-[#121420] text-zinc-100 hover:bg-white/10 hover:border-white/20 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]"
+                  className="cursor-pointer border-white/10 bg-[#121215] text-zinc-100 hover:bg-white/10 hover:border-white/20 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]"
                 >
                   <span className="text-xs font-semibold flex items-center gap-2">
                     <Database className="h-3.5 w-3.5 text-zinc-300" />
@@ -568,7 +570,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
             {/* Supported formats */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-6 text-xs">
               {['.csv', '.xlsx', '.parquet', '.json', '.tsv'].map((fmt) => (
-                <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#121420] text-zinc-300 font-mono text-[10px] font-medium rounded-full border border-white/10 shadow-2xs">
+                <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#121215] text-zinc-300 font-mono text-[10px] font-medium rounded-full border border-white/10 shadow-2xs">
                   <FileSpreadsheet className="h-3 w-3 text-primary" />
                   {fmt}
                 </span>
@@ -613,7 +615,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   return (
                     <motion.div
                       key={`${file.name}-${file.size}-${file.lastModified}`}
-                      className="flex items-center justify-between p-3 rounded-xl bg-[#121420] border border-white/10 shadow-2xs hover:border-white/20 t-card-lift"
+                      className="flex items-center justify-between p-3 rounded-xl bg-[#121215] border border-white/10 shadow-2xs hover:border-white/20 t-card-lift"
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
@@ -974,7 +976,7 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
       {/* Privacy & Data Handling Disclosure */}
       <motion.div
-        className="p-5 rounded-2xl border border-white/10 bg-[#0c0d14] shadow-premium space-y-3"
+        className="p-5 rounded-2xl border border-white/10 bg-[#0c0d12] shadow-premium space-y-3"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}

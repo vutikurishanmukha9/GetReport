@@ -224,7 +224,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
       const base64Url = chartInstance.getDataURL({
         type: "png",
         pixelRatio: 2,
-        backgroundColor: "#090d16",
+        backgroundColor: "#07080a",
       });
       const link = document.createElement("a");
       link.href = base64Url;
@@ -263,8 +263,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const displayName = initialDatasetName || activeDatasetMeta?.filename || "Active Dataset";
 
   return (
-    <div className={`w-full rounded-2xl border border-slate-800 bg-[#090d16] text-slate-100 overflow-hidden ${
-      isFullscreen ? "fixed inset-0 z-50 rounded-none p-4 bg-[#090d16] overflow-y-auto" : ""
+    <div className={`w-full rounded-2xl border border-slate-800 bg-[#07080a] text-slate-100 overflow-hidden ${
+      isFullscreen ? "fixed inset-0 z-50 rounded-none p-4 bg-[#07080a] overflow-y-auto" : ""
     }`}>
       
       {/* ─── Top Studio Header Bar ─── */}
@@ -373,7 +373,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
         
         {/* ──── LEFT PANEL: Superset Explore Controls (4 cols) ──── */}
-        <div className="lg:col-span-4 p-5 border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#0b0f1a] space-y-6">
+        <div className="lg:col-span-4 p-5 border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#0c0d12] space-y-6">
           
           {/* Section: Chart Type Picker */}
           <div className="space-y-2">
@@ -544,12 +544,12 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         </div>
 
         {/* ──── RIGHT CANVAS: Live Visualization & KPIs (8 cols) ──── */}
-        <div className="lg:col-span-8 p-5 sm:p-6 flex flex-col justify-between space-y-6 bg-[#090d16]">
+        <div className="lg:col-span-8 p-5 sm:p-6 flex flex-col justify-between space-y-6 bg-[#07080a]">
           
           {/* Top: Superset BigNumber KPI Cards */}
           {queryResult?.kpis && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="rounded-xl border border-slate-800 bg-[#0e1424] p-3.5">
+              <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">
                   Total Records
                 </span>
@@ -558,7 +558,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 </span>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-[#0e1424] p-3.5">
+              <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">
                   {queryResult.kpis.metric_label || "Metric Value"}
                 </span>
@@ -571,7 +571,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 </span>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-[#0e1424] p-3.5">
+              <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">
                   Peak Group
                 </span>
@@ -580,7 +580,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 </span>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-[#0e1424] p-3.5">
+              <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">
                   Total Groups
                 </span>
@@ -592,7 +592,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
           )}
 
           {/* Main Chart or Table Canvas */}
-          <div className="flex-1 min-h-[460px] rounded-xl border border-slate-800 bg-[#0b0f1a] p-4 flex flex-col relative">
+          <div className="flex-1 min-h-[460px] rounded-xl border border-slate-800 bg-[#0c0d12] p-4 flex flex-col relative">
             
             {/* View Switcher: Chart vs Raw Data */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-2">
@@ -626,7 +626,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
             {/* Loading Overlay */}
             {executing && (
-              <div className="absolute inset-0 bg-[#090d16]/80 backdrop-blur-xs flex flex-col items-center justify-center z-20 gap-2">
+              <div className="absolute inset-0 bg-[#07080a]/80 backdrop-blur-xs flex flex-col items-center justify-center z-20 gap-2">
                 <Loader2 className="h-6 w-6 animate-spin text-zinc-300" />
                 <span className="text-xs font-mono text-slate-400">Computing visual analytics...</span>
               </div>

@@ -197,7 +197,7 @@ export const Documentation = () => {
               {/* Section 1: Supported File Formats */}
               <section id="supported-formats" className="space-y-4 scroll-mt-28">
                 <div className="flex items-center gap-3 border-b border-border/80 pb-2.5">
-                  <div className="p-2 bg-emerald-500/10 text-emerald-700 rounded-xl">
+                  <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl">
                     <FileSpreadsheet className="h-5 w-5" />
                   </div>
                   <div>
@@ -331,7 +331,7 @@ export const Documentation = () => {
               {/* Section 4: REST API Endpoints */}
               <section id="api-endpoints" className="space-y-4 scroll-mt-28">
                 <div className="flex items-center gap-3 border-b border-border/80 pb-2.5">
-                  <div className="p-2 bg-purple-500/10 text-purple-700 rounded-xl">
+                  <div className="p-2 bg-white/[0.05] text-zinc-300 rounded-xl">
                     <Code2 className="h-5 w-5" />
                   </div>
                   <div>

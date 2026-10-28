@@ -218,13 +218,13 @@ export const EngineTrustBar = () => {
             const themeStyles = isBoth
               ? {
                   cardBorder: "border-white/10 hover:border-violet-500/50",
-                  cardBg: "bg-[#0c0d14] hover:bg-[#111222]",
+                  cardBg: "bg-[#0c0d12] hover:bg-[#15131a]",
                   cardShadow: "shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.35),0_0_24px_rgba(139,92,246,0.12)]",
                   sheenBg: "bg-gradient-to-b from-violet-500/12 via-violet-500/3 to-transparent",
                   badge: "bg-violet-500/20 text-violet-300 border border-violet-500/40 group-hover/card:border-violet-400/60",
                   icon: "text-violet-400 group-hover/card:text-violet-300",
                   dot: "bg-violet-400 group-hover/card:bg-violet-300 group-hover/card:shadow-[0_0_8px_#a78bfa]",
-                  dogEarFold: "group-hover/card:border-b-[#1c1833]",
+                  dogEarFold: "group-hover/card:border-b-[#201d2a]",
                 }
               : isInput
               ? {
@@ -239,7 +239,7 @@ export const EngineTrustBar = () => {
                 }
               : {
                   cardBorder: "border-white/10 hover:border-emerald-500/50",
-                  cardBg: "bg-[#0c0d14] hover:bg-[#0c1415]",
+                  cardBg: "bg-[#0c0d12] hover:bg-[#101514]",
                   cardShadow: "shadow-xl hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.35),0_0_24px_rgba(16,185,129,0.12)]",
                   sheenBg: "bg-gradient-to-b from-emerald-500/12 via-emerald-500/3 to-transparent",
                   badge: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 group-hover/card:border-emerald-400/60",

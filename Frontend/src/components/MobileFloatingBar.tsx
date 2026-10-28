@@ -38,7 +38,7 @@ export const MobileFloatingBar = () => {
     >
       {/* Double-Bezel Hardware Architecture in Obsidian Dark */}
       <div className="pointer-events-auto p-1 rounded-full bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 shadow-[0_20px_48px_-10px_rgba(0,0,0,0.8),0_4px_16px_rgba(0,0,0,0.4)]">
-        <div className="rounded-full bg-[#0c0d14]/95 backdrop-blur-xl border border-white/10 px-3.5 py-1.5 flex items-center justify-between gap-3">
+        <div className="rounded-full bg-[#0c0d12]/95 backdrop-blur-xl border border-white/10 px-3.5 py-1.5 flex items-center justify-between gap-3">
           
           {/* Left Pod: Brand Identity & Privacy Indicator */}
           <Link to="/" className="flex items-center gap-2.5 min-w-0 group cursor-pointer">

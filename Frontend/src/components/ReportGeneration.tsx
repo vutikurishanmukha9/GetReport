@@ -1202,7 +1202,7 @@ export const ReportGeneration = ({
                               {c.overall.toFixed(0)}%
                             </span>
                             {hasIssues && (
-                              <Badge variant="secondary" className="bg-amber-50 text-amber-700 border border-amber-200 h-5 px-2 rounded-full text-[9px] font-mono">
+                              <Badge variant="secondary" className="bg-amber-500/10 text-amber-400 border border-amber-500/30 h-5 px-2 rounded-full text-[9px] font-mono">
                                 {c.issues.length} alert{c.issues.length > 1 ? 's' : ''}
                               </Badge>
                             )}
@@ -1236,7 +1236,7 @@ export const ReportGeneration = ({
                             </div>
 
                             {hasIssues && (
-                              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1 text-xs text-amber-800">
+                              <div className="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3 space-y-1 text-xs text-amber-300">
                                 <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
                                   <AlertTriangle className="h-3.5 w-3.5" />
                                   <span>Identified Quality Flags:</span>
@@ -1283,7 +1283,7 @@ export const ReportGeneration = ({
                           <span className="font-semibold text-foreground truncate max-w-[160px]">{col}</span>
                           <div className="flex gap-1.5">
                             {isSkewed && (
-                              <Badge variant="secondary" className="bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-[10px]">
+                              <Badge variant="secondary" className="bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-lg text-[10px]">
                                 skew: {stats.skewness.toFixed(2)}
                               </Badge>
                             )}
@@ -1323,7 +1323,7 @@ export const ReportGeneration = ({
                           </div>
                           <div className="flex justify-between mt-1 text-[11px] font-mono text-muted-foreground">
                             <span>Pearson r: <strong>{item.correlation.toFixed(2)}</strong></span>
-                            <Badge variant="destructive" className="h-4.5 text-[9px] px-2 rounded-full bg-red-50 text-red-750 border border-red-200 uppercase font-bold">
+                            <Badge variant="destructive" className="h-4.5 text-[9px] px-2 rounded-full bg-rose-950/40 text-rose-400 border border-rose-500/30 uppercase font-bold">
                               High Collinearity
                             </Badge>
                           </div>

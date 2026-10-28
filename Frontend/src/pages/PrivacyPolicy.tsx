@@ -28,7 +28,7 @@ export const PrivacyPolicy = () => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-4 sm:p-5 border border-border bg-card shadow-premium space-y-2 rounded-2xl t-card-lift">
-              <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center">
+              <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                 <Lock className="h-4 w-4" />
               </div>
               <h3 className="font-display font-bold text-foreground text-xs sm:text-sm">100% In-Memory RAM</h3>
@@ -58,7 +58,7 @@ export const PrivacyPolicy = () => {
             </Card>
 
             <Card className="p-4 sm:p-5 border border-border bg-card shadow-premium space-y-2 rounded-2xl t-card-lift">
-              <div className="h-9 w-9 rounded-xl bg-purple-500/10 text-purple-700 flex items-center justify-center">
+              <div className="h-9 w-9 rounded-xl bg-white/[0.05] text-zinc-300 flex items-center justify-center">
                 <Server className="h-4 w-4" />
               </div>
               <h3 className="font-display font-bold text-foreground text-xs sm:text-sm">TLS 1.3 Encryption</h3>

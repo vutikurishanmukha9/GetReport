@@ -167,12 +167,12 @@ export const SupersetDashboard: React.FC<SupersetDashboardProps> = ({
 
   return (
     <div
-      className={`w-full rounded-xl border border-slate-800 bg-[#0d121f] overflow-hidden ${
-        isFullscreen ? "fixed inset-0 z-50 rounded-none p-4 bg-[#090d16]" : ""
+      className={`w-full rounded-xl border border-slate-800 bg-[#0c0d12] overflow-hidden ${
+        isFullscreen ? "fixed inset-0 z-50 rounded-none p-4 bg-[#07080a]" : ""
       }`}
     >
       {/* Top Header / Action Toolbar */}
-      <div className="px-5 py-3.5 border-b border-slate-800 bg-[#111728] flex flex-wrap items-center justify-between gap-3">
+      <div className="px-5 py-3.5 border-b border-slate-800 bg-[#0e1017] flex flex-wrap items-center justify-between gap-3">
         
         {/* Left: Component Title & Bound Dataset Info */}
         <div className="flex items-center gap-3">
@@ -309,7 +309,7 @@ export const SupersetDashboard: React.FC<SupersetDashboardProps> = ({
             </div>
 
             {/* Launch Instructions */}
-            <div className="rounded-lg border border-slate-800 bg-[#111728] p-5 space-y-4">
+            <div className="rounded-lg border border-slate-800 bg-[#0e1017] p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
                   Terminal Launch Command
@@ -346,15 +346,15 @@ export const SupersetDashboard: React.FC<SupersetDashboardProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 text-xs">
-                <div className="p-3 rounded border border-slate-800/80 bg-[#0d121f]">
+                <div className="p-3 rounded border border-slate-800/80 bg-[#0c0d12]">
                   <span className="font-semibold text-slate-200 block mb-1">1. Launch Container</span>
                   <span className="text-slate-400">Run the command above to start Superset, Postgres, and Redis.</span>
                 </div>
-                <div className="p-3 rounded border border-slate-800/80 bg-[#0d121f]">
+                <div className="p-3 rounded border border-slate-800/80 bg-[#0c0d12]">
                   <span className="font-semibold text-slate-200 block mb-1">2. Auto-Wired Dataset</span>
                   <span className="text-slate-400">GetReport automatically syncs your cleaned table into Superset.</span>
                 </div>
-                <div className="p-3 rounded border border-slate-800/80 bg-[#0d121f]">
+                <div className="p-3 rounded border border-slate-800/80 bg-[#0c0d12]">
                   <span className="font-semibold text-slate-200 block mb-1">3. Live Dashboard</span>
                   <span className="text-slate-400">Click Reload above to view interactive charts without leaving GetReport.</span>
                 </div>
@@ -362,7 +362,7 @@ export const SupersetDashboard: React.FC<SupersetDashboardProps> = ({
             </div>
 
             {/* Dataset Binding Status */}
-            <div className="rounded-lg border border-slate-800 bg-[#111728] p-5 space-y-3">
+            <div className="rounded-lg border border-slate-800 bg-[#0e1017] p-5 space-y-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-300 block">
                 Dataset Pipeline Binding
               </span>

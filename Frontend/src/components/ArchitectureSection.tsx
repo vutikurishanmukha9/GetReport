@@ -68,7 +68,7 @@ export const ArchitectureSection = () => {
             return (
               <div
                 key={stage.step}
-                className="rounded-[1.75rem] sm:rounded-3xl bg-[#0c0d14] border border-white/10 p-5 sm:p-6 shadow-xl flex flex-col justify-between transition-all duration-200 group hover:border-white/20 hover:-translate-y-0.5"
+                className="rounded-[1.75rem] sm:rounded-3xl bg-[#0c0d12] border border-white/10 p-5 sm:p-6 shadow-xl flex flex-col justify-between transition-all duration-200 group hover:border-white/20 hover:-translate-y-0.5"
               >
                 <div className="space-y-3.5 sm:space-y-4">
                   <div className="flex items-center justify-between">

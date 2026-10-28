@@ -115,7 +115,7 @@ export const Contact = () => {
               {/* Response SLA Card */}
               <Card className="border border-border bg-card shadow-premium p-4 sm:p-5 rounded-2xl space-y-2 t-card-lift">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-700">
+                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
                     <Clock className="h-4 w-4" />
                   </div>
                   <div>

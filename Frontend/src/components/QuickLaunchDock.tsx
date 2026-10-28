@@ -6,7 +6,7 @@ export const QuickLaunchDock = () => {
   return (
     <section className="py-10 sm:py-14 bg-[#07080a] border-b border-white/[0.08] relative overflow-hidden text-zinc-100">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
-        <div className="rounded-[1.75rem] sm:rounded-[2.5rem] bg-[#0c0d14] text-white shadow-2xl p-7 sm:p-10 text-center space-y-4 sm:space-y-5 relative overflow-hidden border border-white/10">
+        <div className="rounded-[1.75rem] sm:rounded-[2.5rem] bg-[#0c0d12] text-white shadow-2xl p-7 sm:p-10 text-center space-y-4 sm:space-y-5 relative overflow-hidden border border-white/10">
           <div className="space-y-3 max-w-xl mx-auto relative z-10">
             <h2 className="text-2xl xs:text-3xl sm:text-4xl font-display font-extrabold text-white tracking-[-0.03em] leading-tight">
               Ready to audit and certify your data?
