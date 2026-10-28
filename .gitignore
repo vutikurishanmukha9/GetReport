@@ -54,6 +54,7 @@ ENV/
 .pytest_cache/
 .coverage
 htmlcov/
+coverage/
 .mypy_cache/
 .ruff_cache/
 .hypothesis/
@@ -75,12 +76,21 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 bun.lockb
+*.lockb
 vite.config.ts.timestamp-*
+vite-*.log
+.turbo/
+.cache/
+.parcel-cache/
 
-# ─── Application Artifacts ──────────────────────────────
+# ─── Application Artifacts & Runtime Storage ─────────────
+output/
 outputs/
 temp_uploads/
 temp_cache/
+data/
+tmp/
+temp/
 *.pdf
 stats.json
 test_data.csv
@@ -97,5 +107,3 @@ OpenSandbox/
 
 # ─── Business Intelligence Companion ───────────────────────
 superset/
-
-

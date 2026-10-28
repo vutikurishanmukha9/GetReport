@@ -9,6 +9,7 @@ __pycache__/
 !.env.example
 venv/
 env/
+.venv/
 
 # IDEs
 .vscode/
@@ -19,8 +20,12 @@ env/
 .coverage
 htmlcov/
 site/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+coverage/
 
-# Application Artifacts
+# Application Artifacts & Databases
 *.pdf
 stats.json
 *.db
@@ -29,13 +34,13 @@ tasks.db
 *.tmp
 *.bak
 *.swp
+*.swo
 
-
-
-# Generated Outputs
+# Generated Outputs & Runtime Storage
+output/
 outputs/
 temp_uploads/
+temp_cache/
 data/
-
-# Hypothesis testing
-.hypothesis/
+tmp/
+temp/
