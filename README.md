@@ -6,7 +6,8 @@
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0%2B-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev/)
-[![UI](https://img.shields.io/badge/UI-BeUI%20%7C%20Obsidian%20Executive-000000?logo=react)](https://beui.dev/)
+[![UI](https://img.shields.io/badge/UI-Obsidian%20Executive%20%7C%20BeUI-000000?logo=react)](https://beui.dev/)
+[![BI](https://img.shields.io/badge/BI-Apache%20ECharts%206.1-AA344D?logo=apacheecharts)](https://echarts.apache.org/)
 [![Warehouse](https://img.shields.io/badge/Warehouse-Snowflake%20Arrow%20Stream%20%28Beta%29-29B5E8?logo=snowflake)](https://www.snowflake.com/)
 [![Google Antigravity SDK](https://img.shields.io/badge/Agent-Google%20Antigravity%20SDK-4285F4?logo=google)](https://ai.google.dev/)
 [![Polars](https://img.shields.io/badge/Engine-Polars%20Rust-CD412B?logo=rust)](https://pola.rs/)
@@ -20,10 +21,11 @@
 ---
 
 ## Overview
-**GetReport** is an enterprise-grade automated data intelligence and exploratory data analysis (EDA) platform. It transforms raw, multi-format datasets into publication-ready PDF reports, machine-learning-ready engineered feature pipelines, interactive visual analytics, and conversational intelligence.
+**GetReport** is an enterprise-grade automated data intelligence, exploratory data analysis (EDA), and interactive Business Intelligence (BI) platform. It transforms raw, multi-format datasets into publication-ready executive PDF reports, machine-learning-ready engineered feature pipelines, interactive visual analytics dashboards, and grounded conversational intelligence.
 
-GetReport unifies high-performance data processing, mathematical profiling, and agentic AI:
-- **Zero-Copy Hybrid Engine**: Combines **Polars (Rust)** for streaming aggregations with **DuckDB** for in-process SQL OLAP queries over Apache Arrow tables.
+GetReport unifies high-performance Rust/Python data processing, mathematical profiling, and agentic AI:
+- **Zero-Copy Hybrid Engine**: Combines **Polars (Rust)** for single-pass streaming aggregations with **DuckDB** for in-process SQL OLAP queries directly over Apache Arrow tables.
+- **Interactive Business Intelligence Studio (Apache ECharts)**: A Superset-grade exploratory visual canvas supporting dynamic multidimensional aggregations, multi-series breakdowns, custom color palettes, BigNumber KPI metric cards, and responsive mobile-first query controls (`/analytics` and `/bi`).
 - **Direct Snowflake Warehouse Ingestion (Beta)**: Direct cloud data warehouse connectivity supporting RSA Key-Pair and password authentication, dedicated read-only role enforcement, in-memory AES-256 session encryption, and zero-copy Arrow streaming into parquet.
 - **Row Intelligence & Self-Supervised Anomaly Detection**: 4-tier row triage hierarchy (`PROTECT`, `REVIEW`, `FIX`, `EXCLUDE`) ensuring bit-identical preservation of clean records, automatic pruning of non-data rows (headers, totals, footers) before profiling, gated smart imputation against synthetic data hallucination, and cross-column relationship violation detection via out-of-fold `HistGradientBoostingRegressor`.
 - **Advanced Statistical Profiling & Time-Series**: Non-parametric dispersion estimators (MAD, IQR, Trimmed Mean), Bowley quartile skewness, Phik ($\Phi_K$) non-linear correlation matrices, Kats/Mann-Kendall trend detection, and Benford's Law forensic audits.
@@ -61,31 +63,39 @@ GetReport unifies high-performance data processing, mathematical profiling, and 
                      │                                                         │
                      ▼                                                         ▼
      ┌───────────────────────────────┐                         ┌───────────────────────────────┐
-     │ Virtual Concept Synthesizer   │                         │ Conversational Agent & Charts │
-     │ (Dynamic Formula Compilation) │                         │ (AST Sandbox + Matplotlib Agg)│
+     │ Business Intelligence Studio  │                         │ Conversational Agent & Charts │
+     │ (ECharts Multidimensional BI) │                         │ (AST Sandbox + Matplotlib Agg)│
      └───────────────┬───────────────┘                         └───────────────┬───────────────┘
                      │                                                         │
                      └────────────────────┬────────────────────────────────────┘
                                           ▼
                          ┌─────────────────────────────────┐
-                         │   Publication-Ready Deliverable  │
+                         │   Publication-Ready Deliverable │
                          │ (Executive PDF + GX Contracts)  │
                          └─────────────────────────────────┘
 ```
 
-### 1. In-Process DuckDB OLAP & Golden Query Store
+### 1. Interactive Business Intelligence (BI) Studio
+- **Superset-Grade Exploration**: Full-featured interactive visual analytics engine built directly into GetReport (`/analytics` and `/bi`), powered by Apache ECharts.
+- **Dynamic Multidimensional Aggregations**: Compute grouped sums, averages, counts, minimums, and maximums across any combination of categorical dimensions and numerical metrics.
+- **Multi-Series Breakdowns**: Split metrics across secondary categorical dimensions for comparative stacked and grouped visualizations.
+- **Responsive Mobile Layout**: Features an adaptive segmented dual-tab switcher (`Chart & Visuals` vs `Query Controls`) with viewport-aware auto-resizing, ensuring charts render smoothly on mobile, tablet, and desktop form factors.
+- **Real-Time BigNumber KPIs**: Live cards surfacing total records, aggregated metrics, peak groups, and group cardinality.
+- **Executive Color Themes**: Instant palette switching across Obsidian Dark, Emerald Finance, Amber Warmth, and Minimalist Monochrome.
+
+### 2. In-Process DuckDB OLAP & Golden Query Store
 - **Hardware Zero-Copy Execution**: Maps cleaned Polars DataFrames directly to DuckDB views via in-memory Apache Arrow record batches, querying millions of rows at memory-bus speeds without serialization overhead.
 - **Engine-Level Sandboxing**: DuckDB instances enforce `SET enable_external_access = false;` at the native C++ level, preventing any filesystem access or socket connections from user queries.
 - **Golden Query Catalog**: Curates verified natural-language-to-SQL query pairs with execution metrics, schema caching, and continuous regression testing.
 
-### 2. Statistical Core & Advanced Data Profiling
+### 3. Statistical Core & Advanced Data Profiling
 - **Non-Parametric Dispersion and Shape**: Calculates Median Absolute Deviation (MAD), Interquartile Range (IQR), 5% Trimmed Mean, Coefficient of Variation (CV), and Bowley quartile skewness alongside Pearson moments.
 - **Non-Linear Bivariate Correlation ($\Phi_K$)**: Evaluates non-linear and mixed-type associations across categorical, ordinal, and continuous intervals simultaneously.
 - **Extended Profiling Alert Taxonomy**: Identifies constant columns, high cardinality, negative monetary values, bimodal distributions, uniform densities, and zero-inflation patterns.
 - **Skewness-Adjusted Outlier Fences**: Dynamically adjusts Tukey multiplier bounds according to sample skewness, preventing false alarms on heavy-tailed or monetary distributions.
 - **Missingness Structure Diagnostics**: Evaluates pairwise Phi-coefficient missingness matrices to classify MCAR, MAR, and MNAR structures, providing listwise deletion row-survival predictions.
 
-### 3. Row Intelligence & Self-Supervised Anomaly Detection
+### 4. Row Intelligence & Self-Supervised Anomaly Detection
 - **4-Tier Verdict Hierarchy (`RowVerdict`)**: Categorizes every row into a single explicit verdict before cleaning begins:
   - `PROTECT` (Severity 0): Passes all checks; bit-identical guarantee through downstream cleaning.
   - `REVIEW` (Severity 1): Suspicious or multi-column relationship violations; flagged with natural-language drivers for human audit, never mutated or dropped.
@@ -97,27 +107,27 @@ GetReport unifies high-performance data processing, mathematical profiling, and 
 - **Contrastive Driver Explanations**: Generates plain-language diagnostics for flagged rows (e.g., `salary=95000 (expected about 35000 given the rest of the row)`).
 - **DAG Lineage Provenance**: Records all pruned non-data rows under the `"drop_non_data_rows"` node with partial reversibility and stored row IDs.
 
-### 4. Forensic Confidence Scoring & Integrity Auditing
+### 5. Forensic Confidence Scoring & Integrity Auditing
 - **Benford's Law Forensic Audit**: Analyzes leading digit distributions against the logarithmic first-digit law using Pearson Chi-Square goodness-of-fit to uncover fabricated, synthetic, or manipulated numbers.
 - **Role-Adaptive Confidence Weighting**: Calibrates Completeness, Consistency, Validity, and Stability scores according to inferred column roles (identifiers, metrics, categories, dates).
 - **Population Stability Index (PSI)**: Monitors distribution drift and concept shifts across dataset versions.
 
-### 5. Conversational Sandboxing & Visual Concept Synthesis
+### 6. Conversational Sandboxing & Visual Concept Synthesis
 - **AST-Sandboxed Python Analyst Agent**: Parses generated code into an AST before execution. Blocks all forbidden imports (`os`, `sys`, `subprocess`, `socket`, `requests`, `pathlib`), reflection dunder attributes (`__class__`, `__subclasses__`, `__dict__`), and dangerous calls (`eval`, `exec`, `open`, `compile`).
 - **Headless Matplotlib Generation**: Captures high-resolution plots via Matplotlib's `Agg` headless backend, outputting Base64-encoded PNG cards directly into the conversational UI.
 - **Virtual Concept Synthesizer**: Translates natural-language intent or raw formulas (e.g. `margin = (revenue - cost) / revenue`) into valid, optimized Polars expressions, compiling them to augmented columns and recording provenance in the `TransformationDAG`.
 
-### 6. Data Governance, Contracts & Lineage
+### 7. Data Governance, Contracts & Lineage
 - **Issue Ledger ("Jira for Dirty Data")**: Identifies quality defects, produces automated remediation code, and enforces an approve/reject/modify lifecycle before applying fixes in a restricted Python scope.
 - **Great Expectations (GX) Contract Exporter**: Translates profile constraints into production-ready `ExpectationSuite` specifications (`.json` and standalone `.py` scripts) with column type, null percentage, and value range checks.
 - **Transformation DAG**: Tracks all dataset mutations with cryptographic data hashes, parent/child node linkages, execution durations, and automated reversibility drop hints.
 
-### 7. Time-Series Intelligence & High-Dimensional Analytics (Kats & HiPlot)
+### 8. Time-Series Intelligence & High-Dimensional Analytics (Kats & HiPlot)
 - **Kats Time-Series Forecasting & Anomaly Engine**: Performs monotonic trend analysis via Mann-Kendall tests, computes seasonal decomposition (additive/multiplicative STL) across temporal columns, and pinpoints structural changepoints.
 - **HiPlot Parallel Coordinates**: High-dimensional multi-parameter visual analytics rendering continuous and categorical axes with interactive brush selection and sub-population slicing.
 - **LightRAG Dual-Level Knowledge Graph**: Combines low-level entity-relationship extractions with high-level global dataset themes for grounded exploratory Q&A.
 
-### 8. Zero-Vulnerability Security Architecture (Audit-Hardened)
+### 9. Zero-Vulnerability Security Architecture (Audit-Hardened)
 GetReport enforces defense-in-depth security across every ingestion, execution, and rendering boundary:
 - **Strict Polars AST Whitelisting (`VULN-01`)**: The concept synthesis AST validator strictly allows only safe root tokens (`ALLOWED_POLARS_ROOTS` = `{"pl", "col", "lit", "when"}`), blocking arbitrary attribute access, file I/O operations (`read_*`, `scan_*`, `pipe`, `map_elements`), functions, and lambda expressions.
 - **Zero-Bypass HTML/SVG Escaping (`VULN-02`)**: Complete neutralization of stored/reflected XSS in executive report PDF rendering. AI insights, executive summaries, and recommendations are strictly autoescaped. Vector SVG charts are guarded against `<script>` and `<foreignObject>` tags.
@@ -130,24 +140,22 @@ GetReport enforces defense-in-depth security across every ingestion, execution, 
 - **CRLF & Header Injection Defense (CWE-113) (`VULN-09`)**: Request ID middleware validates all incoming `X-Request-ID` headers against a strict whitelist regex (`^[a-zA-Z0-9_-]{1,64}$`), discarding any newline (`\r`, `\n`) or delimiter injection payloads.
 - **DuckDB Native Sandbox**: Native C++ external access disabled (`SET enable_external_access = false;`), preventing local file inclusion (LFI), network calls, or unauthorized file reads.
 
-### 9. Direct Snowflake Cloud Warehouse Ingestion (Beta)
+### 10. Direct Snowflake Cloud Warehouse Ingestion (Beta)
 - **Dedicated Read-Only Enforcement**: Pure read-only extract execution (`GRANT SELECT` role validation), guarded by strict AST query verification preventing any mutation, DDL, or data alteration statements.
 - **Dual Enterprise Authentication**: Full support for both encrypted/unencrypted PKCS#8 RSA Key-Pair authentication (`.pem`, `.key` with passphrase) and standard database user credentials.
 - **In-Memory Encrypted Session Vault**: Ephemeral storage of warehouse credentials using HKDF key derivation and AES-256-GCM authenticated encryption. Sensitive private keys and passwords never touch disk storage or server logs, expiring automatically via configurable TTL.
 - **Live Warehouse Object Explorer**: Real-time hierarchy traversal of databases, schemas, tables, and views with metadata reflection (row estimates, storage bytes, and Arrow data types).
 - **Out-of-Core Streaming Ingestion**: Directly streams query results into high-performance Apache Arrow batches and compressed Parquet chunks, bounded by cooperative query cancellation, configurable row ceilings, and Bernoulli table sampling.
 
-### 10. Modern Frontend & Executive UI/UX Architecture
+### 11. Modern Frontend & Executive Obsidian Dark Architecture
 GetReport pairs its backend engine with an agency-grade, accessible user interface:
-- **Obsidian Dark & Linear-Grade Aesthetic**: Built on high-contrast, calm dark architecture with deep slate backdrops, micro-dot technical grids, and zero-distraction ambient surfaces.
+- **Obsidian Dark & Linear-Grade Aesthetic**: Built on high-contrast, calm dark architecture with deep slate backdrops (`#07080a`, `#0c0d12`, `#121215`), micro-dot technical grids, and zero-distraction ambient surfaces.
 - **Anti-Slop Utilitarian Philosophy**: Completely purged of sparkles, decorative AI gimmick shapes, and shifting hue-rotations. Pure focus on high information density, sharp contrast, and executive clarity.
 - **BeUI Animated Interaction System**: Interactive elements upgraded with BeUI motion components for fluid state transitions, tactile press physics, and keyboard accessibility.
 - **Respectable Micro-Badge Architecture**: Understated, razor-sharp graphite micro-badges (such as the refined `Beta` indicator) providing clear status without visual clutter.
-- **Customer-First Language (Jargon-Free Interface)**: Technical data engineering concepts presented through intuitive executive summaries, data hygiene audits, and automated quality grades.
-- **Double-Bezel Hardware Architecture**: Concentric dual-layer frosted glass enclosures (`bg-slate-900/[0.06] backdrop-blur-2xl ring-1 ring-slate-900/10` outer bezel + `bg-white/95 backdrop-blur-xl` inner core) featured on both the floating desktop navigation header and the mobile bottom action bar.
+- **Double-Bezel Hardware Architecture**: Concentric dual-layer frosted glass enclosures featured on both the floating desktop navigation header and the mobile bottom action bar.
 - **Ergonomic Semantic Button System**: Custom 12px squircle geometry (`rounded-xl`) with specialized semantic states and tactile active press feedback (`active:scale-95`).
-- **Architectural 2-Line Hero Typography**: Powered by **Plus Jakarta Sans** (`font-hero`), strictly enforcing a balanced 2-line desktop reading rhythm with zero orphan words and responsive `text-balance`.
-- **Mobile-First Touch Ergonomics**: Fully responsive mobile floating bar with an animated `100% Private` status indicator, touch-calibrated key file uploaders, and swipeable data preview grids.
+- **Complete Suite of 13 Dedicated Pages**: Fully routed single-page architecture covering `Index`, `Workspace`, `Features`, `HowItWorks`, `Pricing`, `Examples`, `Documentation`, `Dashboard`, `Analytics` (BI Studio), `Contact`, `PrivacyPolicy`, `TermsOfService`, and `NotFound`.
 
 ---
 
@@ -159,12 +167,14 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 | **Framework** | React 18 + Vite |
 | **Language** | TypeScript 5.8 |
 | **UI Components** | BeUI Animated Components, Shadcn/UI primitives, Radix UI |
+| **Data Visualization & BI** | Apache ECharts 6.1 (`echarts-for-react`), Recharts |
 | **Typography** | Plus Jakarta Sans, Mont, JetBrains Mono |
 | **Styling** | Tailwind CSS 3.4, Vanilla CSS |
 | **Design Architecture** | Obsidian Executive Dark, Linear-grade Micro-Badges, Double-Bezel Frosted Glass |
 | **Sanitization** | DOMPurify |
-| **Charts & Motion** | Recharts, Framer Motion, Lucide React |
+| **Motion & Icons** | Framer Motion, Lucide React |
 | **State & Data** | TanStack Query v5 |
+| **Routing** | React Router v6 (with `/bi` route alias) |
 
 ### Backend
 | Component | Technology |
@@ -179,7 +189,7 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 | **Database** | Neon Serverless PostgreSQL / SQLite (Local) |
 | **Contracts** | Great Expectations (GX) |
 | **Task Queue** | ARQ / Celery + Redis |
-| **PDF Engines** | Typst (Ultra-fast, <25MB RAM Rust Engine) / ReportLab |
+| **PDF Engines** | Typst (Ultra-fast, <25MB RAM Rust Engine) / WeasyPrint / ReportLab |
 | **Storage** | Sandboxed Local Disk / PostgreSQL BYTEA / AWS S3 |
 
 ---
@@ -192,6 +202,11 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 - `POST /api/upload/join`: Multi-dataset relational joins (`inner`, `left`, `full`, `anti`, `semi`).
 - `GET /api/status/{task_id}`: Polling endpoint for job progress and structured results.
 - `WS /api/ws/status/{task_id}`: Real-time WebSocket stream with 15s heartbeats and Redis PubSub.
+
+### Business Intelligence & Analytics
+- `GET /api/analytics/datasets`: Retrieves all available analyzed datasets eligible for interactive exploration.
+- `POST /api/analytics/query`: Executes high-speed grouped aggregations, generating ECharts-ready option payloads, KPI summaries, and tabular records.
+- `GET /api/analytics/schema/{task_id}`: Inspects dataset column types, categorical attributes, and numerical measures for BI builder interfaces.
 
 ### Snowflake Warehouse (Beta)
 - `POST /api/snowflake/connect`: Validates credentials and initializes an encrypted in-memory session.
@@ -234,6 +249,7 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 - `GET /api/jobs/{task_id}/comparison`: Compares two datasets or versions across schema and statistics.
 - `POST /api/jobs/{task_id}/chat`: Context-aware Q&A with smart dataset fallback and dual-level Knowledge Graph.
 - `POST /api/jobs/{task_id}/chat/stream`: Real-time Server-Sent Events (SSE) token streaming.
+- `POST /api/auth/stream-ticket`: Issues a single-use, 60-second cryptographically secure ticket for SSE/WebSocket streams.
 
 ---
 
@@ -242,7 +258,7 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 ### Prerequisites
 - **Python 3.12+**
 - **Node.js 18+ & npm**
-- **Redis** (optional for local dev, required for Celery task queuing)
+- **Redis** (optional for local development, required for Celery / ARQ task queuing)
 
 ### Backend Setup
 ```bash
@@ -272,7 +288,7 @@ npm install
 npm run dev
 ```
 
-Open your browser at `http://localhost:8080` (or `http://localhost:5173`).
+Open your browser at `http://localhost:5173` (or `http://localhost:8080`).
 
 ---
 
@@ -308,7 +324,7 @@ pytest -q
 - **14 Sandboxing & Synthesis Tests** (`test_sandboxed_analyst.py`, `test_concept_synthesizer.py`, `test_phase3_api_endpoints.py`): Validates sandboxed execution, plot rendering, thread timeout termination, and DAG persistence.
 - **Kats & Time-Series Tests** (`test_timeseries_kats.py`): Validates Mann-Kendall monotonic trend tests, seasonal decomposition, and changepoint detection.
 - **HiPlot Parallel Coordinates Tests** (`test_hiplot_service.py`): Validates multi-dimensional parallel coordinate rendering and parameter bounds.
-- **Frontend Production Build & Typecheck**: Verified with `npm run build` and `tsc --noEmit` (0 TypeScript errors, clean bundle compilation).
+- **Frontend Production Build & Typecheck**: Verified with `npm run build` and `tsc --noEmit` (0 TypeScript errors, clean bundle compilation, React Doctor score 96/100).
 
 ---
 
