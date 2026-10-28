@@ -18,7 +18,9 @@ client = TestClient(app)
 
 
 @pytest.fixture
-def setup_phase3_job():
+def setup_phase3_job(monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "ENABLE_CODE_EXECUTION", True)
     storage = get_storage_provider()
 
     df = pl.DataFrame({

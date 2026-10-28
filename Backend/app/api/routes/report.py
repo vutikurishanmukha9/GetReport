@@ -11,6 +11,7 @@ import os
 import re
 import html
 
+from app.core.config import settings
 from app.core.limiter import limiter, REPORT_LIMIT
 from app.core.auth import verify_api_key, validate_task_id, check_task_ownership, get_authenticated_owner_id
 from app.services.task_manager import title_task_manager, TaskStatus
