@@ -29,7 +29,7 @@ export const HeroSection = () => {
       {/* 2. Tactile Film Grain Overlay */}
       <div className="hero-grain-overlay" />
 
-      <motion.div 
+      <motion.div
         className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10 space-y-5 sm:space-y-7"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}

@@ -63,10 +63,10 @@ type Ripple = { id: number; x: number; y: number; size: number };
 
 export interface ButtonProps
   extends Omit<
-      React.ButtonHTMLAttributes<HTMLButtonElement>,
-      "onAnimationStart" | "onDrag" | "onDragStart" | "onDragEnd"
-    >,
-    VariantProps<typeof buttonVariants> {
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    "onAnimationStart" | "onDrag" | "onDragStart" | "onDragEnd"
+  >,
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   pressScale?: number;
   ripple?: boolean;

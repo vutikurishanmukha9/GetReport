@@ -72,7 +72,6 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
     { to: "/pricing", label: "Pricing" },
     { to: "/documentation", label: "Docs" },
     { to: "/examples", label: "Examples" },
-    { to: "/analytics", label: "BI Analytics" },
   ];
 
   const shouldBeVisible = isVisible || mobileMenuOpen;
