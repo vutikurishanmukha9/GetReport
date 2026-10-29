@@ -16,6 +16,59 @@ import polars as pl
 logger = logging.getLogger(__name__)
 
 
+def _cursor_to_polars(cursor: Any) -> pl.DataFrame:
+    """
+    Safely and efficiently convert a DuckDB query result cursor to a Polars DataFrame
+    across all operating systems, DuckDB versions, and binding types.
+    Prefers zero-copy Apache Arrow conversion, falling back to .pl(), .fetch_arrow_table(),
+    or pandas conversion as needed.
+    """
+    if hasattr(cursor, "pl"):
+        try:
+            return cursor.pl()
+        except Exception:
+            pass
+
+    if hasattr(cursor, "to_arrow_table"):
+        try:
+            return pl.from_arrow(cursor.to_arrow_table())
+        except Exception:
+            pass
+
+    if hasattr(cursor, "arrow"):
+        try:
+            arrow_obj = cursor.arrow()
+            if hasattr(arrow_obj, "read_all"):
+                arrow_obj = arrow_obj.read_all()
+            return pl.from_arrow(arrow_obj)
+        except Exception:
+            pass
+
+    if hasattr(cursor, "fetch_arrow_table"):
+        try:
+            return pl.from_arrow(cursor.fetch_arrow_table())
+        except Exception:
+            pass
+
+    if hasattr(cursor, "df"):
+        try:
+            return pl.from_pandas(cursor.df())
+        except Exception:
+            pass
+
+    if hasattr(cursor, "fetchdf"):
+        try:
+            return pl.from_pandas(cursor.fetchdf())
+        except Exception:
+            pass
+
+    if hasattr(cursor, "fetchall") and hasattr(cursor, "description") and cursor.description:
+        cols = [desc[0] for desc in cursor.description]
+        return pl.DataFrame(cursor.fetchall(), schema=cols)
+
+    return pl.DataFrame()
+
+
 class DuckDBSecurityError(Exception):
     """Raised when a query attempts a non-read-only operation or administrative command."""
     pass
@@ -126,9 +179,9 @@ class DuckDBAnalyticalSession:
 
         try:
             if params:
-                result_pl = self.conn.execute(wrapped_sql, params).pl()
+                result_pl = _cursor_to_polars(self.conn.execute(wrapped_sql, params))
             else:
-                result_pl = self.conn.execute(wrapped_sql).pl()
+                result_pl = _cursor_to_polars(self.conn.execute(wrapped_sql))
             if capped_limit:
                 result_pl = result_pl.head(capped_limit)
             return result_pl.to_dicts()
@@ -153,14 +206,14 @@ class DuckDBAnalyticalSession:
             STDDEV_SAMP(TRY_CAST({escaped_col} AS DOUBLE)) AS std_deviation
         FROM {safe_table};
         """
-        results = self.conn.execute(query).pl().to_dicts()
+        results = _cursor_to_polars(self.conn.execute(query)).to_dicts()
         return results[0] if results else {}
 
     def get_table_schema(self, table_name: str) -> List[Dict[str, Any]]:
         """Returns column names, types, and nullability for a registered table."""
         safe_table = re.sub(r"[^a-zA-Z0-9_]", "_", table_name)
         query = f"DESCRIBE {safe_table};"
-        return self.conn.execute(query).pl().to_dicts()
+        return _cursor_to_polars(self.conn.execute(query)).to_dicts()
 
     def get_schema_metadata(self) -> Dict[str, Any]:
         """
@@ -176,7 +229,7 @@ class DuckDBAnalyticalSession:
 
             # Sample first 3 records for value preview
             try:
-                samples_pl = self.conn.execute(f"SELECT * FROM {safe_table} LIMIT 3;").pl()
+                samples_pl = _cursor_to_polars(self.conn.execute(f"SELECT * FROM {safe_table} LIMIT 3;"))
                 sample_dict = samples_pl.to_dict(as_series=False)
             except Exception:
                 sample_dict = {}
@@ -246,9 +299,9 @@ class DuckDBAnalyticalSession:
 
         try:
             if binding_params:
-                res_pl = self.conn.execute(processed_sql, binding_params).pl()
+                res_pl = _cursor_to_polars(self.conn.execute(processed_sql, binding_params))
             else:
-                res_pl = self.conn.execute(processed_sql).pl()
+                res_pl = _cursor_to_polars(self.conn.execute(processed_sql))
 
             records = res_pl.to_dicts()
             duration_ms = round((time.perf_counter() - t_start) * 1000, 2)
