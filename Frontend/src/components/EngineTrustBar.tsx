@@ -251,7 +251,7 @@ export const EngineTrustBar = () => {
             return (
               <div
                 key={doc.uniqueFlowKey}
-                className={`relative w-[215px] sm:w-[235px] min-w-[215px] sm:min-w-[235px] h-[280px] sm:h-[300px] rounded-2xl border p-4 flex flex-col justify-between shrink-0 select-none cursor-default group/card transition-all duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-2.5 hover:scale-[1.015] ${themeStyles.cardBorder} ${themeStyles.cardBg} ${themeStyles.cardShadow}`}
+                className={`relative w-[215px] sm:w-[235px] min-w-[215px] sm:min-w-[235px] h-[280px] sm:h-[300px] rounded-2xl border p-4 flex flex-col justify-between shrink-0 select-none cursor-default group/card transition-all duration-250 ease-spring-smooth hover:-translate-y-2.5 hover:scale-[1.015] ${themeStyles.cardBorder} ${themeStyles.cardBg} ${themeStyles.cardShadow}`}
               >
                 {/* Ambient gradient top sheen that fades in on hover */}
                 <div className={`absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-300 opacity-0 group-hover/card:opacity-100 ${themeStyles.sheenBg}`} />
@@ -286,7 +286,7 @@ export const EngineTrustBar = () => {
                   </span>
 
                   <IconComponent
-                    className={`h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/card:scale-125 group-hover/card:-rotate-6 ${themeStyles.icon}`}
+                    className={`h-4 w-4 transition-transform duration-300 ease-spring-smooth group-hover/card:scale-125 group-hover/card:-rotate-6 ${themeStyles.icon}`}
                   />
                 </div>
 
