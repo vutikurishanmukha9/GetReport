@@ -1,32 +1,41 @@
+<div align="center">
+
 # GetReport
 
-## Motto
-**Turn Your Data Into Professional Reports in Seconds.**
+### Enterprise Automated Data Intelligence, Forensic Audit & Business Intelligence Engine
 
-[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0%2B-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev/)
-[![UI](https://img.shields.io/badge/UI-Obsidian%20Executive%20%7C%20BeUI-000000?logo=react)](https://beui.dev/)
-[![BI](https://img.shields.io/badge/BI-Apache%20ECharts%206.1-AA344D?logo=apacheecharts)](https://echarts.apache.org/)
-[![Warehouse](https://img.shields.io/badge/Warehouse-Snowflake%20Arrow%20Stream%20%28Beta%29-29B5E8?logo=snowflake)](https://www.snowflake.com/)
-[![Google Antigravity SDK](https://img.shields.io/badge/Agent-Google%20Antigravity%20SDK-4285F4?logo=google)](https://ai.google.dev/)
-[![Polars](https://img.shields.io/badge/Engine-Polars%20Rust-CD412B?logo=rust)](https://pola.rs/)
-[![DuckDB](https://img.shields.io/badge/OLAP-DuckDB%201.0%2B-FFF000?logo=duckdb)](https://duckdb.org/)
-[![PostgreSQL](https://img.shields.io/badge/Database-Neon%20PostgreSQL-336791?logo=postgresql)](https://neon.tech/)
-[![Typst](https://img.shields.io/badge/PDF_Engine-Typst%200.15%2B-239DAD)](https://typst.app/)
-[![Security](https://img.shields.io/badge/Security-0%20Vulnerabilities%20%7C%20Audit%20Hardened-brightgreen?logo=shield)](https://github.com/)
-[![Tests](https://img.shields.io/badge/Tests-446%20Passed-brightgreen)](https://github.com/)
-[![ML Anomaly Detection](https://img.shields.io/badge/ML-HistGradientBoosting%20%7C%20scikit--learn-F7931E?logo=scikitlearn)](https://scikit-learn.org/)
+*Turn raw, multi-format tabular datasets into audited, publication-ready executive dossiers and interactive BI analytics in seconds.*
+
+<br/>
+
+[![Python 3.12](https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React 18](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![Polars Rust](https://img.shields.io/badge/Polars-Rust%20Engine-CD412B?style=flat-square&logo=rust&logoColor=white)](https://pola.rs/)
+[![DuckDB OLAP](https://img.shields.io/badge/DuckDB-In--Process%20OLAP-FFF000?style=flat-square&logo=duckdb&logoColor=black)](https://duckdb.org/)
+[![Apache ECharts](https://img.shields.io/badge/BI-Apache%20ECharts%206.1-AA344D?style=flat-square&logo=apacheecharts&logoColor=white)](https://echarts.apache.org/)
+[![Snowflake](https://img.shields.io/badge/Snowflake-Arrow%20Stream%20(Beta)-29B5E8?style=flat-square&logo=snowflake&logoColor=white)](https://www.snowflake.com/)
+[![Google Antigravity](https://img.shields.io/badge/Agent-Google%20Antigravity-4285F4?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Security Audit](https://img.shields.io/badge/Security-0%20Vulnerabilities%20%7C%20Hardened-brightgreen?style=flat-square&logo=shield&logoColor=white)](https://github.com/)
+[![Automated Tests](https://img.shields.io/badge/Tests-446%20Passed%20(100%25)-brightgreen?style=flat-square)](https://github.com/)
+
+<br/>
+
+[**Interactive Documentation**](https://getreport.onrender.com/documentation) • [**Launch Workspace**](https://getreport.onrender.com/workspace) • [**BI Analytics Studio**](https://getreport.onrender.com/analytics) • [**API Reference**](#api-reference-key-endpoints) • [**Security Audit**](#9-zero-vulnerability-security-architecture-audit-hardened)
+
+</div>
 
 ---
 
-## Overview
+## Executive Summary
+
 **GetReport** is an enterprise-grade automated data intelligence, exploratory data analysis (EDA), and interactive Business Intelligence (BI) platform. It transforms raw, multi-format datasets into publication-ready executive PDF reports, machine-learning-ready engineered feature pipelines, interactive visual analytics dashboards, and grounded conversational intelligence.
 
 GetReport unifies high-performance Rust/Python data processing, mathematical profiling, and agentic AI:
-- **Zero-Copy Hybrid Engine**: Combines **Polars (Rust)** for single-pass streaming aggregations with **DuckDB** for in-process SQL OLAP queries directly over Apache Arrow tables.
-- **Interactive Business Intelligence Studio (Apache ECharts)**: A Superset-grade exploratory visual canvas supporting dynamic multidimensional aggregations, multi-series breakdowns, custom color palettes, BigNumber KPI metric cards, and responsive mobile-first query controls (`/analytics` and `/bi`).
-- **Direct Snowflake Warehouse Ingestion (Beta)**: Direct cloud data warehouse connectivity supporting RSA Key-Pair and password authentication, dedicated read-only role enforcement, in-memory AES-256 session encryption, and zero-copy Arrow streaming into parquet.
+
+- **Zero-Copy Hybrid Engine**: Combines **Polars (Rust)** for single-pass streaming aggregations with **DuckDB** for in-process SQL OLAP queries directly over Apache Arrow memory tables.
+- **Interactive Business Intelligence Studio (Apache ECharts)**: A Superset-grade exploratory visual canvas supporting dynamic multidimensional aggregations, multi-series breakdowns, custom color palettes, BigNumber KPI metric cards, and responsive query controls (`/analytics` and `/bi`).
+- **Direct Snowflake Warehouse Ingestion (Beta)**: Cloud data warehouse connectivity supporting RSA Key-Pair and password authentication, dedicated read-only role enforcement, in-memory AES-256 session encryption, and zero-copy Arrow streaming into Parquet.
 - **Row Intelligence & Self-Supervised Anomaly Detection**: 4-tier row triage hierarchy (`PROTECT`, `REVIEW`, `FIX`, `EXCLUDE`) ensuring bit-identical preservation of clean records, automatic pruning of non-data rows (headers, totals, footers) before profiling, gated smart imputation against synthetic data hallucination, and cross-column relationship violation detection via out-of-fold `HistGradientBoostingRegressor`.
 - **Advanced Statistical Profiling & Time-Series**: Non-parametric dispersion estimators (MAD, IQR, Trimmed Mean), Bowley quartile skewness, Phik ($\Phi_K$) non-linear correlation matrices, Kats/Mann-Kendall trend detection, and Benford's Law forensic audits.
 - **High-Dimensional Visual Analytics**: Multi-parameter Parallel Coordinates plots powered by HiPlot and responsive SVG charts.
@@ -36,7 +45,7 @@ GetReport unifies high-performance Rust/Python data processing, mathematical pro
 
 ---
 
-## Core Capabilities & Architecture
+## Architectural Topology
 
 ```
                                   ┌───────────────────────────────┐
@@ -74,6 +83,10 @@ GetReport unifies high-performance Rust/Python data processing, mathematical pro
                          │ (Executive PDF + GX Contracts)  │
                          └─────────────────────────────────┘
 ```
+
+---
+
+## Core Capabilities & Deep Dive
 
 ### 1. Interactive Business Intelligence (BI) Studio
 - **Superset-Grade Exploration**: Full-featured interactive visual analytics engine built directly into GetReport (`/analytics` and `/bi`), powered by Apache ECharts.
@@ -159,38 +172,35 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 
 ---
 
-## Tech Stack
+## Technical Specifications
 
-### Frontend
-| Component | Technology |
-|---|---|
-| **Framework** | React 18 + Vite |
-| **Language** | TypeScript 5.8 |
-| **UI Components** | BeUI Animated Components, Shadcn/UI primitives, Radix UI |
-| **Data Visualization & BI** | Apache ECharts 6.1 (`echarts-for-react`), Recharts |
-| **Typography** | Plus Jakarta Sans, Mont, JetBrains Mono |
-| **Styling** | Tailwind CSS 3.4, Vanilla CSS |
-| **Design Architecture** | Obsidian Executive Dark, Linear-grade Micro-Badges, Double-Bezel Frosted Glass |
-| **Sanitization** | DOMPurify |
-| **Motion & Icons** | Framer Motion, Lucide React |
-| **State & Data** | TanStack Query v5 |
-| **Routing** | React Router v6 (with `/bi` route alias) |
+### Frontend Stack
+| Layer | Specification | Details |
+|:---|:---|:---|
+| **Framework** | React 18 + Vite | Fast HMR, ESM bundling, production code-splitting |
+| **Language** | TypeScript 5.8 | Strict type checking, zero `any` policy in core business modules |
+| **UI Primitives** | BeUI + Radix UI + Tailwind | Accessible, tactile components, keyboard navigation |
+| **Data Visualization & BI** | Apache ECharts 6.1 + Recharts | Hardware-accelerated canvas/SVG multi-series charting |
+| **Typography** | Plus Jakarta Sans, Mont, JetBrains Mono | Geometric Grotesk headings, legible body, monospace data tables |
+| **Styling & Theme** | Tailwind CSS 3.4 + Custom Layers | Obsidian Executive Dark canvas, spring-smooth transitions |
+| **Sanitization** | DOMPurify | Strict client-side XSS prevention on rendered markup |
+| **State & Data** | TanStack Query v5 | Stale-while-revalidate client caching, query deduplication |
+| **Routing** | React Router v6 | Dynamic routing, route aliases (`/analytics`, `/bi`) |
 
-### Backend
-| Component | Technology |
-|---|---|
-| **Framework** | FastAPI (Python 3.12+) with Pydantic v2 |
-| **OLAP Engine** | DuckDB 1.0+ (In-Process, Apache Arrow Zero-Copy) |
-| **Warehouse** | Snowflake Connector (`snowflake-connector-python` with PyArrow engine) |
-| **Session Security** | In-Memory HKDF + AES-256-GCM Credential Vault |
-| **Data & ML Engines** | Polars (Rust Core), DuckDB, NumPy, SciPy, Scikit-Learn |
-| **AI Agent** | Google Antigravity SDK (`google-antigravity`) |
-| **LLM Providers** | Google Gemini (2.5/3.7 Flash), OpenRouter, OpenAI |
-| **Database** | Neon Serverless PostgreSQL / SQLite (Local) |
-| **Contracts** | Great Expectations (GX) |
-| **Task Queue** | ARQ / Celery + Redis |
-| **PDF Engines** | Typst (Ultra-fast, <25MB RAM Rust Engine) / WeasyPrint / ReportLab |
-| **Storage** | Sandboxed Local Disk / PostgreSQL BYTEA / AWS S3 |
+### Backend Stack
+| Layer | Specification | Details |
+|:---|:---|:---|
+| **API Framework** | FastAPI (Python 3.12+) | Asynchronous ASGI runtime, Pydantic v2 data models |
+| **Streaming Engine** | Polars (Rust Core) | SIMD-vectorized columnar processing, zero-copy Arrow memory |
+| **OLAP Engine** | DuckDB 1.0+ | In-process SQL analytics, parameterized query binding, C++ sandbox |
+| **Warehouse Connect** | Snowflake Connector (PyArrow) | RSA PKCS#8 key-pair auth, live metadata schema reflection |
+| **Session Security** | HKDF + AES-256-GCM Vault | Ephemeral in-memory credential storage, zero disk persistence |
+| **Statistical & ML** | NumPy, SciPy, Scikit-Learn | $\Phi_K$ correlation, non-parametric dispersion, HistGradientBoosting |
+| **Agent Intelligence** | Google Antigravity SDK | Structured multi-turn agentic execution, grounded RAG synthesis |
+| **LLM Runtimes** | Google Gemini (2.5/3.7 Flash), OpenRouter | Ephemeral RAG companion, dataset summarization |
+| **Database** | Neon Serverless PostgreSQL / SQLite | Connection-pooled relational persistence, WAL journal mode |
+| **PDF Compilation** | Typst / WeasyPrint / ReportLab | Rust-based high-speed Typst PDF engine (<25MB RAM overhead) |
+| **Task Queue** | ARQ / Celery + Redis | Asynchronous background report generation and dataset exports |
 
 ---
 
@@ -253,48 +263,49 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 
 ---
 
-## Getting Started
+## Quickstart & Local Installation
 
 ### Prerequisites
 - **Python 3.12+**
 - **Node.js 18+ & npm**
-- **Redis** (optional for local development, required for Celery / ARQ task queuing)
+- **Redis** (optional for local standalone, required for Celery / ARQ background tasks)
 
-### Backend Setup
+### 1. Backend Service Setup
 ```bash
-# 1. Navigate to Backend directory
+# Navigate to the backend directory
 cd Backend
 
-# 2. Activate virtual environment
-.\venv\Scripts\activate          # Windows
+# Create & activate a virtual environment
+python -m venv venv
+.\venv\Scripts\activate          # Windows PowerShell / CMD
 source venv/bin/activate         # macOS / Linux
 
-# 3. Install dependencies
+# Install production dependencies
 pip install -r requirements.txt
 
-# 4. Start the FastAPI development server
+# Launch the FastAPI ASGI server
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend Setup
+### 2. Frontend Application Setup
 ```bash
-# 1. Navigate to Frontend directory
+# Navigate to the frontend directory
 cd Frontend
 
-# 2. Install dependencies
+# Install node dependencies
 npm install
 
-# 3. Start the Vite development server
+# Launch the Vite development server
 npm run dev
 ```
 
-Open your browser at `http://localhost:5173` (or `http://localhost:8080`).
+Navigate to `http://localhost:5173` (or `http://localhost:8080`) in your browser.
 
 ---
 
-## Verification & Testing
+## Verification & Automated Testing
 
-GetReport maintains an exhaustive automated test suite verifying mathematical accuracy, security constraints, and UI compilation:
+GetReport maintains an exhaustive automated test suite verifying mathematical correctness, zero-vulnerability security invariants, and frontend bundle integrity:
 
 ```bash
 cd Backend
@@ -305,8 +316,8 @@ pytest -q
 ================== 446 passed in 74.15s (100%) ==================
 ```
 
-### Test Suite Highlights
-- **15 Snowflake Warehouse Integration Tests** (`test_snowflake_integration.py`): Validates account identifier format sanitization, double-quote identifier SQL safety, Arrow schema compilation, batch normalization, PKCS#8 RSA private key DER serialization, HKDF/AES-256 encrypted session vault lifecycle, driver metadata discovery, streaming parquet extraction, cooperative query cancellation, and session teardown.
+### Test Suite Distribution
+- **15 Snowflake Warehouse Integration Tests** (`test_snowflake_integration.py`): Validates account identifier format sanitization, double-quote identifier SQL safety, Arrow schema compilation, batch normalization, PKCS#8 RSA private key DER serialization, HKDF/AES-256 encrypted session vault lifecycle, driver metadata discovery, streaming Parquet extraction, cooperative query cancellation, and session teardown.
 - **22 Row Intelligence & Machine Learning Tests** (`test_row_intelligence.py`): Validates 4-tier triage exclusivity, bit-identical immutability on clean records, safe non-data row pruning, gated imputation on sparse rows, and self-supervised multi-column anomaly detection (`HistGradientBoostingRegressor`) with contrastive driver explanations.
 - **17 Security Verification Tests** (`test_security_audit.py`): Validates complete 0-vulnerability posture across the full application surface:
   - DuckDB LFI rejection and C++ engine filesystem block (`SET enable_external_access = false;`)
@@ -328,30 +339,34 @@ pytest -q
 
 ---
 
-## Production Deployment
+## Production Deployment & Configuration
 
-### Docker Container
-The included `Dockerfile` packages the complete backend along with Pango, Cairo, and font libraries for high-fidelity WeasyPrint PDF compilation:
+### Docker Deployment
+The repository includes a production-hardened `Dockerfile` packaging the complete backend along with Pango, Cairo, and required system fonts for high-fidelity report compilation:
 
 ```bash
+# Build the production container image
 docker build -t getreport-backend -f Backend/Dockerfile .
+
+# Run the containerized service
 docker run -p 8000:8000 --env-file Backend/.env.example getreport-backend
 ```
 
-### Environment Variables
-| Variable | Default (Local) | Production | Description |
-|---|---|---|---|
+### Environment Variable Reference
+| Variable | Default (Local) | Production Recommendation | Description |
+|:---|:---|:---|:---|
 | `PDF_ENGINE` | `typst` | `typst` | PDF engine (`typst` ultra-fast Rust engine <25MB RAM, or `reportlab` fallback). |
-| `DATABASE_URL` | (empty) -> SQLite | `postgresql://...` | Neon Serverless PostgreSQL connection string. |
+| `DATABASE_URL` | (empty) &rarr; SQLite | `postgresql://...` | Neon Serverless PostgreSQL connection string with SSL mode. |
 | `REDIS_URL` | `redis://localhost:6379/0` | `redis://...` | Redis broker for background worker and WebSocket PubSub. |
 | `STORAGE_TYPE` | `local` | `db` / `s3` | File storage provider (`local`, `db` for Neon BYTEA, or `s3`). |
 | `API_KEY` | (empty) | (empty/optional) | Optional `X-API-Key` authentication (leave empty for public access). |
-| `CORS_ORIGINS` | `http://localhost:5173` | `https://get-report.vercel.app` | Allowed CORS origins. |
+| `CORS_ORIGINS` | `http://localhost:5173` | `https://get-report.vercel.app` | Allowed CORS origins for browser preflights. |
 | `GEMINI_API_KEY` | (optional) | (recommended) | API Key for Google Antigravity Agent and vector embeddings. |
 | `MAX_UPLOAD_SIZE_MB` | `50` | `50` | Maximum file upload limit in megabytes. |
-| `RATE_LIMIT_ENABLED` | `True` | `True` | Global rate limiter toggle. |
+| `RATE_LIMIT_ENABLED` | `True` | `True` | Global sliding-window rate limiter toggle. |
 
 ---
 
 ## License
-MIT License. See [LICENSE](LICENSE) for details.
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
