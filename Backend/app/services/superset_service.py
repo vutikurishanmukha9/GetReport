@@ -78,7 +78,7 @@ class SupersetService:
                 "superset_url": self.base_url,
                 "message": (
                     "Superset companion service is not running. "
-                    "Start it via: docker compose -f docker-compose.superset.yml up -d"
+                    "Start it via: docker compose -f docker/docker-compose.superset.yml up -d"
                 ),
                 "error": str(e),
             }
@@ -273,7 +273,7 @@ class SupersetService:
                 "superset_url": self.base_url,
                 "guest_token": None,
                 "message": health.get("message"),
-                "instructions": "Run: docker compose -f docker-compose.superset.yml up -d",
+                "instructions": "Run: docker compose -f docker/docker-compose.superset.yml up -d",
             }
 
         access_token = await self.get_admin_access_token()

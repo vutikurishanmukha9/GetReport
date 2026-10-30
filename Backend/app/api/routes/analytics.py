@@ -76,7 +76,7 @@ async def get_analytics_status(
     """
     health = await superset_service.check_health()
     instructions = (
-        "Run `docker compose -f docker-compose.superset.yml up -d` in the project root to start the companion."
+        "Run `docker compose -f docker/docker-compose.superset.yml up -d` in the project root to start the companion."
         if health.get("status") != "online" else None
     )
     return CompanionStatusResponse(

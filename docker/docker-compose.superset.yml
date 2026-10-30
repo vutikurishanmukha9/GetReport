@@ -43,7 +43,7 @@ services:
       REDIS_PORT: 6379
       PYTHONPATH: /app/pythonpath
     volumes:
-      - ./docker/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
       - superset_home:/app/superset_home
     ports:
       - "8088:8088"
@@ -65,7 +65,7 @@ services:
       DATABASE_DIALECT: postgresql
       PYTHONPATH: /app/pythonpath
     volumes:
-      - ./docker/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py:ro
       - superset_home:/app/superset_home
     entrypoint: >
       /bin/sh -c "
