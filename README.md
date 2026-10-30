@@ -21,7 +21,7 @@
 
 <br/>
 
-[**Interactive Documentation**](https://getreport.onrender.com/documentation) • [**Launch Workspace**](https://getreport.onrender.com/workspace) • [**BI Analytics Studio**](https://getreport.onrender.com/analytics) • [**API Reference**](#api-reference-key-endpoints) • [**Security Audit**](#9-zero-vulnerability-security-architecture-audit-hardened)
+[**Interactive Documentation**](https://getreport.onrender.com/documentation) • [**Launch Workspace**](https://getreport.onrender.com/workspace) • [**BI Analytics Studio**](https://getreport.onrender.com/analytics) • [**Architecture**](#architectural-topology) • [**Security Audit**](#9-zero-vulnerability-security-architecture-audit-hardened)
 
 </div>
 
@@ -201,65 +201,6 @@ GetReport pairs its backend engine with an agency-grade, accessible user interfa
 | **Database** | Neon Serverless PostgreSQL / SQLite | Connection-pooled relational persistence, WAL journal mode |
 | **PDF Compilation** | Typst / WeasyPrint / ReportLab | Rust-based high-speed Typst PDF engine (<25MB RAM overhead) |
 | **Task Queue** | ARQ / Celery + Redis | Asynchronous background report generation and dataset exports |
-
----
-
-## API Reference (Key Endpoints)
-
-### Ingestion & Jobs
-- `POST /api/upload`: Single-pass streaming ingestion with magic byte signature verification.
-- `POST /api/upload/batch`: Multi-file ingestion under a unified batch identifier.
-- `POST /api/upload/join`: Multi-dataset relational joins (`inner`, `left`, `full`, `anti`, `semi`).
-- `GET /api/status/{task_id}`: Polling endpoint for job progress and structured results.
-- `WS /api/ws/status/{task_id}`: Real-time WebSocket stream with 15s heartbeats and Redis PubSub.
-
-### Business Intelligence & Analytics
-- `GET /api/analytics/datasets`: Retrieves all available analyzed datasets eligible for interactive exploration.
-- `POST /api/analytics/query`: Executes high-speed grouped aggregations, generating ECharts-ready option payloads, KPI summaries, and tabular records.
-- `GET /api/analytics/schema/{task_id}`: Inspects dataset column types, categorical attributes, and numerical measures for BI builder interfaces.
-
-### Snowflake Warehouse (Beta)
-- `POST /api/snowflake/connect`: Validates credentials and initializes an encrypted in-memory session.
-- `GET /api/snowflake/databases`: Lists accessible databases for the authenticated session.
-- `GET /api/snowflake/schemas`: Lists schemas in a given database (`?database=NAME`).
-- `GET /api/snowflake/tables`: Lists tables and views with metadata (`?database=NAME&schema=NAME`).
-- `POST /api/snowflake/preview`: Previews the top 100 rows with Arrow data types and null counts.
-- `POST /api/snowflake/import`: Queues asynchronous streaming extraction into an analytical parquet dataset.
-- `POST /api/snowflake/cancel/{task_id}`: Cooperatively cancels an active extraction query.
-- `DELETE /api/snowflake/session`: Immediately purges session credentials from the memory vault.
-- `DELETE /api/snowflake/extract/{task_id}`: Safely cleans up a completed warehouse extract file.
-
-### OLAP & Data Contracts
-- `POST /api/jobs/{task_id}/query-sql`: Executes read-only, hardware-accelerated SQL via in-process DuckDB over zero-copy Arrow batches (memory-bounded).
-- `GET /api/jobs/{task_id}/golden-queries`: Lists verified few-shot query examples for the dataset.
-- `POST /api/jobs/{task_id}/golden-queries`: Registers a verified natural-language-to-SQL pair.
-- `DELETE /api/jobs/{task_id}/golden-queries/{query_id}`: Deletes an existing golden query pair.
-- `GET /api/jobs/{task_id}/export-gx`: Generates a production Great Expectations (GX) data contract (`.json` or `.py`).
-- `GET /api/jobs/{task_id}/export/{export_format}`: Securely exports sanitized dataset (`csv` with formula injection neutralization, `excel`, `parquet`, `json`, `pdf`).
-
-### Virtual Concepts & Sandboxing
-- `POST /api/jobs/{task_id}/sandbox-exec`: Executes arbitrary user analytical code in the AST sandbox with Matplotlib plot capture and watchdog thread termination.
-- `POST /api/jobs/{task_id}/concepts/derive`: Derives a new column via whitelisted Polars expressions, updates the stored dataset, and records DAG audit provenance.
-- `GET /api/jobs/{task_id}/concepts`: Lists all derived virtual concepts for the dataset.
-
-### Issue Ledger & Governance
-- `GET /api/jobs/{task_id}/issues`: Retrieves detected data quality issues and proposed fixes.
-- `POST /api/jobs/{task_id}/issues/{issue_id}/approve`: Approves a single remediation for execution.
-- `POST /api/jobs/{task_id}/issues/{issue_id}/reject`: Rejects a proposed remediation.
-- `POST /api/jobs/{task_id}/issues/approve-all`: Batch-approves all pending remediations.
-- `POST /api/jobs/{task_id}/issues/reject-all`: Batch-rejects all pending remediations.
-- `POST /api/jobs/{task_id}/issues/lock`: Locks the ledger, applying approved fixes and recording audit node.
-- `GET /api/jobs/{task_id}/dag`: Retrieves the complete audit lineage graph.
-- `GET /api/jobs/{task_id}/dag/summary`: High-level summary of transformations and reversibility hints.
-
-### Reports & Conversational RAG
-- `POST /api/jobs/{task_id}/report`: Asynchronously schedules PDF compilation via Celery / WeasyPrint.
-- `GET /api/jobs/{task_id}/report`: Retrieves generated report JSON payload.
-- `GET /api/jobs/{task_id}/report/full`: Retrieves comprehensive executive report with all modules.
-- `GET /api/jobs/{task_id}/comparison`: Compares two datasets or versions across schema and statistics.
-- `POST /api/jobs/{task_id}/chat`: Context-aware Q&A with smart dataset fallback and dual-level Knowledge Graph.
-- `POST /api/jobs/{task_id}/chat/stream`: Real-time Server-Sent Events (SSE) token streaming.
-- `POST /api/auth/stream-ticket`: Issues a single-use, 60-second cryptographically secure ticket for SSE/WebSocket streams.
 
 ---
 
