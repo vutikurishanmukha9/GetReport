@@ -4,6 +4,7 @@ uvicorn[standard]>=0.29.0
 granian>=1.6.0
 python-multipart>=0.0.9
 pydantic-settings>=2.2.1
+httpx>=0.27.0
 
 # Database, Async Queues & Snowflake
 arq>=0.26.1

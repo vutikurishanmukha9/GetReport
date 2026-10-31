@@ -211,17 +211,31 @@ async def list_recent_datasets(
     for r in rows:
         item = dict(r) if hasattr(r, "keys") else {"task_id": r[0], "filename": r[1], "created_at": r[2]}
         job = title_task_manager.get_job(item["task_id"])
-        if job and job.result:
-            info = job.result.get("info", {})
-            item["rows"] = info.get("rows", 0)
-            item["columns_count"] = len(info.get("columns", []))
-            item["columns"] = info.get("columns", [])
+        if job and job.result and isinstance(job.result, dict):
+            info = job.result.get("info", {}) if isinstance(job.result.get("info"), dict) else {}
+            metadata = job.result.get("metadata", {}) if isinstance(job.result.get("metadata"), dict) else {}
+            dtypes = info.get("dtypes", {}) if isinstance(info.get("dtypes"), dict) else {}
+
+            raw_cols = info.get("columns", [])
+            if isinstance(raw_cols, list):
+                cols = [str(c) for c in raw_cols]
+                cols_count = len(cols)
+            elif isinstance(raw_cols, int):
+                cols_count = raw_cols
+                cols = [str(k) for k in dtypes.keys()]
+            else:
+                cols = [str(k) for k in dtypes.keys()]
+                cols_count = metadata.get("total_columns") or len(cols)
+
+            item["rows"] = info.get("rows") or metadata.get("total_rows") or 0
+            item["columns_count"] = cols_count
+            item["columns"] = cols
             item["numeric_columns"] = [
-                c for c in info.get("columns", [])
-                if any(t in (info.get("dtypes", {}).get(c, "")).lower() for t in ("int", "float", "double", "num"))
+                c for c in cols
+                if any(t in str(dtypes.get(c, "")).lower() for t in ("int", "float", "double", "num"))
             ]
             item["categorical_columns"] = [
-                c for c in info.get("columns", [])
+                c for c in cols
                 if c not in item["numeric_columns"]
             ]
         datasets.append(item)
