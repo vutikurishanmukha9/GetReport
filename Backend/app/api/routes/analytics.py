@@ -201,11 +201,15 @@ async def list_recent_datasets(
     from app.db import get_db_connection
     from app.services.task_manager import title_task_manager
 
-    with get_db_connection() as conn:
-        rows = conn.execute(
-            "SELECT task_id, filename, created_at FROM jobs WHERE status = ? ORDER BY created_at DESC LIMIT ?",
-            ("completed", limit)
-        ).fetchall()
+    try:
+        with get_db_connection() as conn:
+            rows = conn.execute(
+                "SELECT task_id, filename, created_at FROM jobs WHERE status = ? ORDER BY created_at DESC LIMIT ?",
+                ("completed", limit)
+            ).fetchall()
+    except Exception as e:
+        logger.warning(f"Unable to query jobs table in list_recent_datasets: {e}")
+        return {"datasets": []}
 
     datasets = []
     for r in rows:

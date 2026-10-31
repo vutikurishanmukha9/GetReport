@@ -11,7 +11,14 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.routes.analytics import router as analytics_router
 from app.core.limiter import limiter
+from app.db import init_db
 from app.services.superset_engine import superset_engine
+
+# Initialize database schema for isolated endpoint testing
+try:
+    init_db()
+except Exception:
+    pass
 
 # Dedicated test app avoiding external DB lifecycle and heavy disk traversals
 _test_app = FastAPI()
