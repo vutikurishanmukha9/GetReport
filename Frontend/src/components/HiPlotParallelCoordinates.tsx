@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { Sliders, RefreshCw, Filter, Eye, Layers } from 'lucide-react';
+import { Sliders, RefreshCw, Filter, Eye, Layers, Download } from 'lucide-react';
 import type { DataRow } from '@/types/api';
 
 export interface HiPlotDimension {
@@ -306,6 +306,26 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
     }
   };
 
+  const handleExportBrushedCsv = () => {
+    const selected = datapoints.filter((_, i) => filteredIndices.has(i));
+    if (selected.length === 0) return;
+    const headers = dimensions.map(d => d.name);
+    const csvContent = [
+      headers.join(","),
+      ...selected.map(r => headers.map(h => `"${r[h] ?? ""}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `HiPlot_Filtered_Selection_${selected.length}_rows.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const percentBrushed = Math.round((filteredIndices.size / Math.max(datapoints.length, 1)) * 100);
 
   return (
@@ -330,7 +350,7 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
         </div>
 
         {/* HUD Statistics & Actions */}
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-2.5 text-xs flex-wrap">
           <div className="bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-2">
             <Eye className="w-3.5 h-3.5 text-emerald-400" />
             <span>
@@ -363,12 +383,24 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
           {Object.keys(brushes).length > 0 && (
             <button
               onClick={resetAllBrushes}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition"
+              title="Reset all axis brushes"
             >
               <RefreshCw className="w-3 h-3 text-amber-400" />
-              Reset Brushes
+              Reset
             </button>
           )}
+
+          {/* Export Brushed Subset to CSV */}
+          <button
+            onClick={handleExportBrushedCsv}
+            disabled={filteredIndices.size === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 font-medium rounded-lg border border-slate-700 transition"
+            title="Download brushed records as CSV"
+          >
+            <Download className="w-3 h-3 text-emerald-400" />
+            Export CSV ({filteredIndices.size})
+          </button>
 
           {/* Isolate Population Button */}
           {onIsolateSelection && (

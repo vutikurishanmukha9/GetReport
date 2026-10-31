@@ -6,6 +6,8 @@ Provides endpoints for:
 - Synchronizing uploaded & audited datasets directly into Superset
 - Retrieving available embedded dashboards
 - Issuing scoped Guest Tokens for @superset-ui/embedded-sdk
+- Introspecting schemas with column classification & sample values
+- Executing high-speed filtered analytical aggregations with ECharts option trees
 """
 
 import logging
@@ -17,9 +19,12 @@ from app.core.auth import verify_api_key
 from app.core.config import settings
 from app.core.limiter import limiter
 from app.services.superset_service import superset_service
+from app.services.superset_engine import superset_engine, SupersetExploreQuery
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/analytics", tags=["analytics"])
+
+ANALYTICS_QUERY_LIMIT = "60/minute"
 
 
 class GuestTokenRequest(BaseModel):
@@ -90,6 +95,7 @@ async def get_analytics_status(
 
 
 @router.post("/sync/{task_id}", response_model=DatasetSyncResponse)
+@limiter.limit("20/minute")
 async def sync_uploaded_dataset(
     request: Request,
     task_id: str,
@@ -120,6 +126,7 @@ async def sync_uploaded_dataset(
 
 
 @router.post("/guest-token", response_model=GuestTokenResponse)
+@limiter.limit("30/minute")
 async def generate_guest_token(
     request: Request,
     payload: Optional[GuestTokenRequest] = None,
@@ -173,7 +180,6 @@ async def list_available_dashboards(
     }
 
 
-
 class AggregateRequest(BaseModel):
     dimension: str = Field(..., description="Categorical or date column name to group by")
     metric: Optional[str] = Field(default=None, description="Numeric column to aggregate. Defaults to row count.")
@@ -224,6 +230,7 @@ async def list_recent_datasets(
 
 
 @router.post("/aggregate/{task_id}")
+@limiter.limit(ANALYTICS_QUERY_LIMIT)
 async def aggregate_dataset_metrics(
     request: Request,
     task_id: str,
@@ -251,11 +258,8 @@ async def aggregate_dataset_metrics(
         raise HTTPException(status_code=500, detail=f"Aggregation calculation failed: {e}")
 
 
-
-from app.services.superset_engine import superset_engine, SupersetExploreQuery
-
-
 @router.get("/explore/{task_id}/schema")
+@limiter.limit(ANALYTICS_QUERY_LIMIT)
 async def get_superset_dataset_schema(
     request: Request,
     task_id: str,
@@ -275,6 +279,7 @@ async def get_superset_dataset_schema(
 
 
 @router.post("/explore/query")
+@limiter.limit(ANALYTICS_QUERY_LIMIT)
 async def execute_superset_explore_query(
     request: Request,
     query: SupersetExploreQuery,
@@ -282,7 +287,7 @@ async def execute_superset_explore_query(
 ):
     """
     Executes a Superset Explore analytical query on the uploaded dataset
-    and returns ECharts visualization options with KPI metrics.
+    with optional filters and temporal bucketing, returning ECharts visualization options and KPIs.
     """
     try:
         result = superset_engine.execute_explore_query(query)

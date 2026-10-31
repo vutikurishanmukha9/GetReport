@@ -1104,7 +1104,15 @@ export const ReportGeneration = ({
                   {activeChartTab === "hiplot" && hiplotPayload && (
                     <div className="space-y-4">
                       <div className="bg-muted/10 border border-border/80 rounded-2xl p-4">
-                        <HiPlotParallelCoordinates payload={hiplotPayload} />
+                        <HiPlotParallelCoordinates
+                          payload={hiplotPayload}
+                          onIsolateSelection={(selectedRows) => {
+                            toast({
+                              title: "Population Isolated",
+                              description: `Filtered ${selectedRows.length.toLocaleString()} records from HiPlot parallel coordinates selection.`,
+                            });
+                          }}
+                        />
                       </div>
                     </div>
                   )}

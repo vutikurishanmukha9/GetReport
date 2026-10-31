@@ -342,8 +342,6 @@ class SupersetService:
                 "message": str(e),
             }
 
-
-
     def compute_aggregation(
         self,
         task_id: str,
@@ -356,112 +354,20 @@ class SupersetService:
     ) -> Dict[str, Any]:
         """
         Computes high-speed grouped aggregations over the cleaned dataset for interactive BI charts.
+        Delegates to superset_engine for unified query execution.
         """
-        from app.services.task_manager import title_task_manager
-        from app.services.storage import get_storage_provider
-        
-        job = title_task_manager.get_job(task_id)
-        if not job or not job.result:
-            raise ValueError(f"Task {task_id} not found or results missing")
-        
-        file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
-        if not file_ref:
-            raise ValueError(f"Cleaned dataset file not found for task {task_id}")
-            
-        storage = get_storage_provider()
-        file_path = storage.get_absolute_path(file_ref)
-        if not os.path.exists(file_path):
-            raise ValueError(f"File path does not exist on disk: {file_path}")
-            
-        df = pl.read_parquet(file_path) if file_path.endswith(".parquet") else pl.read_csv(file_path)
-        
-        # Validate dimension
-        if dimension not in df.columns:
-            raise ValueError(f"Dimension '{dimension}' not found in dataset columns")
+        from app.services.superset_engine import superset_engine, SupersetExploreQuery
 
-        # Build aggregation expression
-        agg_func = aggregation.lower()
-        if metric and metric in df.columns:
-            if agg_func == "sum":
-                val_expr = pl.col(metric).sum().alias("value")
-            elif agg_func in ("avg", "mean"):
-                val_expr = pl.col(metric).mean().alias("value")
-            elif agg_func == "min":
-                val_expr = pl.col(metric).min().alias("value")
-            elif agg_func == "max":
-                val_expr = pl.col(metric).max().alias("value")
-            elif agg_func == "median":
-                val_expr = pl.col(metric).median().alias("value")
-            else:
-                val_expr = pl.col(metric).count().alias("value")
-        else:
-            metric = "records"
-            val_expr = pl.len().alias("value")
-
-        group_cols = [dimension]
-        if secondary_dimension and secondary_dimension in df.columns:
-            group_cols.append(secondary_dimension)
-
-        grouped = df.filter(pl.col(dimension).is_not_null()).group_by(group_cols).agg(
-            val_expr,
-            pl.len().alias("count")
+        query = SupersetExploreQuery(
+            task_id=task_id,
+            dimension=dimension,
+            secondary_dimension=secondary_dimension,
+            metric=metric,
+            aggregate=aggregation.upper(),
+            row_limit=limit,
+            sort_order=sort_order,
         )
-
-        descending = sort_order.lower() == "desc"
-        sorted_df = grouped.sort("value", descending=descending).head(limit)
-
-        # Calculate dataset KPI summary
-        total_rows = len(df)
-        if metric != "records" and metric in df.columns:
-            metric_col = df[metric]
-            kpis = {
-                "metric_name": metric,
-                "dimension_name": dimension,
-                "total_rows": total_rows,
-                "metric_sum": float(metric_col.sum()) if metric_col.is_numeric() else None,
-                "metric_mean": round(float(metric_col.mean()), 2) if metric_col.is_numeric() else None,
-                "metric_max": float(metric_col.max()) if metric_col.is_numeric() else None,
-                "metric_min": float(metric_col.min()) if metric_col.is_numeric() else None,
-                "unique_categories": df[dimension].n_unique(),
-            }
-        else:
-            kpis = {
-                "metric_name": "Records",
-                "dimension_name": dimension,
-                "total_rows": total_rows,
-                "metric_sum": total_rows,
-                "metric_mean": None,
-                "metric_max": None,
-                "metric_min": None,
-                "unique_categories": df[dimension].n_unique(),
-            }
-
-        records = sorted_df.to_dicts()
-        cleaned_records = []
-        for r in records:
-            row = {}
-            for k, v in r.items():
-                if v is None:
-                    row[k] = None
-                elif isinstance(v, (int, float)):
-                    row[k] = round(v, 2) if isinstance(v, float) and abs(v) < 1e12 else (v if v == v else 0)
-                else:
-                    row[k] = str(v)
-            cleaned_records.append(row)
-
-        return {
-            "task_id": task_id,
-            "dimension": dimension,
-            "metric": metric,
-            "aggregation": agg_func,
-            "secondary_dimension": secondary_dimension,
-            "kpis": kpis,
-            "records": cleaned_records,
-            "total_groups": len(grouped),
-            "columns": df.columns,
-            "numeric_columns": [c for c, dt in zip(df.columns, df.dtypes) if dt.is_numeric()],
-            "categorical_columns": [c for c, dt in zip(df.columns, df.dtypes) if dt in (pl.String, pl.Categorical)],
-        }
+        return superset_engine.execute_explore_query(query)
 
 
 superset_service = SupersetService()

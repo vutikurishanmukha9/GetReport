@@ -870,6 +870,72 @@ export const api = {
     },
 
     /**
+     * Checks the live health and status of the Apache Superset companion service.
+     */
+    getAnalyticsStatus: (): Promise<{
+        enabled: boolean;
+        status: string;
+        superset_url: string;
+        message: string;
+        status_code?: number;
+        instructions?: string;
+    }> => {
+        return fetchClient("/analytics/status");
+    },
+
+    /**
+     * Synchronizes an audited dataset directly into Superset PostgreSQL database.
+     */
+    syncDatasetToSuperset: (taskId: string): Promise<{
+        status: string;
+        task_id: string;
+        table_name?: string;
+        rows_synced?: number;
+        columns?: string[];
+        db_synced: boolean;
+        api_registered: boolean;
+        dataset_id?: number;
+        dashboard_id?: string;
+        message: string;
+    }> => {
+        return fetchClient(`/analytics/sync/${encodeURIComponent(taskId)}`, {
+            method: "POST",
+        });
+    },
+
+    /**
+     * Retrieves a scoped Guest Token for embedding a Superset dashboard in the browser.
+     */
+    getSupersetGuestToken: (dashboardId?: string, taskId?: string): Promise<{
+        status: string;
+        dashboard_id: string;
+        task_id?: string;
+        superset_url: string;
+        guest_token?: string;
+        message: string;
+        instructions?: string;
+    }> => {
+        return fetchClient("/analytics/guest-token", {
+            method: "POST",
+            body: JSON.stringify({ dashboard_id: dashboardId, task_id: taskId }),
+        });
+    },
+
+    /**
+     * Lists certified and configured Superset dashboards available for embedding.
+     */
+    listAvailableDashboards: (): Promise<{
+        dashboards: Array<{
+            id: string;
+            title: string;
+            description: string;
+            certified: boolean;
+        }>;
+    }> => {
+        return fetchClient("/analytics/dashboards");
+    },
+
+    /**
      * Introspects dataset columns and data types for Apache Superset Explore studio.
      */
     getSupersetSchema: (taskId: string): Promise<{
@@ -884,10 +950,12 @@ export const api = {
             is_temporal: boolean;
             null_count: number;
             unique_values: number;
+            sample_values?: string[];
         }>;
         numeric_columns: string[];
         categorical_columns: string[];
         temporal_columns: string[];
+        time_grains?: string[];
         color_palettes: string[];
     }> => {
         return fetchClient(`/analytics/explore/${encodeURIComponent(taskId)}/schema`);
@@ -903,6 +971,12 @@ export const api = {
         secondary_dimension?: string;
         metric?: string;
         aggregate: string;
+        time_grain?: string;
+        filters?: Array<{
+            column: string;
+            operator: string;
+            value?: any;
+        }>;
         row_limit: number;
         sort_order: string;
         color_palette: string;
@@ -913,6 +987,12 @@ export const api = {
         secondary_dimension?: string;
         metric?: string;
         aggregate: string;
+        time_grain?: string;
+        filters?: Array<{
+            column: string;
+            operator: string;
+            value?: any;
+        }>;
         metric_label: string;
         row_limit: number;
         kpis: {
