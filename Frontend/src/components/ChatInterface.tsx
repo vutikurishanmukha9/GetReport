@@ -5,7 +5,7 @@ import {
   MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check,
   Bookmark, BookmarkCheck, Trash2
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, AnimatedDeleteButton, SaveKpiButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -319,16 +319,15 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
           </div>
           <div className="flex items-center gap-2">
             {messages.length > 0 && (
-              <Button
-                variant="outline"
+              <AnimatedDeleteButton
                 size="sm"
-                onClick={handleClearHistory}
-                className="h-8 px-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 border-border/80 gap-1.5 cursor-pointer transition-colors"
+                variant="ghost"
+                label="Clear Chat"
+                confirmLabel="Clear All?"
+                confirmRequired={true}
+                onDelete={handleClearHistory}
                 title="Delete all messages in this conversation"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Clear Chat</span>
-              </Button>
+              />
             )}
           </div>
         </div>
@@ -419,39 +418,27 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                     <div className="flex items-center gap-2 pt-0.5">
                       {savedGoldenIds.has(msg.id) ? (
                         <>
-                          <Button
-                            type="button"
-                            variant="save"
-                            size="sm"
+                          <SaveKpiButton
+                            isSaved={true}
+                            savedLabel="Saved as Golden KPI"
                             disabled
-                            className="h-8 px-3 text-xs font-medium flex items-center gap-1.5 opacity-90 rounded-lg"
-                          >
-                            <BookmarkCheck className="w-3.5 h-3.5 text-white" />
-                            <span>Saved as Golden KPI</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteGoldenKPI(msg.id)}
-                            className="h-8 px-2.5 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 border-border/80 flex items-center gap-1.5 rounded-lg cursor-pointer transition-colors"
+                          />
+                          <AnimatedDeleteButton
+                            size="xs"
+                            variant="danger"
+                            label="Delete"
+                            confirmRequired={true}
+                            confirmLabel="Delete?"
+                            onDelete={() => handleDeleteGoldenKPI(msg.id)}
                             title="Delete this saved KPI"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Delete</span>
-                          </Button>
+                          />
                         </>
                       ) : (
-                        <Button
-                          type="button"
-                          variant="save"
-                          size="sm"
-                          onClick={() => handleSaveGoldenKPI(msg)}
-                          className="h-8 px-3 text-xs font-medium flex items-center gap-1.5 rounded-lg cursor-pointer"
-                        >
-                          <Bookmark className="w-3.5 h-3.5 text-white" />
-                          <span>Save as Golden KPI</span>
-                        </Button>
+                        <SaveKpiButton
+                          isSaved={false}
+                          defaultLabel="Save as Golden KPI"
+                          onToggleSave={() => handleSaveGoldenKPI(msg)}
+                        />
                       )}
                     </div>
                   )}

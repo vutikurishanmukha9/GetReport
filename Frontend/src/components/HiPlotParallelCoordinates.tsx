@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Sliders, RefreshCw, Filter, Eye, Layers, Download } from 'lucide-react';
 import type { DataRow } from '@/types/api';
+import { Button } from '@/components/ui/button';
 
 export interface HiPlotDimension {
   name: string;
@@ -381,37 +382,43 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
 
           {/* Reset Filters */}
           {Object.keys(brushes).length > 0 && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={resetAllBrushes}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition"
+              className="h-8 gap-1.5 border-white/10 hover:border-amber-500/40 hover:bg-amber-500/10 text-zinc-300 hover:text-amber-200"
               title="Reset all axis brushes"
             >
               <RefreshCw className="w-3 h-3 text-amber-400" />
               Reset
-            </button>
+            </Button>
           )}
 
           {/* Export Brushed Subset to CSV */}
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleExportBrushedCsv}
             disabled={filteredIndices.size === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 font-medium rounded-lg border border-slate-700 transition"
+            className="h-8 gap-1.5 border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/10 text-zinc-200 hover:text-emerald-200"
             title="Download brushed records as CSV"
           >
-            <Download className="w-3 h-3 text-emerald-400" />
+            <Download className="w-3.5 h-3.5 text-emerald-400" />
             Export CSV ({filteredIndices.size})
-          </button>
+          </Button>
 
           {/* Isolate Population Button */}
           {onIsolateSelection && (
-            <button
+            <Button
+              variant="hero"
+              size="sm"
               onClick={handleIsolateClick}
               disabled={filteredIndices.size === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-zinc-200 disabled:opacity-50 text-black font-medium rounded-lg shadow-sm transition"
+              className="h-8 gap-1.5 font-semibold"
             >
-              <Filter className="w-3 h-3" />
+              <Filter className="w-3.5 h-3.5" />
               Isolate Selection
-            </button>
+            </Button>
           )}
         </div>
       </div>

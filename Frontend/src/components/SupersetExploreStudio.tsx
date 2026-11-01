@@ -25,7 +25,7 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
@@ -769,14 +769,13 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                           </select>
 
                           {/* Delete button */}
-                          <button
-                            type="button"
-                            onClick={() => removeFilter(f.id)}
-                            className="p-1 text-slate-400 hover:text-rose-400 transition"
+                          <AnimatedDeleteButton
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 rounded-lg text-slate-400 hover:text-rose-400 shrink-0"
+                            onDelete={() => removeFilter(f.id)}
                             title="Remove filter"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          />
                         </div>
 
                         {/* Value Input (unless is_null / is_not_null) */}
@@ -865,14 +864,13 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Mobile Apply CTA */}
               <div className="lg:hidden pt-3 border-t border-slate-800/80">
-                <Button
-                  type="button"
+                <ShimmerActionButton
                   onClick={() => setMobileTab("chart")}
-                  className="w-full bg-white hover:bg-zinc-200 text-black font-semibold text-xs h-9 justify-center gap-2 cursor-pointer shadow-xs"
+                  className="w-full h-10 text-xs justify-center"
+                  icon={<BarChart3 className="h-3.5 w-3.5 text-zinc-950" />}
                 >
-                  <BarChart3 className="h-3.5 w-3.5" />
                   <span>Apply & View Visual Chart</span>
-                </Button>
+                </ShimmerActionButton>
               </div>
             </div>
 

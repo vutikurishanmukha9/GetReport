@@ -38,6 +38,8 @@ const buttonVariants = cva(
           "bg-gradient-to-r from-rose-500/10 via-rose-500/15 to-rose-500/10 hover:from-rose-500/25 hover:via-rose-500/30 hover:to-rose-500/20 text-rose-300 hover:text-rose-100 border border-rose-500/30 hover:border-rose-500/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] font-semibold transition-all duration-150",
         launch:
           "bg-white text-zinc-950 font-bold hover:bg-zinc-100 shadow-[0_2px_14px_rgba(255,255,255,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] border border-white transition-all duration-150",
+        hero:
+          "bg-white text-zinc-950 font-bold hover:bg-zinc-100 shadow-[0_2px_14px_rgba(255,255,255,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] border border-white transition-all duration-150",
         glow:
           "border border-white/20 bg-white/[0.06] text-zinc-100 hover:bg-white/[0.12] hover:border-white/30 shadow-2xs font-semibold",
       },
@@ -193,4 +195,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
 Button.displayName = "Button";
 
-export { Button, buttonVariants };
+export {
+  Button,
+  buttonVariants,
+};
+export * from "./action-buttons";

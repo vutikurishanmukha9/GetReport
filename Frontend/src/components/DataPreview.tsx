@@ -149,14 +149,18 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
             <ArrowLeft className="h-4 w-4 text-muted-foreground" />
             <span>Upload New</span>
           </Button>
-          <button
+          <Button
             onClick={onGenerateReport}
-            className="gap-2 flex-1 sm:flex-none h-10 px-5 rounded-xl bg-white hover:bg-zinc-100 text-black font-sans text-xs sm:text-sm font-bold tracking-tight shadow-sm border border-white transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center cursor-pointer"
+            variant="hero"
+            size="default"
+            className="h-10 px-5 rounded-xl group font-sans text-xs sm:text-sm font-bold tracking-tight shadow-[0_2px_16px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] cursor-pointer"
           >
-            <FileText className="h-4 w-4 text-black" />
+            <FileText className="h-4 w-4 text-zinc-950" />
             <span>Generate Full Report</span>
-            <ArrowRight className="h-4 w-4 text-black" />
-          </button>
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950/10 text-zinc-950 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0">
+              <ArrowRight className="h-3 w-3" />
+            </span>
+          </Button>
         </div>
       </div>
 

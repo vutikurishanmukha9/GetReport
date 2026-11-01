@@ -4,8 +4,9 @@ import {
   ArrowRightLeft, Link2, AlertCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ApiResponse, InspectionResult, CleaningRulesMap } from "@/types/api";
@@ -470,14 +471,14 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
         )}
       </AnimatePresence>
 
-      <Card className="border border-border bg-card shadow-premium rounded-2xl overflow-hidden transition-all duration-300 hover:border-border/80 hover:shadow-xl">
+      <Card className="border border-white/10 bg-[#0c0d12]/95 shadow-tactile rounded-3xl overflow-hidden transition-all duration-300 backdrop-blur-xl">
         <CardContent className="p-4 sm:p-6 space-y-6">
           {/* Dropzone Container */}
           <div
             className={`
-              relative p-6 sm:p-8 md:p-10 text-center transition-all duration-200 min-h-[260px] flex flex-col items-center justify-center
-              border-2 border-dashed border-border/60 rounded-xl
-              ${isDragging ? "bg-primary/5 border-primary/45" : "bg-muted/10"}
+              relative p-6 sm:p-8 md:p-10 text-center transition-all duration-200 min-h-[270px] flex flex-col items-center justify-center
+              border-2 border-dashed rounded-2xl
+              ${isDragging ? "bg-white/[0.06] border-white/40 shadow-inner" : "bg-[#08090d]/80 border-white/10 hover:border-white/20"}
               ${isProcessing ? "opacity-75 pointer-events-none" : ""}
             `}
             onDragOver={(e) => {
@@ -595,15 +596,15 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   </span>
                 </div>
                 {!isProcessing && (
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={clearStaging}
-                    className="h-7 px-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 border-border/80 gap-1.5 cursor-pointer transition-colors"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    <span>Clear All</span>
-                  </Button>
+                  <AnimatedDeleteButton
+                    size="xs"
+                    variant="ghost"
+                    label="Clear All"
+                    confirmLabel="Clear All?"
+                    confirmRequired={stagedFiles.length > 1}
+                    onDelete={clearStaging}
+                    title="Remove all staged files"
+                  />
                 )}
               </div>
 
@@ -640,16 +641,13 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                       </div>
 
                       {!isProcessing && (
-                        <Button
-                          type="button"
+                        <AnimatedDeleteButton
+                          size="icon"
                           variant="ghost"
-                          size="icon-sm"
-                          onClick={() => removeFileFromStaging(idx)}
-                          className="h-7 w-7 rounded-lg text-rose-400 hover:text-white hover:bg-rose-600 border border-transparent hover:border-rose-600 p-0"
+                          onDelete={() => removeFileFromStaging(idx)}
+                          className="h-7 w-7 rounded-lg"
                           title="Delete this file from staging"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        />
                       )}
                     </motion.div>
                   );
@@ -953,19 +951,19 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                   : "Start Analysis & Audit (1 Dataset)";
 
                 return (
-                  <div className="pt-2">
-                    <button
+                  <div className="pt-3">
+                    <ShimmerActionButton
                       onClick={startAnalysisPipeline}
                       disabled={isDisabled}
-                      className={`w-full min-h-[48px] h-12 rounded-full font-sans font-bold text-sm tracking-tight transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer ${
-                        isDisabled
-                          ? "bg-zinc-800 text-zinc-500 border border-zinc-700/50 cursor-not-allowed"
-                          : "bg-white hover:bg-zinc-100 text-black shadow-[0_2px_16px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] border border-white hover:-translate-y-0.5 active:scale-95"
-                      }`}
+                      className={cn(
+                        "w-full min-h-[50px] rounded-2xl",
+                        isDisabled && "opacity-50 cursor-not-allowed bg-zinc-900 border-white/10 text-zinc-500 shadow-none"
+                      )}
+                      icon={<FileSpreadsheet className={`h-4 w-4 shrink-0 ${isDisabled ? "text-zinc-500" : "text-zinc-950"}`} />}
+                      trailingIcon={<ArrowRightLeft className="h-3.5 w-3.5 text-zinc-950 stroke-[2.5]" />}
                     >
-                      <FileSpreadsheet className={`h-4 w-4 ${isDisabled ? "text-zinc-500" : "text-black"}`} />
-                      <span className="truncate px-2">{buttonLabel}</span>
-                    </button>
+                      <span className="truncate px-1.5 font-bold">{buttonLabel}</span>
+                    </ShimmerActionButton>
                   </div>
                 );
               })()}
@@ -976,18 +974,29 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
 
       {/* Privacy & Data Handling Disclosure */}
       <motion.div
-        className="p-5 rounded-2xl border border-white/10 bg-[#0c0d12] shadow-premium space-y-3"
+        className="p-6 rounded-3xl border border-white/10 bg-[#0c0d12]/95 shadow-tactile space-y-4 backdrop-blur-xl"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
-            <Shield className="h-4 w-4" />
+        <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.06] border border-white/10 text-emerald-400 shrink-0">
+              <Shield className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-display font-bold text-white leading-none">
+                Zero-Persistence Privacy Architecture
+              </h3>
+              <p className="text-[11px] font-mono text-zinc-400 mt-1">
+                Polars ephemeral RAM execution • 100% locally isolated
+              </p>
+            </div>
           </div>
-          <h3 className="text-xs sm:text-sm font-display font-bold text-foreground">
-            Your Data, Your Control
-          </h3>
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-mono font-semibold">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Verified Secure
+          </span>
         </div>
 
         <ul className="space-y-2 text-[11px] sm:text-xs text-muted-foreground leading-relaxed font-sans">

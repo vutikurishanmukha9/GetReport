@@ -58,17 +58,20 @@ export const Workspace = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 relative">
+      {/* Technical Background Grid & Film Grain */}
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="hero-grain-overlay" />
       <Header onReset={handleReset} showReset={step !== "upload"} />
 
-      <main className="flex-1 pt-20">
+      <main className="flex-1 pt-20 sm:pt-24 relative z-10">
         {step === "upload" && (
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 max-w-6xl space-y-8 animate-in fade-in duration-300">
             <div className="text-center space-y-3">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
                 <span>Ingestion & In-Memory Pipeline</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black text-foreground tracking-[-0.02em] leading-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black text-white tracking-[-0.03em] leading-tight">
                 Data Ingestion Workspace
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto leading-relaxed">

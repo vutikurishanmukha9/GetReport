@@ -145,11 +145,13 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 asChild
                 variant="launch"
                 size="sm"
-                className="h-9 px-4 rounded-xl group"
+                className="h-9 px-3.5 sm:px-4 rounded-xl group font-semibold text-xs gap-2"
               >
                 <Link to="/workspace">
                   <span>Start Free</span>
-                  <ArrowRight className="h-3.5 w-3.5 text-black/80 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0" />
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/10 text-black transition-transform duration-200 group-hover:translate-x-0.5 shrink-0">
+                    <ArrowRight className="h-3 w-3" />
+                  </span>
                 </Link>
               </Button>
             ) : (

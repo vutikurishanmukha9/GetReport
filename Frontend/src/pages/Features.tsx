@@ -71,13 +71,16 @@ export const Features = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background animate-in fade-in duration-500">
+    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
+      {/* Technical Background Grid & Film Grain */}
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="hero-grain-overlay" />
       <Header onReset={() => {}} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28">
         
         {/* Section 1: Hero Header & Live Polars Benchmark Terminal */}
-        <section className="border-b border-border/60 bg-gradient-to-b from-card/30 via-background to-background py-8 sm:py-14">
+        <section className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               
@@ -129,8 +132,8 @@ export const Features = () => {
 
               {/* Right Column: Live Polars vs Pandas Benchmark Terminal */}
               <div className="lg:col-span-5 w-full">
-                <Card className="border border-border/80 bg-card/90 rounded-2xl shadow-premium overflow-hidden t-card-lift backdrop-blur-sm">
-                  <CardHeader className="bg-muted/20 border-b border-border/60 p-4">
+                <Card className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl shadow-tactile overflow-hidden t-card-lift backdrop-blur-xl">
+                  <CardHeader className="bg-white/[0.02] border-b border-white/[0.08] p-5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 font-mono text-xs font-semibold text-foreground">
                         <Activity className="h-4 w-4 text-primary" />
@@ -184,7 +187,7 @@ export const Features = () => {
 
         {/* Section 2: Interactive Confidence Grade Simulator */}
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 max-w-6xl">
-          <Card className="border border-border/80 bg-card rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-premium space-y-6">
+          <Card className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-10 shadow-tactile space-y-8 backdrop-blur-xl">
             
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-border/60 pb-6">
               <div className="space-y-2">
@@ -207,21 +210,21 @@ export const Features = () => {
                   <button
                     type="button"
                     onClick={() => applyPreset(96, 92, 88, 94)}
-                    className="px-2.5 py-1 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 text-foreground transition-all cursor-pointer"
+                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim"
                   >
                     Clean Data (93%)
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset(72, 68, 75, 70)}
-                    className="px-2.5 py-1 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 text-foreground transition-all cursor-pointer"
+                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim"
                   >
                     Mixed Schema (71%)
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset(40, 50, 45, 35)}
-                    className="px-2.5 py-1 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 text-foreground transition-all cursor-pointer"
+                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim"
                   >
                     Anomalous Export (43%)
                   </button>

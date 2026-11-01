@@ -8,7 +8,7 @@ import {
   History, ArrowUpDown, Code2, PanelLeftClose, PanelLeftOpen, Filter
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, AnimatedDeleteButton, ShimmerActionButton, SaveKpiButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -648,15 +648,14 @@ export const ReportGeneration = ({
 
           {/* Primary & Quick Export Actions */}
           <div className="flex flex-wrap items-center gap-2.5 z-10 w-full md:w-auto">
-            <Button
-              size="lg"
-              className="flex-1 md:flex-none rounded-xl bg-white hover:bg-zinc-100 text-black font-sans text-sm font-bold tracking-tight shadow-sm border border-white transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 px-5 cursor-pointer"
+            <ShimmerActionButton
               onClick={downloadFile}
+              className="flex-1 md:flex-none"
+              icon={<Download className="h-4 w-4 text-black stroke-[2.5]" />}
+              trailingIcon={<ChevronRight className="h-4 w-4 text-black stroke-[2.5]" />}
             >
-              <Download className="h-4 w-4 text-black" />
               <span>Download PDF</span>
-              <ChevronRight className="h-4 w-4 opacity-70" />
-            </Button>
+            </ShimmerActionButton>
 
             <Button
               size="lg"
@@ -669,17 +668,17 @@ export const ReportGeneration = ({
             </Button>
 
             {analysis?.snowflake_meta && (
-              <Button
-                size="lg"
-                variant="outline"
+              <AnimatedDeleteButton
+                size="sm"
+                variant="danger"
+                label="Purge Extract"
+                confirmLabel="Purge Disk Cache?"
+                confirmRequired={true}
                 disabled={isDeletingExtract}
-                className="rounded-xl border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs flex items-center gap-1.5 px-3"
-                onClick={handleDeleteExtract}
+                loading={isDeletingExtract}
+                onDelete={handleDeleteExtract}
                 title="Permanently purge cached extract from disk"
-              >
-                <Trash2 className="h-3.5 w-3.5 text-rose-400" />
-                <span>Purge Extract</span>
-              </Button>
+              />
             )}
 
             <Button
@@ -1881,25 +1880,13 @@ export const ReportGeneration = ({
                             />
                           </div>
 
-                          <Button
-                            size="sm"
-                            variant="save"
-                            className="h-7 text-xs font-medium rounded-lg px-2.5 gap-1.5 cursor-pointer"
-                            onClick={handleSaveSqlQuery}
-                            disabled={isSavedSql}
-                          >
-                            {isSavedSql ? (
-                              <>
-                                <BookmarkCheck className="h-3.5 w-3.5 text-white" />
-                                <span>Saved as KPI</span>
-                              </>
-                            ) : (
-                              <>
-                                <Bookmark className="h-3.5 w-3.5 text-white" />
-                                <span>Save KPI</span>
-                              </>
-                            )}
-                          </Button>
+                          <SaveKpiButton
+                            isSaved={isSavedSql}
+                            onToggleSave={handleSaveSqlQuery}
+                            savedLabel="Saved as KPI"
+                            defaultLabel="Save KPI"
+                            className="h-7 px-2.5 text-xs rounded-lg"
+                          />
 
                           <Button
                             size="sm"

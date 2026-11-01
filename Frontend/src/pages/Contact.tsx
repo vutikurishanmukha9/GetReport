@@ -58,12 +58,15 @@ export const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background animate-in fade-in duration-500">
+    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
+      {/* Technical Background Grid & Film Grain */}
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="hero-grain-overlay" />
       <Header onReset={() => { }} showReset={false} />
 
       <main className="flex-1 pt-16 sm:pt-20">
         {/* Header */}
-        <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
+        <div className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
@@ -165,7 +168,7 @@ export const Contact = () => {
 
             {/* Right Column: Contact Form (Col 6-12) */}
             <div className="lg:col-span-7">
-              <Card className="border border-border bg-card shadow-premium rounded-2xl sm:rounded-3xl p-5 sm:p-7 space-y-4 sm:space-y-5">
+              <Card className="border border-white/10 bg-[#0c0d12]/95 shadow-tactile rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-xl">
                 <div className="space-y-1 border-b border-border/60 pb-3">
                   <h2 className="text-lg sm:text-xl font-display font-bold text-foreground tracking-[-0.015em]">
                     Send a message
@@ -264,11 +267,15 @@ export const Contact = () => {
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    size="lg"
-                    className="w-full h-11 rounded-xl shadow-premium t-card-lift t-spring-press font-display font-semibold text-sm gap-2"
+                    variant="hero"
+                    size="xl"
+                    className="w-full min-h-[50px] rounded-full group font-display font-bold text-sm gap-2 cursor-pointer shadow-[0_2px_24px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)]"
                   >
-                    <Send className="h-4 w-4" />
-                    <span>Send Inquiry</span>
+                    <Send className="h-4 w-4 text-zinc-950" />
+                    <span className="text-zinc-950 font-bold">Send Inquiry</span>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950/10 text-zinc-950 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0">
+                      <ArrowRight className="h-3 w-3" />
+                    </span>
                   </Button>
                 </form>
               </Card>

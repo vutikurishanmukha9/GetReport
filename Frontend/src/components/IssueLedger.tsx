@@ -20,6 +20,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
+import {
+  SaveAllButton,
+  AnimatedDeleteButton,
+  TactileRowAction,
+  ShimmerActionButton,
+} from '@/components/ui/button';
 
 // Types
 export interface Issue {
@@ -358,56 +364,27 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         {/* Top Batch Actions */}
                         {!locked && (
                             <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-center shrink-0">
-                                {/* Approve All Button */}
-                                <button
-                                    type="button"
+                                {/* Approve All / Save All Button */}
+                                <SaveAllButton
                                     onClick={handleApproveAll}
                                     disabled={loading !== null || !hasPending}
-                                    className={cn(
-                                        "group relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-tight transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 select-none",
-                                        hasPending
-                                            ? "bg-gradient-to-r from-emerald-500/20 via-emerald-500/25 to-teal-500/20 hover:from-emerald-500 hover:via-emerald-400 hover:to-teal-400 text-emerald-300 hover:text-zinc-950 border border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_20px_-3px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] active:scale-[0.98]"
-                                            : "bg-white/[0.02] text-zinc-600 border border-white/5 cursor-not-allowed opacity-50 shadow-none"
-                                    )}
+                                    loading={loading === 'approve_all'}
+                                    count={summary.pending}
+                                    label="Approve All"
                                     title="Approve all remaining pending issues"
-                                >
-                                    <div className={cn(
-                                        "w-5 h-5 rounded-md flex items-center justify-center transition-colors",
-                                        hasPending 
-                                            ? "bg-emerald-500/25 group-hover:bg-zinc-950/20 text-emerald-300 group-hover:text-zinc-950" 
-                                            : "bg-white/5 text-zinc-600"
-                                    )}>
-                                        <CheckCheck className="w-3.5 h-3.5 stroke-[2.3]" />
-                                    </div>
-                                    <span>Approve All</span>
-                                    {hasPending && (
-                                        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/30 group-hover:bg-zinc-950/20 text-emerald-200 group-hover:text-zinc-950">
-                                            +{summary.pending}
-                                        </span>
-                                    )}
-                                </button>
+                                />
 
-                                {/* Reject All Button */}
-                                <button
-                                    type="button"
+                                {/* Reject All / Delete All Button */}
+                                <AnimatedDeleteButton
                                     onClick={handleRejectAll}
                                     disabled={loading !== null || !hasPending}
-                                    className={cn(
-                                        "group relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold tracking-tight transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 select-none",
-                                        hasPending
-                                            ? "bg-gradient-to-r from-rose-500/10 via-rose-500/15 to-rose-500/10 hover:from-rose-500/25 hover:via-rose-500/30 hover:to-rose-500/20 text-rose-300 hover:text-rose-100 border border-rose-500/30 hover:border-rose-500/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] active:scale-[0.98]"
-                                            : "bg-white/[0.02] text-zinc-600 border border-white/5 cursor-not-allowed opacity-50 shadow-none"
-                                    )}
+                                    loading={loading === 'reject_all'}
+                                    label="Reject All"
+                                    confirmLabel="Reject All?"
+                                    confirmRequired={summary.pending > 1}
+                                    variant="danger"
                                     title="Reject all remaining pending issues"
-                                >
-                                    <div className={cn(
-                                        "w-5 h-5 rounded-md flex items-center justify-center transition-colors",
-                                        hasPending ? "bg-rose-500/20 text-rose-300" : "bg-white/5 text-zinc-600"
-                                    )}>
-                                        <XCircle className="w-3.5 h-3.5 stroke-[2.3]" />
-                                    </div>
-                                    <span>Reject All</span>
-                                </button>
+                                />
                             </div>
                         )}
                     </div>
@@ -614,40 +591,20 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                             {!locked && isPending && (
                                                 <div className="flex items-center gap-2">
                                                     {/* Tactile Approve Button */}
-                                                    <button
-                                                        type="button"
+                                                    <TactileRowAction
+                                                        actionType="approve"
                                                         onClick={() => handleApprove(issue.id)}
-                                                        disabled={loading !== null}
-                                                        className={cn(
-                                                            "group/btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-tight transition-all duration-150 cursor-pointer select-none",
-                                                            "bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-zinc-950 border border-emerald-500/35 hover:border-emerald-400 shadow-[0_2px_12px_-2px_rgba(16,185,129,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] active:scale-95",
-                                                            isBusy && "opacity-50 pointer-events-none"
-                                                        )}
+                                                        isBusy={isBusy}
                                                         title="Approve this remediation fix"
-                                                    >
-                                                        <div className="w-4 h-4 rounded-md bg-emerald-500/25 group-hover/btn:bg-zinc-950/20 flex items-center justify-center transition-colors">
-                                                            <Check className="w-3 h-3 stroke-[2.5]" />
-                                                        </div>
-                                                        <span>Approve</span>
-                                                    </button>
+                                                    />
 
                                                     {/* Tactile Reject Button */}
-                                                    <button
-                                                        type="button"
+                                                    <TactileRowAction
+                                                        actionType="reject"
                                                         onClick={() => handleReject(issue.id)}
-                                                        disabled={loading !== null}
-                                                        className={cn(
-                                                            "group/btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium tracking-tight transition-all duration-150 cursor-pointer select-none",
-                                                            "bg-zinc-900/80 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-200 border border-white/10 hover:border-rose-500/35 shadow-2xs active:scale-95",
-                                                            isBusy && "opacity-50 pointer-events-none"
-                                                        )}
+                                                        isBusy={isBusy}
                                                         title="Reject this remediation fix"
-                                                    >
-                                                        <div className="w-4 h-4 rounded-md bg-white/5 group-hover/btn:bg-rose-500/20 flex items-center justify-center transition-colors">
-                                                            <X className="w-3 h-3 text-zinc-400 group-hover/btn:text-rose-300 stroke-[2.5]" />
-                                                        </div>
-                                                        <span>Reject</span>
-                                                    </button>
+                                                    />
                                                 </div>
                                             )}
 
@@ -778,17 +735,15 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     </span>
                                 </div>
                             ) : (
-                                <button
-                                    type="button"
+                                <ShimmerActionButton
                                     onClick={handleLockAndProceed}
                                     disabled={loading !== null}
-                                    className="group relative inline-flex items-center gap-3 px-7 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:via-teal-400 hover:to-emerald-300 text-zinc-950 shadow-[0_0_35px_-5px_rgba(16,185,129,0.5),inset_0_1px_0_rgba(255,255,255,0.7)] border border-emerald-300/60 transition-all duration-200 active:scale-[0.98] cursor-pointer"
+                                    loading={loading === 'lock'}
+                                    className="bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:via-teal-400 hover:to-emerald-300 text-zinc-950 shadow-[0_0_35px_-5px_rgba(16,185,129,0.5),inset_0_1px_0_rgba(255,255,255,0.7)] border-emerald-300/60"
+                                    trailingIcon={<ArrowRight className="w-3.5 h-3.5 text-zinc-950 stroke-[2.5]" />}
                                 >
                                     <span>Lock & Proceed to Analysis</span>
-                                    <div className="w-6 h-6 rounded-lg bg-black/15 flex items-center justify-center group-hover:translate-x-0.5 transition-transform">
-                                        <ArrowRight className="w-3.5 h-3.5 text-zinc-950 stroke-[2.5]" />
-                                    </div>
-                                </button>
+                                </ShimmerActionButton>
                             )}
                         </div>
                     </div>

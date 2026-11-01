@@ -192,12 +192,15 @@ export const HowItWorks = () => {
   const activeStep = pipelineSteps[activeStepIndex];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background animate-in fade-in duration-500">
+    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
+      {/* Technical Background Grid & Film Grain */}
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="hero-grain-overlay" />
       <Header onReset={() => {}} showReset={false} />
 
       <main className="flex-1 pt-16 sm:pt-20">
         {/* Header */}
-        <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
+        <div className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
             
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
@@ -223,10 +226,10 @@ export const HowItWorks = () => {
                   key={step.id}
                   type="button"
                   onClick={() => setActiveStepIndex(idx)}
-                  className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-mono text-xs transition-all shrink-0 cursor-pointer border ${
+                  className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full font-mono text-xs transition-all duration-150 shrink-0 cursor-pointer border ${
                     isActive
-                      ? "bg-primary text-primary-foreground border-primary shadow-premium font-bold"
-                      : "bg-card hover:bg-muted/40 text-muted-foreground border-border/80 hover:text-foreground"
+                      ? "bg-white text-zinc-950 border-white shadow-[0_2px_14px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)] font-bold scale-[1.02]"
+                      : "bg-[#0c0d12] hover:bg-white/[0.06] text-zinc-400 hover:text-white border-white/10 hover:border-white/20"
                   }`}
                 >
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? "bg-white/20" : "bg-muted"}`}>
@@ -244,7 +247,7 @@ export const HowItWorks = () => {
             
             {/* Left Column: Stage Details & Specs (Col 1-5) */}
             <div className="lg:col-span-5 space-y-4">
-              <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 shadow-premium space-y-5">
+              <Card className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-8 shadow-tactile space-y-6 backdrop-blur-xl">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-[10px] font-mono font-bold bg-primary/10 text-primary border-primary/20 uppercase tracking-wider">
@@ -305,8 +308,8 @@ export const HowItWorks = () => {
             <div className="lg:col-span-7 space-y-4">
               
               {/* Code Terminal Mock */}
-              <Card className="border border-border/80 bg-zinc-950 text-zinc-100 rounded-2xl shadow-premium overflow-hidden font-mono text-xs">
-                <CardHeader className="bg-zinc-900/80 border-b border-zinc-800 px-4 py-2.5 flex flex-row items-center justify-between">
+              <Card className="border border-white/10 bg-[#08090d] text-zinc-100 rounded-3xl shadow-tactile overflow-hidden font-mono text-xs">
+                <CardHeader className="bg-white/[0.02] border-b border-white/[0.08] px-5 py-3.5 flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Code2 className="h-3.5 w-3.5 text-zinc-400" />
                     <span className="text-[11px] text-zinc-300 font-bold ml-0.5">engine_pipeline.py</span>
@@ -345,7 +348,7 @@ export const HowItWorks = () => {
 
         {/* Section 2: Pipeline Invariants Guarantee */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl">
-          <div className="border border-border bg-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-premium space-y-6">
+          <div className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-10 shadow-tactile space-y-8 backdrop-blur-xl">
             <div className="text-center max-w-2xl mx-auto space-y-1.5">
               <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
                 Architectural invariants & safety guarantees
