@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
   BarChart3, GraduationCap, Users, DollarSign, Activity, ArrowRight, 
-  AlertTriangle, ChevronDown, ChevronUp, Eye
+  AlertTriangle, ChevronDown, ChevronUp, Eye, Sparkles
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -256,38 +256,53 @@ export const Examples = () => {
                   </CardHeader>
 
                   <CardContent className="p-5 sm:p-6 pt-3.5 sm:pt-4 space-y-3.5 flex-1 flex flex-col justify-between">
-                    {/* Quality Flags */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground block">
-                        Identified Quality Flags:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 font-mono text-[11px]">
+                    {/* Identified Quality Flags - High-End Tactile Container */}
+                    <div className="rounded-xl bg-gradient-to-b from-amber-500/[0.06] to-amber-500/[0.02] border border-amber-500/25 p-3.5 space-y-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-amber-200">
+                          <span className="w-5 h-5 rounded-md bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0">
+                            <AlertTriangle className="h-3 w-3 stroke-[2.4]" />
+                          </span>
+                          <span>Identified Quality Flags</span>
+                        </div>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/35 shadow-2xs">
+                          {item.detectedIssues.length} Detected
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
                         {item.detectedIssues.map((issue, iIdx) => (
-                          <span key={iIdx} className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-800 border border-amber-500/20 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px]">
-                            <AlertTriangle className="h-3 w-3 shrink-0" />
-                            <span>{issue}</span>
+                          <span
+                            key={iIdx}
+                            className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-medium text-amber-100 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/30 hover:border-amber-400/50 shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-150 select-none group/flag"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse" />
+                            <span className="font-sans tracking-tight">{issue}</span>
                           </span>
                         ))}
                       </div>
                     </div>
 
-                    {/* Executive Key Insight Quote */}
-                    <div className="p-3 bg-muted/30 rounded-xl border border-border/40 text-xs font-sans text-foreground">
-                      <strong className="text-primary font-mono text-[10px] uppercase tracking-wider block mb-0.5">RAG Executive Takeaway:</strong>
-                      <p className="italic text-muted-foreground leading-relaxed">&ldquo;{item.keyInsight}&rdquo;</p>
+                    {/* Executive Key Insight Takeaway */}
+                    <div className="p-3.5 bg-white/[0.02] rounded-xl border border-white/[0.06] text-xs font-sans space-y-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-primary">
+                        <Sparkles className="h-3 w-3 text-primary shrink-0" />
+                        <span>RAG Executive Takeaway</span>
+                      </div>
+                      <p className="italic text-zinc-300 text-xs leading-relaxed font-sans">&ldquo;{item.keyInsight}&rdquo;</p>
                     </div>
 
                     {/* Expandable Schema Preview Drawer */}
                     {isExpanded && (
-                      <div className="border border-border/60 bg-muted/20 rounded-xl p-3 space-y-1.5 font-mono text-[11px] animate-in slide-in-from-top-1 duration-200">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                      <div className="border border-white/[0.08] bg-zinc-950/60 rounded-xl p-3.5 space-y-2 font-mono text-[11px] animate-in slide-in-from-top-1 duration-200">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
                           Column Remediation Sample:
                         </span>
-                        <div className="divide-y divide-border/40">
+                        <div className="divide-y divide-white/[0.05]">
                           {item.sampleColumns.map((col) => (
-                            <div key={col.name} className="py-1 flex justify-between items-center text-xs">
-                              <span className="font-semibold text-foreground">{col.name} <span className="text-[10px] text-muted-foreground">({col.type})</span></span>
-                              <span className="text-emerald-400 font-medium text-[11px]">{col.quality}</span>
+                            <div key={col.name} className="py-1.5 flex justify-between items-center text-xs">
+                              <span className="font-medium text-zinc-200">{col.name} <span className="text-[10px] text-zinc-500 font-normal">({col.type})</span></span>
+                              <span className="text-emerald-400 font-semibold text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">{col.quality}</span>
                             </div>
                           ))}
                         </div>
@@ -295,21 +310,21 @@ export const Examples = () => {
                     )}
 
                     {/* Card Actions */}
-                    <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                    <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
                       <button
                         type="button"
                         onClick={() => toggleExpand(item.id)}
-                        className="text-xs font-mono text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-white/[0.04]"
                       >
-                        <Eye className="h-3.5 w-3.5" />
+                        <Eye className="h-3.5 w-3.5 text-zinc-400" />
                         <span>{isExpanded ? "Hide Schema" : "Inspect Schema"}</span>
-                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-zinc-500" /> : <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />}
                       </button>
 
                       <Link to={`/workspace?sample=${item.id}`}>
-                        <Button size="sm" className="rounded-xl font-display font-semibold text-xs gap-1 shadow-xs h-8 px-3">
+                        <Button size="sm" variant="hero" className="rounded-xl text-xs gap-1.5 h-8 px-3.5 font-semibold shadow-xs">
                           <span>Audit in Workspace</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
+                          <ArrowRight className="h-3.5 w-3.5 stroke-[2.5]" />
                         </Button>
                       </Link>
                     </div>

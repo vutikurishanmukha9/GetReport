@@ -471,10 +471,11 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                             )}
                           </div>
                           {issues.length > 0 && (
-                            <div className="text-xs text-amber-400 mt-2 flex flex-wrap gap-1.5 font-mono">
+                            <div className="mt-2.5 flex flex-wrap gap-1.5">
                               {issues.map(issue => (
-                                <span key={issue} className="flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/25 font-semibold">
-                                  <AlertTriangle className="h-3 w-3 shrink-0" /> {issue.toLowerCase()}
+                                <span key={issue} className="inline-flex items-center gap-1.5 bg-amber-950/40 text-amber-200 px-2.5 py-1 rounded-lg border border-amber-500/30 text-xs font-sans font-medium shadow-2xs">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse" />
+                                  <span>{issue}</span>
                                 </span>
                               ))}
                             </div>
