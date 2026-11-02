@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import ReactECharts from "echarts-for-react";
+import * as echarts from "echarts";
 import {
   BarChart3,
   TrendingUp,
@@ -122,13 +122,93 @@ const formatCompactNumber = (val: number | null | undefined): string => {
   return Number.isInteger(val) ? val.toLocaleString() : val.toFixed(2);
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NATIVE APACHE ECHARTS CANVAS (Direct DOM Mount & Zero-Latency ResizeObserver)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface NativeEChartsViewProps {
+  option: Record<string, any>;
+  onChartClick?: (params: any) => void;
+  onInstanceReady?: (instance: echarts.ECharts) => void;
+  height?: string | number;
+  className?: string;
+}
+
+const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
+  option,
+  onChartClick,
+  onInstanceReady,
+  height = "480px",
+  className = "",
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartInstanceRef = useRef<echarts.ECharts | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    let instance = echarts.getInstanceByDom(containerRef.current);
+    if (!instance) {
+      instance = echarts.init(containerRef.current, undefined, {
+        renderer: "canvas",
+      });
+      chartInstanceRef.current = instance;
+    }
+
+    if (onInstanceReady) {
+      onInstanceReady(instance);
+    }
+
+    const clickHandler = (params: any) => {
+      if (onChartClick) {
+        onChartClick(params);
+      }
+    };
+    instance.on("click", clickHandler);
+
+    if (option && Object.keys(option).length > 0) {
+      instance.setOption(option, true);
+      requestAnimationFrame(() => {
+        instance?.resize();
+      });
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      instance?.resize();
+    });
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      instance.off("click", clickHandler);
+    };
+  }, [option, onChartClick, onInstanceReady]);
+
+  useEffect(() => {
+    return () => {
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.dispose();
+        chartInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ width: "100%", height, minHeight: "420px" }}
+      className={`w-full relative ${className}`}
+    />
+  );
+};
+
 export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   taskId: initialTaskId,
   datasetName: initialDatasetName,
   allowDatasetSwitching = false,
 }) => {
   const { toast } = useToast();
-  const echartsRef = useRef<any>(null);
+  const nativeChartInstanceRef = useRef<echarts.ECharts | null>(null);
 
   // Studio Mode: Native Polars + ECharts vs Containerized Superset Companion
   const [studioMode, setStudioMode] = useState<"native" | "companion">("native");
@@ -182,16 +262,16 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   // Dynamic Chart Auto-Resize
   useEffect(() => {
     const handleResize = () => {
-      if (echartsRef.current) {
+      if (nativeChartInstanceRef.current) {
         try {
-          echartsRef.current.getEchartsInstance?.()?.resize();
+          nativeChartInstanceRef.current.resize();
         } catch {
           // ignore
         }
       }
     };
     window.addEventListener("resize", handleResize);
-    const timer = setTimeout(handleResize, 120);
+    const timer = setTimeout(handleResize, 100);
     return () => {
       window.removeEventListener("resize", handleResize);
       clearTimeout(timer);
@@ -368,9 +448,9 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
   // Copy Chart Image to Clipboard
   const handleCopyChartImage = async () => {
-    if (!echartsRef.current) return;
+    if (!nativeChartInstanceRef.current) return;
     try {
-      const dataUrl = echartsRef.current.getEchartsInstance?.()?.getDataURL({
+      const dataUrl = nativeChartInstanceRef.current.getDataURL({
         type: "png",
         pixelRatio: 2,
         backgroundColor: "#07080a",
@@ -406,9 +486,9 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   };
 
   const handleExportChart = () => {
-    if (!echartsRef.current) return;
+    if (!nativeChartInstanceRef.current) return;
     try {
-      const chartInstance = echartsRef.current.getEchartsInstance();
+      const chartInstance = nativeChartInstanceRef.current;
       const base64Url = chartInstance.getDataURL({
         type: "png",
         pixelRatio: 2,
@@ -1142,17 +1222,16 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                   </div>
                 )}
 
-                {/* View Mode 1: Interactive ECharts Canvas */}
+                {/* View Mode 1: Interactive ECharts Canvas (Native Direct Render) */}
                 {viewMode === "chart" && chartType !== "table" && queryResult?.echarts_option && (
-                  <div className="flex-1 w-full min-h-[320px] sm:min-h-[400px]">
-                    <ReactECharts
-                      ref={echartsRef}
+                  <div className="flex-1 w-full min-h-[420px]">
+                    <NativeEChartsView
                       option={queryResult.echarts_option}
-                      onEvents={{ click: handleChartClick }}
-                      style={{ height: "100%", minHeight: "340px", width: "100%" }}
-                      theme="dark"
-                      notMerge={true}
-                      lazyUpdate={true}
+                      onChartClick={handleChartClick}
+                      onInstanceReady={(inst) => {
+                        nativeChartInstanceRef.current = inst;
+                      }}
+                      height={isFullscreen ? "72vh" : "480px"}
                     />
                   </div>
                 )}

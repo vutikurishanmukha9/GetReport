@@ -826,6 +826,12 @@ class SupersetEngine:
         # ── 2. Funnel Chart (Conversion / Step Flow) ───────────────────────
         elif chart_type in ("echarts_funnel", "funnel"):
             funnel_data = [{"name": str(r[dimension]), "value": r.get("value", 0)} for r in records]
+            vals = [float(r.get("value", 0)) for r in records if r.get("value") is not None]
+            max_v = max(vals) if vals else 100.0
+            if max_v <= 0:
+                max_v = 100.0
+            min_v = 0.0
+
             return {
                 "backgroundColor": "transparent",
                 "color": palette,
@@ -849,6 +855,8 @@ class SupersetEngine:
                         "top": "8%",
                         "bottom": "14%",
                         "width": "80%",
+                        "min": min_v,
+                        "max": max_v,
                         "minSize": "10%",
                         "maxSize": "100%",
                         "sort": "descending",
