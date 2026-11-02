@@ -24,6 +24,11 @@ import {
   Box,
   ChevronDown,
   Loader2,
+  Copy,
+  Check,
+  Activity,
+  Award,
+  Zap,
 } from "lucide-react";
 import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,8 +63,11 @@ interface SupersetExploreStudioProps {
 const CHART_TYPES = [
   { id: "echarts_bar", label: "Bar / Column", icon: BarChart3, desc: "Categorical comparisons & counts" },
   { id: "echarts_line", label: "Line / Trend", icon: TrendingUp, desc: "Trends & series distributions" },
+  { id: "echarts_combo", label: "Dual Combo", icon: TrendingUp, desc: "Bar (Left Y) + Line (Right Y) Dual Axis" },
   { id: "echarts_area", label: "Area Fill", icon: Layers, desc: "Cumulative series volume" },
   { id: "echarts_pie", label: "Pie / Donut", icon: PieChart, desc: "Part-to-whole proportions" },
+  { id: "echarts_funnel", label: "Funnel Flow", icon: Filter, desc: "Stage conversion step drop-offs" },
+  { id: "echarts_radar", label: "Radar Spider", icon: Activity, desc: "Multi-axis indicator radar web" },
   { id: "echarts_scatter", label: "Scatter Plot", icon: Sliders, desc: "Bivariate correlations" },
   { id: "echarts_heatmap", label: "2D Heatmap", icon: Grid, desc: "Matrix intensity (requires 2 dims)" },
   { id: "echarts_boxplot", label: "Boxplot", icon: Table2, desc: "Five-number quartile spread" },
@@ -152,12 +160,17 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const [secondaryDimension, setSecondaryDimension] = useState<string>("");
   const [metric, setMetric] = useState<string>("");
   const [aggregate, setAggregate] = useState<string>("COUNT");
+  const [secondaryMetric, setSecondaryMetric] = useState<string>("");
+  const [secondaryAggregate, setSecondaryAggregate] = useState<string>("AVG");
+  const [yAxisScale, setYAxisScale] = useState<string>("linear");
   const [timeGrain, setTimeGrain] = useState<string>("");
   const [filters, setFilters] = useState<FilterItem[]>([]);
   const [showFilterBuilder, setShowFilterBuilder] = useState<boolean>(false);
   const [rowLimit, setRowLimit] = useState<number>(25);
   const [sortOrder, setSortOrder] = useState<string>("desc");
   const [colorPalette, setColorPalette] = useState<string>("supersetColors");
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [copiedChart, setCopiedChart] = useState<boolean>(false);
 
   // Query Results State
   const [executing, setExecuting] = useState<boolean>(false);
@@ -222,6 +235,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         setNumericCols(res.numeric_columns || []);
         setCategoricalCols(res.categorical_columns || []);
         setTemporalCols(res.temporal_columns || []);
+        setRecommendations(res.recommendations || []);
 
         // Pick intelligent default dimension & metric
         const defaultDim = res.categorical_columns && res.categorical_columns.length > 0
@@ -271,6 +285,9 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         secondary_dimension: secondaryDimension || undefined,
         metric: metric || undefined,
         aggregate: aggregate,
+        secondary_metric: secondaryMetric || undefined,
+        secondary_aggregate: secondaryAggregate || undefined,
+        y_axis_scale: yAxisScale || "linear",
         time_grain: timeGrain || undefined,
         filters: activeFilters.length > 0 ? activeFilters : undefined,
         row_limit: rowLimit,
@@ -331,6 +348,63 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   };
 
   // Export current chart as PNG
+  // Apply 1-click smart recommendation
+  const applyRecommendation = (rec: any) => {
+    if (rec.chart_type) setChartType(rec.chart_type);
+    if (rec.dimension) setDimension(rec.dimension);
+    if (rec.secondary_dimension !== undefined) setSecondaryDimension(rec.secondary_dimension || "");
+    if (rec.metric !== undefined) setMetric(rec.metric || "");
+    if (rec.aggregate) setAggregate(rec.aggregate);
+    if (rec.secondary_metric !== undefined) setSecondaryMetric(rec.secondary_metric || "");
+    if (rec.secondary_aggregate) setSecondaryAggregate(rec.secondary_aggregate);
+    if (rec.time_grain !== undefined) setTimeGrain(rec.time_grain || "");
+    if (rec.row_limit) setRowLimit(rec.row_limit);
+
+    toast({
+      title: "Preset Applied",
+      description: `Loaded: ${rec.title}`
+    });
+  };
+
+  // Copy Chart Image to Clipboard
+  const handleCopyChartImage = async () => {
+    if (!echartsRef.current) return;
+    try {
+      const dataUrl = echartsRef.current.getEchartsInstance?.()?.getDataURL({
+        type: "png",
+        pixelRatio: 2,
+        backgroundColor: "#07080a",
+      });
+      if (dataUrl) {
+        const blob = await (await fetch(dataUrl)).blob();
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": blob })
+        ]);
+        setCopiedChart(true);
+        setTimeout(() => setCopiedChart(false), 2000);
+        toast({ title: "Chart Copied", description: "PNG image copied to clipboard." });
+      }
+    } catch (err) {
+      console.warn("Clipboard write failed, downloading instead:", err);
+      handleExportChart();
+    }
+  };
+
+  // Click-to-filter on chart element
+  const handleChartClick = (params: any) => {
+    if (params && params.name && dimension) {
+      const clickedVal = String(params.name);
+      setFilters(prev => {
+        const withoutDim = prev.filter(f => f.column !== dimension);
+        return [...withoutDim, { id: Math.random().toString(), column: dimension, operator: "eq", value: clickedVal }];
+      });
+      toast({
+        title: "Filter Applied",
+        description: `Filtered by ${dimension} = "${clickedVal}"`
+      });
+    }
+  };
+
   const handleExportChart = () => {
     if (!echartsRef.current) return;
     try {
@@ -487,6 +561,19 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 <span className="hidden sm:inline">Refresh</span>
               </Button>
 
+              {/* Copy Chart Image Action */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCopyChartImage}
+                disabled={!queryResult}
+                className="h-8 rounded-lg border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-200 gap-1.5"
+                title="Copy chart image to clipboard"
+              >
+                {copiedChart ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">{copiedChart ? "Copied" : "Copy"}</span>
+              </Button>
+
               {/* Export Actions */}
               <Button
                 size="sm"
@@ -575,6 +662,30 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               mobileTab === "controls" ? "block" : "hidden lg:block"
             }`}>
               
+              {/* Section: Suggested Visual Explorations */}
+              {recommendations.length > 0 && (
+                <div className="space-y-2 pb-2 border-b border-slate-800/80">
+                  <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                    <Sparkles className="h-3 w-3 text-emerald-400" />
+                    <span>Suggested Explorations</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recommendations.slice(0, 4).map((rec: any) => (
+                      <button
+                        key={rec.id}
+                        type="button"
+                        onClick={() => applyRecommendation(rec)}
+                        className="text-left text-[11px] px-2 py-1 rounded-lg border border-white/10 bg-[#0e1017] hover:bg-white/[0.08] hover:border-emerald-500/40 text-zinc-300 hover:text-white transition group flex items-center gap-1.5 cursor-pointer max-w-full"
+                        title={rec.description}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                        <span className="truncate max-w-[130px] font-medium">{rec.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Section: Chart Type Picker */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
@@ -643,6 +754,41 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                       </option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {/* Section: Secondary Metric for Combo Chart */}
+              {chartType === "echarts_combo" && (
+                <div className="space-y-2 p-3 rounded-xl bg-purple-950/20 border border-purple-800/40">
+                  <div className="flex items-center gap-1.5 text-purple-400 text-xs font-semibold">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    <span>Secondary Metric (Line on Right Axis)</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      id="sec-metric-select"
+                      aria-label="Secondary Metric"
+                      value={secondaryMetric}
+                      onChange={(e) => setSecondaryMetric(e.target.value)}
+                      className="bg-[#0e1017] border border-purple-800/60 text-xs rounded-lg px-2.5 py-1.5 text-purple-200 font-mono"
+                    >
+                      <option value="">None</option>
+                      {numericCols.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <select
+                      id="sec-agg-select"
+                      aria-label="Secondary Aggregate"
+                      value={secondaryAggregate}
+                      onChange={(e) => setSecondaryAggregate(e.target.value)}
+                      className="bg-[#0e1017] border border-purple-800/60 text-xs rounded-lg px-2.5 py-1.5 text-purple-200 font-mono"
+                    >
+                      {AGGREGATIONS.map((a) => (
+                        <option key={a.id} value={a.id}>{a.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
 
@@ -924,6 +1070,36 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 </div>
               )}
 
+              {/* AI/Statistical Smart Insights Strip */}
+              {queryResult?.smart_insights && queryResult.smart_insights.length > 0 && (
+                <div className="rounded-xl bg-gradient-to-r from-emerald-500/[0.08] via-sky-500/[0.05] to-purple-500/[0.05] border border-white/10 p-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-zinc-200">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <span>Automated Data Insights</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-zinc-400">Polars Vector Engine</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {queryResult.smart_insights.map((ins: any) => (
+                      <div key={ins.id} className="flex items-start gap-2 p-2 rounded-lg bg-black/40 border border-white/5 text-xs">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold shrink-0 ${
+                          ins.severity === 'positive' ? 'bg-emerald-500/20 text-emerald-300' :
+                          ins.severity === 'warning' ? 'bg-amber-500/20 text-amber-300' :
+                          'bg-sky-500/20 text-sky-300'
+                        }`}>
+                          {ins.badge || 'Insight'}
+                        </span>
+                        <p className="text-zinc-300 text-[11px] leading-relaxed">
+                          <strong className="text-white mr-1">{ins.title}:</strong>
+                          {ins.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Main Chart or Table Canvas */}
               <div className="flex-1 min-h-[380px] sm:min-h-[460px] rounded-xl border border-slate-800 bg-[#0c0d12] p-3 sm:p-4 flex flex-col relative">
                 
@@ -972,6 +1148,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                     <ReactECharts
                       ref={echartsRef}
                       option={queryResult.echarts_option}
+                      onEvents={{ click: handleChartClick }}
                       style={{ height: "100%", minHeight: "340px", width: "100%" }}
                       theme="dark"
                       notMerge={true}

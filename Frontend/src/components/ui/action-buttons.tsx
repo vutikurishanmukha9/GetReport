@@ -48,9 +48,9 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
     const isDisabled = disabled || loading;
 
     const sizeClasses = {
-      sm: "h-8 px-3 text-xs rounded-lg gap-2",
-      default: "h-9 px-3.5 text-xs sm:text-[13px] rounded-xl gap-2",
-      lg: "h-10.5 px-4.5 text-sm rounded-xl gap-2.5 font-semibold",
+      sm: "h-8 px-3 text-xs rounded-full gap-2",
+      default: "h-9 px-3.5 text-xs sm:text-[13px] rounded-full gap-2.5",
+      lg: "h-10.5 px-4.5 text-sm rounded-full gap-3 font-semibold",
     };
 
     const iconSizes = {
@@ -60,9 +60,9 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
     };
 
     const podSizes = {
-      sm: "w-4.5 h-4.5 rounded-md",
-      default: "w-5 h-5 rounded-md",
-      lg: "w-5.5 h-5.5 rounded-lg",
+      sm: "w-5 h-5 rounded-full",
+      default: "w-6 h-6 rounded-full",
+      lg: "w-7 h-7 rounded-full",
     };
 
     return (
@@ -78,7 +78,7 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
           "group relative inline-flex items-center justify-center font-medium select-none cursor-pointer overflow-hidden isolate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-all duration-200",
           sizeClasses[size],
           !isDisabled
-            ? "bg-gradient-to-b from-emerald-500/20 via-emerald-600/15 to-emerald-950/50 hover:from-emerald-500/30 hover:via-emerald-600/20 hover:to-emerald-950/70 text-emerald-100 hover:text-white border border-emerald-400/40 hover:border-emerald-400/70 shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.18),0_0_18px_-3px_rgba(16,185,129,0.3)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.25),0_0_24px_-2px_rgba(16,185,129,0.45)]"
+            ? "bg-[#042824]/90 hover:bg-[#063832] text-emerald-100 hover:text-white border border-emerald-500/50 hover:border-emerald-400/80 shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.18),0_0_16px_rgba(16,185,129,0.25)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.25),0_0_24px_rgba(16,185,129,0.45)]"
             : "bg-white/[0.03] text-zinc-500 border border-white/5 cursor-not-allowed opacity-50 shadow-none",
           className
         )}
@@ -118,9 +118,10 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
           {loading ? "Processing..." : completed ? "All Approved" : label}
         </span>
 
-        {/* Clean Integrated Counter Badge */}
+        {/* Segmented Pill Counter Badge with Glowing Dot */}
         {!isDisabled && count !== undefined && count > 0 && (
-          <span className="relative z-10 inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-emerald-400/20 text-emerald-200 group-hover:bg-emerald-400 group-hover:text-zinc-950 transition-colors shadow-2xs">
+          <span className="relative z-10 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/40 group-hover:border-emerald-400/60 shadow-inner">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
             +{count}
           </span>
         )}
@@ -203,17 +204,17 @@ export const AnimatedDeleteButton = React.forwardRef<HTMLButtonElement, Animated
     };
 
     const sizeClasses = {
-      xs: "h-7 px-2.5 text-[11px] rounded-lg gap-1.5",
-      sm: "h-8 px-3 text-xs rounded-lg gap-2",
-      default: "h-9 px-3.5 text-xs sm:text-[13px] rounded-xl gap-2",
-      lg: "h-10.5 px-4.5 text-sm rounded-xl gap-2.5 font-semibold",
-      icon: "h-9 w-9 p-0 rounded-xl justify-center",
+      xs: "h-7 px-2.5 text-[11px] rounded-full gap-1.5",
+      sm: "h-8 px-3 text-xs rounded-full gap-2",
+      default: "h-9 px-3.5 text-xs sm:text-[13px] rounded-full gap-2",
+      lg: "h-10.5 px-4.5 text-sm rounded-full gap-2.5 font-semibold",
+      icon: "h-9 w-9 p-0 rounded-full justify-center",
     };
 
     const variantClasses = {
       danger: isConfirming
         ? "bg-rose-600 text-white border-rose-400 shadow-[0_0_25px_rgba(244,63,94,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]"
-        : "bg-gradient-to-b from-zinc-900/90 via-zinc-900/80 to-zinc-950/95 hover:from-rose-950/30 hover:via-zinc-900/90 hover:to-zinc-950/95 text-zinc-200 hover:text-rose-100 border-white/12 hover:border-rose-500/40 shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)] hover:shadow-[0_0_18px_-3px_rgba(244,63,94,0.3)]",
+        : "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white border-zinc-800 hover:border-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] hover:shadow-[0_0_14px_rgba(244,63,94,0.2)]",
       ghost: isConfirming
         ? "bg-rose-600 text-white border border-rose-500"
         : "bg-transparent hover:bg-rose-500/10 text-muted-foreground hover:text-rose-200 border-transparent",
@@ -274,7 +275,7 @@ export const AnimatedDeleteButton = React.forwardRef<HTMLButtonElement, Animated
               <span
                 className={cn(
                   "relative flex items-center justify-center shrink-0 transition-colors",
-                  size !== "icon" && "w-5 h-5 rounded-md bg-white/[0.06] group-hover:bg-rose-500/20 text-zinc-300 group-hover:text-rose-200"
+                  size !== "icon" && "w-6 h-6 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 group-hover:text-zinc-200"
                 )}
               >
                 {loading ? (

@@ -957,6 +957,21 @@ export const api = {
         temporal_columns: string[];
         time_grains?: string[];
         color_palettes: string[];
+        recommendations?: Array<{
+            id: string;
+            title: string;
+            description: string;
+            chart_type: string;
+            dimension: string;
+            secondary_dimension?: string;
+            metric?: string;
+            aggregate?: string;
+            secondary_metric?: string;
+            secondary_aggregate?: string;
+            time_grain?: string;
+            row_limit?: number;
+            badge?: string;
+        }>;
     }> => {
         return fetchClient(`/analytics/explore/${encodeURIComponent(taskId)}/schema`);
     },
@@ -971,6 +986,9 @@ export const api = {
         secondary_dimension?: string;
         metric?: string;
         aggregate: string;
+        secondary_metric?: string;
+        secondary_aggregate?: string;
+        y_axis_scale?: string;
         time_grain?: string;
         filters?: Array<{
             column: string;
@@ -987,6 +1005,9 @@ export const api = {
         secondary_dimension?: string;
         metric?: string;
         aggregate: string;
+        secondary_metric?: string;
+        secondary_aggregate?: string;
+        y_axis_scale?: string;
         time_grain?: string;
         filters?: Array<{
             column: string;
@@ -1005,6 +1026,15 @@ export const api = {
             min: number | null;
             unique_categories: number;
         };
+        smart_insights?: Array<{
+            id: string;
+            type: string;
+            title: string;
+            badge?: string;
+            severity: "info" | "positive" | "warning";
+            description: string;
+        }>;
+        secondary_metric_label?: string;
         records: Array<Record<string, any>>;
         total_groups: number;
         echarts_option: Record<string, any>;
