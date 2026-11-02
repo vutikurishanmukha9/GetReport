@@ -17,8 +17,6 @@ import {
   FileSpreadsheet,
   Plus,
   Trash2,
-  Server,
-  Sparkles,
   Calendar,
   ScatterChart,
   Box,
@@ -34,7 +32,6 @@ import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
-import { SupersetEmbeddedDashboard } from "./SupersetEmbeddedDashboard";
 
 interface DatasetItem {
   task_id: string;
@@ -143,6 +140,10 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
+  const onChartClickRef = useRef(onChartClick);
+  onChartClickRef.current = onChartClick;
+  const onInstanceReadyRef = useRef(onInstanceReady);
+  onInstanceReadyRef.current = onInstanceReady;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -155,34 +156,51 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
       chartInstanceRef.current = instance;
     }
 
-    if (onInstanceReady) {
-      onInstanceReady(instance);
+    if (onInstanceReadyRef.current) {
+      onInstanceReadyRef.current(instance);
     }
 
     const clickHandler = (params: any) => {
-      if (onChartClick) {
-        onChartClick(params);
+      if (onChartClickRef.current) {
+        onChartClickRef.current(params);
       }
     };
+    instance.off("click");
     instance.on("click", clickHandler);
 
+    const resizeChart = () => {
+      if (!instance || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        instance.resize({ width: rect.width, height: rect.height });
+      } else {
+        instance.resize();
+      }
+    };
+
     if (option && Object.keys(option).length > 0) {
-      instance.setOption(option, true);
-      requestAnimationFrame(() => {
-        instance?.resize();
-      });
+      // Clear previous series & coordinate systems when switching chart types to prevent layout collision
+      instance.clear();
+      instance.setOption(option, { notMerge: true, lazyUpdate: false });
+      resizeChart();
+      requestAnimationFrame(resizeChart);
+      setTimeout(resizeChart, 60);
+      setTimeout(resizeChart, 250);
     }
 
     const resizeObserver = new ResizeObserver(() => {
-      instance?.resize();
+      resizeChart();
     });
     resizeObserver.observe(containerRef.current);
 
+    window.addEventListener("resize", resizeChart);
+
     return () => {
       resizeObserver.disconnect();
-      instance.off("click", clickHandler);
+      window.removeEventListener("resize", resizeChart);
+      instance?.off("click", clickHandler);
     };
-  }, [option, onChartClick, onInstanceReady]);
+  }, [option]);
 
   useEffect(() => {
     return () => {
@@ -210,8 +228,6 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const { toast } = useToast();
   const nativeChartInstanceRef = useRef<echarts.ECharts | null>(null);
 
-  // Studio Mode: Native Polars + ECharts vs Containerized Superset Companion
-  const [studioMode, setStudioMode] = useState<"native" | "companion">("native");
 
   // Dataset Selection State
   const [availableDatasets, setAvailableDatasets] = useState<DatasetItem[]>([]);
@@ -276,7 +292,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
       window.removeEventListener("resize", handleResize);
       clearTimeout(timer);
     };
-  }, [mobileTab, isFullscreen, viewMode, studioMode]);
+  }, [mobileTab, isFullscreen, viewMode]);
 
   // 1. Load available datasets
   useEffect(() => {
@@ -346,7 +362,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
   // 3. Execute Explore Query
   const executeQuery = async () => {
-    if (!selectedTaskId || !dimension || studioMode !== "native") return;
+    if (!selectedTaskId || !dimension) return;
 
     setExecuting(true);
     try {
@@ -388,7 +404,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   };
 
   useEffect(() => {
-    if (dimension && selectedTaskId && studioMode === "native") {
+    if (dimension && selectedTaskId) {
       executeQuery();
     }
   }, [
@@ -403,7 +419,6 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     rowLimit,
     sortOrder,
     colorPalette,
-    studioMode,
   ]);
 
   // Filter actions
@@ -471,7 +486,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   };
 
   // Click-to-filter on chart element
-  const handleChartClick = (params: any) => {
+  const handleChartClick = React.useCallback((params: any) => {
     if (params && params.name && dimension) {
       const clickedVal = String(params.name);
       setFilters(prev => {
@@ -483,7 +498,11 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         description: `Filtered by ${dimension} = "${clickedVal}"`
       });
     }
-  };
+  }, [dimension, toast]);
+
+  const handleInstanceReady = React.useCallback((inst: echarts.ECharts) => {
+    nativeChartInstanceRef.current = inst;
+  }, []);
 
   const handleExportChart = () => {
     if (!nativeChartInstanceRef.current) return;
@@ -550,32 +569,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               <span className="text-sm font-semibold tracking-tight text-white truncate">
                 Interactive Visual Analytics
               </span>
-              {/* Studio Mode Toggle */}
-              <div className="flex items-center bg-[#121215] border border-slate-800 rounded-lg p-0.5 ml-1">
-                <button
-                  type="button"
-                  onClick={() => setStudioMode("native")}
-                  className={`text-[11px] font-medium px-2 py-0.5 rounded-md transition ${
-                    studioMode === "native"
-                      ? "bg-slate-800 text-white shadow-2xs font-semibold"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  Native Studio
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStudioMode("companion")}
-                  className={`text-[11px] font-medium px-2 py-0.5 rounded-md transition flex items-center gap-1 ${
-                    studioMode === "companion"
-                      ? "bg-slate-800 text-white shadow-2xs font-semibold"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <Server className="h-3 w-3 text-emerald-400" />
-                  <span>Superset Companion</span>
-                </button>
-              </div>
+
             </div>
             
             {/* Dataset selector dropdown or name badge */}
@@ -617,9 +611,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 self-end sm:self-auto">
-          {studioMode === "native" && (
-            <>
-              {/* Filter Count Badge */}
+          {/* Filter Count Badge */}
               {filters.length > 0 && (
                 <Badge
                   variant="outline"
@@ -678,8 +670,6 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-400" />
                 <span className="hidden sm:inline">CSV</span>
               </Button>
-            </>
-          )}
 
           {/* Fullscreen Toggle */}
           <Button
@@ -694,16 +684,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         </div>
       </div>
 
-      {/* ─── Mode B: Apache Superset Companion Embedded View ─── */}
-      {studioMode === "companion" ? (
-        <SupersetEmbeddedDashboard
-          taskId={selectedTaskId}
-          datasetName={displayName}
-          dashboardId="1"
-        />
-      ) : (
-        /* ─── Mode A: Native In-Memory Studio ─── */
-        <>
+      {/* ─── Visual Analytics Studio Canvas ─── */}
+      <>
           {/* Mobile View Switcher Tab (Mobile Only) */}
           <div className="lg:hidden px-3.5 py-2.5 bg-[#0a0b10] border-b border-slate-800/80 flex items-center justify-center">
             <div className="grid grid-cols-2 p-1 rounded-xl bg-black/50 border border-white/10 w-full max-w-sm">
@@ -746,7 +728,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               {recommendations.length > 0 && (
                 <div className="space-y-2 pb-2 border-b border-slate-800/80">
                   <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-                    <Sparkles className="h-3 w-3 text-emerald-400" />
+                    <TrendingUp className="h-3 w-3 text-emerald-400" />
                     <span>Suggested Explorations</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -1155,7 +1137,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 <div className="rounded-xl bg-gradient-to-r from-emerald-500/[0.08] via-sky-500/[0.05] to-purple-500/[0.05] border border-white/10 p-3 space-y-2">
                   <div className="flex items-center justify-between text-xs font-semibold text-zinc-200">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <Activity className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                       <span>Automated Data Insights</span>
                     </div>
                     <span className="text-[10px] font-mono text-zinc-400">Polars Vector Engine</span>
@@ -1228,11 +1210,22 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                     <NativeEChartsView
                       option={queryResult.echarts_option}
                       onChartClick={handleChartClick}
-                      onInstanceReady={(inst) => {
-                        nativeChartInstanceRef.current = inst;
-                      }}
+                      onInstanceReady={handleInstanceReady}
                       height={isFullscreen ? "72vh" : "480px"}
                     />
+                  </div>
+                )}
+
+                {/* Empty State when no data records or query resulted in 0 rows */}
+                {viewMode === "chart" && chartType !== "table" && (!queryResult || !queryResult.echarts_option || queryResult.records?.length === 0) && !executing && (
+                  <div className="flex-1 w-full min-h-[420px] flex flex-col items-center justify-center p-8 text-center border border-dashed border-slate-800 rounded-xl bg-black/20">
+                    <div className="h-12 w-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mb-3">
+                      <BarChart3 className="h-6 w-6 text-slate-500" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-white">No Visual Data Available</h3>
+                    <p className="text-xs text-slate-400 max-w-sm mt-1">
+                      No data records matched the selected dimension and metric filters. Try adjusting your dimension, metric, or filters on the left panel.
+                    </p>
                   </div>
                 )}
 
@@ -1284,7 +1277,6 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
           </div>
         </>
-      )}
 
     </div>
   );

@@ -827,10 +827,10 @@ class SupersetEngine:
         elif chart_type in ("echarts_funnel", "funnel"):
             funnel_data = [{"name": str(r[dimension]), "value": r.get("value", 0)} for r in records]
             vals = [float(r.get("value", 0)) for r in records if r.get("value") is not None]
-            max_v = max(vals) if vals else 100.0
-            if max_v <= 0:
-                max_v = 100.0
-            min_v = 0.0
+            min_v = min(vals) if vals and min(vals) < 0 else 0.0
+            max_v = max(vals) if vals and max(vals) > 0 else 100.0
+            if max_v <= min_v:
+                max_v = min_v + 1.0
 
             return {
                 "backgroundColor": "transparent",
@@ -871,7 +871,9 @@ class SupersetEngine:
 
         # ── 3. Radar Chart (Spider Web Multi-Category) ────────────────────
         elif chart_type in ("echarts_radar", "radar"):
-            indicators = [{"name": str(r[dimension]), "max": max(float(x.get("value", 0)) for x in records) * 1.15} for r in records[:8]]
+            raw_max = max((float(x.get("value", 0)) for x in records), default=100.0)
+            radar_max = max(raw_max * 1.15, 10.0)
+            indicators = [{"name": str(r[dimension]), "max": radar_max} for r in records[:8]]
             radar_vals = [float(r.get("value", 0)) for r in records[:8]]
             return {
                 "backgroundColor": "transparent",

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
   BarChart3, GraduationCap, Users, DollarSign, Activity, ArrowRight, 
-  AlertTriangle, ChevronDown, ChevronUp, Eye, Sparkles
+  AlertTriangle, ChevronDown, ChevronUp, Eye, FileText
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -300,7 +300,7 @@ export const Examples = () => {
                     {/* Executive Key Insight Takeaway */}
                     <div className="p-3.5 bg-white/[0.02] rounded-xl border border-white/[0.06] text-xs font-sans space-y-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
                       <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-primary">
-                        <Sparkles className="h-3 w-3 text-primary shrink-0" />
+                        <FileText className="h-3 w-3 text-primary shrink-0" />
                         <span>RAG Executive Takeaway</span>
                       </div>
                       <p className="italic text-zinc-300 text-xs leading-relaxed font-sans">&ldquo;{item.keyInsight}&rdquo;</p>
