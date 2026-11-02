@@ -984,6 +984,7 @@ export const api = {
         chart_type: string;
         dimension: string;
         secondary_dimension?: string;
+        bar_mode?: string;
         metric?: string;
         aggregate: string;
         secondary_metric?: string;
@@ -1003,6 +1004,7 @@ export const api = {
         chart_type: string;
         dimension: string;
         secondary_dimension?: string;
+        bar_mode?: string;
         metric?: string;
         aggregate: string;
         secondary_metric?: string;

@@ -117,6 +117,7 @@ class SupersetExploreQuery(BaseModel):
     sort_order: str = Field("desc", description="desc or asc")
     color_palette: str = Field("supersetColors", description="Color palette key from SUPERSET_COLOR_PALETTES")
     y_axis_scale: str = Field("linear", description="Y-axis scale: linear or log")
+    bar_mode: str = Field("grouped", description="Bar display mode for secondary dimension: grouped or stacked")
 
 
 class SupersetEngine:
@@ -673,10 +674,28 @@ class SupersetEngine:
             if sec_val_expr is not None:
                 agg_exprs.append(sec_val_expr)
 
-            grouped = filtered.group_by(group_cols).agg(agg_exprs)
-
             descending = query.sort_order.lower() == "desc"
-            sorted_df = grouped.sort("value", descending=descending).head(query.row_limit)
+
+            if has_secondary:
+                # Two-level balanced top aggregation:
+                # 1. Select top primary dimension categories (up to row_limit)
+                primary_agg = filtered.group_by(query.dimension).agg(val_expr).sort("value", descending=descending).head(query.row_limit)
+                top_primary = primary_agg[query.dimension].to_list()
+
+                # 2. Select top secondary breakdown categories (bounded to top 15) to maintain balanced multi-series comparison
+                sec_limit = min(query.row_limit, 15)
+                sec_agg = filtered.group_by(query.secondary_dimension).agg(val_expr).sort("value", descending=descending).head(sec_limit)
+                top_sec = sec_agg[query.secondary_dimension].to_list()
+
+                # 3. Filter to the balanced intersection so all primary categories are compared across the exact same secondary series
+                balanced_filtered = filtered.filter(
+                    pl.col(query.dimension).is_in(top_primary) & pl.col(query.secondary_dimension).is_in(top_sec)
+                )
+                grouped = balanced_filtered.group_by(group_cols).agg(agg_exprs)
+                sorted_df = grouped.sort([query.dimension, "value"], descending=[False, descending])
+            else:
+                grouped = filtered.group_by(group_cols).agg(agg_exprs)
+                sorted_df = grouped.sort("value", descending=descending).head(query.row_limit)
 
             raw_records = sorted_df.to_dicts()
             cleaned_records = []
@@ -734,6 +753,7 @@ class SupersetEngine:
             palette=palette,
             has_time_grain=bool(query.time_grain),
             y_axis_scale=query.y_axis_scale or "linear",
+            bar_mode=getattr(query, "bar_mode", "grouped") or "grouped",
         )
 
         return {
@@ -751,6 +771,7 @@ class SupersetEngine:
             "secondary_metric_label": sec_metric_label,
             "row_limit": query.row_limit,
             "y_axis_scale": query.y_axis_scale or "linear",
+            "bar_mode": getattr(query, "bar_mode", "grouped") or "grouped",
             "kpis": kpis,
             "smart_insights": smart_insights,
             "records": cleaned_records,
@@ -769,6 +790,7 @@ class SupersetEngine:
         palette: Optional[List[str]] = None,
         has_time_grain: bool = False,
         y_axis_scale: str = "linear",
+        bar_mode: str = "grouped",
     ) -> Dict[str, Any]:
         """
         Builds Superset-standard ECharts option dictionary for direct rendering.
@@ -794,9 +816,17 @@ class SupersetEngine:
                     "textStyle": {"color": "#f8fafc", "fontSize": 12},
                 },
                 "legend": {
+                    "show": True,
+                    "type": "scroll",
                     "orient": "horizontal",
-                    "bottom": 0,
-                    "textStyle": {"color": "#94a3b8", "fontSize": 11},
+                    "top": "0%",
+                    "left": "center",
+                    "right": "4%",
+                    "pageButtonPosition": "end",
+                    "pageIconColor": "#38bdf8",
+                    "pageIconInactiveColor": "#475569",
+                    "pageTextStyle": {"color": "#94a3b8", "fontSize": 10},
+                    "textStyle": {"color": "#cbd5e1", "fontSize": 11},
                 },
                 "series": [
                     {
@@ -843,9 +873,17 @@ class SupersetEngine:
                     "textStyle": {"color": "#f8fafc", "fontSize": 12},
                 },
                 "legend": {
+                    "show": True,
+                    "type": "scroll",
                     "orient": "horizontal",
-                    "bottom": 0,
-                    "textStyle": {"color": "#94a3b8", "fontSize": 11},
+                    "top": "0%",
+                    "left": "center",
+                    "right": "4%",
+                    "pageButtonPosition": "end",
+                    "pageIconColor": "#38bdf8",
+                    "pageIconInactiveColor": "#475569",
+                    "pageTextStyle": {"color": "#94a3b8", "fontSize": 10},
+                    "textStyle": {"color": "#cbd5e1", "fontSize": 11},
                 },
                 "series": [
                     {
@@ -1089,8 +1127,16 @@ class SupersetEngine:
                 },
                 "legend": {
                     "show": True,
-                    "bottom": "2%" if not needs_data_zoom else "7%",
-                    "textStyle": {"color": "#94a3b8", "fontSize": 11},
+                    "type": "scroll",
+                    "orient": "horizontal",
+                    "top": "0%",
+                    "left": "center",
+                    "right": "4%",
+                    "pageButtonPosition": "end",
+                    "pageIconColor": "#38bdf8",
+                    "pageIconInactiveColor": "#475569",
+                    "pageTextStyle": {"color": "#94a3b8", "fontSize": 10},
+                    "textStyle": {"color": "#cbd5e1", "fontSize": 11},
                     "data": [metric_label, secondary_metric_label]
                 },
                 "grid": {
@@ -1151,23 +1197,54 @@ class SupersetEngine:
         # ── 9. Categorical Bar, Column, Line, and Area Charts ─────────────
         categories = list(dict.fromkeys(str(r[dimension]) for r in records))
         needs_data_zoom = len(categories) > 15 or has_time_grain
+        chart_kind = "line" if chart_type in ("echarts_line", "line", "echarts_area", "area") else "bar"
+        is_stacked = str(bar_mode).lower() == "stacked"
 
         if secondary_dimension:
-            # Multi-series grouped/stacked bar
+            # Multi-series grouped or stacked bar / line / area
             sec_values = list(dict.fromkeys(str(r.get(secondary_dimension, "N/A")) for r in records))
             lookup = {(str(r[dimension]), str(r.get(secondary_dimension, "N/A"))): r.get("value", 0) for r in records}
             series_list = []
             for idx, sec in enumerate(sec_values):
                 s_data = [lookup.get((cat, sec), 0) for cat in categories]
-                series_list.append({
+                s_item: Dict[str, Any] = {
                     "name": sec,
-                    "type": "bar",
-                    "stack": "total",
+                    "type": chart_kind,
                     "data": s_data,
                     "emphasis": {"focus": "series"},
-                    "itemStyle": {"borderRadius": [2, 2, 0, 0]},
-                })
-            legend = {"show": True, "bottom": "2%" if not needs_data_zoom else "7%", "textStyle": {"color": "#94a3b8", "fontSize": 11}}
+                    "itemStyle": {
+                        "borderRadius": [2, 2, 0, 0] if chart_kind == "bar" else 0,
+                    },
+                }
+                if is_stacked and chart_kind == "bar":
+                    s_item["stack"] = "total"
+                elif chart_kind == "bar":
+                    s_item["barMaxWidth"] = 28
+                    s_item["barGap"] = "10%"
+
+                if chart_type in ("echarts_area", "area"):
+                    s_item["areaStyle"] = {"opacity": 0.25}
+                    s_item["smooth"] = True
+                elif chart_kind == "line":
+                    s_item["smooth"] = True
+
+                series_list.append(s_item)
+
+            legend = {
+                "show": True,
+                "type": "scroll",
+                "orient": "horizontal",
+                "top": "0%",
+                "left": "center",
+                "right": "4%",
+                "pageButtonPosition": "end",
+                "pageIconColor": "#38bdf8",
+                "pageIconInactiveColor": "#475569",
+                "pageIconSize": 10,
+                "pageTextStyle": {"color": "#94a3b8", "fontSize": 10},
+                "textStyle": {"color": "#cbd5e1", "fontSize": 11},
+                "tooltip": {"show": True},
+            }
         else:
             s_data = [r.get("value", 0) for r in records]
             chart_kind = "line" if chart_type in ("echarts_line", "line", "echarts_area", "area") else "bar"
@@ -1203,8 +1280,8 @@ class SupersetEngine:
             "grid": {
                 "left": "3%",
                 "right": "4%",
-                "bottom": "18%" if needs_data_zoom else ("14%" if secondary_dimension or len(categories) > 8 else "8%"),
-                "top": "8%",
+                "bottom": "18%" if needs_data_zoom else ("14%" if len(categories) > 8 else "8%"),
+                "top": "15%" if secondary_dimension else "8%",
                 "containLabel": True,
             },
             "xAxis": {

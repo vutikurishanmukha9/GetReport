@@ -162,6 +162,38 @@ const sanitizeEChartsOption = (opt: any): any => {
     }
   }
 
+  // Ensure tooltips are safely confined within canvas across all chart types
+  if (clone.tooltip) {
+    clone.tooltip = {
+      confine: true,
+      ...clone.tooltip,
+    };
+  }
+
+  // Ensure legend is always scrollable and positioned at top to avoid bar/axis collision
+  if (clone.legend && clone.legend.show !== false) {
+    clone.legend = {
+      orient: "horizontal",
+      left: "center",
+      right: "4%",
+      pageButtonPosition: "end",
+      pageIconColor: "#38bdf8",
+      pageIconInactiveColor: "#475569",
+      pageIconSize: 10,
+      pageTextStyle: { color: "#94a3b8", fontSize: 10 },
+      textStyle: { color: "#cbd5e1", fontSize: 11 },
+      ...clone.legend,
+      type: "scroll",
+      top: "0%",
+    };
+    if (clone.grid) {
+      clone.grid = {
+        ...clone.grid,
+        top: Math.max(typeof clone.grid.top === "number" ? clone.grid.top : parseInt(clone.grid.top || "8", 10), 45),
+      };
+    }
+  }
+
   return clone;
 };
 
@@ -304,6 +336,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
   // Explore Controls State
   const [chartType, setChartType] = useState<string>("echarts_bar");
+  const [barMode, setBarMode] = useState<"grouped" | "stacked">("grouped");
   const [dimension, setDimension] = useState<string>("");
   const [secondaryDimension, setSecondaryDimension] = useState<string>("");
   const [metric, setMetric] = useState<string>("");
@@ -432,6 +465,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         chart_type: chartType,
         dimension: dimension,
         secondary_dimension: secondaryDimension || undefined,
+        bar_mode: barMode,
         metric: metric || undefined,
         aggregate: aggregate,
         secondary_metric: secondaryMetric || undefined,
@@ -463,6 +497,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   }, [
     selectedTaskId,
     chartType,
+    barMode,
     dimension,
     secondaryDimension,
     metric,
@@ -978,6 +1013,37 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                       </option>
                     ))}
                 </select>
+                {secondaryDimension && chartType === "echarts_bar" && (
+                  <div className="flex items-center justify-between pt-1.5 px-0.5">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                      Bar Mode
+                    </span>
+                    <div className="flex items-center gap-1 bg-[#090b10] p-0.5 rounded-lg border border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setBarMode("grouped")}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all ${
+                          barMode === "grouped"
+                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        Grouped
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBarMode("stacked")}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all ${
+                          barMode === "stacked"
+                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        Stacked
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Section: Ad-Hoc Filters */}

@@ -182,11 +182,30 @@ def test_execute_explore_query_stacked_bar(mock_engine):
         secondary_dimension="region",
         metric="revenue",
         aggregate="AVG",
+        bar_mode="stacked",
     )
     result = mock_engine.execute_explore_query(query)
     option = result["echarts_option"]
     assert len(option["series"]) > 1  # Multi-series stacked
     assert option["series"][0]["stack"] == "total"
+    assert option["legend"]["type"] == "scroll"
+
+
+def test_execute_explore_query_grouped_bar(mock_engine):
+    query = SupersetExploreQuery(
+        task_id="test_task_123",
+        chart_type="echarts_bar",
+        dimension="category",
+        secondary_dimension="region",
+        metric="revenue",
+        aggregate="AVG",
+        bar_mode="grouped",
+    )
+    result = mock_engine.execute_explore_query(query)
+    option = result["echarts_option"]
+    assert len(option["series"]) > 1  # Multi-series grouped
+    assert "stack" not in option["series"][0]
+    assert option["legend"]["type"] == "scroll"
 
 
 def test_execute_explore_query_pie(mock_engine):
