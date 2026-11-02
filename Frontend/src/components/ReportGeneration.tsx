@@ -28,6 +28,7 @@ import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { MLReadinessCard } from "./MLReadinessCard";
 import { HiPlotParallelCoordinates, type HiPlotPayload, type HiPlotDimension } from "./HiPlotParallelCoordinates";
 import { SupersetExploreStudio } from "./SupersetExploreStudio";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 // Safe, memoized image container to prevent expensive base64 re-renders
 const SafeChartImage = memo(({ base64Src, alt, className }: { base64Src: string; alt: string; className?: string }) => {
@@ -435,7 +436,7 @@ export const ReportGeneration = ({
 
       if (!matchesSearch) return false;
 
-      const typeUpper = col.type.toUpperCase();
+      const typeUpper = (col.type || "").toUpperCase();
       if (schemaTypeFilter === "numeric") {
         return typeUpper.includes("INT") || typeUpper.includes("DOUBLE") || typeUpper.includes("FLOAT") || typeUpper.includes("DECIMAL") || typeUpper.includes("NUMERIC");
       }
@@ -757,7 +758,7 @@ export const ReportGeneration = ({
               value="export"
               className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
             >
-              <Download className="h-4 w-4 text-black" />
+              <Download className="h-4 w-4" />
               <span>Export Hub</span>
             </TabsTrigger>
           </TabsList>
@@ -1394,6 +1395,7 @@ export const ReportGeneration = ({
 
           {/* ──── TAB 5: DUCKDB SQL STUDIO ──── */}
           <TabsContent value="sql" className="space-y-6 animate-in fade-in duration-300">
+            <ErrorBoundary fallbackTitle="DuckDB SQL Studio Encountered an Error">
             <Card className="border border-border bg-card shadow-premium rounded-3xl p-6 space-y-6">
               {/* Studio Header Bar */}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border pb-5">
@@ -1414,7 +1416,7 @@ export const ReportGeneration = ({
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Execute high-speed vectorized analytical queries directly against the in-memory cleaned dataset ({activeTableMeta ? activeTableMeta.row_count.toLocaleString() : info.rows.toLocaleString()} rows, {activeTableMeta ? activeTableMeta.column_count : info.columns.length} columns)
+                    Execute high-speed vectorized analytical queries directly against the in-memory cleaned dataset ({activeTableMeta && typeof activeTableMeta.row_count === "number" ? activeTableMeta.row_count.toLocaleString() : (info?.rows ? info.rows.toLocaleString() : "0")} rows, {activeTableMeta && Array.isArray(activeTableMeta.columns) ? activeTableMeta.columns.length : (info?.columns ? info.columns.length : 0)} columns)
                   </p>
                 </div>
 
@@ -1546,7 +1548,7 @@ export const ReportGeneration = ({
                         </span>
                       </div>
                       <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 bg-background">
-                        {activeTableMeta ? `${activeTableMeta.columns.length} cols` : `${info.columns.length} cols`}
+                        {activeTableMeta && Array.isArray(activeTableMeta.columns) ? `${activeTableMeta.columns.length} cols` : `${info?.columns?.length || 0} cols`}
                       </Badge>
                     </div>
 
@@ -1555,7 +1557,7 @@ export const ReportGeneration = ({
                       <div className="flex items-center justify-between">
                         <span className="font-mono font-bold text-foreground">dataset</span>
                         <span className="text-[10px] font-mono text-muted-foreground">
-                          {activeTableMeta ? activeTableMeta.row_count.toLocaleString() : info.rows.toLocaleString()} rows
+                          {activeTableMeta && typeof activeTableMeta.row_count === "number" ? activeTableMeta.row_count.toLocaleString() : (info?.rows ? info.rows.toLocaleString() : "0")} rows
                         </span>
                       </div>
                       <div className="text-[11px] text-muted-foreground flex items-center justify-between">
@@ -1606,7 +1608,7 @@ export const ReportGeneration = ({
                         </div>
                       ) : (
                         filteredSchemaColumns.map((col) => {
-                          const typeUp = col.type.toUpperCase();
+                          const typeUp = (col.type || "").toUpperCase();
                           const isNum = typeUp.includes("INT") || typeUp.includes("DOUBLE") || typeUp.includes("FLOAT") || typeUp.includes("DECIMAL") || typeUp.includes("NUMERIC");
                           const isTxt = typeUp.includes("VARCHAR") || typeUp.includes("TEXT") || typeUp.includes("STRING");
                           const isDate = typeUp.includes("DATE") || typeUp.includes("TIME");
@@ -1759,7 +1761,7 @@ export const ReportGeneration = ({
 
                     {/* Category Distribution Recipe */}
                     {(() => {
-                      const catCol = activeTableMeta?.columns.find(c => c.type.toUpperCase().includes("VARCHAR") || c.type.toUpperCase().includes("TEXT"))?.name || info.categorical_columns?.[0];
+                      const catCol = activeTableMeta?.columns?.find(c => (c.type || "").toUpperCase().includes("VARCHAR") || (c.type || "").toUpperCase().includes("TEXT"))?.name || info?.categorical_columns?.[0];
                       if (!catCol) return null;
                       return (
                         <button
@@ -1778,7 +1780,7 @@ export const ReportGeneration = ({
 
                     {/* Numeric Summary Recipe */}
                     {(() => {
-                      const numCol = activeTableMeta?.columns.find(c => c.type.toUpperCase().includes("INT") || c.type.toUpperCase().includes("DOUBLE") || c.type.toUpperCase().includes("FLOAT"))?.name || info.numeric_columns?.[0];
+                      const numCol = activeTableMeta?.columns?.find(c => (c.type || "").toUpperCase().includes("INT") || (c.type || "").toUpperCase().includes("DOUBLE") || (c.type || "").toUpperCase().includes("FLOAT"))?.name || info?.numeric_columns?.[0];
                       if (!numCol) return null;
                       return (
                         <button
@@ -1797,7 +1799,7 @@ export const ReportGeneration = ({
 
                     {/* Outlier Filter Recipe */}
                     {(() => {
-                      const numCol = activeTableMeta?.columns.find(c => c.type.toUpperCase().includes("INT") || c.type.toUpperCase().includes("DOUBLE") || c.type.toUpperCase().includes("FLOAT"))?.name || info.numeric_columns?.[0];
+                      const numCol = activeTableMeta?.columns?.find(c => (c.type || "").toUpperCase().includes("INT") || (c.type || "").toUpperCase().includes("DOUBLE") || (c.type || "").toUpperCase().includes("FLOAT"))?.name || info?.numeric_columns?.[0];
                       if (!numCol) return null;
                       return (
                         <button
@@ -2008,6 +2010,7 @@ export const ReportGeneration = ({
                 </div>
               </div>
             </Card>
+            </ErrorBoundary>
           </TabsContent>
 
           {/* ──── TAB 6: EXPORT & COMPLIANCE HUB ──── */}
@@ -2149,11 +2152,13 @@ export const ReportGeneration = ({
           </TabsContent>
                   {/* ──── TAB 7: SUPERSET INTERACTIVE BI ──── */}
           <TabsContent value="bi_analytics" className="space-y-6 animate-in fade-in duration-300">
-            <SupersetExploreStudio
-              taskId={taskId || undefined}
-              datasetName={filename}
-              allowDatasetSwitching={false}
-            />
+            <ErrorBoundary fallbackTitle="Interactive BI Studio Encountered an Error">
+              <SupersetExploreStudio
+                taskId={taskId || undefined}
+                datasetName={filename}
+                allowDatasetSwitching={false}
+              />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </div>

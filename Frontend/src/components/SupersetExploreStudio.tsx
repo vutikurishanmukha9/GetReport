@@ -111,12 +111,14 @@ const COLOR_PALETTES = [
   { id: "emerald", label: "Emerald Clean", preview: ["#10b981", "#059669", "#34d399", "#3b82f6"] },
 ];
 
-const formatCompactNumber = (val: number | null | undefined): string => {
-  if (val === null || val === undefined || isNaN(val)) return "—";
-  if (Math.abs(val) >= 1_000_000_000) return (val / 1_000_000_000).toFixed(2) + "B";
-  if (Math.abs(val) >= 1_000_000) return (val / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(val) >= 1_000) return (val / 1_000).toFixed(1) + "K";
-  return Number.isInteger(val) ? val.toLocaleString() : val.toFixed(2);
+const formatCompactNumber = (rawVal: unknown): string => {
+  if (rawVal === null || rawVal === undefined) return "—";
+  const num = typeof rawVal === "number" ? rawVal : Number(rawVal);
+  if (isNaN(num)) return String(rawVal);
+  if (Math.abs(num) >= 1_000_000_000) return (num / 1_000_000_000).toFixed(2) + "B";
+  if (Math.abs(num) >= 1_000_000) return (num / 1_000_000).toFixed(2) + "M";
+  if (Math.abs(num) >= 1_000) return (num / 1_000).toFixed(1) + "K";
+  return Number.isInteger(num) ? num.toLocaleString() : num.toFixed(2);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -327,16 +329,17 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     setLoadingSchema(true);
     api.getSupersetSchema(selectedTaskId)
       .then(res => {
-        setSchemaColumns(res.columns || []);
-        setNumericCols(res.numeric_columns || []);
-        setCategoricalCols(res.categorical_columns || []);
-        setTemporalCols(res.temporal_columns || []);
-        setRecommendations(res.recommendations || []);
+        if (!res) return;
+        setSchemaColumns(Array.isArray(res.columns) ? res.columns : []);
+        setNumericCols(Array.isArray(res.numeric_columns) ? res.numeric_columns : []);
+        setCategoricalCols(Array.isArray(res.categorical_columns) ? res.categorical_columns : []);
+        setTemporalCols(Array.isArray(res.temporal_columns) ? res.temporal_columns : []);
+        setRecommendations(Array.isArray(res.recommendations) ? res.recommendations : []);
 
         // Pick intelligent default dimension & metric
         const defaultDim = res.categorical_columns && res.categorical_columns.length > 0
           ? res.categorical_columns[0]
-          : res.columns[0]?.name || "";
+          : res.columns?.[0]?.name || "";
         setDimension(defaultDim);
 
         if (res.numeric_columns && res.numeric_columns.length > 0) {
@@ -548,8 +551,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   };
 
   const displayName = initialDatasetName || activeDatasetMeta?.filename || "Active Dataset";
-  const selectedColMeta = schemaColumns.find(c => c.name === dimension);
-  const isTemporalDimension = selectedColMeta?.is_temporal || temporalCols.includes(dimension);
+  const selectedColMeta = schemaColumns?.find(c => c.name === dimension);
+  const isTemporalDimension = selectedColMeta?.is_temporal || (Array.isArray(temporalCols) && temporalCols.includes(dimension));
 
   return (
     <div className={`w-full rounded-2xl border border-slate-800 bg-[#07080a] text-slate-100 overflow-hidden ${
@@ -591,7 +594,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                   >
                     {availableDatasets.map((d) => (
                       <option key={d.task_id} value={d.task_id}>
-                        {d.filename} ({d.rows.toLocaleString()} rows)
+                        {d.filename} ({typeof d.rows === "number" ? d.rows.toLocaleString() : d.rows || 0} rows)
                       </option>
                     ))}
                   </select>
@@ -600,8 +603,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 <div className="flex items-center gap-2 font-mono">
                   <Database className="h-3.5 w-3.5 text-slate-400" />
                   <span className="text-slate-200 font-medium">{displayName}</span>
-                  {activeDatasetMeta?.rows && (
-                    <span>• {activeDatasetMeta.rows.toLocaleString()} rows</span>
+                  {activeDatasetMeta?.rows !== undefined && activeDatasetMeta?.rows !== null && (
+                    <span>• {typeof activeDatasetMeta.rows === "number" ? activeDatasetMeta.rows.toLocaleString() : activeDatasetMeta.rows} rows</span>
                   )}
                 </div>
               )}

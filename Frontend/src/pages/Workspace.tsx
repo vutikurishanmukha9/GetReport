@@ -8,6 +8,7 @@ import { ChatInterface } from "@/components/ChatInterface";
 import { ProcessPipeline } from "@/components/ProcessPipeline";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { Loader2 } from "lucide-react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Lazy-load heavy ReportGeneration component carrying matplotlib/base64 gallery
 const ReportGeneration = lazy(() => 
@@ -109,24 +110,26 @@ export const Workspace = () => {
               </div>
             )}
 
-            <Suspense fallback={
-              <div className="flex flex-col items-center justify-center p-12 space-y-4">
-                <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Loading report module...</span>
-              </div>
-            }>
-              <ReportGeneration
-                step={step}
-                taskId={taskId}
-                filename={apiData.filename}
-                info={apiData.info}
-                analysis={apiData.analysis}
-                charts={apiData.charts}
-                insights={apiData.insights}
-                onComplete={handleReportComplete}
-                onReset={handleReset}
-              />
-            </Suspense>
+            <ErrorBoundary fallbackTitle="Data Report & Analytics Error">
+              <Suspense fallback={
+                <div className="flex flex-col items-center justify-center p-12 space-y-4">
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                  <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Loading report module...</span>
+                </div>
+              }>
+                <ReportGeneration
+                  step={step}
+                  taskId={taskId}
+                  filename={apiData.filename}
+                  info={apiData.info}
+                  analysis={apiData.analysis}
+                  charts={apiData.charts}
+                  insights={apiData.insights}
+                  onComplete={handleReportComplete}
+                  onReset={handleReset}
+                />
+              </Suspense>
+            </ErrorBoundary>
 
             {/* Show Chat Interface ONLY when analysis is complete */}
             {step === "complete" && taskId && (

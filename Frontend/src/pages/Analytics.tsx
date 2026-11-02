@@ -2,6 +2,7 @@ import React from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SupersetExploreStudio } from "@/components/SupersetExploreStudio";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Database, Activity, Cpu, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -44,7 +45,9 @@ export const Analytics: React.FC = () => {
 
         {/* Native Superset Explore Studio with Dataset Selector */}
         <div className="w-full">
-          <SupersetExploreStudio allowDatasetSwitching={true} />
+          <ErrorBoundary fallbackTitle="Business Intelligence Studio Error">
+            <SupersetExploreStudio allowDatasetSwitching={true} />
+          </ErrorBoundary>
         </div>
 
         {/* Architecture & Features Grid */}
