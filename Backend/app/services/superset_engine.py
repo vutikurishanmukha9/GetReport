@@ -1108,7 +1108,7 @@ class SupersetEngine:
                 },
                 "yAxis": [
                     {
-                        "type": y_axis_scale if y_axis_scale in ("linear", "log") else "value",
+                        "type": "log" if str(y_axis_scale).lower() == "log" else "value",
                         "name": metric_label,
                         "position": "left",
                         "axisLabel": {"color": "#94a3b8", "fontSize": 11},
@@ -1219,7 +1219,7 @@ class SupersetEngine:
                 "axisLine": {"lineStyle": {"color": "#334155"}},
             },
             "yAxis": {
-                "type": y_axis_scale if y_axis_scale in ("linear", "log") else "value",
+                "type": "log" if str(y_axis_scale).lower() == "log" else "value",
                 "axisLabel": {"color": "#94a3b8", "fontSize": 11},
                 "splitLine": {"lineStyle": {"color": "#1e293b", "type": "dashed"}},
             },

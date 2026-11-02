@@ -150,8 +150,28 @@ def test_execute_explore_query_bar(mock_engine):
 
     option = result["echarts_option"]
     assert option["xAxis"]["type"] == "category"
+    assert option["yAxis"]["type"] == "value"  # ECharts value axis, never 'linear'
     assert len(option["series"]) == 1
     assert option["series"][0]["type"] == "bar"
+
+
+def test_execute_explore_query_log_scale_and_combo(mock_engine):
+    query = SupersetExploreQuery(
+        task_id="test_task_123",
+        chart_type="echarts_combo",
+        dimension="category",
+        metric="revenue",
+        aggregate="SUM",
+        secondary_metric="units",
+        secondary_aggregate="AVG",
+        y_axis_scale="log",
+    )
+    result = mock_engine.execute_explore_query(query)
+    option = result["echarts_option"]
+    assert isinstance(option["yAxis"], list)
+    assert option["yAxis"][0]["type"] == "log"
+    assert option["yAxis"][1]["type"] == "value"
+    assert len(option["series"]) == 2
 
 
 def test_execute_explore_query_stacked_bar(mock_engine):

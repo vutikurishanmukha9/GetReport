@@ -133,6 +133,38 @@ interface NativeEChartsViewProps {
   className?: string;
 }
 
+const sanitizeEChartsOption = (opt: any): any => {
+  if (!opt || typeof opt !== 'object') return opt;
+  const clone = { ...opt };
+
+  const sanitizeAxis = (axis: any) => {
+    if (!axis || typeof axis !== 'object') return axis;
+    const clean = { ...axis };
+    if (clean.type === 'linear') {
+      clean.type = 'value';
+    }
+    return clean;
+  };
+
+  if (clone.yAxis) {
+    if (Array.isArray(clone.yAxis)) {
+      clone.yAxis = clone.yAxis.map(sanitizeAxis);
+    } else {
+      clone.yAxis = sanitizeAxis(clone.yAxis);
+    }
+  }
+
+  if (clone.xAxis) {
+    if (Array.isArray(clone.xAxis)) {
+      clone.xAxis = clone.xAxis.map(sanitizeAxis);
+    } else {
+      clone.xAxis = sanitizeAxis(clone.xAxis);
+    }
+  }
+
+  return clone;
+};
+
 const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
   option,
   onChartClick,
@@ -181,13 +213,31 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
     };
 
     if (option && Object.keys(option).length > 0) {
-      // Clear previous series & coordinate systems when switching chart types to prevent layout collision
-      instance.clear();
-      instance.setOption(option, { notMerge: true, lazyUpdate: false });
-      resizeChart();
-      requestAnimationFrame(resizeChart);
-      setTimeout(resizeChart, 60);
-      setTimeout(resizeChart, 250);
+      const cleanOption = sanitizeEChartsOption(option);
+      try {
+        // Clear previous series & coordinate systems when switching chart types to prevent layout collision
+        instance.clear();
+        instance.setOption(cleanOption, { notMerge: true, lazyUpdate: false });
+        resizeChart();
+        requestAnimationFrame(resizeChart);
+        setTimeout(resizeChart, 60);
+        setTimeout(resizeChart, 250);
+      } catch (err) {
+        console.error('ECharts setOption error, recreating instance:', err);
+        try {
+          instance.dispose();
+          const newInstance = echarts.init(containerRef.current, undefined, { renderer: 'canvas' });
+          chartInstanceRef.current = newInstance;
+          if (onInstanceReadyRef.current) {
+            onInstanceReadyRef.current(newInstance);
+          }
+          newInstance.on('click', clickHandler);
+          newInstance.setOption(cleanOption, { notMerge: true, lazyUpdate: false });
+          newInstance.resize();
+        } catch (recoverErr) {
+          console.error('Failed to recover ECharts instance:', recoverErr);
+        }
+      }
     }
 
     const resizeObserver = new ResizeObserver(() => {
@@ -417,6 +467,9 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     secondaryDimension,
     metric,
     aggregate,
+    secondaryMetric,
+    secondaryAggregate,
+    yAxisScale,
     timeGrain,
     filters,
     rowLimit,
