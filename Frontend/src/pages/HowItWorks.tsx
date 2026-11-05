@@ -198,7 +198,7 @@ export const HowItWorks = () => {
       <div className="hero-grain-overlay" />
       <Header onReset={() => {}} showReset={false} />
 
-      <main className="flex-1 pt-16 sm:pt-20">
+      <main className="flex-1 pt-24 sm:pt-28">
         {/* Header */}
         <div className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">

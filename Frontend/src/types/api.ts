@@ -219,14 +219,30 @@ export interface GenerateReportRequest {
 // ─── Phase 3: Interactive Cleaning Types ───
 
 export interface QualityIssue {
-  type: "missing_values" | "type_mismatch" | "outliers" | "high_cardinality" | "class_imbalance" | "partial_duplicates";
+  type:
+    | "missing_values"
+    | "type_mismatch"
+    | "outliers"
+    | "high_cardinality"
+    | "class_imbalance"
+    | "partial_duplicates"
+    | "masked_nulls"
+    | "dirty_numeric"
+    | "constant_column"
+    | "text_whitespace"
+    | (string & {});
   column: string;
   count: number;
-  severity: "low" | "medium" | "high" | "none";
+  severity: "low" | "medium" | "high" | "critical" | "none" | (string & {});
   suggestion: string;
   label?: string;
-  action?: "fill_median" | "fill_mean" | "fill_mode" | "fill_value" | "drop_rows" | "replace_outliers_median" | "default";
+  action?: CleaningRule["action"];
   rationale?: string;
+  confidence_score?: number;
+  target_pillar?: "Completeness" | "Validity" | "Consistency" | "Stability" | (string & {});
+  impact_estimate?: string;
+  before_sample?: (string | number | null)[];
+  after_sample?: (string | number | null)[];
 }
 
 export interface ColumnProfile {
@@ -238,15 +254,50 @@ export interface ColumnProfile {
   distribution?: { label: string; count: number; min: number; max: number }[];
 }
 
+export interface SuggestionSummary {
+  total: number;
+  high_confidence_count: number;
+  clean_ready?: boolean;
+}
+
 export interface InspectionReport {
   total_rows: number;
   columns: ColumnProfile[];
   issues: QualityIssue[];
   preview: DataRow[];
+  suggestion_summary?: SuggestionSummary;
 }
 
 export interface CleaningRule {
-  action: "drop_rows" | "fill_mean" | "fill_median" | "fill_mode" | "fill_value" | "replace_outliers_median" | "default" | "none";
+  action:
+    | "drop_rows"
+    | "fill_mean"
+    | "fill_median"
+    | "fill_mode"
+    | "fill_value"
+    | "fill_group_median"
+    | "replace_outliers_median"
+    | "cap_outliers"
+    | "flag_outliers"
+    | "coerce_numeric"
+    | "clean_masked_nulls"
+    | "drop_column"
+    | "clean_text"
+    | "fix_mojibake"
+    | "standardize_categories"
+    | "cast_boolean"
+    | "parse_date"
+    | "nullify_sentinel"
+    | "nullify_out_of_range"
+    | "nullify_invalid_regex"
+    | "add_missing_indicator"
+    | "log1p_transform"
+    | "hash_pii"
+    | "keep_as_text"
+    | "winsorize"
+    | "default"
+    | "none"
+    | (string & {});
   value?: string | number;
 }
 

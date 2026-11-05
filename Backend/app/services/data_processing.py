@@ -980,46 +980,11 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
             "missing_percentage": round((null_count / df.height) * 100, 1)
         }
         quality_report["columns"].append(col_info)
-        
-        if null_count > 0:
-            sugg_info = _compute_dynamic_missing_suggestion(df, col_name, inferred, null_count)
-            quality_report["issues"].append({
-                "type": "missing_values",
-                "column": col_name,
-                "count": null_count,
-                "severity": "high" if (null_count / df.height) > 0.2 else "medium",
-                "suggestion": sugg_info["suggestion"],
-                "label": sugg_info["label"],
-                "action": sugg_info["action"],
-                "rationale": sugg_info["rationale"],
-            })
 
-        # Detect Outliers (Numeric only)
-        if inferred == "numeric" and df.height > 10:
-            q1 = df[col_name].quantile(0.25)
-            q3 = df[col_name].quantile(0.75)
-            if q1 is not None and q3 is not None:
-                iqr = q3 - q1
-                lower = q1 - 1.5 * iqr
-                upper = q3 + 1.5 * iqr
-                
-                outlier_count = df.select(
-                    pl.col(col_name).is_between(lower, upper, closed="both").not_().sum()
-                ).item()
-                
-                if outlier_count > 0:
-                    outlier_pct = round((outlier_count / df.height) * 100, 1)
-                    quality_report["issues"].append({
-                        "type": "outliers",
-                        "column": col_name,
-                        "count": outlier_count,
-                        "severity": "high" if outlier_pct > 5 else "medium",
-                        "suggestion": f"Cap Outliers ({outlier_pct}% outside fences)",
-                        "label": "Cap Outliers (Tukey Fences)",
-                        "action": "replace_outliers_median",
-                        "rationale": f"{outlier_count} values outside [{lower:.1f}, {upper:.1f}] ({outlier_pct}%); clips extreme outliers to Tukey fences.",
-                    })
-            
+    # ─── Comprehensive Auto-Suggestion Generation ─────────────────────────────
+    from app.services.auto_suggestion_engine import generate_comprehensive_suggestions
+    quality_report["issues"] = generate_comprehensive_suggestions(df)
+
     # Check for Partial Duplicates (Rule #4)
     # Detect ID columns
     id_patterns = ["id", "code", "sku", "uuid", "pk"]
@@ -1036,8 +1001,18 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
                     "column": "Multiple",
                     "count": n_dupes,
                     "severity": "medium",
-                    "suggestion": "investigate"
+                    "suggestion": "investigate",
+                    "confidence_score": 90.0,
+                    "target_pillar": "Consistency",
+                    "impact_estimate": "+8.0% Consistency",
                 })
+
+    high_conf_count = sum(1 for i in quality_report["issues"] if i.get("confidence_score", 0) >= 90.0)
+    quality_report["suggestion_summary"] = {
+        "total": len(quality_report["issues"]),
+        "high_confidence_count": high_conf_count,
+        "clean_ready": len(quality_report["issues"]) == 0,
+    }
 
     # Calculate Histograms (Mugshots) - Numeric Only
     # LIMIT to first 15 numeric columns to prevent performance bottleneck on wide datasets.
@@ -1263,11 +1238,13 @@ def clean_data(
             )
 
     # ─── Step 2: Apply User Rules (Interactive) ──────────────────────────────
+    rules_applied_cols: set[str] = set()
     if rules:
         for original_col, rule in rules.items():
             target_col = _to_snake_case(original_col)
             if target_col not in df.columns: 
                 continue
+            rules_applied_cols.add(target_col)
             
             action = rule.get("action")
             step_start = time.perf_counter()
@@ -1353,7 +1330,7 @@ def clean_data(
                             values_changed=null_cnt,
                         )
 
-            elif action == "replace_outliers_median":
+            elif action in ("cap_outliers", "replace_outliers_median", "winsorize"):
                 if df[target_col].dtype in [pl.Int64, pl.Float64, pl.Int32, pl.Float32]:
                     q1 = df[target_col].quantile(0.25)
                     q3 = df[target_col].quantile(0.75)
@@ -1388,6 +1365,83 @@ def clean_data(
                             duration_ms=(time.perf_counter() - step_start) * 1000,
                             values_changed=outliers_replaced,
                         )
+
+            elif action == "coerce_numeric":
+                clean_expr = (
+                    pl.col(target_col)
+                    .cast(pl.Utf8)
+                    .str.replace_all(r"[\$€£¥₹,\s%]", "")
+                    .cast(pl.Float64, strict=False)
+                )
+                df = df.with_columns(clean_expr.alias(target_col))
+                dag.add_node(
+                    operation="coerce_numeric",
+                    df_before=df_before,
+                    df_after=df,
+                    target_column=target_col,
+                    parameters={"action": "coerce_numeric"},
+                    duration_ms=(time.perf_counter() - step_start) * 1000,
+                )
+
+            elif action == "clean_masked_nulls":
+                from app.services.auto_suggestion_engine import MASKED_NULL_TOKENS
+                clean_s = pl.col(target_col).cast(pl.Utf8).str.strip_chars().str.to_lowercase()
+                is_masked = clean_s.is_in(list(MASKED_NULL_TOKENS)) | clean_s.str.contains(r"^[-?.]+$")
+                df = df.with_columns(
+                    pl.when(is_masked)
+                    .then(None)
+                    .otherwise(pl.col(target_col))
+                    .alias(target_col)
+                )
+                dag.add_node(
+                    operation="clean_masked_nulls",
+                    df_before=df_before,
+                    df_after=df,
+                    target_column=target_col,
+                    parameters={"action": "clean_masked_nulls"},
+                    duration_ms=(time.perf_counter() - step_start) * 1000,
+                )
+
+            elif action == "drop_column":
+                if target_col in df.columns:
+                    df = df.drop(target_col)
+                    dag.add_node(
+                        operation="drop_column",
+                        df_before=df_before,
+                        df_after=df,
+                        target_column=target_col,
+                        parameters={"action": "drop_column"},
+                        duration_ms=(time.perf_counter() - step_start) * 1000,
+                    )
+
+            elif action == "clean_text":
+                df = df.with_columns(
+                    pl.col(target_col).cast(pl.Utf8).str.strip_chars().alias(target_col)
+                )
+                dag.add_node(
+                    operation="clean_text",
+                    df_before=df_before,
+                    df_after=df,
+                    target_column=target_col,
+                    parameters={"action": "clean_text"},
+                    duration_ms=(time.perf_counter() - step_start) * 1000,
+                )
+
+            elif action:
+                try:
+                    from app.services.auto_suggestion_engine import apply_suggestion, _EXECUTORS
+                    if action in _EXECUTORS:
+                        df = apply_suggestion(df, {"action": action, "column": target_col, **rule})
+                        dag.add_node(
+                            operation=action,
+                            df_before=df_before,
+                            df_after=df,
+                            target_column=target_col,
+                            parameters={"action": action, **rule},
+                            duration_ms=(time.perf_counter() - step_start) * 1000,
+                        )
+                except Exception as ex:
+                    logger.warning("Failed executing rule %s on %s: %s", action, target_col, ex)
 
     # ─── Step 3: Remove Duplicates ───────────────────────────────────────────
     step_start = time.perf_counter()
@@ -1426,6 +1480,8 @@ def clean_data(
         return int(df.select(expr.sum()).item() or 0)
     
     for col in df.columns:
+        if col in rules_applied_cols:
+            continue
         col_lower = col.lower()
         is_id = any(p in col_lower for p in id_patterns)
         dtype = df[col].dtype

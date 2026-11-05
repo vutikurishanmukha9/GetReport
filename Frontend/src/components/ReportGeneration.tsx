@@ -697,10 +697,10 @@ export const ReportGeneration = ({
 
         {/* ─── Main Command Center Tabs ─── */}
         <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-          <TabsList className="h-auto min-h-12 bg-muted/40 dark:bg-white/[0.03] border border-border/80 dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-2xs flex flex-wrap items-center gap-1.5">
+          <TabsList className="h-auto min-h-12 w-full bg-[#0c0d12]/90 border border-white/10 p-1.5 rounded-2xl mb-6 shadow-sm flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap lg:flex-wrap">
             <TabsTrigger
               value="overview"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
             >
               <FileText className="h-4 w-4" />
               <span>Overview</span>
@@ -708,12 +708,12 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="charts"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
             >
               <TrendingUp className="h-4 w-4" />
               <span>Visual Analytics</span>
               {chartTabsList.length > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 rounded-full bg-primary/10 text-primary">
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 rounded-full bg-white/10 text-white border-0">
                   {chartTabsList.length}
                 </Badge>
               )}
@@ -721,18 +721,18 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="ledger"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
             >
               <ShieldCheck className="h-4 w-4" />
               <span>Trust Ledger</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 rounded-full bg-muted">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 rounded-full bg-white/10 text-white border-0">
                 {confidence.columns.length}
               </Badge>
             </TabsTrigger>
 
             <TabsTrigger
               value="stats"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
             >
               <Activity className="h-4 w-4" />
               <span>Statistical Audit</span>
@@ -740,15 +740,15 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="sql"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
             >
               <Terminal className="h-4 w-4" />
               <span>DuckDB SQL Studio</span>
             </TabsTrigger>
 
-                        <TabsTrigger
+            <TabsTrigger
               value="bi_analytics"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
             >
               <BarChart3 className="h-4 w-4" />
               <span>Interactive BI</span>
@@ -756,7 +756,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="export"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
+              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
             >
               <Download className="h-4 w-4" />
               <span>Export Hub</span>

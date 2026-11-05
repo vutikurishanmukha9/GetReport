@@ -26,7 +26,6 @@ import {
   Check,
   Activity,
   Award,
-  Zap,
 } from "lucide-react";
 import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -186,6 +185,7 @@ const sanitizeEChartsOption = (opt: any): any => {
       type: "scroll",
       top: "0%",
     };
+    delete clone.legend.bottom;
     if (clone.grid) {
       clone.grid = {
         ...clone.grid,

@@ -1321,14 +1321,14 @@ class EnhancedRAGService:
                         try:
                             tour_steps = graph_store.get_audit_tour(job_result.get("analysis") if job_result else None)
                             if tour_steps:
-                                tour_md = ["### 🧭 Guided Data Audit Tour (Pedagogical Overview)"]
+                                tour_md = ["### Guided Data Audit Tour (Pedagogical Overview)"]
                                 for s in tour_steps:
                                     tour_md.append(f"- **Step {s['order']}: {s['title']}**: {s['description']} *(Insight: {s.get('auditInsight', '')})*")
                                 graph_context_blocks.append("\n".join(tour_md))
                             
                             layers = graph_store.get_layers()
                             if layers:
-                                layer_md = ["### 🏗️ Dataset Architectural Layers"]
+                                layer_md = ["### Dataset Architectural Layers"]
                                 for l in layers:
                                     layer_md.append(f"- **{l['name']}**: {l['description']} ({l.get('nodeCount', len(l.get('nodeIds', [])))} entities)")
                                 graph_context_blocks.append("\n".join(layer_md))
@@ -1606,14 +1606,14 @@ CONTEXT:
                     try:
                         tour_steps = graph_store.get_audit_tour(job_result.get("analysis") if job_result else None)
                         if tour_steps:
-                            tour_md = ["### 🧭 Guided Data Audit Tour (Pedagogical Overview)"]
+                            tour_md = ["### Guided Data Audit Tour (Pedagogical Overview)"]
                             for s in tour_steps:
                                 tour_md.append(f"- **Step {s['order']}: {s['title']}**: {s['description']} *(Insight: {s.get('auditInsight', '')})*")
                             graph_context_blocks.append("\n".join(tour_md))
                         
                         layers = graph_store.get_layers()
                         if layers:
-                            layer_md = ["### 🏗️ Dataset Architectural Layers"]
+                            layer_md = ["### Dataset Architectural Layers"]
                             for l in layers:
                                 layer_md.append(f"- **{l['name']}**: {l['description']} ({l.get('nodeCount', len(l.get('nodeIds', [])))} entities)")
                             graph_context_blocks.append("\n".join(layer_md))

@@ -165,29 +165,33 @@ export const Examples = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background animate-in fade-in duration-500">
+    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
+      {/* Technical Background Grid & Film Grain */}
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="hero-grain-overlay" />
+
       <Header onReset={() => {}} showReset={false} />
 
-      <main className="flex-1 pt-16 sm:pt-20">
+      <main className="flex-1 pt-24 sm:pt-28 relative z-10">
         {/* Header */}
-        <div className="border-b border-border/60 bg-gradient-to-b from-muted/20 via-background to-background py-8 sm:py-12">
+        <div className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-14 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-black text-white tracking-[-0.03em] leading-[1.12]">
               Interactive audit examples.
             </h1>
             
-            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
+            <p className="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto leading-relaxed font-sans">
               Explore how GetReport automatically infers schemas, scores column quality, isolates anomalies, and synthesizes executive takeaways across multiple industries.
             </p>
           </div>
         </div>
 
         {/* Section: Dataset Catalog */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl space-y-6 sm:space-y-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-7xl space-y-6 sm:space-y-8">
           
           {/* Domain Filter Bar */}
-          <div className="flex overflow-x-auto gap-2 pb-1.5 scrollbar-none justify-start md:justify-center border-b border-border/60">
+          <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-none justify-start md:justify-center border-b border-white/10">
             {DOMAINS.map((domain) => (
               <button
                 key={domain}
@@ -195,8 +199,8 @@ export const Examples = () => {
                 onClick={() => setSelectedDomain(domain)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-mono transition-all shrink-0 cursor-pointer border ${
                   selectedDomain === domain
-                    ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
-                    : "bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted/40"
+                    ? "bg-white text-black border-white shadow-xs font-bold"
+                    : "bg-[#0c0d12]/80 text-zinc-400 border-white/10 hover:text-white hover:bg-white/[0.06]"
                 }`}
               >
                 {domain}
@@ -213,19 +217,19 @@ export const Examples = () => {
               return (
                 <Card 
                   key={item.id}
-                  className="border border-border bg-card rounded-2xl shadow-premium overflow-hidden flex flex-col justify-between t-card-lift"
+                  className="border border-white/10 bg-[#0c0d12]/80 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between hover:border-white/20 transition-all duration-200"
                 >
-                  <CardHeader className="p-5 sm:p-6 pb-3 sm:pb-4 space-y-3.5 border-b border-border/40">
+                  <CardHeader className="p-5 sm:p-6 pb-3 sm:pb-4 space-y-3.5 border-b border-white/10">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 sm:gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <div className="h-9 w-9 rounded-xl bg-white/[0.06] text-white border border-white/10 flex items-center justify-center shrink-0">
                           <Icon className="h-4 w-4" />
                         </div>
                         <div>
-                          <Badge variant="outline" className="text-[10px] font-mono font-semibold bg-muted/40 text-muted-foreground border-border/60">
+                          <Badge variant="outline" className="text-[10px] font-mono font-semibold bg-white/[0.04] text-zinc-400 border-white/10">
                             {item.domain}
                           </Badge>
-                          <h3 className="text-base sm:text-lg font-display font-bold text-foreground mt-0.5">
+                          <h3 className="text-base sm:text-lg font-display font-bold text-white mt-0.5">
                             {item.title}
                           </h3>
                         </div>
@@ -241,12 +245,12 @@ export const Examples = () => {
                       </div>
                     </div>
 
-                    <p className="text-xs text-muted-foreground font-sans leading-relaxed">
+                    <p className="text-xs text-zinc-400 font-sans leading-relaxed">
                       {item.description}
                     </p>
 
                     {/* Dataset Metrics Bar */}
-                    <div className="flex items-center gap-3 font-mono text-[11px] text-muted-foreground pt-0.5">
+                    <div className="flex items-center gap-3 font-mono text-[11px] text-zinc-400 pt-0.5">
                       <span><strong>Format:</strong> {item.format}</span>
                       <span>•</span>
                       <span><strong>Rows:</strong> {item.rows}</span>

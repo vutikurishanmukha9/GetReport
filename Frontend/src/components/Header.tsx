@@ -9,6 +9,7 @@ import {
   BookOpen,
   BarChart3,
   Mail,
+  Activity,
   ShieldCheck 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -154,12 +155,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   </span>
                 </Link>
               </Button>
-            ) : (
-              <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px] font-hero font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Session Active</span>
-              </div>
-            )}
+            ) : null}
 
               {/* Mobile Drawer Trigger */}
               <div className="md:hidden">
@@ -203,6 +199,8 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                           { to: "/pricing", label: "Pricing", icon: CreditCard, desc: "Free & flexible plans" },
                           { to: "/documentation", label: "Documentation", icon: BookOpen, desc: "Guides & help center" },
                           { to: "/examples", label: "Interactive Examples", icon: BarChart3, desc: "See sample reports" },
+                          { to: "/analytics", label: "BI Studio", icon: Activity, desc: "Slice & dice visual analytics" },
+                          { to: "/dashboard", label: "Audit History", icon: FileSpreadsheet, desc: "Past reports & downloads" },
                           { to: "/contact", label: "Contact Team", icon: Mail, desc: "Enterprise support" },
                         ].map(({ to, label, icon: NavIcon, desc }) => {
                           const isActive = location.pathname === to;

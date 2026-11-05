@@ -479,7 +479,7 @@ export const Documentation = () => {
     <div className="min-h-screen flex flex-col bg-[#07080a] text-slate-100 selection:bg-white/20 selection:text-white font-sans antialiased">
       <Header onReset={() => {}} showReset={false} />
 
-      <main className="flex-1 pt-20 sm:pt-24 pb-20">
+      <main className="flex-1 pt-24 sm:pt-28 pb-20">
         
         {/* Hero Section: Machined Raycast/Linear Obsidian Aesthetic */}
         <div className="relative border-b border-white/10 bg-radial from-white/[0.04] via-transparent to-transparent py-12 sm:py-16 overflow-hidden">

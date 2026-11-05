@@ -1,5 +1,22 @@
-import { useState } from "react";
-import { Check, AlertTriangle, Play, ShieldAlert, Trash2, Wrench, BarChart2, Hash, Calendar, CheckCircle2, Type } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import {
+    Check,
+    AlertTriangle,
+    Play,
+    ShieldAlert,
+    Trash2,
+    Wrench,
+    BarChart2,
+    Hash,
+    Calendar,
+    CheckCircle2,
+    Type,
+    TrendingUp,
+    Layers,
+    RotateCcw,
+    ArrowRight,
+    SlidersHorizontal
+} from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +32,92 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { InspectionReport, CleaningRulesMap, CleaningRule } from "@/types/api";
+import type { InspectionReport, CleaningRulesMap, CleaningRule, QualityIssue } from "@/types/api";
+
+const KNOWN_ACTIONS = new Set([
+    "default",
+    "cap_outliers",
+    "replace_outliers_median",
+    "flag_outliers",
+    "drop_rows",
+    "coerce_numeric",
+    "clean_masked_nulls",
+    "clean_text",
+    "fix_mojibake",
+    "standardize_categories",
+    "cast_boolean",
+    "keep_as_text",
+    "parse_date",
+    "nullify_sentinel",
+    "nullify_out_of_range",
+    "nullify_invalid_regex",
+    "drop_column",
+    "fill_median",
+    "fill_mean",
+    "fill_mode",
+    "fill_value",
+    "fill_group_median",
+    "add_missing_indicator",
+    "log1p_transform",
+    "hash_pii",
+]);
+
+const getActionDisplayLabel = (action: string, issue?: QualityIssue | null): string => {
+    switch (action) {
+        case "cap_outliers":
+        case "replace_outliers_median":
+        case "winsorize":
+            return "Cap Outliers (Tukey IQR)";
+        case "flag_outliers":
+            return "Flag Outliers (Indicator)";
+        case "drop_rows":
+            return "Drop Missing Rows";
+        case "coerce_numeric":
+            return "Coerce to Numeric (Strip Currency/%)";
+        case "clean_masked_nulls":
+            return "Clean Masked Nulls (to null)";
+        case "clean_text":
+            return "Clean Text (Trim Whitespace)";
+        case "fix_mojibake":
+            return "Fix Mojibake Encoding";
+        case "standardize_categories":
+            return "Standardize Categories";
+        case "cast_boolean":
+            return "Cast to Boolean";
+        case "keep_as_text":
+            return "Preserve as Text";
+        case "parse_date":
+            return "Parse Date (ISO 8601)";
+        case "nullify_sentinel":
+            return "Nullify Sentinel Values";
+        case "nullify_out_of_range":
+            return "Nullify Out-of-Range";
+        case "nullify_invalid_regex":
+            return "Nullify Invalid Format";
+        case "drop_column":
+            return "Drop Column";
+        case "fill_median":
+            return "Fill with Median";
+        case "fill_mean":
+            return "Fill with Average";
+        case "fill_mode":
+            return "Fill with Most Frequent";
+        case "fill_value":
+            return "Fill with 'Unknown'";
+        case "fill_group_median":
+            return "Fill with Group Median";
+        case "add_missing_indicator":
+            return "Add Missing Indicator";
+        case "log1p_transform":
+            return "Log1p Transform (Reduce Skew)";
+        case "hash_pii":
+            return "Hash / Mask PII";
+        case "default":
+            return "Ignore (Leave raw as is)";
+        default:
+            return issue?.label || issue?.suggestion || action || "Ignore (Leave raw as is)";
+    }
+};
 
 interface DataHealthCheckProps {
     report: InspectionReport;
@@ -54,23 +156,49 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
     const [rules, setRules] = useState<CleaningRulesMap>(() => {
         const initial: CleaningRulesMap = {};
         (report?.issues || []).forEach(issue => {
-            if (issue.column && issue.column !== "Multiple" && issue.action) {
+            if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
+                const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
+                    ? "cap_outliers"
+                    : issue.action;
                 initial[issue.column] = {
-                    action: issue.action as CleaningRule["action"],
-                    value: issue.action === "fill_value" ? "Unknown" : undefined
+                    action: normalizedAction as CleaningRule["action"],
+                    value: normalizedAction === "fill_value" ? "Unknown" : undefined
                 };
             }
         });
         return initial;
     });
 
+    // Synchronize rules if report issues load or update
+    useEffect(() => {
+        if (!report?.issues || report.issues.length === 0) return;
+        setRules(prev => {
+            if (Object.keys(prev).length > 0) return prev;
+            const initial: CleaningRulesMap = {};
+            (report.issues || []).forEach(issue => {
+                if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
+                    const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
+                        ? "cap_outliers"
+                        : issue.action;
+                    initial[issue.column] = {
+                        action: normalizedAction as CleaningRule["action"],
+                        value: normalizedAction === "fill_value" ? "Unknown" : undefined
+                    };
+                }
+            });
+            return initial;
+        });
+    }, [report]);
+
     const handleActionChange = (column: string, action: string) => {
+        const normalizedAction = (action === "replace_outliers_median" || action === "winsorize")
+            ? "cap_outliers"
+            : action;
         setRules(prev => ({
             ...prev,
             [column]: {
-                // SAFETY: SelectItem values only contain valid CleaningRule action values
-                action: action as CleaningRule["action"],
-                value: action === "fill_value" ? "Unknown" : undefined
+                action: normalizedAction as CleaningRule["action"],
+                value: normalizedAction === "fill_value" ? "Unknown" : undefined
             }
         }));
     };
@@ -78,7 +206,50 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
     const handleApplyAllSuggestions = () => {
         const updated: CleaningRulesMap = {};
         (report?.issues || []).forEach(issue => {
-            if (issue.column && issue.column !== "Multiple" && issue.action) {
+            if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
+                const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
+                    ? "cap_outliers"
+                    : issue.action;
+                updated[issue.column] = {
+                    action: normalizedAction as CleaningRule["action"],
+                    value: normalizedAction === "fill_value" ? "Unknown" : undefined
+                };
+            }
+        });
+        setRules(updated);
+    };
+
+    const handleApplyHighConfidenceOnly = () => {
+        const updated: CleaningRulesMap = {};
+        (report?.issues || []).forEach(issue => {
+            if (
+                issue.column &&
+                issue.column !== "Multiple" &&
+                issue.action &&
+                issue.action !== "default" &&
+                (issue.confidence_score ?? 100) >= 90
+            ) {
+                const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
+                    ? "cap_outliers"
+                    : issue.action;
+                updated[issue.column] = {
+                    action: normalizedAction as CleaningRule["action"],
+                    value: normalizedAction === "fill_value" ? "Unknown" : undefined
+                };
+            }
+        });
+        setRules(updated);
+    };
+
+    const handleApplyConservative = () => {
+        const updated: CleaningRulesMap = {};
+        (report?.issues || []).forEach(issue => {
+            if (
+                issue.column &&
+                issue.column !== "Multiple" &&
+                issue.action &&
+                ["fill_median", "fill_mean", "fill_mode", "fill_value", "clean_text", "clean_masked_nulls"].includes(issue.action)
+            ) {
                 updated[issue.column] = {
                     action: issue.action as CleaningRule["action"],
                     value: issue.action === "fill_value" ? "Unknown" : undefined
@@ -93,17 +264,28 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
     };
 
     const getActionForColumn = (column: string) => {
-        return rules[column]?.action || "default"; // "default" means auto-pilot
+        const raw = rules[column]?.action;
+        if (!raw) return "default";
+        if (raw === "replace_outliers_median" || raw === "winsorize") return "cap_outliers";
+        return raw;
     };
 
     const handleSubmit = () => {
         onContinue(rules);
     };
 
-    const columnsWithIssues = (report?.columns || []).filter(col => {
-        const issue = (report?.issues || []).find(i => i.column === col.name);
-        return col.missing_count > 0 || (issue && ['outliers', 'high_cardinality', 'class_imbalance'].includes(issue.type));
-    });
+    const columnsWithIssues = useMemo(() => {
+        return (report?.columns || []).filter(col => {
+            const hasIssue = (report?.issues || []).some(i => i.column === col.name);
+            return col.missing_count > 0 || hasIssue;
+        });
+    }, [report]);
+
+    const highConfidenceCount = useMemo(() => {
+        return (report?.issues || []).filter(
+            i => i.column !== "Multiple" && i.action && (i.confidence_score ?? 100) >= 90
+        ).length;
+    }, [report]);
 
     return (
         <div className="space-y-8 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -115,11 +297,11 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                 </div>
                 <h2 className="text-3xl font-display font-bold text-foreground tracking-tight">Data Health Check</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed font-sans">
-                    We scanned your dataset for structural anomalies, missing values, and outliers. Review suggested fixes before commencing analysis.
+                    We scanned your dataset with distribution-aware heuristics to detect masked nulls, formatted numbers, zero-variance columns, and outliers.
                 </p>
             </div>
 
-            {/* ─── Global Warnings ─── */}
+            {/* Global Warnings */}
             {(report?.issues || []).flatMap((issue) => {
                 if (issue.column !== "Multiple") return [];
                 return [
@@ -138,7 +320,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             </div>
                             <p className="text-xs text-amber-200/90 mt-1 font-sans leading-relaxed">
                                 {issue.type === 'partial_duplicates'
-                                    ? `Found ${issue.count} rows that look identical but have different IDs (Partial Duplicates). Review rules below.`
+                                    ? `Found ${issue.count} rows that look identical across data attributes but have different identifiers. Review rules below.`
                                     : `System detected ${issue.count} potential quality conflicts across multiple attributes.`
                                 }
                             </p>
@@ -147,31 +329,66 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                 ];
             })}
 
-            {/* ─── Dynamic Rules Toolbar ─── */}
+            {/* Strategy Presets Toolbar */}
             {columnsWithIssues.length > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/20 border border-border/50 p-3 rounded-xl">
-                    <div className="text-xs text-muted-foreground font-sans">
-                        Dynamic suggestions calculated based on column distribution, skewness, and cardinality.
+                <div className="bg-[#0e1017] border border-white/10 p-3.5 rounded-2xl space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+                        <div className="flex items-center gap-2">
+                            <SlidersHorizontal className="w-4 h-4 text-primary" />
+                            <span className="text-xs font-semibold text-foreground tracking-tight">
+                                Auto-Suggestion Presets
+                            </span>
+                            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
+                                {columnsWithIssues.length} columns flagged
+                            </span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground font-sans">
+                            Distribution-aware actions calibrated with confidence scores & impact estimates.
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleApplyHighConfidenceOnly}
+                            className="text-xs h-8 rounded-lg cursor-pointer bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 font-medium font-sans"
+                        >
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                            Apply High-Confidence ({highConfidenceCount})
+                        </Button>
+
                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
                             onClick={handleApplyAllSuggestions}
-                            className="text-xs h-8 rounded-lg cursor-pointer hover:bg-primary/10 hover:text-primary border-border/70 font-sans"
+                            className="text-xs h-8 rounded-lg cursor-pointer hover:bg-white/10 text-foreground border-white/15 font-sans"
                         >
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-primary" />
-                            Apply Dynamic Suggestions
+                            <Layers className="w-3.5 h-3.5 mr-1.5 text-zinc-400" />
+                            Apply All Suggestions
                         </Button>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleApplyConservative}
+                            className="text-xs h-8 rounded-lg cursor-pointer hover:bg-white/10 text-zinc-300 border-white/10 font-sans"
+                        >
+                            Conservative (Safe Only)
+                        </Button>
+
                         <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={handleResetAllToIgnore}
-                            className="text-xs h-8 rounded-lg cursor-pointer text-muted-foreground hover:text-foreground font-sans"
+                            className="text-xs h-8 rounded-lg cursor-pointer text-muted-foreground hover:text-foreground font-sans ml-auto"
                         >
-                            Ignore All
+                            <RotateCcw className="w-3 h-3 mr-1" />
+                            Reset to Raw
                         </Button>
                     </div>
                 </div>
@@ -181,15 +398,15 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {(report?.columns || []).map((col) => {
                     const issue = (report?.issues || []).find(i => i.column === col.name);
-                    const hasIssue = col.missing_count > 0 || (issue && ['outliers', 'high_cardinality', 'class_imbalance'].includes(issue.type));
+                    const hasIssue = col.missing_count > 0 || !!issue;
 
                     if (!hasIssue) return null;
 
                     const typeStyle = getTypeStyle(col.inferred_type);
 
                     return (
-                        <Card key={col.name} className="border border-border/80 bg-card rounded-2xl shadow-premium overflow-hidden flex flex-col justify-between t-card-lift">
-                            <CardHeader className="pb-3 bg-muted/10 border-b border-border/40">
+                        <Card key={col.name} className="border border-white/10 bg-[#0c0d12] rounded-2xl shadow-premium overflow-hidden flex flex-col justify-between t-card-lift">
+                            <CardHeader className="pb-3 bg-white/[0.02] border-b border-white/5">
                                 <div className="flex justify-between items-start gap-2">
                                     <CardTitle className="text-base font-display font-bold text-foreground truncate" title={col.name}>
                                         {col.name}
@@ -205,136 +422,356 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 </span>
                                             </TooltipTrigger>
                                             <TooltipContent className="rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl">
-                                                <p className="text-xs font-mono">Inferred Type: {col.inferred_type}</p>
+                                                <p className="text-xs font-mono">Inferred Type: {col.inferred_type} ({col.dtype})</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                 </div>
+
                                 <CardDescription className="flex items-center gap-1.5 text-amber-400 font-sans text-xs font-semibold mt-1">
                                     <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                                     <span>
-                                        {issue?.type === 'outliers'
-                                            ? `${issue.count} outliers detected`
-                                            : issue?.type === 'high_cardinality'
-                                                ? `${issue.count} unique values`
-                                                : issue?.type === 'class_imbalance'
-                                                    ? `Top category dominates`
-                                                    : `${col.missing_count} missing (${col.missing_percentage}%)`
+                                        {issue?.type === 'masked_nulls'
+                                            ? `${issue.count} masked placeholder(s)`
+                                            : issue?.type === 'dirty_numeric'
+                                                ? `${issue.count} formatted string(s)`
+                                                : issue?.type === 'constant_column'
+                                                    ? `Zero variance / Constant`
+                                                    : issue?.type === 'text_whitespace'
+                                                        ? `${issue.count} untrimmed strings`
+                                                        : issue?.type === 'outliers'
+                                                            ? `${issue.count} outliers detected`
+                                                            : issue?.type === 'high_cardinality'
+                                                                ? `${issue.count} unique values`
+                                                                : issue?.type === 'class_imbalance'
+                                                                    ? `Top category dominates`
+                                                                    : `${col.missing_count} missing (${col.missing_percentage}%)`
                                         }
                                     </span>
                                 </CardDescription>
                             </CardHeader>
 
                             <CardContent className="py-4 space-y-3">
-                                <div className="p-3 rounded-xl bg-muted/30 border border-border/60 text-xs text-muted-foreground font-sans space-y-1.5">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">Auto-suggestion</span>
-                                        {issue?.action && (
-                                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                                                Dynamic
-                                            </span>
-                                        )}
+                                {/* Suggestion Header with Confidence & Impact */}
+                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-muted-foreground font-sans space-y-2">
+                                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                                        <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">
+                                            Auto-Suggestion
+                                        </span>
+                                        <div className="flex items-center gap-1.5">
+                                            {issue?.confidence_score !== undefined && (
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                    <CheckCircle2 className="w-2.5 h-2.5" />
+                                                    {issue.confidence_score}%
+                                                </span>
+                                            )}
+                                            {issue?.impact_estimate && (
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                                                    <TrendingUp className="w-2.5 h-2.5" />
+                                                    {issue.impact_estimate}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
+
                                     <div className="font-semibold text-foreground text-sm flex items-center gap-1.5">
                                         <Wrench className="w-3.5 h-3.5 text-primary shrink-0" />
                                         <span className="truncate">{issue?.label || issue?.suggestion || "Ignore (Leave as is)"}</span>
                                     </div>
+
                                     {issue?.rationale && (
                                         <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
                                             {issue.rationale}
                                         </p>
                                     )}
+
+                                    {/* Before vs After Visual Diff */}
+                                    {issue?.before_sample && issue?.after_sample && issue.before_sample.length > 0 && (
+                                        <div className="p-2 rounded-lg bg-black/40 border border-white/5 space-y-1 font-mono text-[11px] mt-2">
+                                            <div className="flex items-center justify-between text-[9px] text-zinc-400 uppercase tracking-wider font-sans font-semibold">
+                                                <span>Preview</span>
+                                                <span>Before → After</span>
+                                            </div>
+                                            <div className="space-y-1 pt-0.5">
+                                                {issue.before_sample.slice(0, 2).map((b, idx) => {
+                                                    const afterVal = issue.after_sample?.[idx];
+                                                    return (
+                                                        <div key={idx} className="flex items-center justify-between gap-2 text-xs">
+                                                            <span className="text-rose-400/90 truncate max-w-[110px]" title={String(b)}>
+                                                                {b === null ? "null" : String(b)}
+                                                            </span>
+                                                            <ArrowRight className="w-3 h-3 text-zinc-400 shrink-0" />
+                                                            <span className="text-emerald-400/90 truncate max-w-[110px] font-semibold" title={String(afterVal)}>
+                                                                {afterVal === null ? "null" : String(afterVal)}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
+
                                 {col.distribution && <SparklineHistogram data={col.distribution} />}
                             </CardContent>
 
                             <CardFooter className="pt-0 pb-4 px-4">
-                                <Select
-                                    value={getActionForColumn(col.name)}
-                                    onValueChange={(val) => handleActionChange(col.name, val)}
-                                >
-                                    <SelectTrigger className="w-full bg-secondary/80 hover:bg-secondary border-border/80 text-foreground rounded-xl text-xs h-10 font-medium hover:border-primary/40 focus:ring-primary/20 shadow-2xs transition-colors cursor-pointer">
-                                        <SelectValue placeholder="Select action…" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-2xl backdrop-blur-xl">
-                                        <SelectItem value="default" className="text-xs font-medium text-foreground cursor-pointer focus:bg-accent focus:text-foreground">
-                                            <span className="text-muted-foreground hover:text-foreground flex items-center gap-2">
-                                                Ignore (Leave as is)
-                                            </span>
-                                        </SelectItem>
-                                        <SelectItem value="drop_rows" className="text-xs font-medium text-rose-400 focus:text-rose-300 focus:bg-rose-500/15 cursor-pointer">
-                                            <span className="flex items-center justify-between w-full gap-2">
-                                                <span className="flex items-center gap-2">
-                                                    <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Drop Rows
-                                                </span>
-                                                {issue?.action === "drop_rows" && (
-                                                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                        Recommended
+                                {(() => {
+                                    const currentAction = getActionForColumn(col.name);
+                                    return (
+                                        <Select
+                                            value={currentAction}
+                                            onValueChange={(val) => handleActionChange(col.name, val)}
+                                        >
+                                            <SelectTrigger className="w-full bg-[#131620] hover:bg-[#1a1f2c] border-white/10 text-foreground rounded-xl text-xs h-10 font-medium hover:border-primary/40 focus:ring-primary/20 shadow-2xs transition-colors cursor-pointer">
+                                                <SelectValue placeholder="Select action…">
+                                                    {getActionDisplayLabel(currentAction, issue)}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl border border-white/10 bg-[#0e1017] text-popover-foreground shadow-2xl backdrop-blur-xl max-h-72">
+                                                <SelectItem value="default" className="text-xs font-medium text-foreground cursor-pointer focus:bg-accent focus:text-foreground">
+                                                    <span className="text-muted-foreground hover:text-foreground flex items-center gap-2">
+                                                        <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" /> Ignore (Leave raw as is)
                                                     </span>
-                                                )}
-                                            </span>
-                                        </SelectItem>
+                                                </SelectItem>
 
-                                        {col.inferred_type === 'numeric' && (
-                                            <>
-                                                {issue?.type !== 'outliers' && (
-                                                    <>
-                                                        <SelectItem value="fill_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                            <span className="flex items-center justify-between w-full gap-2">
-                                                                <span className="flex items-center gap-2">
-                                                                    <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Median
-                                                                </span>
-                                                                {issue?.action === "fill_median" && (
-                                                                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                        Recommended
-                                                                    </span>
-                                                                )}
-                                                            </span>
-                                                        </SelectItem>
-                                                        <SelectItem value="fill_mean" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                            <span className="flex items-center justify-between w-full gap-2">
-                                                                <span className="flex items-center gap-2">
-                                                                    <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Average
-                                                                </span>
-                                                                {issue?.action === "fill_mean" && (
-                                                                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                        Recommended
-                                                                    </span>
-                                                                )}
-                                                            </span>
-                                                        </SelectItem>
-                                                        <SelectItem value="fill_mode" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                            <span className="flex items-center justify-between w-full gap-2">
-                                                                <span className="flex items-center gap-2">
-                                                                    <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Most Frequent
-                                                                </span>
-                                                                {issue?.action === "fill_mode" && (
-                                                                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                        Recommended
-                                                                    </span>
-                                                                )}
-                                                            </span>
-                                                        </SelectItem>
-                                                    </>
-                                                )}
-                                                {issue?.type === 'outliers' && (
-                                                    <SelectItem value="replace_outliers_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                        <span className="flex items-center justify-between w-full gap-2">
-                                                            <span className="flex items-center gap-2">
-                                                                <Wrench className="w-3.5 h-3.5 text-amber-400" /> Cap Outliers (Median)
-                                                            </span>
-                                                            {issue?.action === "replace_outliers_median" && (
-                                                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                    Recommended
-                                                                </span>
-                                                            )}
+                                                {/* Cap Outliers (Tukey IQR) */}
+                                                <SelectItem value="cap_outliers" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Wrench className="w-3.5 h-3.5 text-amber-400" /> Cap Outliers (Tukey IQR Fences)
                                                         </span>
-                                                    </SelectItem>
-                                                )}
-                                            </>
-                                        )}
-                                        {col.inferred_type !== 'numeric' && (
-                                            <>
+                                                        {(issue?.action === "cap_outliers" || issue?.action === "replace_outliers_median" || issue?.action === "winsorize") && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Flag Outliers */}
+                                                <SelectItem value="flag_outliers" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" /> Flag Outliers (Indicator Column)
+                                                        </span>
+                                                        {issue?.action === "flag_outliers" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Drop Missing Rows */}
+                                                <SelectItem value="drop_rows" className="text-xs font-medium text-rose-400 focus:text-rose-300 focus:bg-rose-500/15 cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Drop Missing Rows
+                                                        </span>
+                                                        {issue?.action === "drop_rows" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Coerce Numeric */}
+                                                <SelectItem value="coerce_numeric" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Hash className="w-3.5 h-3.5 text-sky-400" /> Coerce to Numeric (Strip Currency/%)
+                                                        </span>
+                                                        {issue?.action === "coerce_numeric" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Clean Masked Nulls */}
+                                                <SelectItem value="clean_masked_nulls" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Wrench className="w-3.5 h-3.5 text-amber-400" /> Clean Masked Nulls (to null)
+                                                        </span>
+                                                        {issue?.action === "clean_masked_nulls" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Clean Text Whitespace */}
+                                                <SelectItem value="clean_text" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Type className="w-3.5 h-3.5 text-violet-400" /> Clean Text (Trim Whitespace)
+                                                        </span>
+                                                        {issue?.action === "clean_text" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Fix Mojibake */}
+                                                <SelectItem value="fix_mojibake" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Wrench className="w-3.5 h-3.5 text-emerald-400" /> Fix Mojibake Encoding
+                                                        </span>
+                                                        {issue?.action === "fix_mojibake" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Standardize Categories */}
+                                                <SelectItem value="standardize_categories" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" /> Standardize Categories
+                                                        </span>
+                                                        {issue?.action === "standardize_categories" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Cast to Boolean */}
+                                                <SelectItem value="cast_boolean" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Cast to Boolean
+                                                        </span>
+                                                        {issue?.action === "cast_boolean" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Preserve as Text */}
+                                                <SelectItem value="keep_as_text" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Type className="w-3.5 h-3.5 text-zinc-400" /> Preserve as String / Text
+                                                        </span>
+                                                        {issue?.action === "keep_as_text" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Parse Date */}
+                                                <SelectItem value="parse_date" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Calendar className="w-3.5 h-3.5 text-cyan-400" /> Parse Date (ISO 8601)
+                                                        </span>
+                                                        {issue?.action === "parse_date" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Nullify Sentinels */}
+                                                <SelectItem value="nullify_sentinel" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Wrench className="w-3.5 h-3.5 text-amber-400" /> Nullify Sentinels (-999, 9999)
+                                                        </span>
+                                                        {issue?.action === "nullify_sentinel" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Nullify Out-of-Range */}
+                                                <SelectItem value="nullify_out_of_range" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> Nullify Out-of-Range
+                                                        </span>
+                                                        {issue?.action === "nullify_out_of_range" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Nullify Invalid Format */}
+                                                <SelectItem value="nullify_invalid_regex" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> Nullify Invalid Format
+                                                        </span>
+                                                        {issue?.action === "nullify_invalid_regex" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Drop Column */}
+                                                <SelectItem value="drop_column" className="text-xs font-medium text-rose-400 focus:text-rose-300 focus:bg-rose-500/15 cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Drop Column
+                                                        </span>
+                                                        {issue?.action === "drop_column" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Imputations */}
+                                                <SelectItem value="fill_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Median
+                                                        </span>
+                                                        {issue?.action === "fill_median" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                <SelectItem value="fill_mean" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Average
+                                                        </span>
+                                                        {issue?.action === "fill_mean" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
                                                 <SelectItem value="fill_mode" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center justify-between w-full gap-2">
                                                         <span className="flex items-center gap-2">
@@ -347,6 +784,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                         )}
                                                     </span>
                                                 </SelectItem>
+
                                                 <SelectItem value="fill_value" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center justify-between w-full gap-2">
                                                         <span className="flex items-center gap-2">
@@ -359,10 +797,76 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                         )}
                                                     </span>
                                                 </SelectItem>
-                                            </>
-                                        )}
-                                    </SelectContent>
-                                </Select>
+
+                                                <SelectItem value="fill_group_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <Layers className="w-3.5 h-3.5 text-purple-400" /> Fill with Group Median
+                                                        </span>
+                                                        {issue?.action === "fill_group_median" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                <SelectItem value="add_missing_indicator" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" /> Add Missing Indicator Column
+                                                        </span>
+                                                        {issue?.action === "add_missing_indicator" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                <SelectItem value="log1p_transform" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <BarChart2 className="w-3.5 h-3.5 text-blue-400" /> Log1p Transform (Reduce Skew)
+                                                        </span>
+                                                        {issue?.action === "log1p_transform" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                <SelectItem value="hash_pii" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
+                                                    <span className="flex items-center justify-between w-full gap-2">
+                                                        <span className="flex items-center gap-2">
+                                                            <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" /> Hash / Mask PII Column
+                                                        </span>
+                                                        {issue?.action === "hash_pii" && (
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </SelectItem>
+
+                                                {/* Dynamic Fallback if custom action */}
+                                                {!KNOWN_ACTIONS.has(currentAction) && currentAction !== "default" && (
+                                                    <SelectItem value={currentAction} className="text-xs font-medium text-foreground cursor-pointer">
+                                                        <span className="flex items-center justify-between w-full gap-2">
+                                                            <span className="flex items-center gap-2">
+                                                                <Wrench className="w-3.5 h-3.5 text-amber-400" /> {getActionDisplayLabel(currentAction, issue)}
+                                                            </span>
+                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                                                                Recommended
+                                                            </span>
+                                                        </span>
+                                                    </SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    );
+                                })()}
                             </CardFooter>
                         </Card>
                     );
@@ -370,7 +874,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             </div>
 
             {report.issues.length === 0 && (
-                <div className="bg-card border border-border/80 shadow-premium rounded-2xl p-8 max-w-2xl mx-auto text-center mt-6">
+                <div className="bg-[#0c0d12] border border-white/10 shadow-premium rounded-2xl p-8 max-w-2xl mx-auto text-center mt-6">
                     <div className="w-16 h-16 bg-emerald-500/15 rounded-full flex items-center justify-center mx-auto mb-5 border border-emerald-500/30 shadow-2xs">
                         <Check className="h-8 w-8 text-emerald-400" />
                     </div>
@@ -380,14 +884,14 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     </p>
                     
                     <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                        <div className="bg-muted/30 border border-border/60 rounded-xl p-4 flex items-start gap-3">
+                        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-start gap-3">
                             <div className="bg-emerald-500/15 p-1.5 rounded-md mt-0.5 border border-emerald-500/25"><Check className="h-4 w-4 text-emerald-400" /></div>
                             <div>
                                 <h4 className="text-sm font-semibold text-foreground">Format Integrity</h4>
                                 <p className="text-xs text-muted-foreground mt-1">All columns contain valid types.</p>
                             </div>
                         </div>
-                        <div className="bg-muted/30 border border-border/60 rounded-xl p-4 flex items-start gap-3">
+                        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-start gap-3">
                             <div className="bg-emerald-500/15 p-1.5 rounded-md mt-0.5 border border-emerald-500/25"><Check className="h-4 w-4 text-emerald-400" /></div>
                             <div>
                                 <h4 className="text-sm font-semibold text-foreground">Data Completeness</h4>
@@ -398,30 +902,29 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                 </div>
             )}
 
-
-            {/* ─── DATA PREVIEW TABLE ─── */}
+            {/* DATA PREVIEW TABLE */}
             {report.preview && report.preview.length > 0 && (
-                <div className="border border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
-                    <div className="bg-muted/20 px-5 py-3.5 border-b border-border/60 flex items-center justify-between">
+                <div className="border border-white/10 bg-[#0c0d12] shadow-premium rounded-2xl overflow-hidden">
+                    <div className="bg-white/[0.03] px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
                         <h3 className="text-sm font-display font-bold text-foreground tracking-tight">Data Preview (First 5 Rows)</h3>
                         <span className="text-xs font-mono text-muted-foreground">{report.preview.length} sample rows</span>
                     </div>
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-sm text-left border-collapse">
-                            <thead className="bg-muted/40 text-foreground font-semibold">
+                            <thead className="bg-white/[0.02] text-foreground font-semibold">
                                 <tr>
                                     {Object.keys(report.preview[0]).map((header) => (
-                                        <th key={header} className="px-4 py-3 border-b border-r border-border/60 whitespace-nowrap font-mono text-xs last:border-r-0">
+                                        <th key={header} className="px-4 py-3 border-b border-r border-white/10 whitespace-nowrap font-mono text-xs last:border-r-0">
                                             {header}
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-border/60 bg-card">
+                            <tbody className="divide-y divide-white/5 bg-[#0c0d12]">
                                 {report.preview.map((row, rowPos) => (
-                                    <tr key={`row_pos_${rowPos}`} className="border-b border-border/40 last:border-0 hover:bg-primary/[0.02] transition-colors">
+                                    <tr key={`row_pos_${rowPos}`} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
                                         {Object.entries(row).map(([header, cell]) => (
-                                            <td key={`cell_${header}_${rowPos}`} className="px-4 py-2.5 border-r border-border/60 font-mono text-xs whitespace-nowrap max-w-[200px] truncate last:border-r-0 text-foreground/90" title={String(cell)}>
+                                            <td key={`cell_${header}_${rowPos}`} className="px-4 py-2.5 border-r border-white/10 font-mono text-xs whitespace-nowrap max-w-[200px] truncate last:border-r-0 text-foreground/90" title={String(cell)}>
                                                 {cell === null ? <span className="text-muted-foreground italic font-sans">null</span> : String(cell)}
                                             </td>
                                         ))}
@@ -456,20 +959,20 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
     );
 };
 
-// ─── Sparkline Histogram Component ───
+// Sparkline Histogram Component
 const SparklineHistogram = ({ data }: { data: { count: number; label: string }[] }) => {
     if (!data || data.length === 0) return null;
     const max = Math.max(...data.map(d => d.count)) || 1;
 
     return (
-        <div className="mt-3.5 pt-2 border-t border-border/40">
+        <div className="mt-3.5 pt-2 border-t border-white/5">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5 font-sans">
                 <span className="font-semibold text-foreground/80 flex items-center gap-1.5">
                     <BarChart2 className="w-3.5 h-3.5 text-primary" /> Distribution
                 </span>
                 <span className="text-[10px] font-mono">{data.length} bins</span>
             </div>
-            <div className="flex items-end h-14 gap-[3px] w-full bg-muted/20 p-2 rounded-xl border border-border/50">
+            <div className="flex items-end h-14 gap-[3px] w-full bg-black/30 p-2 rounded-xl border border-white/5">
                 {data.map((d) => (
                     <TooltipProvider key={`hist_bin_${d.label}`}>
                         <Tooltip>
@@ -489,4 +992,3 @@ const SparklineHistogram = ({ data }: { data: { count: number; label: string }[]
         </div>
     );
 };
-

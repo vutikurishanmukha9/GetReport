@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FileUpload } from "@/components/FileUpload";
 import { DataPreview } from "@/components/DataPreview";
 import { Header } from "@/components/Header";
@@ -18,6 +19,8 @@ const ReportGeneration = lazy(() =>
 export type AppStep = "upload" | "preview" | "generating" | "complete";
 
 export const Workspace = () => {
+  const [searchParams] = useSearchParams();
+  const sampleParam = searchParams.get("sample") || undefined;
   const [step, setStep] = useState<AppStep>("upload");
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -79,7 +82,7 @@ export const Workspace = () => {
                 Ingest your CSV or Excel ledger to begin the automated schema inference, data hygiene audit, and AI synthesis.
               </p>
             </div>
-            <FileUpload onFileUploaded={handleFileUploaded} />
+            <FileUpload onFileUploaded={handleFileUploaded} initialSampleId={sampleParam} />
           </div>
         )}
 

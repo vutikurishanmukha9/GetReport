@@ -37,11 +37,64 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+const SAMPLE_DATASETS: Record<string, { filename: string; csv: string }> = {
+  sales_retail: {
+    filename: "ecommerce_sales_ledger.csv",
+    csv: `order_id,customer_name,category,revenue_usd,order_date,customer_tier,shipping_lead_days
+1001,Acme Corporation,Electronics,$1250.00,2024-01-15,Enterprise,2
+1002,Global Logistics,Office Supplies,$340.50,2024-01-16,Standard,5
+1003,Starlight Media,Electronics,$890.00,2024-01-18,Enterprise,1
+1004,Apex Health Inc,Services,$2100.00,2024-01-20,VIP,3
+1005,Beta Retail,Office Supplies,$150.25,2024-01-21,Standard,4
+1006,Nova Systems,Electronics,$4500.00,2024-01-22,Enterprise,2
+1007,Horizon Tech,Technology,$980.00,2024-01-25,Standard,
+1008,Zenith Media,Services,$620.00,2024-01-28,Standard,6
+1009,Omega Goods,Retail,$120.00,2024-02-01,VIP,1
+1010,Acme Corporation,Electronics,$1250.00,2024-01-15,Enterprise,2
+1011,Pinnacle Labs,Technology,$3100.50,2024-02-04,Enterprise,3
+1012,Echo Dynamics,Services,$740.00,2024-02-08,Standard,4
+1013,Vanguard Retail,Retail,$430.00,2024-02-10,VIP,2
+1014,Solaris Energy,Technology,$5800.00,2024-02-14,Enterprise,1
+1015,Crestview Ltd,Office Supplies,$290.00,2024-02-18,Standard,3`
+  },
+  clinical_vitals: {
+    filename: "clinical_trial_vitals.csv",
+    csv: `subject_id,age,gender,systolic_bp,diastolic_bp,dosage_mg,adverse_event,cohort
+P-101,45,M,128,82,50.0,No,Cohort A
+P-102,52,F,135,88,100.0,No,Cohort A
+P-103,61,M,142,90,100.0,Yes,Cohort B
+P-104,39,F,120,78,50.0,No,Cohort A
+P-105,58,M,138,86,100.0,No,Cohort B
+P-106,64,F,148,94,150.0,Yes,Cohort B
+P-107,41,M,122,80,50.0,No,Cohort A
+P-108,70,M,155,98,150.0,Yes,Cohort B
+P-109,49,F,130,84,50.0,No,Cohort A
+P-110,55,F,136,86,100.0,No,Cohort A
+P-111,63,M,144,92,100.0,Yes,Cohort B
+P-112,47,F,125,80,50.0,No,Cohort A`
+  },
+  finance_budget: {
+    filename: "quarterly_budget_variance.csv",
+    csv: `invoice_id,department,vendor_name,budget_allocated,actual_spend,fiscal_quarter,status
+INV-001,Engineering,AWS Cloud,$50000.00,$48200.00,Q1,Approved
+INV-002,Marketing,Google Ads,$25000.00,$28500.00,Q1,Over Budget
+INV-003,Sales,Salesforce,$15000.00,$15000.00,Q1,Approved
+INV-004,HR,Workday,$12000.00,$11800.00,Q1,Approved
+INV-005,Engineering,Datadog,$8000.00,$8200.00,Q1,Approved
+INV-006,Finance,Stripe,$4000.00,$3900.00,Q1,Approved
+INV-007,Marketing,Meta Ads,$18000.00,$22000.00,Q1,Over Budget
+INV-008,Operations,WeWork,$30000.00,$30000.00,Q1,Approved
+INV-009,Engineering,GitHub Enterprise,$6000.00,$6000.00,Q1,Approved
+INV-010,Security,CrowdStrike,$14000.00,$14000.00,Q1,Approved`
+  }
+};
+
 interface FileUploadProps {
   onFileUploaded: (data: ApiResponse, taskId: string) => void;
+  initialSampleId?: string;
 }
 
-export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
+export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
@@ -163,6 +216,20 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
       description: `${valid.length} file(s) added to staging. Click 'Start Analysis' when ready!`,
     });
   }, [validateFile, toast]);
+
+  const handleLoadSample = useCallback((sampleKey: string) => {
+    const sample = SAMPLE_DATASETS[sampleKey] || SAMPLE_DATASETS["sales_retail"];
+    if (!sample) return;
+    const blob = new Blob([sample.csv], { type: "text/csv;charset=utf-8;" });
+    const file = new File([blob], sample.filename, { type: "text/csv" });
+    addFilesToStaging([file]);
+  }, [addFilesToStaging]);
+
+  useEffect(() => {
+    if (initialSampleId) {
+      handleLoadSample(initialSampleId);
+    }
+  }, [initialSampleId, handleLoadSample]);
 
   // Helper to sniff headers from text files client-side without full server roundtrip
   const sniffHeaders = async (file: File): Promise<string[]> => {
@@ -577,6 +644,38 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
                 </span>
               ))}
             </div>
+
+            {/* Quick-Load Sample Datasets */}
+            {!isProcessing && stagedFiles.length === 0 && (
+              <div className="pt-4 mt-4 border-t border-white/5 flex flex-col items-center gap-2">
+                <span className="text-[11px] font-mono text-zinc-400">
+                  Or load an instant sample ledger:
+                </span>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleLoadSample("sales_retail")}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white border border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <span>E-Commerce Sales (CSV)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleLoadSample("clinical_vitals")}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white border border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <span>Clinical Vitals (CSV)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleLoadSample("finance_budget")}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white border border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <span>Department Budget (CSV)</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Staged Files Queue Manager */}
@@ -993,10 +1092,6 @@ export const FileUpload = ({ onFileUploaded }: FileUploadProps) => {
               </p>
             </div>
           </div>
-          <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-mono font-semibold">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Verified Secure
-          </span>
         </div>
 
         <ul className="space-y-2 text-[11px] sm:text-xs text-muted-foreground leading-relaxed font-sans">

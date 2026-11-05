@@ -107,3 +107,6 @@ OpenSandbox/
 
 # ─── Business Intelligence Companion ───────────────────────
 superset/
+metabase/
+
+metabase
