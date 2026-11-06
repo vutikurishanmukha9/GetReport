@@ -648,7 +648,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             {/* Quick-Load Sample Datasets */}
             {!isProcessing && stagedFiles.length === 0 && (
               <div className="pt-4 mt-4 border-t border-white/5 flex flex-col items-center gap-2">
-                <span className="text-[11px] font-mono text-zinc-400">
+                <span className="text-xs font-sans font-medium text-muted-foreground">
                   Or load an instant sample ledger:
                 </span>
                 <div className="flex flex-wrap items-center justify-center gap-2">
@@ -837,9 +837,9 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                               <span className="text-zinc-200 font-semibold truncate max-w-[170px]" title={f1.name}>
                                 {f1.name}
                               </span>
-                              <span className="text-[10px] text-zinc-500 font-mono">Left Dataset</span>
+                              <span className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider font-semibold">Left Dataset</span>
                             </div>
-                            <label htmlFor="left-join-select" className="text-[10px] text-zinc-400 font-medium block">
+                            <label htmlFor="left-join-select" className="text-[10px] text-zinc-400 font-medium font-sans block">
                               Join Key Column
                             </label>
                             {cols1.length > 0 ? (

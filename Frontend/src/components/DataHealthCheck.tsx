@@ -295,7 +295,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                 <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-1">
                     <ShieldAlert className="w-3.5 h-3.5" /> Hygiene Audit & Rules
                 </div>
-                <h2 className="text-3xl font-display font-bold text-foreground tracking-tight">Data Health Check</h2>
+                <h2 className="text-3xl font-sans font-bold text-foreground tracking-[-0.03em]">Data Health Check</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed font-sans">
                     We scanned your dataset with distribution-aware heuristics to detect masked nulls, formatted numbers, zero-variance columns, and outliers.
                 </p>
@@ -311,10 +311,10 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <h4 className="text-sm font-display font-bold text-amber-300">
+                                <h4 className="text-sm font-sans font-semibold text-amber-300">
                                     {issue.type === 'partial_duplicates' ? "Ambiguous Data Detected" : "Quality Warning"}
                                 </h4>
-                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                <span className="text-[10px] font-sans font-bold tabular-nums px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                     {issue.count} rows
                                 </span>
                             </div>
@@ -338,7 +338,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             <span className="text-xs font-semibold text-foreground tracking-tight">
                                 Auto-Suggestion Presets
                             </span>
-                            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
+                            <span className="text-[11px] font-sans font-medium tabular-nums px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
                                 {columnsWithIssues.length} columns flagged
                             </span>
                         </div>
@@ -408,21 +408,21 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                         <Card key={col.name} className="border border-white/10 bg-[#0c0d12] rounded-2xl shadow-premium overflow-hidden flex flex-col justify-between t-card-lift">
                             <CardHeader className="pb-3 bg-white/[0.02] border-b border-white/5">
                                 <div className="flex justify-between items-start gap-2">
-                                    <CardTitle className="text-base font-display font-bold text-foreground truncate" title={col.name}>
+                                    <CardTitle className="text-base font-sans font-semibold text-foreground truncate tracking-tight" title={col.name}>
                                         {col.name}
                                     </CardTitle>
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger>
                                                 <span
-                                                    className={`inline-flex items-center text-[10px] font-mono gap-1 px-2.5 py-0.5 rounded-full border ${typeStyle.className} shrink-0 shadow-2xs`}
+                                                    className={`inline-flex items-center text-[10px] font-sans font-medium gap-1 px-2.5 py-0.5 rounded-full border ${typeStyle.className} shrink-0 shadow-2xs`}
                                                 >
                                                     {typeStyle.icon}
                                                     {col.inferred_type}
                                                 </span>
                                             </TooltipTrigger>
                                             <TooltipContent className="rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl">
-                                                <p className="text-xs font-mono">Inferred Type: {col.inferred_type} ({col.dtype})</p>
+                                                <p className="text-xs font-sans">Inferred Type: <code className="font-mono text-emerald-400 font-semibold">{col.inferred_type}</code> ({col.dtype})</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
@@ -455,18 +455,18 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                 {/* Suggestion Header with Confidence & Impact */}
                                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-muted-foreground font-sans space-y-2">
                                     <div className="flex items-center justify-between gap-1 flex-wrap">
-                                        <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">
+                                        <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider font-sans">
                                             Auto-Suggestion
                                         </span>
                                         <div className="flex items-center gap-1.5">
                                             {issue?.confidence_score !== undefined && (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold tabular-nums px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                                     <CheckCircle2 className="w-2.5 h-2.5" />
                                                     {issue.confidence_score}%
                                                 </span>
                                             )}
                                             {issue?.impact_estimate && (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold tabular-nums px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
                                                     <TrendingUp className="w-2.5 h-2.5" />
                                                     {issue.impact_estimate}
                                                 </span>
@@ -878,12 +878,12 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     <div className="w-16 h-16 bg-emerald-500/15 rounded-full flex items-center justify-center mx-auto mb-5 border border-emerald-500/30 shadow-2xs">
                         <Check className="h-8 w-8 text-emerald-400" />
                     </div>
-                    <h3 className="text-2xl font-display font-bold text-foreground">Data Quality: Excellent</h3>
-                    <p className="text-muted-foreground mt-2 max-w-md mx-auto text-sm leading-relaxed">
+                    <h3 className="text-2xl font-sans font-bold text-foreground tracking-[-0.025em]">Data Quality: Excellent</h3>
+                    <p className="text-muted-foreground mt-2 max-w-md mx-auto text-sm leading-relaxed font-sans">
                         We have successfully run our pre-analysis checks and found no critical issues, missing values, or problematic distributions. Your dataset is clean and ready for deep analysis.
                     </p>
                     
-                    <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                    <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left font-sans">
                         <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-start gap-3">
                             <div className="bg-emerald-500/15 p-1.5 rounded-md mt-0.5 border border-emerald-500/25"><Check className="h-4 w-4 text-emerald-400" /></div>
                             <div>
@@ -904,17 +904,17 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
             {/* DATA PREVIEW TABLE */}
             {report.preview && report.preview.length > 0 && (
-                <div className="border border-white/10 bg-[#0c0d12] shadow-premium rounded-2xl overflow-hidden">
+                <div className="border border-white/10 bg-[#0c0d12] shadow-premium rounded-2xl overflow-hidden font-sans">
                     <div className="bg-white/[0.03] px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
-                        <h3 className="text-sm font-display font-bold text-foreground tracking-tight">Data Preview (First 5 Rows)</h3>
-                        <span className="text-xs font-mono text-muted-foreground">{report.preview.length} sample rows</span>
+                        <h3 className="text-sm font-sans font-semibold text-foreground tracking-tight">Data Preview (First 5 Rows)</h3>
+                        <span className="text-xs font-sans font-medium text-muted-foreground tabular-nums">{report.preview.length} sample rows</span>
                     </div>
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-sm text-left border-collapse">
                             <thead className="bg-white/[0.02] text-foreground font-semibold">
                                 <tr>
                                     {Object.keys(report.preview[0]).map((header) => (
-                                        <th key={header} className="px-4 py-3 border-b border-r border-white/10 whitespace-nowrap font-mono text-xs last:border-r-0">
+                                        <th key={header} className="px-4 py-3 border-b border-r border-white/10 whitespace-nowrap font-sans font-semibold text-xs uppercase tracking-wider text-muted-foreground last:border-r-0">
                                             {header}
                                         </th>
                                     ))}
@@ -924,7 +924,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                 {report.preview.map((row, rowPos) => (
                                     <tr key={`row_pos_${rowPos}`} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
                                         {Object.entries(row).map(([header, cell]) => (
-                                            <td key={`cell_${header}_${rowPos}`} className="px-4 py-2.5 border-r border-white/10 font-mono text-xs whitespace-nowrap max-w-[200px] truncate last:border-r-0 text-foreground/90" title={String(cell)}>
+                                            <td key={`cell_${header}_${rowPos}`} className="px-4 py-2.5 border-r border-white/10 font-sans text-xs whitespace-nowrap max-w-[200px] truncate last:border-r-0 text-foreground/90 font-normal tabular-nums" title={String(cell)}>
                                                 {cell === null ? <span className="text-muted-foreground italic font-sans">null</span> : String(cell)}
                                             </td>
                                         ))}
@@ -942,7 +942,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     size="lg"
                     onClick={handleSubmit}
                     disabled={isProcessing}
-                    className="w-full sm:w-auto min-w-[220px] rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-sm py-6 bg-white hover:bg-zinc-200 text-black font-display shadow-md cursor-pointer"
+                    className="w-full sm:w-auto min-w-[220px] rounded-xl transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-semibold text-sm py-6 bg-white hover:bg-zinc-200 text-black font-sans shadow-md cursor-pointer"
                 >
                     {isProcessing ? (
                         "Processing…"

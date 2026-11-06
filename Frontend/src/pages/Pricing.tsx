@@ -107,12 +107,12 @@ export const Pricing = () => {
         {/* Header */}
         <div className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-14 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl text-center space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] text-zinc-300 text-xs font-mono">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] text-zinc-300 text-xs font-sans font-medium">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
               <span>Open Source • Free for Personal & Enterprise Use</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-black text-white tracking-[-0.03em] leading-[1.12]">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-sans font-black text-white tracking-[-0.03em] leading-[1.12]">
               Full platform access. <span className="text-zinc-400 block mt-1">Zero paywalls.</span>
             </h1>
             
@@ -130,14 +130,14 @@ export const Pricing = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2.5">
-                  <Badge className="bg-white text-black text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-0.5 rounded-md">
+                  <Badge className="bg-white text-black text-[10px] font-sans font-bold uppercase tracking-[0.15em] px-3 py-0.5 rounded-md">
                     COMMUNITY & ENTERPRISE
                   </Badge>
-                  <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-semibold">
+                  <span className="text-xs font-sans text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-semibold">
                     Active Release
                   </span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
                   GetReport Open Edition
                 </h2>
                 <p className="text-xs sm:text-sm text-zinc-400 font-sans">
@@ -147,16 +147,16 @@ export const Pricing = () => {
 
               <div className="flex flex-col items-start sm:items-end shrink-0">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-4xl sm:text-5xl font-display font-black text-white">$0</span>
-                  <span className="text-xs text-emerald-400 font-mono font-bold uppercase tracking-wider">FREE FOREVER</span>
+                  <span className="text-4xl sm:text-5xl font-sans font-black text-white tracking-tight tabular-nums">$0</span>
+                  <span className="text-xs text-emerald-400 font-sans font-bold uppercase tracking-[0.15em]">FREE FOREVER</span>
                 </div>
-                <span className="text-[10px] text-zinc-400 font-mono mt-0.5">Apache 2.0 / Open Source</span>
+                <span className="text-[10px] text-zinc-400 font-sans uppercase tracking-wider mt-0.5">Apache 2.0 / Open Source</span>
               </div>
             </div>
 
             {/* Core Feature Bullet Grid */}
             <div className="space-y-3">
-              <span className="text-xs font-mono uppercase tracking-wider text-zinc-300 font-bold block">
+              <span className="text-xs font-sans uppercase tracking-[0.15em] text-zinc-300 font-bold block">
                 Everything Unlocked Right Now:
               </span>
 
@@ -182,7 +182,7 @@ export const Pricing = () => {
             {/* Launch CTA Bar */}
             <div className="pt-2 flex items-center">
               <Link to="/workspace" className="w-full">
-                <Button size="lg" className="w-full h-11 rounded-xl bg-white text-black hover:bg-zinc-200 font-display font-bold text-sm shadow-md transition-all active:scale-[0.99]">
+                <Button size="lg" className="w-full h-11 rounded-xl bg-white text-black hover:bg-zinc-200 font-sans font-semibold text-sm shadow-md transition-all active:scale-[0.99] cursor-pointer">
                   <span>Launch Free Audit Workspace</span>
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -195,7 +195,7 @@ export const Pricing = () => {
         {/* Section 2: 4-Category Capability Bento Grid */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-6xl space-y-8">
           <div className="text-center max-w-2xl mx-auto space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-sans font-bold text-white tracking-tight">
               Platform capabilities & architecture
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed">
@@ -215,11 +215,11 @@ export const Pricing = () => {
                         <div className="h-8 w-8 rounded-lg bg-white/[0.06] text-white flex items-center justify-center border border-white/10">
                           <CategoryIcon className="h-4 w-4" />
                         </div>
-                        <h3 className="font-display font-bold text-sm sm:text-base text-white">
+                        <h3 className="font-sans font-bold text-sm sm:text-base text-white tracking-tight">
                           {cat.category}
                         </h3>
                       </div>
-                      <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                      <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
                         Unlocked
                       </Badge>
                     </div>
@@ -251,7 +251,7 @@ export const Pricing = () => {
         {/* Section 3: Interactive FAQ Accordion */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-4xl space-y-6">
           <div className="text-center max-w-2xl mx-auto space-y-1.5">
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
               Everything you need to know
             </h2>
           </div>
@@ -271,7 +271,7 @@ export const Pricing = () => {
                     onClick={() => toggleFaq(fIdx)}
                     className="w-full px-5 py-4 flex items-center justify-between gap-4 text-left cursor-pointer bg-transparent border-0 select-none"
                   >
-                    <span className="font-display font-semibold text-xs sm:text-sm text-zinc-100">
+                    <span className="font-sans font-semibold text-xs sm:text-sm text-zinc-100">
                       {faq.question}
                     </span>
                     {isOpen ? (
@@ -295,7 +295,7 @@ export const Pricing = () => {
         {/* Section 4: Bottom Conversion Bar */}
         <div className="border-t border-white/10 bg-[#0c0d12]/60 py-10 sm:py-14">
           <div className="container mx-auto px-4 text-center space-y-4 max-w-3xl">
-            <h2 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
               Start auditing datasets in seconds
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 font-sans max-w-lg mx-auto">
@@ -303,7 +303,7 @@ export const Pricing = () => {
             </p>
             <div className="pt-1 flex flex-wrap items-center justify-center gap-3">
               <Link to="/workspace">
-                <Button size="lg" className="h-11 px-7 rounded-xl bg-white text-black hover:bg-zinc-200 font-display font-bold text-sm shadow-md transition-all active:scale-[0.99]">
+                <Button size="lg" className="h-11 px-7 rounded-xl bg-white text-black hover:bg-zinc-200 font-sans font-semibold text-sm shadow-md transition-all active:scale-[0.99] cursor-pointer">
                   <span>Launch Workspace</span>
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>

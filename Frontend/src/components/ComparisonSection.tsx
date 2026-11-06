@@ -8,10 +8,10 @@ export const ComparisonSection = () => {
         
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center space-y-2.5 mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-zinc-400 text-[11px] font-sans font-semibold uppercase tracking-[0.15em]">
             <span>Engineering Architecture</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-display font-extrabold text-white tracking-[-0.03em] leading-tight">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-sans font-extrabold text-white tracking-[-0.03em] leading-tight">
             Traditional Manual Verification vs. GetReport Automated Assurance
           </h2>
           <p className="text-xs sm:text-base text-zinc-400 max-w-2xl mx-auto leading-relaxed font-normal font-sans">
@@ -31,11 +31,11 @@ export const ComparisonSection = () => {
                     <FileSpreadsheet className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-display font-bold text-base sm:text-lg text-white">Manual Desktop Inspection</h3>
-                    <p className="text-[11px] font-mono text-zinc-400 font-medium">Standard spreadsheet applications</p>
+                    <h3 className="font-sans font-bold text-base sm:text-lg text-white tracking-tight">Manual Desktop Inspection</h3>
+                    <p className="text-xs font-sans text-zinc-400 font-medium">Standard spreadsheet applications</p>
                   </div>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-zinc-800/80 border border-white/10 text-zinc-300 text-[10px] font-mono font-semibold uppercase tracking-wider shrink-0">
+                <span className="px-2.5 py-1 rounded-full bg-zinc-800/80 border border-white/10 text-zinc-300 text-[10px] font-sans font-bold uppercase tracking-[0.15em] shrink-0">
                   Vulnerable
                 </span>
               </div>
@@ -72,9 +72,9 @@ export const ComparisonSection = () => {
               </ul>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-white/10 text-[11px] font-mono text-zinc-400 flex items-center justify-between">
-              <span>Risk: Undetected schema drift & audit failures</span>
-              <span className="text-zinc-400 bg-white/[0.04] border border-white/10 px-2 py-0.5 rounded text-[10px]">No Lineage DAG</span>
+            <div className="mt-6 pt-4 border-t border-white/10 text-xs font-sans text-zinc-400 flex items-center justify-between">
+              <span className="font-medium">Risk: Undetected schema drift & audit failures</span>
+              <span className="text-zinc-400 bg-white/[0.04] border border-white/10 px-2 py-0.5 rounded text-[10px] font-sans font-semibold uppercase tracking-wider">No Lineage DAG</span>
             </div>
           </div>
 
@@ -87,11 +87,11 @@ export const ComparisonSection = () => {
                     <ShieldCheck className="h-5 w-5 text-emerald-400" />
                   </div>
                   <div>
-                    <h3 className="font-display font-bold text-base sm:text-lg text-white">GetReport Assurance Pipeline</h3>
-                    <p className="text-[11px] font-mono text-zinc-400 font-medium">Automated Polars in-memory engine</p>
+                    <h3 className="font-sans font-bold text-base sm:text-lg text-white tracking-tight">GetReport Assurance Pipeline</h3>
+                    <p className="text-xs font-sans text-zinc-400 font-medium">Automated Polars in-memory engine</p>
                   </div>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-mono font-semibold uppercase tracking-wider shrink-0">
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-sans font-bold uppercase tracking-[0.15em] shrink-0">
                   Certified Lineage
                 </span>
               </div>
@@ -129,8 +129,8 @@ export const ComparisonSection = () => {
             </div>
 
             <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 relative z-10">
-              <div className="text-[11px] font-mono text-zinc-400 w-full sm:w-auto text-left">
-                Latency: <strong className="text-emerald-400 font-semibold font-mono">&lt; 50ms streaming</strong>
+              <div className="text-xs font-sans text-zinc-400 w-full sm:w-auto text-left">
+                Latency: <strong className="text-emerald-400 font-mono font-semibold tabular-nums">&lt; 50ms streaming</strong>
               </div>
               <Link to="/workspace" className="w-full sm:w-auto">
                 <button

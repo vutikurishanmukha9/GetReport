@@ -609,40 +609,49 @@ export const ReportGeneration = ({
           <div className="flex items-center gap-5 z-10">
             {/* Seal / Letter Grade Badge */}
             <div className={`flex flex-col items-center justify-center h-20 w-20 sm:h-24 sm:w-24 rounded-2xl ${getGradeColorClass(datasetGrade)} border shadow-sm shrink-0`}>
-              <span className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground/70 leading-none mb-1">GRADE</span>
-              <span className="text-3xl sm:text-4xl font-display font-black leading-none tracking-tighter">{datasetGrade}</span>
-              <span className="text-[10px] font-mono font-bold mt-1">{datasetConfidence.toFixed(1)}%</span>
+              <span className="text-[9px] font-sans font-bold tracking-[0.2em] uppercase text-emerald-400/80 leading-none mb-1">GRADE</span>
+              <span className="text-3xl sm:text-4xl font-sans font-black leading-none tracking-tight text-emerald-400">{datasetGrade}</span>
+              <span className="text-[11px] font-sans font-bold mt-1 text-emerald-300/90 tabular-nums">{datasetConfidence.toFixed(1)}%</span>
             </div>
 
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground tracking-tight">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-sans font-bold text-foreground tracking-[-0.025em] leading-tight">
                   {filename ? filename.replace(/\.[^/.]+$/, "") : "Dataset Analysis"}
                 </h1>
                 {analysis?.snowflake_meta && (
-                  <Badge variant="outline" className="text-[10px] font-mono uppercase bg-white/[0.04] text-zinc-300 border-white/10 inline-flex items-center gap-1.5">
+                  <Badge variant="outline" className="text-[10px] font-sans font-medium uppercase bg-white/[0.04] text-zinc-300 border-white/10 inline-flex items-center gap-1.5">
                     <span>Snowflake</span>
-                    <span className="px-1 py-0.5 text-[8px] font-mono font-semibold uppercase tracking-widest text-zinc-400 bg-white/[0.06] border border-white/10 rounded leading-none">Beta</span>
+                    <span className="px-1 py-0.5 text-[8px] font-sans font-semibold uppercase tracking-widest text-zinc-400 bg-white/[0.06] border border-white/10 rounded leading-none">Beta</span>
                   </Badge>
                 )}
                 {analysis?.snowflake_meta?.truncated && (
-                  <Badge variant="outline" className="text-[10px] font-mono uppercase bg-rose-500/15 text-rose-400 border-rose-500/30">
+                  <Badge variant="outline" className="text-[10px] font-sans font-medium uppercase bg-rose-500/15 text-rose-400 border-rose-500/30">
                     Truncated at Limit (150MB Ceiling)
                   </Badge>
                 )}
                 {analysis?.snowflake_meta?.sampled && (
-                  <Badge variant="outline" className="text-[10px] font-mono uppercase bg-white/[0.06] text-zinc-300 border-white/10">
+                  <Badge variant="outline" className="text-[10px] font-sans font-medium uppercase bg-white/[0.06] text-zinc-300 border-white/10">
                     Sampled (10% Bernoulli)
                   </Badge>
                 )}
               </div>
-              <p className="text-xs sm:text-sm text-muted-foreground font-mono">
-                {info.rows.toLocaleString()} rows • {info.columns.length} columns • {(info.memory_usage_mb || 0).toFixed(2)} MB in-memory
-              </p>
-              <div className="text-[11px] font-mono text-muted-foreground/80 flex items-center gap-2 pt-1">
-                <span>{confidence.high_confidence_count} High Confidence Columns</span>
-                <span>•</span>
-                <span>{confidence.low_confidence_count} Need Attention</span>
+              <div className="flex items-center gap-2 text-xs sm:text-[13px] text-muted-foreground font-sans font-medium flex-wrap">
+                <span><span className="font-semibold text-zinc-200 tabular-nums">{info.rows.toLocaleString()}</span> rows</span>
+                <span className="text-white/20">•</span>
+                <span><span className="font-semibold text-zinc-200 tabular-nums">{info.columns.length}</span> columns</span>
+                <span className="text-white/20">•</span>
+                <span><span className="font-semibold text-zinc-200 tabular-nums">{(info.memory_usage_mb || 0).toFixed(2)} MB</span> in-memory</span>
+              </div>
+              <div className="text-xs font-sans text-muted-foreground/85 flex items-center gap-2.5 pt-0.5 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 font-medium text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="font-semibold tabular-nums">{confidence.high_confidence_count}</span> High Confidence Columns
+                </span>
+                <span className="text-white/20">•</span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-zinc-400">
+                  <span className="font-semibold tabular-nums text-zinc-300">{confidence.low_confidence_count}</span> Need Attention
+                </span>
               </div>
             </div>
           </div>
@@ -661,7 +670,7 @@ export const ReportGeneration = ({
             <Button
               size="lg"
               variant="outline"
-              className="flex-1 md:flex-none rounded-xl border-border/80 bg-secondary/80 hover:bg-secondary shadow-xs transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-display text-sm text-foreground"
+              className="flex-1 md:flex-none rounded-xl border-white/10 bg-white/[0.04] hover:bg-white/[0.08] shadow-xs transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-sans font-semibold text-sm text-foreground"
               onClick={() => downloadExport("html")}
             >
               <BookOpen className="h-4 w-4 text-primary" />
@@ -685,7 +694,7 @@ export const ReportGeneration = ({
             <Button
               size="lg"
               variant="ghost"
-              className="rounded-xl text-muted-foreground hover:text-foreground text-xs flex items-center gap-1.5 px-3"
+              className="rounded-xl text-muted-foreground hover:text-foreground font-sans font-medium text-xs flex items-center gap-1.5 px-3"
               onClick={onReset}
               title="Audit a different file"
             >
@@ -697,10 +706,10 @@ export const ReportGeneration = ({
 
         {/* ─── Main Command Center Tabs ─── */}
         <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-          <TabsList className="h-auto min-h-12 w-full bg-[#0c0d12]/90 border border-white/10 p-1.5 rounded-2xl mb-6 shadow-sm flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap lg:flex-wrap">
+          <TabsList className="h-auto min-h-12 w-full bg-[#0c0d12]/90 border border-white/10 p-1.5 rounded-2xl mb-6 shadow-sm flex items-center gap-1 overflow-x-auto scrollbar-none flex-nowrap">
             <TabsTrigger
               value="overview"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <FileText className="h-4 w-4" />
               <span>Overview</span>
@@ -708,12 +717,12 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="charts"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <TrendingUp className="h-4 w-4" />
               <span>Visual Analytics</span>
               {chartTabsList.length > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 rounded-full bg-white/10 text-white border-0">
+                <Badge variant="secondary" className="text-[10px] font-sans font-semibold tabular-nums px-1.5 py-0 h-4 rounded-full bg-white/10 text-white border-0">
                   {chartTabsList.length}
                 </Badge>
               )}
@@ -721,18 +730,18 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="ledger"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <ShieldCheck className="h-4 w-4" />
               <span>Trust Ledger</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 rounded-full bg-white/10 text-white border-0">
+              <Badge variant="secondary" className="text-[10px] font-sans font-semibold tabular-nums px-1.5 py-0 h-4 rounded-full bg-white/10 text-white border-0">
                 {confidence.columns.length}
               </Badge>
             </TabsTrigger>
 
             <TabsTrigger
               value="stats"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <Activity className="h-4 w-4" />
               <span>Statistical Audit</span>
@@ -740,7 +749,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="sql"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <Terminal className="h-4 w-4" />
               <span>DuckDB SQL Studio</span>
@@ -748,7 +757,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="bi_analytics"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <BarChart3 className="h-4 w-4" />
               <span>Interactive BI</span>
@@ -756,7 +765,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="export"
-              className="rounded-xl text-xs sm:text-sm px-4 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <Download className="h-4 w-4" />
               <span>Export Hub</span>
@@ -768,54 +777,54 @@ export const ReportGeneration = ({
             {/* Quick Metrics KPI Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <Card className="border border-border/80 bg-card shadow-premium rounded-2xl p-5">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block">
+                <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-muted-foreground block">
                   Completeness
                 </span>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-display font-bold text-foreground">
+                  <span className="text-2xl sm:text-3xl font-sans font-bold text-foreground tracking-tight tabular-nums">
                     {datasetConfidence.toFixed(1)}%
                   </span>
-                  <span className="text-xs text-emerald-600 font-mono">High Quality</span>
+                  <span className="text-xs font-sans font-medium text-emerald-400">High Quality</span>
                 </div>
-                <p className="text-[11px] font-mono text-muted-foreground mt-1">Overall data confidence index</p>
+                <p className="text-xs font-sans text-muted-foreground/80 mt-1">Overall data confidence index</p>
               </Card>
 
               <Card className="border border-border/80 bg-card shadow-premium rounded-2xl p-5">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block">
+                <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-muted-foreground block">
                   Dataset Dimensions
                 </span>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-display font-bold text-foreground">
+                  <span className="text-2xl sm:text-3xl font-sans font-bold text-foreground tracking-tight tabular-nums">
                     {info.rows.toLocaleString()}
                   </span>
-                  <span className="text-xs font-mono text-muted-foreground">x {info.columns.length} cols</span>
+                  <span className="text-xs font-sans font-medium text-muted-foreground">x {info.columns.length} cols</span>
                 </div>
-                <p className="text-[11px] font-mono text-muted-foreground mt-1">Processed without schema drift</p>
+                <p className="text-xs font-sans text-muted-foreground/80 mt-1">Processed without schema drift</p>
               </Card>
 
               <Card className="border border-border/80 bg-card shadow-premium rounded-2xl p-5">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block">
+                <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-muted-foreground block">
                   Numeric vs Categorical
                 </span>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-display font-bold text-foreground">
+                  <span className="text-2xl sm:text-3xl font-sans font-bold text-foreground tracking-tight tabular-nums">
                     {info.numeric_columns?.length || 0} / {info.categorical_columns?.length || 0}
                   </span>
                 </div>
-                <p className="text-[11px] font-mono text-muted-foreground mt-1">Continuous vs discrete variables</p>
+                <p className="text-xs font-sans text-muted-foreground/80 mt-1">Continuous vs discrete variables</p>
               </Card>
 
               <Card className="border border-border/80 bg-card shadow-premium rounded-2xl p-5">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground block">
+                <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-muted-foreground block">
                   Memory Utilization
                 </span>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-display font-bold text-foreground">
+                  <span className="text-2xl sm:text-3xl font-sans font-bold text-foreground tracking-tight tabular-nums">
                     {(info.memory_usage_mb || 0).toFixed(2)}
                   </span>
-                  <span className="text-xs font-mono text-muted-foreground">MB</span>
+                  <span className="text-xs font-sans font-medium text-muted-foreground">MB</span>
                 </div>
-                <p className="text-[11px] font-mono text-muted-foreground mt-1">Optimized columnar storage</p>
+                <p className="text-xs font-sans text-muted-foreground/80 mt-1">Optimized columnar storage</p>
               </Card>
             </div>
 

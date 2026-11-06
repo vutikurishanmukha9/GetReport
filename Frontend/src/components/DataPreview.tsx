@@ -117,24 +117,24 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground truncate">
+              <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-[-0.025em] text-foreground truncate">
                 Dataset Ingestion Preview
               </h1>
-              <Badge variant="outline" className="text-[10px] font-mono uppercase bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+              <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
                 Validated
               </Badge>
               {analysis?.snowflake_meta?.truncated && (
-                <Badge variant="outline" className="text-[10px] font-mono uppercase bg-rose-500/15 text-rose-400 border-rose-500/30">
+                <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-wider bg-rose-500/15 text-rose-400 border-rose-500/30">
                   Truncated at Limit (150MB Ceiling)
                 </Badge>
               )}
               {analysis?.snowflake_meta?.sampled && (
-                <Badge variant="outline" className="text-[10px] font-mono uppercase bg-white/[0.06] text-zinc-300 border-white/10">
+                <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-wider bg-white/[0.06] text-zinc-300 border-white/10">
                   Sampled (10% Bernoulli)
                 </Badge>
               )}
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground font-mono mt-0.5">
+            <p className="text-xs sm:text-sm text-muted-foreground font-sans font-medium mt-0.5">
               Automated schema extraction complete • Ready for deep visual synthesis
             </p>
           </div>
@@ -144,7 +144,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
           <Button
             variant="outline"
             onClick={onBack}
-            className="gap-2 rounded-xl shadow-2xs border-border/80 bg-secondary/70 hover:bg-secondary text-foreground transition-all duration-150 hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm font-semibold h-10 px-4 cursor-pointer"
+            className="gap-2 rounded-xl shadow-2xs border-border/80 bg-secondary/70 hover:bg-secondary text-foreground transition-all duration-150 hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm font-sans font-semibold h-10 px-4 cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4 text-muted-foreground" />
             <span>Upload New</span>
@@ -167,53 +167,53 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
       {/* Fast Summary Metrics Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <Card className="border border-border/80 bg-card shadow-premium rounded-xl p-4">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-mono uppercase">
+          <div className="flex items-center justify-between text-muted-foreground text-[10px] font-sans font-semibold uppercase tracking-[0.15em]">
             <span>Total Rows</span>
             <Database className="h-4 w-4 text-primary" />
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-display font-bold text-foreground">
+          <div className="mt-2 text-xl sm:text-2xl font-sans font-bold tabular-nums text-foreground tracking-tight">
             {info.rows.toLocaleString()}
           </div>
-          <div className="text-[11px] font-mono text-muted-foreground mt-0.5">
+          <div className="text-xs font-sans text-muted-foreground/80 mt-1">
             {filteredRows.length} shown in sample preview
           </div>
         </Card>
 
         <Card className="border border-border/80 bg-card shadow-premium rounded-xl p-4">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-mono uppercase">
+          <div className="flex items-center justify-between text-muted-foreground text-[10px] font-sans font-semibold uppercase tracking-[0.15em]">
             <span>Total Columns</span>
             <Layers className="h-4 w-4 text-primary" />
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-display font-bold text-foreground">
+          <div className="mt-2 text-xl sm:text-2xl font-sans font-bold tabular-nums text-foreground tracking-tight">
             {info.columns.length}
           </div>
-          <div className="text-[11px] font-mono text-muted-foreground mt-0.5">
+          <div className="text-xs font-sans text-muted-foreground/80 mt-1">
             {info.numeric_columns?.length || 0} numeric • {info.categorical_columns?.length || 0} categorical
           </div>
         </Card>
 
         <Card className="border border-border/80 bg-card shadow-premium rounded-xl p-4">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-mono uppercase">
+          <div className="flex items-center justify-between text-muted-foreground text-[10px] font-sans font-semibold uppercase tracking-[0.15em]">
             <span>Memory Footprint</span>
             <Hash className="h-4 w-4 text-primary" />
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-display font-bold text-foreground">
+          <div className="mt-2 text-xl sm:text-2xl font-sans font-bold tabular-nums text-foreground tracking-tight">
             {(info.memory_usage_mb || 0).toFixed(2)} <span className="text-sm font-normal text-muted-foreground">MB</span>
           </div>
-          <div className="text-[11px] font-mono text-muted-foreground mt-0.5">
+          <div className="text-xs font-sans text-muted-foreground/80 mt-1">
             In-memory Polars table
           </div>
         </Card>
 
         <Card className="border border-border/80 bg-card shadow-premium rounded-xl p-4">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-mono uppercase">
+          <div className="flex items-center justify-between text-muted-foreground text-[10px] font-sans font-semibold uppercase tracking-[0.15em]">
             <span>Quality Status</span>
             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-display font-bold text-foreground">
+          <div className="mt-2 text-xl sm:text-2xl font-sans font-bold tabular-nums text-foreground tracking-tight">
             {totalIssuesCount === 0 ? "100% Clean" : `${info.columns.length - totalIssuesCount}/${info.columns.length}`}
           </div>
-          <div className="text-[11px] font-mono text-muted-foreground mt-0.5">
+          <div className="text-xs font-sans text-muted-foreground/80 mt-1">
             {cleaningReport.duplicate_rows_removed} duplicates removed
           </div>
         </Card>
@@ -267,7 +267,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                   onClick={() => setColTypeFilter("numeric")}
                   className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
                     colTypeFilter === "numeric"
-                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      ? "bg-primary text-primary-foreground shadow-2xs font-semibold"
                       : "bg-muted/40 hover:bg-muted text-muted-foreground"
                   }`}
                 >
@@ -276,9 +276,9 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                 <button
                   type="button"
                   onClick={() => setColTypeFilter("categorical")}
-                  className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${
+                  className={`px-3 py-1 rounded-lg text-xs font-sans font-medium transition-all ${
                     colTypeFilter === "categorical"
-                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      ? "bg-primary text-primary-foreground shadow-2xs font-semibold"
                       : "bg-muted/40 hover:bg-muted text-muted-foreground"
                   }`}
                 >
@@ -298,7 +298,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                   >
                     <span className="font-semibold text-foreground tracking-tight">{column}</span>
                     <span
-                      className={`inline-flex items-center text-[10px] font-mono gap-1 px-2 py-0.5 rounded-full border ${typeStyle.className}`}
+                      className={`inline-flex items-center text-[10px] font-sans font-medium gap-1 px-2 py-0.5 rounded-full border ${typeStyle.className}`}
                     >
                       {typeStyle.icon}
                       {info.dtypes[column] || "unknown"}
@@ -310,11 +310,11 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
           </Card>
 
           {/* Interactive Data Table with Instant Search */}
-          <Card className="border border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden">
+          <Card className="border border-border/80 bg-card shadow-premium rounded-2xl overflow-hidden font-sans">
             <CardHeader className="pb-3 sm:pb-4 border-b border-border/60 bg-muted/10">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg font-display font-bold text-foreground">
+                  <CardTitle className="text-base sm:text-lg font-sans font-semibold text-foreground tracking-tight">
                     Interactive Sample Rows
                   </CardTitle>
                   <CardDescription className="text-xs font-sans mt-0.5">
@@ -337,14 +337,14 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
             <CardContent className="p-0">
               <div className="w-full overflow-x-auto custom-scrollbar">
                 <div className="min-w-[650px]">
-                  <Table className="border-collapse">
+                  <Table className="border-collapse font-sans">
                     <TableHeader className="bg-muted/30">
                       <TableRow className="border-b border-border/60 hover:bg-transparent">
-                        <TableHead className="font-mono font-bold text-[10px] text-muted-foreground px-3 py-3 w-12 text-center border-r border-border/60">
+                        <TableHead className="font-sans font-semibold text-[10px] text-muted-foreground px-3 py-3 w-12 text-center border-r border-border/60">
                           #
                         </TableHead>
                         {visibleColumns.map((column) => (
-                          <TableHead key={column} className="font-display font-bold text-xs uppercase tracking-wider text-muted-foreground px-4 py-3 whitespace-nowrap border-r border-border/60 last:border-r-0">
+                          <TableHead key={column} className="font-sans font-semibold text-xs uppercase tracking-wider text-muted-foreground px-4 py-3 whitespace-nowrap border-r border-border/60 last:border-r-0">
                             {column}
                           </TableHead>
                         ))}
@@ -356,11 +356,11 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                           if (!row) return null;
                           return (
                             <TableRow key={rowIndex} className="border-b border-border/40 hover:bg-primary/[0.02] transition-colors">
-                              <TableCell className="font-mono text-[10px] text-muted-foreground px-3 py-2.5 text-center border-r border-border/60">
+                              <TableCell className="font-sans font-medium text-[11px] text-muted-foreground px-3 py-2.5 text-center border-r border-border/60 tabular-nums">
                                 {rowIndex + 1}
                               </TableCell>
                               {visibleColumns.map((column) => (
-                                <TableCell key={column} className="font-mono text-xs text-foreground/90 whitespace-nowrap px-4 py-2.5 border-r border-border/60 last:border-r-0">
+                                <TableCell key={column} className="font-sans text-xs text-foreground/90 whitespace-nowrap px-4 py-2.5 border-r border-border/60 last:border-r-0 tabular-nums">
                                   {row[column] === null || row[column] === undefined ? (
                                     <span className="text-muted-foreground/60 italic font-sans text-[11px]">null</span>
                                   ) : (
@@ -373,7 +373,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8 text-xs font-mono text-muted-foreground">
+                          <TableCell colSpan={visibleColumns.length + 1} className="text-center py-8 text-xs font-sans text-muted-foreground">
                             No records matched your search query &ldquo;{rowSearchQuery}&rdquo;
                           </TableCell>
                         </TableRow>

@@ -55,8 +55,8 @@ export const HeroSection = () => {
           </span>
         </h1>
 
-        {/* Subheadline - Clear SaaS value proposition without em dash */}
-        <p className="text-base sm:text-lg md:text-xl text-zinc-400 leading-relaxed max-w-2xl mx-auto font-sans font-normal [text-wrap:pretty]">
+        {/* Subheadline - True connected cursive typography */}
+        <p className="text-xl sm:text-2xl md:text-[1.75rem] text-zinc-100/95 leading-[1.6] max-w-2xl mx-auto font-cursive font-semibold [text-wrap:pretty]">
           Audit millions of rows in seconds. Detect silent formula corruption, hidden blank cells, and conflicting anomalies before they reach clients or leadership. 100% locally with zero cloud storage.
         </p>
 
@@ -84,7 +84,7 @@ export const HeroSection = () => {
           </div>
 
           {/* Micro Trust Indicators */}
-          <p className="text-[11px] sm:text-xs font-mono text-zinc-400">
+          <p className="text-xs font-sans text-zinc-400 font-medium">
             No signup required • Instant browser scan • Works with Excel, CSV & Parquet
           </p>
         </div>

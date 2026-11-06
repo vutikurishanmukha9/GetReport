@@ -280,18 +280,18 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-b from-emerald-500/25 to-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-5 shadow-[0_0_30px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.2)]">
                             <ShieldCheck className="w-8 h-8 text-emerald-300" />
                         </div>
-                        <span className="px-3 py-1 rounded-full text-[11px] font-mono uppercase tracking-widest font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 mb-3">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-sans uppercase tracking-[0.2em] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 mb-3">
                             Dataset Health 100%
                         </span>
-                        <h3 className="text-2xl font-display font-bold text-white tracking-tight">
+                        <h3 className="text-2xl font-sans font-bold text-white tracking-[-0.025em]">
                             Data Quality: Pristine
                         </h3>
-                        <p className="text-zinc-400 text-sm mt-2 max-w-md mx-auto leading-relaxed">
+                        <p className="text-zinc-400 text-sm mt-2 max-w-md mx-auto leading-relaxed font-sans">
                             Every column passed automated verification across completeness, type consistency, and validity. No data fixes are required.
                         </p>
                     </div>
 
-                    <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10 text-left">
+                    <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10 text-left font-sans">
                         {[
                             { title: 'Completeness', desc: 'Zero missing, masked, or null values detected.' },
                             { title: 'Consistency', desc: 'Uniform data types and aligned formatting.' },
@@ -310,7 +310,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         ))}
                     </div>
 
-                    <div className="mt-8 flex justify-center relative z-10">
+                    <div className="mt-8 flex justify-center relative z-10 font-sans">
                         <button
                             type="button"
                             onClick={onProceed}
@@ -328,7 +328,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     }
 
     return (
-        <div className="relative rounded-[2rem] p-1.5 sm:p-2 bg-gradient-to-b from-white/[0.12] via-white/[0.04] to-white/[0.01] border border-white/10 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)] backdrop-blur-2xl overflow-hidden animate-in fade-in duration-300">
+        <div className="relative rounded-[2rem] p-1.5 sm:p-2 bg-gradient-to-b from-white/[0.12] via-white/[0.04] to-white/[0.01] border border-white/10 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)] backdrop-blur-2xl overflow-hidden animate-in fade-in duration-300 font-sans">
             {/* Top Ambient Glow Sheen */}
             <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[32rem] h-48 bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-teal-500/10 blur-3xl pointer-events-none rounded-full" />
 
@@ -343,14 +343,14 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                             </div>
                             <div>
                                 <div className="flex flex-wrap items-center gap-2.5">
-                                    <h3 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+                                    <h3 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-[-0.025em]">
                                         Issue Ledger
                                     </h3>
-                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider font-semibold bg-white/[0.05] border border-white/10 text-zinc-300">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-sans uppercase tracking-[0.15em] font-semibold bg-white/[0.05] border border-white/10 text-zinc-300">
                                         Data Hygiene Gate
                                     </span>
                                     {locked && (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center gap-1">
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center gap-1 font-sans">
                                             <Lock className="w-3 h-3 text-emerald-400" /> Locked
                                         </span>
                                     )}
@@ -419,9 +419,9 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                         )}
                                         <span>{tab.label}</span>
                                         <span className={cn(
-                                            "px-1.5 py-0.2 rounded-md font-mono text-[10px]",
+                                            "px-1.5 py-0.2 rounded-md font-sans font-semibold tabular-nums text-[10px]",
                                             isActive 
-                                                ? "bg-white/20 text-white font-bold" 
+                                                ? "bg-white/20 text-white" 
                                                 : "bg-white/[0.04] text-zinc-400"
                                         )}>
                                             {tab.count}
@@ -456,8 +456,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
                             {/* Progress Metric */}
                             <div className="hidden sm:flex items-center gap-2.5 text-xs">
-                                <span className="text-zinc-400 font-mono text-[11px]">
-                                    Reviewed <strong className="text-white">{reviewedCount}</strong>/{summary.total}
+                                <span className="text-zinc-400 font-sans font-medium text-xs">
+                                    Reviewed <strong className="text-white font-semibold tabular-nums">{reviewedCount}</strong>/<span className="tabular-nums">{summary.total}</span>
                                 </span>
                                 <div className="w-24 h-1.5 rounded-full bg-zinc-900 border border-white/5 overflow-hidden">
                                     <motion.div
@@ -531,7 +531,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="font-display font-bold text-sm text-white tracking-tight">
+                                                    <span className="font-sans font-semibold text-sm text-white tracking-tight">
                                                         {formatIssueType(issue.issue_type)}
                                                     </span>
                                                     {/* Target Column Pill */}
@@ -549,7 +549,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                     <button
                                                         type="button"
                                                         onClick={() => setExpandedCodeId(isExpanded ? null : issue.id)}
-                                                        className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-mono text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
+                                                        className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-sans font-medium text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
                                                     >
                                                         <Code2 className="w-3 h-3" />
                                                         <span>{isExpanded ? 'Hide Code' : 'View Polars Code'}</span>
@@ -563,7 +563,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                         <div className="md:col-span-2 flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-2">
                                             {/* Severity Badge */}
                                             <span className={cn(
-                                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border",
+                                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-sans font-bold uppercase tracking-[0.15em] border",
                                                 sev.badge
                                             )}>
                                                 <span className={cn("w-1.5 h-1.5 rounded-full", sev.dot)} />
@@ -572,7 +572,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
                                             {/* Impact rows */}
                                             <div className="text-xs text-zinc-400 font-sans">
-                                                <strong className="text-white font-semibold">{issue.affected_rows.toLocaleString()}</strong> rows
+                                                <strong className="text-white font-semibold tabular-nums">{issue.affected_rows.toLocaleString()}</strong> rows
                                                 <span className="text-zinc-500 font-mono text-[11px] ml-1">({issue.affected_pct}%)</span>
                                             </div>
                                         </div>

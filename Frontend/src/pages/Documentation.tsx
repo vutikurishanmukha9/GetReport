@@ -499,7 +499,7 @@ export const Documentation = () => {
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-display font-extrabold tracking-[-0.03em] text-white leading-[1.08] max-w-4xl mx-auto">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-sans font-extrabold tracking-[-0.03em] text-white leading-[1.08] max-w-4xl mx-auto">
               Engine architecture &amp; <span className="text-slate-400">REST API specification.</span>
             </h1>
 
@@ -514,7 +514,7 @@ export const Documentation = () => {
                 asChild
                 variant="launch"
                 size="sm"
-                className="h-10 px-5 rounded-xl font-display font-bold text-xs gap-2 group cursor-pointer"
+                className="h-10 px-5 rounded-xl font-sans font-bold text-xs gap-2 group cursor-pointer"
               >
                 <Link to="/workspace">
                   <span>Interactive Workspace</span>
@@ -676,7 +676,7 @@ export const Documentation = () => {
                     <FileSpreadsheet className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
                       1. Ingestion Engine &amp; Supported Formats
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-400 font-sans">
@@ -723,7 +723,7 @@ export const Documentation = () => {
                       <div className="rounded-[calc(1rem-2px)] bg-[#0c0d12] p-4 sm:p-5 space-y-3 h-full flex flex-col justify-between">
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-display font-bold text-white">{item.format}</span>
+                            <span className="text-sm font-sans font-bold text-white">{item.format}</span>
                             <Badge variant="outline" className="text-[10px] font-mono border-white/10 text-emerald-400 bg-emerald-500/5">
                               {item.engine}
                             </Badge>
@@ -800,7 +800,7 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                     <Gauge className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
                       2. Mathematical Confidence Scoring Engine
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-400 font-sans">
@@ -903,7 +903,7 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                     <Layers className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
                       3. Issue Ledger &amp; Remediation Transformation DAG
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-400 font-sans">
@@ -943,7 +943,7 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                     <Database className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
                       4. In-Process DuckDB SQL Lab &amp; BI Studio
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-400 font-sans">
@@ -1001,7 +1001,7 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                       <Code2 className="h-5 w-5" />
                     </div>
                     <div>
-                      <h2 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+                      <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
                         5. Headless REST API Endpoint Specifications
                       </h2>
                       <p className="text-xs sm:text-sm text-slate-400 font-sans">
@@ -1072,7 +1072,7 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                         {/* Endpoint Content Body */}
                         <div className="p-4 sm:p-6 space-y-4">
                           <div>
-                            <h3 className="text-sm font-display font-bold text-white mb-1">
+                            <h3 className="text-sm font-sans font-bold text-white mb-1">
                               {ep.title}
                             </h3>
                             <p className="text-xs text-slate-400 font-sans leading-relaxed">
@@ -1183,7 +1183,7 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
                       6. Architecture Invariants &amp; Security Compliance
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-400 font-sans">

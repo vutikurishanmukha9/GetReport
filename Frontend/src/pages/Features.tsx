@@ -86,12 +86,12 @@ export const Features = () => {
               
               {/* Left Column: Editorial Headline & Value Proposition */}
               <div className="lg:col-span-7 space-y-5 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-mono">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-sans font-medium">
                   <ShieldCheck className="h-3.5 w-3.5" />
                   <span>Polars 1.0 Streaming Core • Zero-Copy Memory</span>
                 </div>
                 
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold tracking-[-0.02em] text-foreground leading-[1.14]">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-sans font-extrabold tracking-[-0.03em] text-foreground leading-[1.14]">
                   Engineered for rigorous <span className="text-primary block mt-1">data quality audits.</span>
                 </h1>
                 
@@ -101,27 +101,27 @@ export const Features = () => {
 
                 <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <Link to="/workspace" className="w-full sm:w-auto">
-                    <Button size="lg" className="w-full sm:w-auto h-11 px-6 rounded-xl shadow-premium t-card-lift t-spring-press font-display font-semibold text-sm">
+                    <Button size="lg" className="w-full sm:w-auto h-11 px-6 rounded-xl shadow-premium t-card-lift t-spring-press font-sans font-semibold text-sm cursor-pointer">
                       <span>Start Free Audit</span>
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
                   <Link to="/how-it-works" className="w-full sm:w-auto">
-                    <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-6 rounded-xl border-border bg-card/80 hover:bg-muted/20 shadow-premium t-card-lift t-spring-press font-display text-sm">
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-6 rounded-xl border-border bg-card/80 hover:bg-muted/20 shadow-premium t-card-lift t-spring-press font-sans font-medium text-sm cursor-pointer">
                       <span>Pipeline Architecture</span>
                     </Button>
                   </Link>
                 </div>
 
                 {/* Micro Guarantee Metrics */}
-                <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border/40 font-mono text-xs">
+                <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border/40 font-sans text-xs">
                   <div>
-                    <span className="block font-bold text-foreground text-sm sm:text-base">0 MB</span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Permanent Storage</span>
+                    <span className="block font-bold text-foreground text-sm sm:text-base tabular-nums">0 MB</span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-[0.15em]">Permanent Storage</span>
                   </div>
                   <div>
-                    <span className="block font-bold text-emerald-400 text-sm sm:text-base">&lt; 50ms</span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Polars Streaming</span>
+                    <span className="block font-bold text-emerald-400 text-sm sm:text-base tabular-nums">&lt; 50ms</span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-[0.15em]">Polars Streaming</span>
                   </div>
                   <div>
                     <span className="block font-bold text-primary text-sm sm:text-base">A to F</span>
@@ -192,12 +192,12 @@ export const Features = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-border/60 pb-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px] font-mono uppercase tracking-wider bg-primary/10 text-primary border-primary/20">
+                  <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] bg-primary/10 text-primary border-primary/20">
                     Interactive Simulator
                   </Badge>
-                  <span className="text-xs text-muted-foreground font-mono">Weighted Algorithm</span>
+                  <span className="text-xs text-muted-foreground font-sans font-medium">Weighted Algorithm</span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
+                <h2 className="text-xl sm:text-2xl font-sans font-bold text-foreground tracking-[-0.015em]">
                   Column Confidence Scoring Engine
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-xl font-sans">
@@ -205,26 +205,26 @@ export const Features = () => {
                 </p>
                 
                 {/* Preset Scenario Buttons */}
-                <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-[11px]">
-                  <span className="text-muted-foreground text-[10px] uppercase tracking-wider mr-1">Presets:</span>
+                <div className="flex flex-wrap items-center gap-2 pt-1 font-sans text-xs">
+                  <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider mr-1">Presets:</span>
                   <button
                     type="button"
                     onClick={() => applyPreset(96, 92, 88, 94)}
-                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim"
+                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim text-xs font-medium"
                   >
                     Clean Data (93%)
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset(72, 68, 75, 70)}
-                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim"
+                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim text-xs font-medium"
                   >
                     Mixed Schema (71%)
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset(40, 50, 45, 35)}
-                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim"
+                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim text-xs font-medium"
                   >
                     Anomalous Export (43%)
                   </button>
@@ -234,15 +234,15 @@ export const Features = () => {
               {/* Dynamic Live Grade Result */}
               <div className={`p-4 sm:p-5 rounded-2xl border ${gradeInfo.color} flex items-center gap-4 shrink-0 transition-all duration-300 shadow-sm`}>
                 <div className="text-center min-w-[48px]">
-                  <span className="text-4xl sm:text-5xl font-display font-extrabold block leading-none">
+                  <span className="text-4xl sm:text-5xl font-sans font-black block leading-none tracking-tight">
                     {gradeInfo.grade}
                   </span>
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider block mt-1">
+                  <span className="text-[10px] font-sans font-bold uppercase tracking-[0.15em] block mt-1">
                     Grade
                   </span>
                 </div>
                 <div className="border-l border-current/20 pl-4 space-y-1">
-                  <span className="text-lg sm:text-xl font-mono font-bold block">{overallScore}%</span>
+                  <span className="text-lg sm:text-xl font-sans font-bold tabular-nums block">{overallScore}%</span>
                   <span className="text-xs font-sans font-medium block opacity-95">{gradeInfo.label}</span>
                   <span className="text-[10px] font-mono block opacity-75">Formula: 35%C + 25%S + 25%V + 15%T</span>
                 </div>
@@ -250,7 +250,7 @@ export const Features = () => {
             </div>
 
             {/* Metric Sliders Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 font-mono text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 font-sans text-xs">
               
               {/* Slider 1: Completeness */}
               <div className="space-y-2.5 p-4 rounded-xl bg-muted/20 border border-border/60">

@@ -818,7 +818,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               {/* Section: Suggested Visual Explorations */}
               {recommendations.length > 0 && (
                 <div className="space-y-2 pb-2 border-b border-slate-800/80">
-                  <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                  <div className="flex items-center gap-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400">
                     <TrendingUp className="h-3 w-3 text-emerald-400" />
                     <span>Suggested Explorations</span>
                   </div>
@@ -828,7 +828,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                         key={rec.id}
                         type="button"
                         onClick={() => applyRecommendation(rec)}
-                        className="text-left text-[11px] px-2 py-1 rounded-lg border border-white/10 bg-[#0e1017] hover:bg-white/[0.08] hover:border-emerald-500/40 text-zinc-300 hover:text-white transition group flex items-center gap-1.5 cursor-pointer max-w-full"
+                        className="text-left text-[11px] px-2 py-1 rounded-lg border border-white/10 bg-[#0e1017] hover:bg-white/[0.08] hover:border-emerald-500/40 text-zinc-300 hover:text-white transition group flex items-center gap-1.5 cursor-pointer max-w-full font-sans"
                         title={rec.description}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
@@ -841,7 +841,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Section: Chart Type Picker */}
               <div className="space-y-1.5">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
                   Visualization Type
                 </span>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -852,7 +852,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                       <button
                         key={ct.id}
                         onClick={() => setChartType(ct.id)}
-                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition ${
+                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition font-sans ${
                           isActive
                             ? "bg-white/10 border-white/20 text-white"
                             : "bg-[#0e1017] border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
@@ -869,7 +869,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Section: Dimension (X-Axis / Group By) */}
               <div className="space-y-1.5">
-                <label htmlFor="dimension-select" className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+                <label htmlFor="dimension-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
                   Dimension (Group By / X-Axis)
                 </label>
                 <select
@@ -947,7 +947,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Section: Metric (Y-Axis / Measure) */}
               <div className="space-y-1.5">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
                   Metric & Aggregation (Y-Axis)
                 </span>
                 <div className="grid grid-cols-2 gap-2">
@@ -986,10 +986,10 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               {/* Section: Secondary Breakdown (Series) */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="secondary-dimension-select" className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+                  <label htmlFor="secondary-dimension-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
                     Secondary Breakdown
                   </label>
-                  <span className="text-[10px] text-slate-400 font-mono">
+                  <span className="text-[10px] text-zinc-400 font-sans font-medium">
                     {chartType === "echarts_heatmap" ? "Required for Heatmap" : "Optional"}
                   </span>
                 </div>
@@ -1015,7 +1015,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 </select>
                 {secondaryDimension && chartType === "echarts_bar" && (
                   <div className="flex items-center justify-between pt-1.5 px-0.5">
-                    <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                    <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400">
                       Bar Mode
                     </span>
                     <div className="flex items-center gap-1 bg-[#090b10] p-0.5 rounded-lg border border-slate-800">
@@ -1049,7 +1049,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               {/* Section: Ad-Hoc Filters */}
               <div className="space-y-2 pt-2 border-t border-slate-800/80">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                  <div className="flex items-center gap-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400">
                     <Filter className="h-3 w-3 text-sky-400" />
                     <span>Ad-Hoc Filters ({filters.length})</span>
                   </div>
@@ -1127,7 +1127,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               {/* Section: Limits & Sorting */}
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="space-y-1">
-                  <label htmlFor="row-limit-select" className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
+                  <label htmlFor="row-limit-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
                     Row Limit
                   </label>
                   <select
@@ -1149,7 +1149,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="sort-order-select" className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
+                  <label htmlFor="sort-order-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
                     Sort Order
                   </label>
                   <select
@@ -1167,7 +1167,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Section: Color Palette */}
               <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
                   Color Palette
                 </span>
                 <div className="space-y-1">
@@ -1213,19 +1213,19 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               {queryResult?.kpis && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">
+                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
                       Total Records
                     </span>
-                    <span className="text-xl sm:text-2xl font-bold text-white mt-1 block">
+                    <span className="text-xl sm:text-2xl font-sans font-bold text-white mt-1 block tabular-nums">
                       {formatCompactNumber(queryResult.kpis.total_rows)}
                     </span>
                   </div>
 
                   <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block truncate">
+                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block truncate">
                       {queryResult.kpis.metric_label || "Metric Value"}
                     </span>
-                    <span className="text-xl sm:text-2xl font-bold text-emerald-400 mt-1 block">
+                    <span className="text-xl sm:text-2xl font-sans font-bold text-emerald-400 mt-1 block tabular-nums">
                       {queryResult.kpis.mean !== null && queryResult.kpis.mean !== undefined
                         ? formatCompactNumber(queryResult.kpis.mean)
                         : queryResult.kpis.sum !== null && queryResult.kpis.sum !== undefined
@@ -1235,19 +1235,19 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                   </div>
 
                   <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">
+                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
                       Peak Group
                     </span>
-                    <span className="text-xl sm:text-2xl font-bold text-emerald-400 mt-1 block truncate">
+                    <span className="text-xl sm:text-2xl font-sans font-bold text-emerald-400 mt-1 block truncate">
                       {queryResult.records?.[0]?.[dimension] ?? "—"}
                     </span>
                   </div>
 
                   <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">
+                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
                       Total Groups
                     </span>
-                    <span className="text-xl sm:text-2xl font-bold text-slate-200 mt-1 block">
+                    <span className="text-xl sm:text-2xl font-sans font-bold text-slate-200 mt-1 block tabular-nums">
                       {formatCompactNumber(queryResult.total_groups)}
                     </span>
                   </div>
