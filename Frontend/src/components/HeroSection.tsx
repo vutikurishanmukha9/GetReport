@@ -55,9 +55,17 @@ export const HeroSection = () => {
           </span>
         </h1>
 
-        {/* Subheadline - True connected cursive typography */}
-        <p className="text-xl sm:text-2xl md:text-[1.75rem] text-zinc-100/95 leading-[1.6] max-w-2xl mx-auto font-cursive font-semibold [text-wrap:pretty]">
-          Audit millions of rows in seconds. Detect silent formula corruption, hidden blank cells, and conflicting anomalies before they reach clients or leadership. 100% locally with zero cloud storage.
+        {/* Subheadline - Elegant Calligraphic Cursive Typography */}
+        <p className="text-2xl sm:text-3xl md:text-[2.15rem] text-zinc-200/95 leading-[1.65] max-w-3xl sm:max-w-4xl mx-auto font-cursive font-normal [text-wrap:balance] py-1">
+          <span className="text-white drop-shadow-[0_2px_14px_rgba(255,255,255,0.18)]">
+            Audit millions of rows in seconds.
+          </span>{" "}
+          <span className="text-zinc-300/90">
+            Detect silent formula corruption, hidden blank cells, and conflicting anomalies before they reach clients or leadership.
+          </span>{" "}
+          <span className="text-emerald-400 drop-shadow-[0_0_14px_rgba(52,211,153,0.35)] font-medium">
+            100% locally with zero cloud storage.
+          </span>
         </p>
 
         {/* Action Button Row - Dual Pill CTAs with 48px+ touch targets */}

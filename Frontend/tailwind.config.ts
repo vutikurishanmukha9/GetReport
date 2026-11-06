@@ -96,7 +96,7 @@ export default {
         heavy: ["'Mont Heavy'", "'Mont'", "sans-serif"],
         mono: ["'JetBrains Mono'", "monospace"],
         outfit: ["'Plus Jakarta Sans'", "'Mont'", "sans-serif"],
-        cursive: ["'Dancing Script'", "'Alex Brush'", "'Satisfy'", "'Great Vibes'", "'Segoe Script'", "'Snell Roundhand'", "cursive"],
+        cursive: ["'Alex Brush'", "'Satisfy'", "'Great Vibes'", "'Dancing Script'", "'Segoe Script'", "cursive"],
       },
     },
   },
