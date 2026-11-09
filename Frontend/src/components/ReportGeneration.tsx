@@ -65,12 +65,12 @@ interface ReportGenerationProps {
 
 const getGradeColorClass = (g: string) => {
   switch (g.toUpperCase()) {
-    case 'A': return 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30';
-    case 'B': return 'bg-zinc-800/60 text-zinc-200 border-white/15';
-    case 'C': return 'bg-amber-950/40 text-amber-400 border-amber-500/30';
-    case 'D': return 'bg-orange-950/40 text-orange-400 border-orange-500/30';
-    case 'F': return 'bg-rose-950/40 text-rose-400 border-rose-500/30';
-    default: return 'bg-white/[0.04] text-zinc-300 border-white/10';
+    case 'A': return 'bg-emerald-500/10 text-emerald-800 border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400';
+    case 'B': return 'bg-sky-500/10 text-sky-800 border-sky-500/30 dark:bg-zinc-800/60 dark:text-zinc-200 dark:border-white/15';
+    case 'C': return 'bg-amber-500/10 text-amber-800 border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-400';
+    case 'D': return 'bg-orange-500/10 text-orange-800 border-orange-500/30 dark:bg-orange-950/40 dark:text-orange-400';
+    case 'F': return 'bg-rose-500/10 text-rose-800 border-rose-500/30 dark:bg-rose-950/40 dark:text-rose-400';
+    default: return 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-white/[0.04] dark:text-zinc-300 dark:border-white/10';
   }
 };
 
@@ -608,10 +608,10 @@ export const ReportGeneration = ({
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-6 sm:p-8 bg-card border border-border/80 rounded-3xl shadow-premium relative overflow-hidden">
           <div className="flex items-center gap-5 z-10">
             {/* Seal / Letter Grade Badge */}
-            <div className={`flex flex-col items-center justify-center h-20 w-20 sm:h-24 sm:w-24 rounded-2xl ${getGradeColorClass(datasetGrade)} border shadow-sm shrink-0`}>
-              <span className="text-[9px] font-sans font-bold tracking-[0.2em] uppercase text-emerald-400/80 leading-none mb-1">GRADE</span>
-              <span className="text-3xl sm:text-4xl font-sans font-black leading-none tracking-tight text-emerald-400">{datasetGrade}</span>
-              <span className="text-[11px] font-sans font-bold mt-1 text-emerald-300/90 tabular-nums">{datasetConfidence.toFixed(1)}%</span>
+            <div className={`flex flex-col items-center justify-center h-20 w-20 sm:h-24 sm:w-24 rounded-2xl ${getGradeColorClass(datasetGrade)} border shadow-xs shrink-0`}>
+              <span className="text-[9px] font-sans font-bold tracking-[0.2em] uppercase text-emerald-800/80 dark:text-emerald-400/80 leading-none mb-1">GRADE</span>
+              <span className="text-3xl sm:text-4xl font-sans font-black leading-none tracking-tight text-emerald-800 dark:text-emerald-400">{datasetGrade}</span>
+              <span className="text-[11px] font-sans font-bold mt-1 text-emerald-800/90 dark:text-emerald-300/90 tabular-nums">{datasetConfidence.toFixed(1)}%</span>
             </div>
 
             <div className="space-y-1.5">
@@ -636,21 +636,21 @@ export const ReportGeneration = ({
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-xs sm:text-[13px] text-muted-foreground font-sans font-medium flex-wrap">
-                <span><span className="font-semibold text-zinc-200 tabular-nums">{info.rows.toLocaleString()}</span> rows</span>
-                <span className="text-white/20">•</span>
-                <span><span className="font-semibold text-zinc-200 tabular-nums">{info.columns.length}</span> columns</span>
-                <span className="text-white/20">•</span>
-                <span><span className="font-semibold text-zinc-200 tabular-nums">{(info.memory_usage_mb || 0).toFixed(2)} MB</span> in-memory</span>
+              <div className="flex items-center gap-2 text-xs sm:text-[13px] text-slate-500 dark:text-muted-foreground font-sans font-medium flex-wrap">
+                <span><span className="font-semibold text-slate-900 dark:text-zinc-100 tabular-nums">{info.rows.toLocaleString()}</span> rows</span>
+                <span className="text-slate-300 dark:text-white/20">•</span>
+                <span><span className="font-semibold text-slate-900 dark:text-zinc-100 tabular-nums">{info.columns.length}</span> columns</span>
+                <span className="text-slate-300 dark:text-white/20">•</span>
+                <span><span className="font-semibold text-slate-900 dark:text-zinc-100 tabular-nums">{(info.memory_usage_mb || 0).toFixed(2)} MB</span> in-memory</span>
               </div>
-              <div className="text-xs font-sans text-muted-foreground/85 flex items-center gap-2.5 pt-0.5 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 font-medium text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <div className="text-xs font-sans text-slate-500 dark:text-muted-foreground/85 flex items-center gap-2.5 pt-0.5 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
                   <span className="font-semibold tabular-nums">{confidence.high_confidence_count}</span> High Confidence Columns
                 </span>
-                <span className="text-white/20">•</span>
-                <span className="inline-flex items-center gap-1.5 font-medium text-zinc-400">
-                  <span className="font-semibold tabular-nums text-zinc-300">{confidence.low_confidence_count}</span> Need Attention
+                <span className="text-slate-300 dark:text-white/20">•</span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-slate-600 dark:text-zinc-400">
+                  <span className="font-semibold tabular-nums text-slate-900 dark:text-zinc-200">{confidence.low_confidence_count}</span> Need Attention
                 </span>
               </div>
             </div>
@@ -660,9 +660,9 @@ export const ReportGeneration = ({
           <div className="flex flex-wrap items-center gap-2.5 z-10 w-full md:w-auto">
             <ShimmerActionButton
               onClick={downloadFile}
-              className="flex-1 md:flex-none"
-              icon={<Download className="h-4 w-4 text-black stroke-[2.5]" />}
-              trailingIcon={<ChevronRight className="h-4 w-4 text-black stroke-[2.5]" />}
+              className="flex-1 md:flex-none shadow-xs"
+              icon={<Download className="h-4 w-4 text-current stroke-[2.5]" />}
+              trailingIcon={<ChevronRight className="h-4 w-4 text-current stroke-[2.5]" />}
             >
               <span>Download PDF</span>
             </ShimmerActionButton>
@@ -670,10 +670,10 @@ export const ReportGeneration = ({
             <Button
               size="lg"
               variant="outline"
-              className="flex-1 md:flex-none rounded-xl border-white/10 bg-white/[0.04] hover:bg-white/[0.08] shadow-xs transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-sans font-semibold text-sm text-foreground"
+              className="flex-1 md:flex-none rounded-xl border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.08] text-slate-800 dark:text-foreground shadow-xs transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 font-sans font-semibold text-sm"
               onClick={() => downloadExport("html")}
             >
-              <BookOpen className="h-4 w-4 text-primary" />
+              <BookOpen className="h-4 w-4 text-emerald-600 dark:text-primary" />
               <span>HTML Briefing</span>
             </Button>
 
@@ -694,7 +694,7 @@ export const ReportGeneration = ({
             <Button
               size="lg"
               variant="ghost"
-              className="rounded-xl text-muted-foreground hover:text-foreground font-sans font-medium text-xs flex items-center gap-1.5 px-3"
+              className="rounded-xl text-slate-600 dark:text-muted-foreground hover:text-slate-950 dark:hover:text-foreground font-sans font-medium text-xs flex items-center gap-1.5 px-3"
               onClick={onReset}
               title="Audit a different file"
             >
@@ -706,10 +706,10 @@ export const ReportGeneration = ({
 
         {/* ─── Main Command Center Tabs ─── */}
         <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-          <TabsList className="h-auto min-h-12 w-full bg-card/90 dark:bg-card dark:bg-[#0c0d12]/90 border border-white/10 p-1.5 rounded-2xl mb-6 shadow-sm flex items-center gap-1 overflow-x-auto scrollbar-none flex-nowrap">
+          <TabsList className="h-auto min-h-12 w-full bg-slate-100/90 dark:bg-[#0c0d12]/90 border border-slate-200/90 dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-xs flex items-center gap-1 overflow-x-auto scrollbar-none flex-nowrap">
             <TabsTrigger
               value="overview"
-              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-950 dark:hover:text-white data-[state=active]:font-semibold data-[state=active]:bg-white dark:data-[state=active]:bg-white/[0.12] data-[state=active]:text-slate-950 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-slate-200 dark:data-[state=active]:border-white/20 data-[state=active]:shadow-xs transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <FileText className="h-4 w-4" />
               <span>Overview</span>
@@ -717,12 +717,12 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="charts"
-              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-950 dark:hover:text-white data-[state=active]:font-semibold data-[state=active]:bg-white dark:data-[state=active]:bg-white/[0.12] data-[state=active]:text-slate-950 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-slate-200 dark:data-[state=active]:border-white/20 data-[state=active]:shadow-xs transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <TrendingUp className="h-4 w-4" />
               <span>Visual Analytics</span>
               {chartTabsList.length > 0 && (
-                <Badge variant="secondary" className="text-[10px] font-sans font-semibold tabular-nums px-1.5 py-0 h-4 rounded-full bg-white/10 text-white border-0">
+                <Badge variant="secondary" className="text-[10px] font-sans font-semibold tabular-nums px-1.5 py-0 h-4 rounded-full bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-white border-0">
                   {chartTabsList.length}
                 </Badge>
               )}
@@ -730,18 +730,18 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="ledger"
-              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-950 dark:hover:text-white data-[state=active]:font-semibold data-[state=active]:bg-white dark:data-[state=active]:bg-white/[0.12] data-[state=active]:text-slate-950 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-slate-200 dark:data-[state=active]:border-white/20 data-[state=active]:shadow-xs transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <ShieldCheck className="h-4 w-4" />
               <span>Trust Ledger</span>
-              <Badge variant="secondary" className="text-[10px] font-sans font-semibold tabular-nums px-1.5 py-0 h-4 rounded-full bg-white/10 text-white border-0">
+              <Badge variant="secondary" className="text-[10px] font-sans font-semibold tabular-nums px-1.5 py-0 h-4 rounded-full bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-white border-0">
                 {confidence.columns.length}
               </Badge>
             </TabsTrigger>
 
             <TabsTrigger
               value="stats"
-              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-950 dark:hover:text-white data-[state=active]:font-semibold data-[state=active]:bg-white dark:data-[state=active]:bg-white/[0.12] data-[state=active]:text-slate-950 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-slate-200 dark:data-[state=active]:border-white/20 data-[state=active]:shadow-xs transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <Activity className="h-4 w-4" />
               <span>Statistical Audit</span>
@@ -749,7 +749,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="sql"
-              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-950 dark:hover:text-white data-[state=active]:font-semibold data-[state=active]:bg-white dark:data-[state=active]:bg-white/[0.12] data-[state=active]:text-slate-950 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-slate-200 dark:data-[state=active]:border-white/20 data-[state=active]:shadow-xs transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <Terminal className="h-4 w-4" />
               <span>DuckDB SQL Studio</span>
@@ -757,7 +757,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="bi_analytics"
-              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-950 dark:hover:text-white data-[state=active]:font-semibold data-[state=active]:bg-white dark:data-[state=active]:bg-white/[0.12] data-[state=active]:text-slate-950 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-slate-200 dark:data-[state=active]:border-white/20 data-[state=active]:shadow-xs transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <BarChart3 className="h-4 w-4" />
               <span>Interactive BI</span>
@@ -765,7 +765,7 @@ export const ReportGeneration = ({
 
             <TabsTrigger
               value="export"
-              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
+              className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-950 dark:hover:text-white data-[state=active]:font-semibold data-[state=active]:bg-white dark:data-[state=active]:bg-white/[0.12] data-[state=active]:text-slate-950 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-slate-200 dark:data-[state=active]:border-white/20 data-[state=active]:shadow-xs transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"
             >
               <Download className="h-4 w-4" />
               <span>Export Hub</span>
