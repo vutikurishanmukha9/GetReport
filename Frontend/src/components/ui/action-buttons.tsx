@@ -425,7 +425,7 @@ export const ShimmerActionButton = React.forwardRef<HTMLButtonElement, ShimmerAc
         whileTap={!isDisabled && !reduceMotion ? { scale: 0.98 } : undefined}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
         className={cn(
-          "group relative inline-flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold text-zinc-950 select-none cursor-pointer overflow-hidden isolate shadow-[0_4px_20px_-4px_rgba(255,255,255,0.3),inset_0_1px_1px_rgba(255,255,255,0.9)] bg-white hover:bg-zinc-100 border border-white transition-all duration-200",
+          "group relative inline-flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold text-white dark:text-zinc-950 select-none cursor-pointer overflow-hidden isolate shadow-sm dark:shadow-[0_4px_20px_-4px_rgba(255,255,255,0.3),inset_0_1px_1px_rgba(255,255,255,0.9)] bg-slate-950 hover:bg-slate-900 dark:bg-white dark:hover:bg-zinc-100 border border-slate-950 dark:border-white transition-all duration-200",
           isDisabled && "opacity-50 cursor-not-allowed pointer-events-none",
           className
         )}
@@ -433,12 +433,12 @@ export const ShimmerActionButton = React.forwardRef<HTMLButtonElement, ShimmerAc
       >
         {/* Shimmer Light Reflection Sweep */}
         {!isDisabled && !reduceMotion && (
-          <span className="pointer-events-none absolute -inset-full w-[200%] h-[200%] -skew-x-12 bg-gradient-to-r from-transparent via-black/10 to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+          <span className="pointer-events-none absolute -inset-full w-[200%] h-[200%] -skew-x-12 bg-gradient-to-r from-transparent via-white/20 dark:via-black/10 to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-out" />
         )}
 
         {/* Leading Icon Pod */}
         {loading ? (
-          <Loader2 className="w-4 h-4 animate-spin text-zinc-950 shrink-0" />
+          <Loader2 className="w-4 h-4 animate-spin text-white dark:text-zinc-950 shrink-0" />
         ) : icon ? (
           <span className="shrink-0">{icon}</span>
         ) : null}
@@ -448,12 +448,12 @@ export const ShimmerActionButton = React.forwardRef<HTMLButtonElement, ShimmerAc
 
         {/* Trailing Icon Pod (Button-in-Button Apple/Linear pattern) */}
         {trailingIcon ? (
-          <span className="relative z-10 w-5.5 h-5.5 rounded-md bg-black/10 flex items-center justify-center transition-transform group-hover:translate-x-0.5 shrink-0">
+          <span className="relative z-10 w-5.5 h-5.5 rounded-md bg-white/20 dark:bg-black/10 flex items-center justify-center transition-transform group-hover:translate-x-0.5 shrink-0 text-white dark:text-zinc-950">
             {trailingIcon}
           </span>
         ) : (
-          <span className="relative z-10 w-5.5 h-5.5 rounded-md bg-black/10 flex items-center justify-center transition-transform group-hover:translate-x-0.5 shrink-0">
-            <ChevronRight className="w-3.5 h-3.5 text-zinc-950 stroke-[2.5]" />
+          <span className="relative z-10 w-5.5 h-5.5 rounded-md bg-white/20 dark:bg-black/10 flex items-center justify-center transition-transform group-hover:translate-x-0.5 shrink-0">
+            <ChevronRight className="w-3.5 h-3.5 text-white dark:text-zinc-950 stroke-[2.5]" />
           </span>
         )}
       </motion.button>

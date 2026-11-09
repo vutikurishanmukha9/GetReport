@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { SheenPillButton } from "@/components/ui/sheen-pill-button";
+import { DepthOutlineButton } from "@/components/ui/depth-outline-button";
 
 const SAAS_HIGHLIGHTS = [
   "boardroom decisions.",
@@ -22,9 +24,9 @@ export const HeroSection = () => {
   }, []);
 
   return (
-    <section className="relative pt-28 lg:pt-30 pb-6 sm:pb-12 bg-hero-custom-gradient border-b border-white/10 overflow-hidden text-center text-zinc-100">
+    <section className="relative pt-28 lg:pt-30 pb-6 sm:pb-12 bg-hero-custom-gradient border-b border-border overflow-hidden text-center text-foreground transition-colors duration-200">
       {/* 1. Subtle Micro-Dot Technical Grid */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_30%,#000_65%,transparent_100%)] opacity-30 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.06)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_30%,#000_65%,transparent_100%)] opacity-40 dark:opacity-30 pointer-events-none" />
 
       {/* 2. Tactile Film Grain Overlay */}
       <div className="hero-grain-overlay" />
@@ -36,7 +38,7 @@ export const HeroSection = () => {
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         {/* Display Headline with Smooth Text Motion - Linear / Vercel style */}
-        <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] font-display font-black tracking-[-0.04em] text-white leading-[1.1] sm:leading-[1.08] max-w-4xl mx-auto">
+        <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] font-display font-black tracking-[-0.04em] text-foreground leading-[1.1] sm:leading-[1.08] max-w-4xl mx-auto">
           <span className="block">The data audit platform</span>
           <span className="block">built for</span>
           <span className="inline-block relative overflow-hidden align-bottom min-h-[1.15em] min-w-[260px] xs:min-w-[300px] sm:min-w-[440px] px-1">
@@ -47,7 +49,7 @@ export const HeroSection = () => {
                 animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
                 exit={{ y: -36, opacity: 0, filter: "blur(6px)" }}
                 transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-100 to-zinc-400"
+                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-zinc-950 via-zinc-800 to-zinc-500 dark:from-white dark:via-zinc-100 dark:to-zinc-400"
               >
                 {SAAS_HIGHLIGHTS[index]}
               </motion.span>
@@ -55,44 +57,38 @@ export const HeroSection = () => {
           </span>
         </h1>
 
-        {/* Subheadline - Elegant Calligraphic Cursive Typography */}
-        <p className="text-2xl sm:text-3xl md:text-[2.15rem] text-zinc-200/95 leading-[1.65] max-w-3xl sm:max-w-4xl mx-auto font-cursive font-normal [text-wrap:balance] py-1">
-          <span className="text-white drop-shadow-[0_2px_14px_rgba(255,255,255,0.18)]">
-            Audit millions of rows in seconds.
+        {/* Subheadline - Premium High-End SaaS Typography */}
+        <p className="text-lg sm:text-xl md:text-[1.35rem] text-slate-600 dark:text-zinc-300 font-display font-normal leading-relaxed tracking-[-0.015em] max-w-3xl mx-auto [text-wrap:pretty] py-2">
+          <span className="text-slate-950 dark:text-white font-semibold">
+            Never let a broken spreadsheet reach the boardroom.
           </span>{" "}
-          <span className="text-zinc-300/90">
-            Detect silent formula corruption, hidden blank cells, and conflicting anomalies before they reach clients or leadership.
+          <span>
+            Instantly audit millions of rows, catch silent calculation errors, and certify data health.
           </span>{" "}
-          <span className="text-emerald-400 drop-shadow-[0_0_14px_rgba(52,211,153,0.35)] font-medium">
+          <span className="text-slate-950 dark:text-white font-semibold">
             100% locally with zero cloud storage.
           </span>
         </p>
 
-        {/* Action Button Row - Dual Pill CTAs with 48px+ touch targets */}
-        <div className="space-y-3 pt-2">
+        {/* Action Button Row - Dual Pill CTAs with opensourceui tactile components */}
+        <div className="space-y-3 pt-3">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 max-w-md sm:max-w-none mx-auto">
             <Link to="/workspace" className="w-full sm:w-auto">
-              <button
-                type="button"
-                className="w-full sm:w-auto min-h-[48px] h-12 px-8 rounded-full bg-white hover:bg-zinc-100 text-black font-sans font-bold text-sm tracking-tight shadow-[0_2px_20px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)] border border-white transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer group"
-              >
+              <SheenPillButton className="w-full sm:w-auto min-h-[48px] h-12 px-8">
                 <span>Start Free Audit</span>
-                <ArrowRight className="h-4 w-4 text-black transition-transform duration-200 group-hover:translate-x-1" />
-              </button>
+                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+              </SheenPillButton>
             </Link>
 
             <Link to="/how-it-works" className="w-full sm:w-auto">
-              <button
-                type="button"
-                className="w-full sm:w-auto min-h-[48px] h-12 px-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 hover:text-white font-sans font-semibold text-sm border border-white/10 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center cursor-pointer"
-              >
+              <DepthOutlineButton size="lg" className="w-full sm:w-auto min-h-[48px] h-12 px-7 rounded-full">
                 <span>See How It Works</span>
-              </button>
+              </DepthOutlineButton>
             </Link>
           </div>
 
           {/* Micro Trust Indicators */}
-          <p className="text-xs font-sans text-zinc-400 font-medium">
+          <p className="text-xs font-sans text-muted-foreground font-medium">
             No signup required • Instant browser scan • Works with Excel, CSV & Parquet
           </p>
         </div>

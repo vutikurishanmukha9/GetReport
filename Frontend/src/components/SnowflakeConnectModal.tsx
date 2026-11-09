@@ -481,30 +481,30 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className={cn(
-          "w-[calc(100vw-1.5rem)] sm:w-full max-h-[92dvh] overflow-y-auto bg-[#08090e] border border-white/10 text-white shadow-2xl rounded-2xl transition-colors duration-150 p-4 sm:p-6 md:p-7",
+          "w-[calc(100vw-1.5rem)] sm:w-full max-h-[92dvh] overflow-y-auto bg-white dark:bg-[#08090e] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white shadow-2xl rounded-2xl transition-colors duration-150 p-4 sm:p-6 md:p-7",
           step === "auth" ? "max-w-2xl" : "max-w-5xl"
         )}
       >
-        <DialogHeader className="space-y-2 border-b border-white/10 pb-4 pr-7 sm:pr-0">
+        <DialogHeader className="space-y-2 border-b border-slate-200/80 dark:border-white/10 pb-4 pr-7 sm:pr-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start sm:items-center gap-3 min-w-0">
-              <div className="p-2 sm:p-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-zinc-300 shrink-0">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-300 shrink-0">
                 <Database className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
               <div className="min-w-0">
-                <DialogTitle className="text-base sm:text-xl font-display font-bold text-white flex flex-wrap items-center gap-2">
+                <DialogTitle className="text-base sm:text-xl font-display font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-2">
                   <span className="truncate">Snowflake Data Warehouse</span>
-                  <span className="px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-widest text-zinc-400 bg-white/[0.06] border border-white/10 rounded leading-none shrink-0">
+                  <span className="px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-widest text-slate-600 dark:text-zinc-400 bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded leading-none shrink-0">
                     Beta
                   </span>
                   {sessionId && (
-                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-medium shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5" />
+                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-mono font-medium shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 mr-1.5" />
                       Encrypted Active
                     </Badge>
                   )}
                 </DialogTitle>
-                <DialogDescription className="text-[11px] sm:text-xs text-zinc-400 leading-relaxed mt-0.5">
+                <DialogDescription className="text-[11px] sm:text-xs text-slate-500 dark:text-zinc-400 leading-relaxed mt-0.5">
                   Direct warehouse ingestion with out-of-core profiling and automated data hygiene audit
                 </DialogDescription>
               </div>
@@ -515,7 +515,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                 <button
                   type="button"
                   onClick={handleUseDemo}
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-300 bg-white/[0.05] hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-zinc-300 bg-slate-100 dark:bg-white/[0.05] hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
                   title="Auto-fill simulated sandbox credentials"
                 >
                   Auto-fill Demo
@@ -526,7 +526,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={handleDisconnect}
-                  className="border-white/10 bg-white/5 text-zinc-300 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 text-xs"
+                  className="border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-zinc-300 hover:text-rose-600 hover:bg-rose-500/10 hover:border-rose-500/20 text-xs"
                 >
                   <LogOut className="h-3.5 w-3.5 mr-1.5" />
                   Disconnect
@@ -540,19 +540,19 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
         {step === "auth" && (
           <form onSubmit={handleConnect} className="space-y-4 pt-3">
             {/* Security Notice Card */}
-            <div className="p-3 rounded-xl bg-[#121215] border border-white/10 text-zinc-300 text-xs flex items-start gap-2.5 sm:gap-3">
-              <div className="p-1.5 rounded-lg bg-white/[0.05] border border-white/10 text-zinc-300 shrink-0 mt-0.5">
-                <ShieldCheck className="h-4 w-4" />
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#121215] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-300 text-xs flex items-start gap-2.5 sm:gap-3">
+              <div className="p-1.5 rounded-lg bg-slate-200/70 dark:bg-white/[0.05] border border-slate-300/80 dark:border-white/10 text-slate-700 dark:text-zinc-300 shrink-0 mt-0.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="space-y-0.5 text-xs min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <span className="font-semibold text-white">Dedicated Read-Only Enforcement</span>
-                  <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  <span className="font-semibold text-slate-900 dark:text-white">Dedicated Read-Only Enforcement</span>
+                  <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-semibold">
                     Safe Audit
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
-                  Connect using a Snowflake role with <code className="font-mono bg-black/50 px-1 py-0.5 rounded text-zinc-300 text-[10px]">GRANT SELECT</code> privileges. GetReport executes pure read-only extracts with zero mutation capability.
+                <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-relaxed">
+                  Connect using a Snowflake role with <code className="font-mono bg-slate-200 dark:bg-black/50 px-1 py-0.5 rounded text-slate-800 dark:text-zinc-300 text-[10px]">GRANT SELECT</code> privileges. GetReport executes pure read-only extracts with zero mutation capability.
                 </p>
               </div>
             </div>
@@ -560,8 +560,8 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
             {/* Account & User */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label htmlFor="snowflake-account" className="block text-xs font-medium text-zinc-300 mb-1">
-                  Account Identifier <span className="text-rose-400">*</span>
+                <label htmlFor="snowflake-account" className="block text-xs font-medium text-slate-700 dark:text-zinc-300 mb-1">
+                  Account Identifier <span className="text-rose-500">*</span>
                 </label>
                 <Input
                   id="snowflake-account"
@@ -569,16 +569,16 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   placeholder="e.g. orgname-accountname"
                   value={account}
                   onChange={(e) => setAccount(e.target.value)}
-                  className="bg-[#0e1017] border-white/10 text-white placeholder:text-zinc-500 text-xs h-10"
+                  className="bg-slate-50 dark:bg-[#0e1017] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 text-xs h-10"
                 />
-                <span className="text-[10px] text-zinc-500 mt-1 block">
+                <span className="text-[10px] text-slate-500 dark:text-zinc-500 mt-1 block">
                   Identifier without https:// or snowflakecomputing.com
                 </span>
               </div>
 
               <div>
-                <label htmlFor="snowflake-user" className="block text-xs font-medium text-zinc-300 mb-1">
-                  Username <span className="text-rose-400">*</span>
+                <label htmlFor="snowflake-user" className="block text-xs font-medium text-slate-700 dark:text-zinc-300 mb-1">
+                  Username <span className="text-rose-500">*</span>
                 </label>
                 <Input
                   id="snowflake-user"
@@ -586,9 +586,9 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   placeholder="e.g. DATA_ANALYST"
                   value={user}
                   onChange={(e) => setUser(e.target.value)}
-                  className="bg-[#0e1017] border-white/10 text-white placeholder:text-zinc-500 text-xs h-10"
+                  className="bg-slate-50 dark:bg-[#0e1017] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 text-xs h-10"
                 />
-                <span className="text-[10px] text-zinc-500 mt-1 block">
+                <span className="text-[10px] text-slate-500 dark:text-zinc-500 mt-1 block">
                   Case-sensitive Snowflake user login
                 </span>
               </div>

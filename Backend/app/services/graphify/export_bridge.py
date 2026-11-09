@@ -9,12 +9,13 @@ import logging
 from typing import Dict, List, Any, Optional
 import networkx as nx
 
+# Import directly from optional graphify package; fallback gracefully to built-in exporters
 try:
     from graphify.exporters.html import to_html
     from graphify.export import to_svg, to_cypher, to_graphml, to_json
     HAS_GRAPHIFY_EXPORTERS = True
 except ImportError as err:
-    logging.getLogger(__name__).warning("Failed to import graphify exporters: %s", err)
+    logging.getLogger(__name__).debug("Optional graphify exporters not found, using built-in export engine: %s", err)
     HAS_GRAPHIFY_EXPORTERS = False
 
 logger = logging.getLogger(__name__)

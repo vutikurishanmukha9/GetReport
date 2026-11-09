@@ -165,23 +165,23 @@ export const Examples = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
+    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.04)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-50 dark:opacity-40" />
       <div className="hero-grain-overlay" />
 
       <Header onReset={() => {}} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28 relative z-10">
         {/* Header */}
-        <div className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-14 relative z-10">
+        <div className="border-b border-border bg-background/90 py-8 sm:py-14 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-black text-white tracking-[-0.03em] leading-[1.12]">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-black text-foreground tracking-[-0.03em] leading-[1.12]">
               Interactive audit examples.
             </h1>
             
-            <p className="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto leading-relaxed font-sans">
+            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
               Explore how GetReport automatically infers schemas, scores column quality, isolates anomalies, and synthesizes executive takeaways across multiple industries.
             </p>
           </div>
@@ -191,7 +191,7 @@ export const Examples = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-7xl space-y-6 sm:space-y-8">
           
           {/* Domain Filter Bar */}
-          <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-none justify-start md:justify-center border-b border-white/10">
+          <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-none justify-start md:justify-center border-b border-border">
             {DOMAINS.map((domain) => (
               <button
                 key={domain}
@@ -199,8 +199,8 @@ export const Examples = () => {
                 onClick={() => setSelectedDomain(domain)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-mono transition-all shrink-0 cursor-pointer border ${
                   selectedDomain === domain
-                    ? "bg-white text-black border-white shadow-xs font-bold"
-                    : "bg-[#0c0d12]/80 text-zinc-400 border-white/10 hover:text-white hover:bg-white/[0.06]"
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-black border-slate-900 dark:border-white shadow-xs font-bold"
+                    : "bg-slate-100 text-slate-700 hover:text-slate-950 hover:bg-slate-200 border-slate-200 dark:bg-card dark:text-muted-foreground dark:hover:text-foreground dark:border-white/10 font-semibold"
                 }`}
               >
                 {domain}
@@ -217,19 +217,19 @@ export const Examples = () => {
               return (
                 <Card 
                   key={item.id}
-                  className="border border-white/10 bg-[#0c0d12]/80 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between hover:border-white/20 transition-all duration-200"
+                  className="border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/90 backdrop-blur-md rounded-2xl shadow-sm hover:shadow-md dark:shadow-none hover:border-slate-300 dark:hover:border-white/20 transition-all duration-200 flex flex-col justify-between text-card-foreground"
                 >
-                  <CardHeader className="p-5 sm:p-6 pb-3 sm:pb-4 space-y-3.5 border-b border-white/10">
+                  <CardHeader className="p-5 sm:p-6 pb-3 sm:pb-4 space-y-3.5 border-b border-slate-200 dark:border-white/10">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 sm:gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-xl bg-white/[0.06] text-white border border-white/10 flex items-center justify-center shrink-0">
+                        <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-800 dark:bg-white/[0.06] dark:text-white border border-slate-200 dark:border-white/10 flex items-center justify-center shrink-0">
                           <Icon className="h-4 w-4" />
                         </div>
                         <div>
-                          <Badge variant="outline" className="text-[10px] font-mono font-semibold bg-white/[0.04] text-zinc-400 border-white/10">
+                          <Badge variant="outline" className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border-slate-200 dark:bg-white/[0.04] dark:text-muted-foreground dark:border-white/10">
                             {item.domain}
                           </Badge>
-                          <h3 className="text-base sm:text-lg font-display font-bold text-white mt-0.5">
+                          <h3 className="text-base sm:text-lg font-display font-bold text-foreground mt-0.5">
                             {item.title}
                           </h3>
                         </div>
@@ -237,40 +237,42 @@ export const Examples = () => {
 
                       {/* Grade Badge */}
                       <div className="self-start sm:self-auto sm:text-right shrink-0">
-                        <Badge className={`font-mono font-bold text-xs px-2.5 py-0.5 rounded-lg ${
-                          item.grade === "A" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-white/5 text-zinc-300 border-white/10"
+                        <Badge className={`font-mono font-bold text-xs px-2.5 py-0.5 rounded-lg shadow-2xs ${
+                          item.grade === "A" 
+                            ? "bg-emerald-100 text-emerald-950 border border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30" 
+                            : "bg-blue-100 text-blue-950 border border-blue-300 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30"
                         }`}>
                           Grade {item.grade} • {item.gradeScore}%
                         </Badge>
                       </div>
                     </div>
 
-                    <p className="text-xs text-zinc-400 font-sans leading-relaxed">
+                    <p className="text-xs text-slate-600 dark:text-muted-foreground font-sans leading-relaxed">
                       {item.description}
                     </p>
 
                     {/* Dataset Metrics Bar */}
-                    <div className="flex items-center gap-3 font-mono text-[11px] text-zinc-400 pt-0.5">
-                      <span><strong>Format:</strong> {item.format}</span>
+                    <div className="flex items-center gap-3 font-mono text-[11px] text-slate-600 dark:text-muted-foreground pt-0.5">
+                      <span><strong>Format:</strong> <span className="text-foreground">{item.format}</span></span>
                       <span>•</span>
-                      <span><strong>Rows:</strong> {item.rows}</span>
+                      <span><strong>Rows:</strong> <span className="text-foreground">{item.rows}</span></span>
                       <span>•</span>
-                      <span><strong>Cols:</strong> {item.cols}</span>
+                      <span><strong>Cols:</strong> <span className="text-foreground">{item.cols}</span></span>
                     </div>
                   </CardHeader>
 
                   <CardContent className="p-5 sm:p-6 pt-3.5 sm:pt-4 space-y-3.5 flex-1 flex flex-col justify-between">
-                    {/* Identified Quality Flags - High-End Tactile Container (21st.dev / Magic UI / Mobbin style) */}
-                    <div className="rounded-2xl bg-gradient-to-b from-amber-500/[0.05] via-zinc-900/60 to-zinc-950/80 border border-amber-500/30 p-4 space-y-3 shadow-[0_2px_12px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
+                    {/* Identified Quality Flags - Adaptive High-Contrast Container */}
+                    <div className="rounded-2xl bg-amber-50/70 dark:bg-gradient-to-b dark:from-amber-500/[0.05] dark:via-zinc-900/60 dark:to-zinc-950/80 border border-amber-200 dark:border-amber-500/30 p-4 space-y-3 shadow-2xs dark:shadow-[0_2px_12px_rgba(0,0,0,0.35)] backdrop-blur-md">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                          <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.25)]">
+                          <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 flex items-center justify-center shrink-0 shadow-xs">
                             <AlertTriangle className="h-3.5 w-3.5 stroke-[2.4]" />
                           </span>
-                          <span className="text-xs font-semibold text-zinc-100 font-sans tracking-tight">Identified Quality Flags</span>
+                          <span className="text-xs font-bold text-amber-950 dark:text-zinc-100 font-sans tracking-tight">Identified Quality Flags</span>
                         </div>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-2xs">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.9)] animate-pulse" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.9)] animate-pulse" />
                           {item.detectedIssues.length} Detected
                         </span>
                       </div>
@@ -281,18 +283,18 @@ export const Examples = () => {
                           return (
                             <span
                               key={iIdx}
-                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-100 bg-zinc-900/90 hover:bg-zinc-800/90 border border-white/10 hover:border-amber-400/50 shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] hover:shadow-[0_0_14px_rgba(245,158,11,0.2)] transition-all duration-200 select-none group/flag cursor-default"
+                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-800 dark:text-zinc-100 bg-white dark:bg-zinc-900/90 hover:bg-slate-50 dark:hover:bg-zinc-800/90 border border-slate-200 dark:border-white/10 hover:border-amber-400/50 shadow-2xs hover:shadow-xs transition-all duration-200 select-none group/flag cursor-default"
                             >
                               {numMatch ? (
-                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 group-hover/flag:bg-amber-500/30 transition-colors">
+                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 group-hover/flag:bg-amber-200 dark:group-hover/flag:bg-amber-500/30 transition-colors">
                                   {numMatch[1]}
                                 </span>
                               ) : (
-                                <span className="w-4 h-4 rounded-md bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-500/30">
+                                <span className="w-4 h-4 rounded-md bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300 flex items-center justify-center shrink-0 border border-amber-300 dark:border-amber-500/30">
                                   <AlertTriangle className="w-2.5 h-2.5 stroke-[2.4]" />
                                 </span>
                               )}
-                              <span className="font-sans tracking-tight text-zinc-200 group-hover/flag:text-white">
+                              <span className="font-sans tracking-tight text-slate-700 dark:text-zinc-200 group-hover/flag:text-slate-950 dark:group-hover/flag:text-white font-medium">
                                 {numMatch ? numMatch[2] : issue}
                               </span>
                             </span>
@@ -302,25 +304,25 @@ export const Examples = () => {
                     </div>
 
                     {/* Executive Key Insight Takeaway */}
-                    <div className="p-3.5 bg-white/[0.02] rounded-xl border border-white/[0.06] text-xs font-sans space-y-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                      <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-primary">
-                        <FileText className="h-3 w-3 text-primary shrink-0" />
+                    <div className="p-3.5 bg-slate-50 dark:bg-white/[0.03] rounded-xl border border-slate-200 dark:border-white/[0.08] text-xs font-sans space-y-1.5 shadow-2xs">
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-primary">
+                        <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
                         <span>RAG Executive Takeaway</span>
                       </div>
-                      <p className="italic text-zinc-300 text-xs leading-relaxed font-sans">&ldquo;{item.keyInsight}&rdquo;</p>
+                      <p className="italic text-slate-800 dark:text-zinc-200 text-xs leading-relaxed font-sans font-medium">&ldquo;{item.keyInsight}&rdquo;</p>
                     </div>
 
                     {/* Expandable Schema Preview Drawer */}
                     {isExpanded && (
-                      <div className="border border-white/[0.08] bg-zinc-950/60 rounded-xl p-3.5 space-y-2 font-mono text-[11px] animate-in slide-in-from-top-1 duration-200">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                      <div className="border border-slate-200 dark:border-white/[0.08] bg-slate-50/90 dark:bg-zinc-950/60 rounded-xl p-3.5 space-y-2 font-mono text-[11px] shadow-2xs animate-in slide-in-from-top-1 duration-200">
+                        <span className="text-[10px] font-bold text-slate-700 dark:text-zinc-400 uppercase tracking-wider block">
                           Column Remediation Sample:
                         </span>
-                        <div className="divide-y divide-white/[0.05]">
+                        <div className="divide-y divide-slate-200 dark:divide-white/[0.05]">
                           {item.sampleColumns.map((col) => (
                             <div key={col.name} className="py-1.5 flex justify-between items-center text-xs">
-                              <span className="font-medium text-zinc-200">{col.name} <span className="text-[10px] text-zinc-500 font-normal">({col.type})</span></span>
-                              <span className="text-emerald-400 font-semibold text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">{col.quality}</span>
+                              <span className="font-semibold text-slate-900 dark:text-zinc-200">{col.name} <span className="text-[10px] text-slate-500 font-normal">({col.type})</span></span>
+                              <span className="text-emerald-900 dark:text-emerald-400 font-bold text-[11px] px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/20 shadow-2xs">{col.quality}</span>
                             </div>
                           ))}
                         </div>
@@ -328,19 +330,19 @@ export const Examples = () => {
                     )}
 
                     {/* Card Actions */}
-                    <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/[0.06]">
                       <button
                         type="button"
                         onClick={() => toggleExpand(item.id)}
-                        className="text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-white/[0.04]"
+                        className="text-xs font-semibold text-slate-600 hover:text-slate-950 dark:text-zinc-400 dark:hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer py-1.5 px-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06]"
                       >
-                        <Eye className="h-3.5 w-3.5 text-zinc-400" />
+                        <Eye className="h-3.5 w-3.5 text-slate-500 dark:text-zinc-400" />
                         <span>{isExpanded ? "Hide Schema" : "Inspect Schema"}</span>
-                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-zinc-500" /> : <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />}
+                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-slate-500 dark:text-zinc-500" /> : <ChevronDown className="h-3.5 w-3.5 text-slate-500 dark:text-zinc-500" />}
                       </button>
 
                       <Link to={`/workspace?sample=${item.id}`}>
-                        <Button size="sm" variant="hero" className="rounded-xl text-xs gap-1.5 h-8 px-3.5 font-semibold shadow-xs">
+                        <Button size="sm" variant="hero" className="rounded-xl text-xs gap-1.5 h-8 px-3.5 font-bold shadow-xs cursor-pointer">
                           <span>Audit in Workspace</span>
                           <ArrowRight className="h-3.5 w-3.5 stroke-[2.5]" />
                         </Button>

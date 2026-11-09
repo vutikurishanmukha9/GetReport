@@ -192,15 +192,15 @@ export const HowItWorks = () => {
   const activeStep = pipelineSteps[activeStepIndex];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
+    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.04)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-50 dark:opacity-40" />
       <div className="hero-grain-overlay" />
       <Header onReset={() => {}} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28">
         {/* Header */}
-        <div className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
+        <div className="border-b border-border bg-background/90 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
             
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
@@ -228,11 +228,11 @@ export const HowItWorks = () => {
                   onClick={() => setActiveStepIndex(idx)}
                   className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full font-mono text-xs transition-all duration-150 shrink-0 cursor-pointer border ${
                     isActive
-                      ? "bg-white text-zinc-950 border-white shadow-[0_2px_14px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)] font-bold scale-[1.02]"
-                      : "bg-[#0c0d12] hover:bg-white/[0.06] text-zinc-400 hover:text-white border-white/10 hover:border-white/20"
+                      ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 border-zinc-950 dark:border-white shadow-sm font-bold scale-[1.02]"
+                      : "bg-card hover:bg-muted dark:bg-[#0c0d12] dark:hover:bg-white/[0.06] text-muted-foreground hover:text-foreground dark:text-zinc-400 dark:hover:text-white border-border dark:border-white/10 hover:border-border/80 dark:hover:border-white/20"
                   }`}
                 >
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? "bg-white/20" : "bg-muted"}`}>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? "bg-white/20 text-white dark:bg-black/20 dark:text-black" : "bg-muted text-muted-foreground"}`}>
                     {step.stepNum}
                   </span>
                   <Icon className="h-4 w-4" />
@@ -247,7 +247,7 @@ export const HowItWorks = () => {
             
             {/* Left Column: Stage Details & Specs (Col 1-5) */}
             <div className="lg:col-span-5 space-y-4">
-              <Card className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-8 shadow-tactile space-y-6 backdrop-blur-xl">
+              <Card className="border border-border dark:border-white/10 bg-card dark:bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-8 shadow-sm dark:shadow-tactile space-y-6 backdrop-blur-xl text-card-foreground">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-[10px] font-mono font-bold bg-primary/10 text-primary border-primary/20 uppercase tracking-wider">
@@ -348,7 +348,7 @@ export const HowItWorks = () => {
 
         {/* Section 2: Pipeline Invariants Guarantee */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl">
-          <div className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-10 shadow-tactile space-y-8 backdrop-blur-xl">
+          <div className="border border-border dark:border-white/10 bg-card dark:bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-10 shadow-sm dark:shadow-tactile space-y-8 backdrop-blur-xl text-card-foreground">
             <div className="text-center max-w-2xl mx-auto space-y-1.5">
               <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
                 Architectural invariants & safety guarantees

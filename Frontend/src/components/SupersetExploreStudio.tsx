@@ -648,7 +648,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     }`}>
       
       {/* ─── Top Studio Header Bar ─── */}
-      <div className="px-3.5 sm:px-5 py-3 border-b border-slate-800 bg-[#0c0d12] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="px-3.5 sm:px-5 py-3 border-b border-slate-800 bg-card dark:bg-[#0c0d12] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         
         {/* Left: Branding & Dataset Identity */}
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 w-full sm:w-auto">
@@ -811,7 +811,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
             
             {/* ──── LEFT PANEL: Superset Explore Controls (4 cols) ──── */}
-            <div className={`lg:col-span-4 p-4 sm:p-5 border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#0c0d12] space-y-4 sm:space-y-5 ${
+            <div className={`lg:col-span-4 p-4 sm:p-5 border-b lg:border-b-0 lg:border-r border-slate-800 bg-card dark:bg-[#0c0d12] space-y-4 sm:space-y-5 ${
               mobileTab === "controls" ? "block" : "hidden lg:block"
             }`}>
               
@@ -1285,7 +1285,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               )}
 
               {/* Main Chart or Table Canvas */}
-              <div className="flex-1 min-h-[380px] sm:min-h-[460px] rounded-xl border border-slate-800 bg-[#0c0d12] p-3 sm:p-4 flex flex-col relative">
+              <div className="flex-1 min-h-[380px] sm:min-h-[460px] rounded-xl border border-slate-800 bg-card dark:bg-[#0c0d12] p-3 sm:p-4 flex flex-col relative">
                 
                 {/* View Switcher: Chart vs Raw Data */}
                 <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 pb-3 border-b border-slate-800/80 mb-2">

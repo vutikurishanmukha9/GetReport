@@ -14,34 +14,34 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-white text-zinc-950 font-semibold hover:bg-zinc-100 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white/90",
+          "bg-zinc-950 text-white font-semibold hover:bg-zinc-800 shadow-[0_4px_14px_-2px_rgba(0,0,0,0.12)] dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100 dark:shadow-[0_4px_14px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.8)] border border-zinc-950 dark:border-white/90",
         primary:
           "bg-primary text-primary-foreground font-semibold hover:bg-primary/90 shadow-md shadow-primary/20 border border-primary/30",
         destructive:
           "bg-destructive text-destructive-foreground font-semibold hover:bg-destructive/90 shadow-sm border border-destructive/40",
         outline:
-          "border border-white/10 bg-white/[0.04] text-foreground hover:bg-white/[0.09] hover:border-white/20 hover:text-foreground shadow-2xs backdrop-blur-sm",
+          "border border-zinc-200/90 bg-white/80 text-foreground hover:bg-zinc-100 hover:border-zinc-300 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.09] dark:hover:border-white/20 shadow-2xs backdrop-blur-sm",
         secondary:
           "bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 border border-border/70 shadow-2xs",
         ghost:
-          "hover:bg-white/[0.06] hover:text-foreground text-muted-foreground",
+          "hover:bg-zinc-100 dark:hover:bg-white/[0.06] hover:text-foreground text-muted-foreground",
         link:
           "text-foreground underline-offset-4 hover:underline p-0 h-auto font-normal",
         // Dedicated High-End Semantic Action Variants
         save:
-          "bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-zinc-950 border border-emerald-500/35 hover:border-emerald-400 shadow-[0_2px_12px_-2px_rgba(16,185,129,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] font-semibold transition-all duration-150",
+          "bg-emerald-500/15 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white dark:hover:text-zinc-950 border border-emerald-500/35 hover:border-emerald-400 font-semibold transition-all duration-150",
         saveAll:
-          "bg-gradient-to-r from-emerald-500/20 via-emerald-500/25 to-teal-500/20 hover:from-emerald-500 hover:via-emerald-400 hover:to-teal-400 text-emerald-300 hover:text-zinc-950 border border-emerald-500/40 hover:border-emerald-300 shadow-[0_0_20px_-3px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] font-semibold transition-all duration-200",
+          "bg-gradient-to-r from-emerald-500/20 via-emerald-500/25 to-teal-500/20 hover:from-emerald-500 hover:via-emerald-400 hover:to-teal-400 text-emerald-700 dark:text-emerald-300 hover:text-white dark:hover:text-zinc-950 border border-emerald-500/40 hover:border-emerald-300 font-semibold transition-all duration-200",
         delete:
-          "bg-zinc-900/60 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-200 border border-white/10 hover:border-rose-500/35 shadow-2xs font-medium transition-all duration-150",
+          "bg-zinc-100 dark:bg-zinc-900/60 hover:bg-rose-500/20 text-zinc-600 dark:text-zinc-400 hover:text-rose-700 dark:hover:text-rose-200 border border-zinc-200 dark:border-white/10 hover:border-rose-500/35 shadow-2xs font-medium transition-all duration-150",
         deleteAll:
-          "bg-gradient-to-r from-rose-500/10 via-rose-500/15 to-rose-500/10 hover:from-rose-500/25 hover:via-rose-500/30 hover:to-rose-500/20 text-rose-300 hover:text-rose-100 border border-rose-500/30 hover:border-rose-500/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] font-semibold transition-all duration-150",
+          "bg-gradient-to-r from-rose-500/10 via-rose-500/15 to-rose-500/10 hover:from-rose-500/25 hover:via-rose-500/30 hover:to-rose-500/20 text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-rose-100 border border-rose-500/30 hover:border-rose-500/50 font-semibold transition-all duration-150",
         launch:
-          "bg-white text-zinc-950 font-bold hover:bg-zinc-100 shadow-[0_2px_14px_rgba(255,255,255,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] border border-white transition-all duration-150",
+          "bg-zinc-950 text-white font-bold hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100 shadow-[0_2px_14px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_14px_rgba(255,255,255,0.18)] border border-zinc-950 dark:border-white transition-all duration-150",
         hero:
-          "bg-white text-zinc-950 font-bold hover:bg-zinc-100 shadow-[0_2px_14px_rgba(255,255,255,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] border border-white transition-all duration-150",
+          "bg-zinc-950 text-white font-bold hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100 shadow-[0_2px_14px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_14px_rgba(255,255,255,0.18)] border border-zinc-950 dark:border-white transition-all duration-150",
         glow:
-          "border border-white/20 bg-white/[0.06] text-zinc-100 hover:bg-white/[0.12] hover:border-white/30 shadow-2xs font-semibold",
+          "border border-zinc-300 dark:border-white/20 bg-zinc-100/80 dark:bg-white/[0.06] text-zinc-900 dark:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-white/[0.12] shadow-2xs font-semibold",
       },
       size: {
         default: "h-9 px-4 py-2 text-xs sm:text-sm",

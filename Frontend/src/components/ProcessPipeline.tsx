@@ -159,29 +159,29 @@ export const ProcessPipeline = ({
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
         >
-            <div className="bg-[#0c0d12]/95 border border-white/10 shadow-tactile rounded-3xl overflow-hidden flex flex-col backdrop-blur-xl">
+            <div className="bg-white dark:bg-[#0c0d12]/95 border border-slate-200/90 dark:border-white/10 shadow-sm dark:shadow-tactile rounded-3xl overflow-hidden flex flex-col backdrop-blur-xl">
                 
                 {/* Header Section */}
-                <div className="px-6 pt-5 pb-4 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
+                <div className="px-6 pt-5 pb-4 border-b border-slate-200/80 dark:border-white/[0.08] flex items-center justify-between bg-slate-50/70 dark:bg-white/[0.02]">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shadow-premium">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:bg-primary/10 dark:text-primary dark:border-primary/20 shadow-xs">
                             {isComplete ? (
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-pulse" />
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 animate-pulse" />
                             ) : (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin text-slate-800 dark:text-white" />
                             )}
                         </div>
                         <div>
-                            <h3 className="text-sm font-display font-bold tracking-tight text-foreground">Processing your dataset</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5 font-sans">
+                            <h3 className="text-sm font-display font-bold tracking-tight text-slate-900 dark:text-foreground">Processing your dataset</h3>
+                            <p className="text-xs text-slate-500 dark:text-muted-foreground mt-0.5 font-sans">
                                 AI is analyzing and generating insights
                             </p>
                         </div>
                     </div>
                     <div className="flex text-right">
-                        <span className="text-2xl font-display font-semibold tracking-tight tabular-nums text-foreground">
+                        <span className="text-2xl font-display font-semibold tracking-tight tabular-nums text-slate-900 dark:text-foreground">
                             {displayProgress}
-                            <span className="text-sm text-muted-foreground ml-0.5 font-mono">%</span>
+                            <span className="text-sm text-slate-400 dark:text-muted-foreground ml-0.5 font-mono">%</span>
                         </span>
                     </div>
                 </div>
@@ -197,28 +197,28 @@ export const ProcessPipeline = ({
                 </div>
  
                 {/* Live Status Subtext Line */}
-                <div className="border-t border-white/[0.08] bg-[#08090d] px-6 py-3.5 flex items-center gap-3 font-sans">
+                <div className="border-t border-slate-200/80 dark:border-white/[0.08] bg-slate-50/90 dark:bg-[#08090d] px-6 py-3.5 flex items-center gap-3 font-sans">
                     {/* Live indicator */}
                     {!isComplete && (
-                        <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />
+                        <Loader2 className="w-3.5 h-3.5 text-slate-800 dark:text-emerald-400 animate-spin shrink-0" />
                     )}
                     {isComplete && (
-                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     )}
                     
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-1 sm:gap-4">
                         <div className="flex items-center gap-2 text-sm">
-                            <span className="font-display font-bold text-foreground">
+                            <span className="font-display font-bold text-slate-900 dark:text-foreground">
                                 {isComplete ? "Completed" : "Currently running:"}
                             </span>
-                            <span className="text-muted-foreground font-mono text-xs truncate max-w-[200px] sm:max-w-[300px]">
-                                {message || `processing ${activeStage.label.toLowerCase()}…`}
+                            <span className="text-slate-600 dark:text-muted-foreground font-mono text-xs truncate max-w-[200px] sm:max-w-[320px]">
+                                {message || `processing ${activeStage.label.toLowerCase()}...`}
                             </span>
                         </div>
                         
                         {!isComplete && (
-                            <span className="text-xs font-mono text-muted-foreground/60 shrink-0">
-                                please wait…
+                            <span className="text-xs font-mono text-slate-400 dark:text-muted-foreground/60 shrink-0">
+                                please wait...
                             </span>
                         )}
                     </div>
@@ -243,9 +243,9 @@ function SaaSStepper({ stages }: { stages: PipelineStage[] }) {
                         {/* Connector Line */}
                         {!isLast && (
                             <div className="flex-1 shrink-0 px-3">
-                                <div className="h-[2px] w-full rounded-full bg-muted/40 relative overflow-hidden">
+                                <div className="h-[2px] w-full rounded-full bg-slate-200 dark:bg-muted/40 relative overflow-hidden">
                                     <motion.div
-                                        className="absolute inset-y-0 left-0 w-full bg-primary origin-left"
+                                        className="absolute inset-y-0 left-0 w-full bg-emerald-500 dark:bg-primary origin-left"
                                         initial={{ scaleX: 0 }}
                                         animate={{
                                             scaleX: getConnectorScale(stage.status, stages[i + 1]?.status),
@@ -255,7 +255,7 @@ function SaaSStepper({ stages }: { stages: PipelineStage[] }) {
                                     {/* Shimmer pulse for active running line */}
                                     {stage.status === "active" && stages[i + 1]?.status !== "active" && (
                                         <motion.div
-                                            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                                            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/40 dark:via-white/30 to-transparent"
                                             animate={{ x: ["-100%", "300%"] }}
                                             transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
                                         />
@@ -287,7 +287,7 @@ function StepNode({ stage }: { stage: PipelineStage }) {
                             key="completed"
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="text-emerald-500 bg-emerald-500/10 rounded-full p-0.5"
+                            className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-full p-0.5"
                         >
                             <CheckCircle2 className="w-4 h-4" />
                         </motion.div>
@@ -299,8 +299,8 @@ function StepNode({ stage }: { stage: PipelineStage }) {
                             animate={{ scale: 1, opacity: 1 }}
                             className="relative flex items-center justify-center"
                         >
-                            <div className="absolute inset-0 rounded-full bg-primary/20 blur-sm" />
-                            <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,255,255,0.4)] relative z-10" />
+                            <div className="absolute inset-0 rounded-full bg-slate-900/15 dark:bg-white/20 blur-sm" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-slate-900 dark:bg-white relative z-10 shadow-xs" />
                         </motion.div>
                     )}
                     {isError && (
@@ -316,7 +316,7 @@ function StepNode({ stage }: { stage: PipelineStage }) {
                             key="pending"
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="w-2 h-2 rounded-full border border-muted-foreground/30"
+                            className="w-2 h-2 rounded-full border border-slate-300 dark:border-white/20 bg-slate-100 dark:bg-transparent"
                         />
                     )}
                 </AnimatePresence>
@@ -324,10 +324,10 @@ function StepNode({ stage }: { stage: PipelineStage }) {
 
             {/* Label & Icon */}
             <div className={`flex items-center gap-1.5 transition-colors duration-300
-                ${isCompleted ? "text-emerald-400 font-medium" :
-                  isActive ? "text-foreground font-display font-bold" :
+                ${isCompleted ? "text-emerald-700 dark:text-emerald-400 font-semibold" :
+                  isActive ? "text-slate-900 dark:text-foreground font-display font-bold" :
                   isError ? "text-destructive font-semibold" :
-                  "text-muted-foreground/60 font-medium"}
+                  "text-slate-400 dark:text-muted-foreground/60 font-medium"}
             `}>
                 <span className="text-sm tracking-tight">{stage.label}</span>
             </div>
@@ -340,7 +340,7 @@ function StepNode({ stage }: { stage: PipelineStage }) {
 function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
     return (
         <div className="flex flex-col gap-0 w-full relative">
-            <div className="absolute left-[11px] top-3 bottom-5 w-[2px] bg-muted/40 rounded-full" />
+            <div className="absolute left-[11px] top-3 bottom-5 w-[2px] bg-slate-200 dark:bg-muted/40 rounded-full" />
             
             {stages.map((stage, i) => {
                 const isLast = i === stages.length - 1;
@@ -352,31 +352,31 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
                     <div key={stage.id} className="flex flex-col">
                         <div className="flex items-center gap-4 py-2 relative z-10">
                             {/* Vertical Status Indicator */}
-                            <div className="relative flex items-center justify-center w-6 h-6 shrink-0 bg-card rounded-full">
+                            <div className="relative flex items-center justify-center w-6 h-6 shrink-0 bg-white dark:bg-card rounded-full">
                                 {isCompleted && (
-                                    <div className="text-emerald-500 bg-emerald-500/10 rounded-full p-0.5 animate-in fade-in duration-200">
+                                    <div className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 rounded-full p-0.5 animate-in fade-in duration-200">
                                         <CheckCircle2 className="w-4 h-4" />
                                     </div>
                                 )}
                                 {isActive && (
                                     <div className="relative flex items-center justify-center">
-                                        <div className="absolute inset-0 rounded-full bg-primary/20 blur-sm" />
-                                        <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,255,255,0.4)] relative z-10" />
+                                        <div className="absolute inset-0 rounded-full bg-slate-900/15 dark:bg-white/20 blur-sm" />
+                                        <div className="w-2.5 h-2.5 rounded-full bg-slate-900 dark:bg-white relative z-10 shadow-xs" />
                                     </div>
                                 )}
                                 {isError && (
                                     <div className="w-2.5 h-2.5 rounded-full bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                                 )}
                                 {stage.status === "pending" && (
-                                    <div className="w-2 h-2 rounded-full border border-muted-foreground/30 bg-card" />
+                                    <div className="w-2 h-2 rounded-full border border-slate-300 dark:border-white/20 bg-slate-100 dark:bg-transparent" />
                                 )}
                             </div>
 
                              <span className={`text-sm tracking-tight transition-colors duration-300
-                                ${isCompleted ? "text-emerald-400 font-medium" :
-                                isActive ? "text-foreground font-display font-bold" :
+                                ${isCompleted ? "text-emerald-700 dark:text-emerald-400 font-semibold" :
+                                isActive ? "text-slate-900 dark:text-foreground font-display font-bold" :
                                 isError ? "text-destructive font-semibold" :
-                                "text-muted-foreground/60 font-medium"}
+                                "text-slate-400 dark:text-muted-foreground/60 font-medium"}
                             `}>
                                 {stage.label}
                             </span>
@@ -386,7 +386,7 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
                         {!isLast && (
                             <div className="ml-[11px] h-6 w-[2px] relative -mt-2 -mb-2 z-0 overflow-hidden">
                                 <motion.div
-                                    className="absolute inset-x-0 top-0 h-full bg-primary origin-top"
+                                    className="absolute inset-x-0 top-0 h-full bg-emerald-500 dark:bg-primary origin-top"
                                     initial={{ scaleY: 0 }}
                                     animate={{ scaleY: getConnectorScale(stage.status, stages[i + 1]?.status) }}
                                     transition={{ duration: 0.6, ease: "easeInOut" }}

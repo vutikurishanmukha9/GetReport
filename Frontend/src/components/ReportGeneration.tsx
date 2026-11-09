@@ -706,7 +706,7 @@ export const ReportGeneration = ({
 
         {/* ─── Main Command Center Tabs ─── */}
         <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-          <TabsList className="h-auto min-h-12 w-full bg-[#0c0d12]/90 border border-white/10 p-1.5 rounded-2xl mb-6 shadow-sm flex items-center gap-1 overflow-x-auto scrollbar-none flex-nowrap">
+          <TabsList className="h-auto min-h-12 w-full bg-card/90 dark:bg-card dark:bg-[#0c0d12]/90 border border-white/10 p-1.5 rounded-2xl mb-6 shadow-sm flex items-center gap-1 overflow-x-auto scrollbar-none flex-nowrap">
             <TabsTrigger
               value="overview"
               className="rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-medium data-[state=active]:font-semibold data-[state=active]:bg-white/[0.12] data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-white/20 data-[state=active]:shadow-xs text-zinc-400 hover:text-white transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer"

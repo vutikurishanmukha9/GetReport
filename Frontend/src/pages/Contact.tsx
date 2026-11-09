@@ -58,15 +58,15 @@ export const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
+    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.04)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-50 dark:opacity-40" />
       <div className="hero-grain-overlay" />
       <Header onReset={() => { }} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28">
         {/* Header */}
-        <div className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
+        <div className="border-b border-border bg-background/90 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
@@ -168,7 +168,7 @@ export const Contact = () => {
 
             {/* Right Column: Contact Form (Col 6-12) */}
             <div className="lg:col-span-7">
-              <Card className="border border-white/10 bg-[#0c0d12]/95 shadow-tactile rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-xl">
+              <Card className="border border-border dark:border-white/10 bg-card dark:bg-[#0c0d12]/95 shadow-sm dark:shadow-tactile rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-xl text-card-foreground">
                 <div className="space-y-1 border-b border-border/60 pb-3">
                   <h2 className="text-lg sm:text-xl font-display font-bold text-foreground tracking-[-0.015em]">
                     Send a message
