@@ -78,15 +78,15 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
           "group relative inline-flex items-center justify-center font-medium select-none cursor-pointer overflow-hidden isolate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-all duration-200",
           sizeClasses[size],
           !isDisabled
-            ? "bg-[#042824]/90 hover:bg-[#063832] text-emerald-100 hover:text-white border border-emerald-500/50 hover:border-emerald-400/80 shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.18),0_0_16px_rgba(16,185,129,0.25)] hover:shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.25),0_0_24px_rgba(16,185,129,0.45)]"
-            : "bg-white/[0.03] text-zinc-500 border border-white/5 cursor-not-allowed opacity-50 shadow-none",
+            ? "bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600/90 shadow-sm shadow-emerald-600/20 hover:shadow-emerald-600/30 dark:bg-[#042824]/90 dark:hover:bg-[#063832] dark:text-emerald-100 dark:hover:text-white dark:border-emerald-500/50 dark:hover:border-emerald-400/80 dark:shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.18),0_0_16px_rgba(16,185,129,0.25)] dark:hover:shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.25),0_0_24px_rgba(16,185,129,0.45)]"
+            : "bg-slate-100 text-slate-400 border border-slate-200 dark:bg-white/[0.03] dark:text-zinc-500 dark:border-white/5 cursor-not-allowed opacity-50 shadow-none",
           className
         )}
         {...(props as any)}
       >
         {/* Magic UI Shimmer Sweep Ray */}
         {!isDisabled && !reduceMotion && (
-          <span className="pointer-events-none absolute -inset-full w-[200%] h-[200%] -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.12] to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
+          <span className="pointer-events-none absolute -inset-full w-[200%] h-[200%] -skew-x-12 bg-gradient-to-r from-transparent via-white/20 dark:via-white/[0.12] to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
         )}
 
         {/* Ambient Emerald Aura */}
@@ -100,8 +100,8 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
             "relative z-10 flex items-center justify-center shrink-0 transition-all duration-200",
             podSizes[size],
             !isDisabled
-              ? "bg-emerald-400/20 text-emerald-300 group-hover:bg-emerald-400 group-hover:text-zinc-950"
-              : "bg-white/5 text-zinc-600"
+              ? "bg-white/20 text-white group-hover:bg-white/30 group-hover:text-white dark:bg-emerald-400/20 dark:text-emerald-300 dark:group-hover:bg-emerald-400 dark:group-hover:text-zinc-950"
+              : "bg-slate-200/60 text-slate-400 dark:bg-white/5 dark:text-zinc-600"
           )}
         >
           {loading ? (
@@ -120,8 +120,8 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
 
         {/* Segmented Pill Counter Badge with Glowing Dot */}
         {!isDisabled && count !== undefined && count > 0 && (
-          <span className="relative z-10 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-950/80 text-emerald-200 border border-emerald-500/40 group-hover:border-emerald-400/60 shadow-inner">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+          <span className="relative z-10 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-700/80 text-emerald-50 border border-emerald-500/40 shadow-inner dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-500/40 dark:group-hover:border-emerald-400/60">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-200 shadow-[0_0_6px_rgba(255,255,255,0.8)] dark:bg-emerald-400 dark:shadow-[0_0_6px_#34d399]" />
             +{count}
           </span>
         )}
@@ -213,17 +213,17 @@ export const AnimatedDeleteButton = React.forwardRef<HTMLButtonElement, Animated
 
     const variantClasses = {
       danger: isConfirming
-        ? "bg-rose-600 text-white border-rose-400 shadow-[0_0_25px_rgba(244,63,94,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]"
-        : "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white border-zinc-800 hover:border-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] hover:shadow-[0_0_14px_rgba(244,63,94,0.2)]",
+        ? "bg-rose-600 text-white border-rose-500 shadow-sm dark:border-rose-400 dark:shadow-[0_0_25px_rgba(244,63,94,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]"
+        : "bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border-slate-200 hover:border-rose-300 shadow-2xs hover:shadow-xs dark:bg-zinc-900/60 dark:hover:bg-zinc-800/80 dark:text-zinc-300 dark:hover:text-white dark:border-zinc-800 dark:hover:border-zinc-700 dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] dark:hover:shadow-[0_0_14px_rgba(244,63,94,0.2)]",
       ghost: isConfirming
         ? "bg-rose-600 text-white border border-rose-500"
-        : "bg-transparent hover:bg-rose-500/10 text-muted-foreground hover:text-rose-200 border-transparent",
+        : "bg-transparent hover:bg-rose-50 text-slate-600 hover:text-rose-700 border-transparent dark:hover:bg-rose-500/10 dark:text-muted-foreground dark:hover:text-rose-200",
       outline: isConfirming
         ? "bg-rose-600 text-white border-rose-500 shadow-sm"
-        : "border border-white/12 bg-zinc-900/60 hover:bg-rose-500/10 text-zinc-200 hover:text-rose-200 hover:border-rose-500/35",
+        : "border border-slate-200 hover:border-rose-300 bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 shadow-2xs dark:border-white/12 dark:bg-zinc-900/60 dark:hover:bg-rose-500/10 dark:text-zinc-200 dark:hover:text-rose-200 dark:hover:border-rose-500/35",
       solid: isConfirming
-        ? "bg-rose-600 text-white border-rose-400"
-        : "bg-rose-500/15 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 hover:border-rose-400 shadow-2xs",
+        ? "bg-rose-600 text-white border-rose-500 shadow-sm dark:border-rose-400"
+        : "bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 hover:border-rose-600 shadow-2xs dark:bg-rose-500/15 dark:hover:bg-rose-500 dark:text-rose-300 dark:hover:text-white dark:border-rose-500/30 dark:hover:border-rose-400",
     };
 
     return (
@@ -275,11 +275,11 @@ export const AnimatedDeleteButton = React.forwardRef<HTMLButtonElement, Animated
               <span
                 className={cn(
                   "relative flex items-center justify-center shrink-0 transition-colors",
-                  size !== "icon" && "w-6 h-6 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 group-hover:text-zinc-200"
+                  size !== "icon" && "w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-slate-500 group-hover:text-rose-600 group-hover:bg-rose-100/70 group-hover:border-rose-200 dark:bg-zinc-800/80 dark:border-zinc-700/60 dark:text-zinc-400 dark:group-hover:text-zinc-200 dark:group-hover:bg-zinc-800"
                 )}
               >
                 {loading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500 dark:text-rose-400" />
                 ) : (
                   <div className="relative w-3.5 h-3.5 flex flex-col items-center justify-center">
                     <svg
@@ -312,7 +312,7 @@ export const AnimatedDeleteButton = React.forwardRef<HTMLButtonElement, Animated
               )}
 
               {count !== undefined && count > 0 && (
-                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-white/[0.08] group-hover:bg-rose-500/20 text-zinc-400 group-hover:text-rose-200 transition-colors">
+                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-slate-100 group-hover:bg-rose-100 text-slate-600 group-hover:text-rose-700 border border-slate-200 group-hover:border-rose-200 dark:bg-white/[0.08] dark:group-hover:bg-rose-500/20 dark:text-zinc-400 dark:group-hover:text-rose-200 dark:border-transparent transition-colors">
                   {count}
                 </span>
               )}
@@ -355,8 +355,8 @@ export const TactileRowAction = React.forwardRef<HTMLButtonElement, TactileRowAc
         className={cn(
           "group/row-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-150 cursor-pointer select-none border",
           isApprove
-            ? "bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-zinc-950 border-emerald-500/35 hover:border-emerald-400 shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.18)]"
-            : "bg-zinc-900/90 hover:bg-rose-500 text-zinc-300 hover:text-white border-white/10 hover:border-rose-400 shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]",
+            ? "bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border-emerald-300/80 hover:border-emerald-600 shadow-2xs dark:bg-emerald-500/15 dark:hover:bg-emerald-500 dark:text-emerald-300 dark:hover:text-zinc-950 dark:border-emerald-500/35 dark:hover:border-emerald-400 dark:shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.18)]"
+            : "bg-white hover:bg-rose-600 text-slate-700 hover:text-white border-slate-200 hover:border-rose-600 shadow-2xs dark:bg-zinc-900/90 dark:hover:bg-rose-500 dark:text-zinc-300 dark:hover:text-white dark:border-white/10 dark:hover:border-rose-400 dark:shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]",
           (disabled || isBusy) && "opacity-50 pointer-events-none cursor-not-allowed",
           className
         )}
@@ -366,8 +366,8 @@ export const TactileRowAction = React.forwardRef<HTMLButtonElement, TactileRowAc
           className={cn(
             "w-4 h-4 rounded-md flex items-center justify-center transition-colors shrink-0",
             isApprove
-              ? "bg-emerald-500/25 group-hover/row-btn:bg-zinc-950/20 text-emerald-300 group-hover/row-btn:text-zinc-950"
-              : "bg-white/[0.06] group-hover/row-btn:bg-zinc-950/20 text-zinc-400 group-hover/row-btn:text-white"
+              ? "bg-emerald-200/70 group-hover/row-btn:bg-white/20 text-emerald-800 group-hover/row-btn:text-white dark:bg-emerald-500/25 dark:group-hover/row-btn:bg-zinc-950/20 dark:text-emerald-300 dark:group-hover/row-btn:text-zinc-950"
+              : "bg-slate-100 group-hover/row-btn:bg-white/20 text-slate-600 group-hover/row-btn:text-white border border-slate-200/60 group-hover/row-btn:border-transparent dark:bg-white/[0.06] dark:group-hover/row-btn:bg-zinc-950/20 dark:text-zinc-400 dark:border-transparent"
           )}
         >
           {isBusy ? (
@@ -500,8 +500,8 @@ export const SaveKpiButton = React.forwardRef<HTMLButtonElement, SaveKpiButtonPr
         className={cn(
           "group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-200 cursor-pointer select-none border",
           isSaved
-            ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/40 shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)]"
-            : "bg-zinc-900/80 hover:bg-emerald-500/15 text-zinc-300 hover:text-emerald-200 border border-white/10 hover:border-emerald-500/40 shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]",
+            ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 shadow-2xs dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 dark:text-emerald-200 dark:border-emerald-500/40 dark:shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)]"
+            : "bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border-slate-200 hover:border-emerald-300 shadow-2xs dark:bg-zinc-900/80 dark:hover:bg-emerald-500/15 dark:text-zinc-300 dark:hover:text-emerald-200 dark:border-white/10 dark:hover:border-emerald-500/40 dark:shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]",
           disabled && "opacity-50 cursor-not-allowed pointer-events-none",
           className
         )}
@@ -510,7 +510,9 @@ export const SaveKpiButton = React.forwardRef<HTMLButtonElement, SaveKpiButtonPr
         <span
           className={cn(
             "w-4.5 h-4.5 rounded-md flex items-center justify-center transition-colors shrink-0",
-            isSaved ? "bg-emerald-500 text-zinc-950" : "bg-white/[0.06] group-hover:bg-emerald-500/20 text-emerald-400"
+            isSaved
+              ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-zinc-950"
+              : "bg-slate-100 text-emerald-700 group-hover:bg-emerald-200/60 dark:bg-white/[0.06] dark:group-hover:bg-emerald-500/20 dark:text-emerald-400"
           )}
         >
           {isSaved ? <BookmarkCheck className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 stroke-[2.2]" />}

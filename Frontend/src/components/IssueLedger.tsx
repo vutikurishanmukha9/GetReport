@@ -510,8 +510,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                 <div
                                     key={issue.id}
                                     className={cn(
-                                        "px-5 sm:px-6 py-4 hover:bg-white/[0.02] transition-colors duration-150 group",
-                                        isRejected && "opacity-55 bg-white/[0.01]"
+                                        "px-5 sm:px-6 py-4 hover:bg-slate-50/70 dark:hover:bg-white/[0.02] transition-colors duration-150 group",
+                                        isRejected && "opacity-60 bg-slate-50/40 dark:bg-white/[0.01]"
                                     )}
                                 >
                                     {/* Desktop Grid Layout */}
@@ -611,7 +611,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                             {/* ─── APPROVED STATE BADGE ─── */}
                                             {isApproved && (
                                                 <div className="flex items-center gap-2">
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 text-xs font-semibold shadow-[0_0_12px_-3px_rgba(16,185,129,0.3)]">
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-300 dark:border-emerald-500/35 text-emerald-800 dark:text-emerald-300 text-xs font-semibold shadow-2xs dark:shadow-[0_0_12px_-3px_rgba(16,185,129,0.3)]">
                                                         <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                                                         <span>Approved</span>
                                                     </span>
@@ -620,7 +620,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                             type="button"
                                                             onClick={() => handleReject(issue.id)}
                                                             disabled={loading !== null}
-                                                            className="text-[11px] text-zinc-500 hover:text-zinc-300 underline transition-colors cursor-pointer"
+                                                            className="text-[11px] text-slate-500 hover:text-slate-800 dark:text-zinc-500 dark:hover:text-zinc-300 underline transition-colors cursor-pointer"
                                                             title="Change decision to Reject"
                                                         >
                                                             Change
@@ -632,7 +632,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                             {/* ─── REJECTED STATE BADGE ─── */}
                                             {isRejected && (
                                                 <div className="flex items-center gap-2">
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-zinc-900/80 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 text-xs font-medium">
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-zinc-900/80 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-400 text-xs font-semibold shadow-2xs">
                                                         <X className="w-3.5 h-3.5 stroke-[2.5]" />
                                                         <span>Rejected</span>
                                                     </span>
@@ -641,7 +641,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                             type="button"
                                                             onClick={() => handleApprove(issue.id)}
                                                             disabled={loading !== null}
-                                                            className="text-[11px] text-slate-500 hover:text-emerald-600 dark:text-zinc-500 dark:hover:text-emerald-400 underline transition-colors cursor-pointer"
+                                                            className="text-[11px] text-slate-500 hover:text-emerald-700 dark:text-zinc-500 dark:hover:text-emerald-400 underline transition-colors cursor-pointer"
                                                             title="Change decision to Approve"
                                                         >
                                                             Approve
@@ -726,11 +726,11 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 dark:bg-zinc-900/80 text-slate-400 dark:text-zinc-500 border border-slate-200 dark:border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] cursor-not-allowed select-none"
                                     title="All pending issues must be approved or rejected before proceeding"
                                 >
-                                    <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center text-zinc-500">
+                                    <div className="w-5 h-5 rounded-md bg-white/40 dark:bg-white/5 flex items-center justify-center text-slate-400 dark:text-zinc-500">
                                         <Lock className="w-3.5 h-3.5" />
                                     </div>
                                     <span>Lock & Proceed</span>
-                                    <span className="font-mono text-[11px] text-zinc-600">
+                                    <span className="font-mono text-[11px] text-slate-500 dark:text-zinc-500">
                                         ({summary.pending} pending)
                                     </span>
                                 </div>

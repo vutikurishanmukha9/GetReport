@@ -29,13 +29,13 @@ const buttonVariants = cva(
           "text-foreground underline-offset-4 hover:underline p-0 h-auto font-normal",
         // Dedicated High-End Semantic Action Variants
         save:
-          "bg-emerald-500/15 hover:bg-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white dark:hover:text-zinc-950 border border-emerald-500/35 hover:border-emerald-400 font-semibold transition-all duration-150",
+          "bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border-emerald-300 hover:border-emerald-600 dark:bg-emerald-500/15 dark:hover:bg-emerald-500 dark:text-emerald-300 dark:hover:text-zinc-950 dark:border-emerald-500/35 dark:hover:border-emerald-400 font-semibold transition-all duration-150 shadow-2xs",
         saveAll:
-          "bg-gradient-to-r from-emerald-500/20 via-emerald-500/25 to-teal-500/20 hover:from-emerald-500 hover:via-emerald-400 hover:to-teal-400 text-emerald-700 dark:text-emerald-300 hover:text-white dark:hover:text-zinc-950 border border-emerald-500/40 hover:border-emerald-300 font-semibold transition-all duration-200",
+          "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-xs dark:bg-gradient-to-r dark:from-emerald-500/20 dark:via-emerald-500/25 dark:to-teal-500/20 dark:hover:from-emerald-500 dark:hover:via-emerald-400 dark:hover:to-teal-400 dark:text-emerald-300 dark:hover:text-zinc-950 dark:border-emerald-500/40 dark:hover:border-emerald-300 font-semibold transition-all duration-200",
         delete:
-          "bg-zinc-100 dark:bg-zinc-900/60 hover:bg-rose-500/20 text-zinc-600 dark:text-zinc-400 hover:text-rose-700 dark:hover:text-rose-200 border border-zinc-200 dark:border-white/10 hover:border-rose-500/35 shadow-2xs font-medium transition-all duration-150",
+          "bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border-slate-200 hover:border-rose-300 dark:bg-zinc-900/60 dark:hover:bg-rose-500/20 dark:text-zinc-400 dark:hover:text-rose-200 dark:border-white/10 dark:hover:border-rose-500/35 shadow-2xs font-medium transition-all duration-150",
         deleteAll:
-          "bg-gradient-to-r from-rose-500/10 via-rose-500/15 to-rose-500/10 hover:from-rose-500/25 hover:via-rose-500/30 hover:to-rose-500/20 text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-rose-100 border border-rose-500/30 hover:border-rose-500/50 font-semibold transition-all duration-150",
+          "bg-white hover:bg-rose-50 text-slate-800 hover:text-rose-800 border-slate-200 hover:border-rose-300 dark:bg-gradient-to-r dark:from-rose-500/10 dark:via-rose-500/15 dark:to-rose-500/10 dark:hover:from-rose-500/25 dark:hover:via-rose-500/30 dark:hover:to-rose-500/20 dark:text-rose-300 dark:hover:text-rose-100 dark:border-rose-500/30 dark:hover:border-rose-500/50 font-semibold transition-all duration-150 shadow-2xs",
         launch:
           "bg-zinc-950 text-white font-bold hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100 shadow-[0_2px_14px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_14px_rgba(255,255,255,0.18)] border border-zinc-950 dark:border-white transition-all duration-150",
         hero:
