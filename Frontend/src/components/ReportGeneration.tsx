@@ -20,8 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { AppStep } from "@/pages/Workspace";
-import type { AnalysisResult, Charts, InsightResult, DatasetInfo, DataRow } from "@/types/api";
+import type { AnalysisResult, Charts, InsightResult, DatasetInfo, DataRow, AppStep } from "@/types/api";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTaskStatus } from "@/hooks/useTaskStatus";

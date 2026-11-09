@@ -1,6 +1,8 @@
 export type PrimitiveValue = string | number | boolean | null;
 export type DataRow = Record<string, PrimitiveValue>;
 
+export type AppStep = "upload" | "preview" | "generating" | "complete";
+
 export interface DatasetInfo {
   rows: number;
   columns: string[];

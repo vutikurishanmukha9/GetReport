@@ -1,22 +1,18 @@
-import { useState, lazy, Suspense, useCallback, useEffect } from "react";
+import { useState, Suspense, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FileUpload } from "@/components/FileUpload";
 import { DataPreview } from "@/components/DataPreview";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import type { ApiResponse } from "@/types/api";
+import type { ApiResponse, AppStep } from "@/types/api";
 import { ChatInterface } from "@/components/ChatInterface";
 import { ProcessPipeline } from "@/components/ProcessPipeline";
+import { ReportGeneration } from "@/components/ReportGeneration";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-// Lazy-load heavy ReportGeneration component carrying matplotlib/base64 gallery
-const ReportGeneration = lazy(() => 
-  import("@/components/ReportGeneration").then(module => ({ default: module.ReportGeneration }))
-);
-
-export type AppStep = "upload" | "preview" | "generating" | "complete";
+export type { AppStep };
 
 export const Workspace = () => {
   const [searchParams] = useSearchParams();
