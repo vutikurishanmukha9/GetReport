@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Upload, FileSpreadsheet, Shield, Lock, Trash2, Database,
-  ArrowRightLeft, Link2, AlertCircle
+  ArrowRightLeft, Link2, AlertCircle, Loader2, CheckCircle2
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -555,12 +555,19 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
           >
-            {/* Upload Icon */}
+            {/* Upload / Status Icon */}
             <motion.div
               className={`
                 mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center 
                 rounded-full transition-all duration-200 shadow-premium border
-                ${isDragging ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-600 dark:text-primary" : "bg-white dark:bg-[#121215] border-slate-200 dark:border-white/10 text-slate-800 dark:text-zinc-300 shadow-sm"}
+                ${isProcessing 
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/40 dark:text-emerald-400" 
+                  : isDragging 
+                    ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-600 dark:text-primary" 
+                    : stagedFiles.length > 0
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300"
+                      : "bg-white dark:bg-[#121215] border-slate-200 dark:border-white/10 text-slate-800 dark:text-zinc-300 shadow-sm"
+                }
               `}
               animate={{ scale: isDragging ? 1.08 : 1 }}
               transition={{ type: "spring", stiffness: 260 }}
@@ -569,12 +576,21 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                 {isProcessing ? (
                   <motion.div
                     key="processing"
-                    initial={{ opacity: 0, rotate: 0 }}
-                    animate={{ opacity: 1, rotate: 360 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ rotate: { repeat: Infinity, duration: 1.2, ease: "linear" } }}
-                    className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border-2 border-emerald-600 dark:border-primary border-t-transparent"
-                  />
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                  >
+                    <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-600 dark:text-emerald-400 animate-spin" />
+                  </motion.div>
+                ) : stagedFiles.length > 0 ? (
+                  <motion.div
+                    key="staged"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                  >
+                    <FileSpreadsheet className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-600 dark:text-emerald-400" />
+                  </motion.div>
                 ) : (
                   <motion.div
                     key="upload"
@@ -590,12 +606,51 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
             {/* Dropzone Text & File Selector */}
             <div className="space-y-2">
-              <h3 className="text-lg sm:text-xl font-display font-bold text-slate-900 dark:text-foreground tracking-tight">
-                {isDragging ? "Drop datasets here" : "Drag & drop files or browse"}
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground max-w-md font-sans">
-                Upload CSV, Excel (.xlsx, .xls), Parquet, TSV, or JSON files. Add as many files as you need before starting analysis.
-              </p>
+              {isProcessing ? (
+                <>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-semibold font-sans mb-1 shadow-2xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                    <span>Analyzing In-Memory Pipeline</span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-display font-bold text-slate-900 dark:text-foreground tracking-tight">
+                    {taskMessage || "Ingesting & auditing datasets..."}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground max-w-md font-sans">
+                    Polars engine is calculating distribution metrics, data health grades, and checking column hygiene.
+                  </p>
+                </>
+              ) : isDragging ? (
+                <>
+                  <h3 className="text-lg sm:text-xl font-display font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">
+                    Drop datasets to stage
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground max-w-md font-sans">
+                    Release to add files into the memory queue.
+                  </p>
+                </>
+              ) : stagedFiles.length > 0 ? (
+                <>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-semibold font-sans mb-1 shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>{stagedFiles.length} dataset{stagedFiles.length > 1 ? "s" : ""} staged & ready</span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-display font-bold text-slate-900 dark:text-foreground tracking-tight">
+                    Ready to analyze or drop more files
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground max-w-md font-sans">
+                    Click 'Start Analysis' below to begin audit, or drop more files to append.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg sm:text-xl font-display font-bold text-slate-900 dark:text-foreground tracking-tight">
+                    Drag & drop files or browse
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground max-w-md font-sans">
+                    Upload CSV, Excel (.xlsx, .xls), Parquet, TSV, or JSON files. Add as many files as you need before starting analysis.
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Browse Button & Snowflake Connector */}
@@ -636,14 +691,16 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             )}
 
             {/* Supported formats */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-6 text-xs">
-              {['.csv', '.xlsx', '.parquet', '.json', '.tsv'].map((fmt) => (
-                <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white dark:bg-[#121215] text-slate-600 dark:text-muted-foreground font-mono text-[10px] font-medium rounded-full border border-slate-200 dark:border-white/10 shadow-2xs">
-                  <FileSpreadsheet className="h-3 w-3 text-emerald-600 dark:text-primary" />
-                  {fmt}
-                </span>
-              ))}
-            </div>
+            {!isProcessing && (
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-6 text-xs">
+                {['.csv', '.xlsx', '.parquet', '.json', '.tsv'].map((fmt) => (
+                  <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white dark:bg-[#121215] text-slate-600 dark:text-muted-foreground font-mono text-[10px] font-medium rounded-full border border-slate-200 dark:border-white/10 shadow-2xs">
+                    <FileSpreadsheet className="h-3 w-3 text-emerald-600 dark:text-primary" />
+                    {fmt}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Quick-Load Sample Datasets */}
             {!isProcessing && stagedFiles.length === 0 && (
