@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     CHART_DPI: int = 96
 
     # ─── PDF Engine ──────────────────────────────────────────────────────
-    PDF_ENGINE: str = "typst"  # "typst" (default, ultra-fast, <25MB RAM) or "reportlab" (fallback)
+    PDF_ENGINE: str = "weasyprint"  # "weasyprint" (deployment default), "typst" (ultra-fast, <25MB RAM) or "reportlab" (fallback)
     
     # ─── RAG & Embeddings ────────────────────────────────────────────────
     EMBEDDING_DIMENSION: int = 768  # 768 for Google Gemini (default), 1536 for OpenAI

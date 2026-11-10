@@ -17,10 +17,18 @@ RUN pip install --no-cache-dir --prefix=/install \
 FROM python:3.12-slim AS runtime
 
 # System dependencies:
-#   - Fonts for Typst report rendering: fonts-dejavu-core
+#   - WeasyPrint C-libraries: libpango-1.0-0, libharfbuzz0b, libpangoft2-1.0-0, libpangocairo-1.0-0, libgdk-pixbuf-2.0-0, libffi8, shared-mime-info
+#   - Fonts for PDF report rendering: fonts-dejavu-core
 #   - Neon DB: ca-certificates (SSL connections)
 #   - Shell script utilities: dos2unix
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpango-1.0-0 \
+    libharfbuzz0b \
+    libpangoft2-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf-2.0-0 \
+    libffi8 \
+    shared-mime-info \
     fonts-dejavu-core \
     ca-certificates \
     dos2unix \
@@ -47,7 +55,7 @@ RUN useradd --create-home --shell /bin/bash appuser && \
 USER appuser
 
 # ─── Environment ─────────────────────────────────────────────────────────────
-ENV PDF_ENGINE=typst
+ENV PDF_ENGINE=weasyprint
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 

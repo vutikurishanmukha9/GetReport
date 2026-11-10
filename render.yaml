@@ -41,7 +41,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: PDF_ENGINE
-        value: typst
+        value: weasyprint
       - key: CORS_ORIGINS
         value: https://get-report.vercel.app,https://getreport.vercel.app,https://getreport-frontend.onrender.com,http://localhost:5173
       - key: SKEWNESS_THRESHOLD
