@@ -89,7 +89,7 @@ class OutlierConfig:
     multivariate_max_fit_rows: int = 10_000
     multivariate_min_rows: int = 30
     multivariate_min_votes: int = 2
-    n_jobs: int = -1
+    n_jobs: int = 1
     # output
     max_indices_returned: int = 200
     sample_size: int = 20
@@ -646,12 +646,12 @@ def _multivariate(df_arrays: dict[str, np.ndarray], skewed: set[str], univariate
     c = cfg.multivariate_contamination
     labels: dict[str, np.ndarray] = {}
 
-    iso = IsolationForest(contamination=c, random_state=cfg.random_state, n_estimators=200, n_jobs=cfg.n_jobs)
+    iso = IsolationForest(contamination=c, random_state=cfg.random_state, n_estimators=100, n_jobs=1)
     iso.fit(Zf)
     labels["isolation_forest"] = iso.predict(Z) == -1
 
     k = max(5, min(20, Zf.shape[0] - 1))
-    lof = LocalOutlierFactor(n_neighbors=k, contamination=c, novelty=True, n_jobs=cfg.n_jobs)
+    lof = LocalOutlierFactor(n_neighbors=k, contamination=c, novelty=True, n_jobs=1)
     lof.fit(Zf)
     lof_lab = np.zeros(n, dtype=bool)
     lof_lab[fit_idx] = lof.negative_outlier_factor_ < lof.offset_      # training rows: self-excluded scores

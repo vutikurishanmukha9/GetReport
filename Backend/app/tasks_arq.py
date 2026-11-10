@@ -269,16 +269,23 @@ async def resume_analysis_pipeline_task(
 
         df = await asyncio.to_thread(load_dataframe, file_path)
 
-        def _clean_and_compare_worker():
-            cleaned_df, cleaning_report, transformation_dag = clean_data(df, rules, None, filename)
-            comp_report = comparison_service.compare(df, cleaned_df)
-            return cleaned_df, cleaning_report, transformation_dag, comp_report
+        def _clean_worker():
+            return clean_data(df, rules, None, filename)
 
-        cleaned_df, cleaning_report, transformation_dag, comparison_report = await asyncio.to_thread(_clean_and_compare_worker)
+        cleaned_df, cleaning_report, transformation_dag = await asyncio.to_thread(_clean_worker)
+
+        # Step 1b: Dataset Quality Comparison
+        title_task_manager.update_progress(task_id, 50, "Evaluating data quality improvements...")
+
+        def _compare_worker():
+            return comparison_service.compare(df, cleaned_df)
+
+        comparison_report = await asyncio.to_thread(_compare_worker)
         del df
         gc.collect()
 
-        # Persist intermediate cleaned data (Parquet)
+        # Step 1c: Persist intermediate cleaned data (Parquet)
+        title_task_manager.update_progress(task_id, 55, "Persisting cleaned dataset...")
         buffer = BytesIO()
         cleaned_df.write_parquet(buffer)
         buffer.seek(0)

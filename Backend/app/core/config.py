@@ -1,6 +1,15 @@
 import os
 import sys
 
+# Prevent Scikit-learn / Joblib / OpenMP from spawning child processes or thread storms in memory-constrained environments
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", "1")
+os.environ.setdefault("JOBLIB_MULTIPROCESSING", "0")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):

@@ -104,12 +104,25 @@ class ComparisonService:
         total_cells_after = rows_after * cols_after
         comp_after = ((total_cells_after - nulls_after) / total_cells_after * 100) if total_cells_after > 0 else 0
         
-        # Uniqueness (Approximate for speed if needed, but unique() is fast enough usually)
-        # Using row uniqueness
-        unique_rows_before = df_before.n_unique()
+        # Uniqueness (Row uniqueness with graceful fallback if Object/nested dtypes exist)
+        try:
+            unique_rows_before = df_before.n_unique()
+        except Exception:
+            try:
+                non_obj = [c for c, t in df_before.schema.items() if t != pl.Object]
+                unique_rows_before = df_before.select(non_obj).n_unique() if non_obj else rows_before
+            except Exception:
+                unique_rows_before = rows_before
         unique_score_before = (unique_rows_before / rows_before * 100) if rows_before > 0 else 0
         
-        unique_rows_after = df_after.n_unique()
+        try:
+            unique_rows_after = df_after.n_unique()
+        except Exception:
+            try:
+                non_obj = [c for c, t in df_after.schema.items() if t != pl.Object]
+                unique_rows_after = df_after.select(non_obj).n_unique() if non_obj else rows_after
+            except Exception:
+                unique_rows_after = rows_after
         unique_score_after = (unique_rows_after / rows_after * 100) if rows_after > 0 else 0
 
         comparison = DatasetComparison(
@@ -153,7 +166,16 @@ class ComparisonService:
             name = re.sub(r'_+', '_', name).strip('_').lower()
             return name
         
-        new_names = {c: to_snake(c) for c in df.columns}
+        new_names = {}
+        seen: Dict[str, int] = {}
+        for c in df.columns:
+            sc = to_snake(c)
+            if sc in seen:
+                seen[sc] += 1
+                new_names[c] = f"{sc}_{seen[sc]}"
+            else:
+                seen[sc] = 0
+                new_names[c] = sc
         return df.rename(new_names)
 
     def _compare_column(self, s_before: pl.Series, s_after: pl.Series, col_name: str) -> ColumnComparison:
@@ -165,8 +187,21 @@ class ComparisonService:
         metrics.append(self._make_metric("missing_count", missing_before, missing_after, lower_is_better=True))
         
         # Metric: Unique Count
-        unique_before = s_before.n_unique()
-        unique_after = s_after.n_unique()
+        try:
+            unique_before = s_before.n_unique()
+        except Exception:
+            try:
+                unique_before = len(set(s_before.to_list()))
+            except Exception:
+                unique_before = 0
+
+        try:
+            unique_after = s_after.n_unique()
+        except Exception:
+            try:
+                unique_after = len(set(s_after.to_list()))
+            except Exception:
+                unique_after = 0
         # Higher uniqueness isn't always "better" (e.g. categorical), but meaningful change is noted
         metrics.append(self._make_metric("unique_count", unique_before, unique_after, lower_is_better=False)) 
         

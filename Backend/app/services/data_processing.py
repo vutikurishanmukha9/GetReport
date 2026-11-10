@@ -1076,8 +1076,6 @@ def _contextual_impute_series(
         return None, None
 
     try:
-        from sklearn.linear_model import Ridge
-
         target_series = df[col]
         target_np = np.array(target_series)
         target_null_mask = np.array(target_series.is_null())
@@ -1121,15 +1119,30 @@ def _contextual_impute_series(
         X_train = X_selected[valid_target_idx]
         y_train = y_valid
 
-        model = Ridge(alpha=1.0)
-        model.fit(X_train, y_train)
+        # Pure NumPy Ridge Regression (closed form: w = (X^T X + alpha*I)^-1 X^T y)
+        n_train = len(y_train)
+        X_train_bias = np.column_stack([np.ones(n_train), X_train])
+        d = X_train_bias.shape[1]
+        reg_matrix = 1.0 * np.eye(d)
+        reg_matrix[0, 0] = 0.0  # do not regularize intercept
 
-        r2 = float(model.score(X_train, y_train))
+        try:
+            weights = np.linalg.solve(X_train_bias.T @ X_train_bias + reg_matrix, X_train_bias.T @ y_train)
+        except np.linalg.LinAlgError:
+            weights = np.linalg.lstsq(X_train_bias.T @ X_train_bias + reg_matrix, X_train_bias.T @ y_train, rcond=None)[0]
+
+        y_pred_train = X_train_bias @ weights
+        ss_res = np.sum((y_train - y_pred_train) ** 2)
+        ss_tot = np.sum((y_train - np.mean(y_train)) ** 2)
+        r2 = float(1.0 - (ss_res / ss_tot)) if ss_tot > 1e-9 else 0.0
+
         if r2 < 0.15 or np.isnan(r2):
             return None, None
 
         X_missing = X_selected[target_null_mask]
-        preds = model.predict(X_missing)
+        n_missing = len(X_missing)
+        X_missing_bias = np.column_stack([np.ones(n_missing), X_missing])
+        preds = X_missing_bias @ weights
 
         min_observed = float(np.min(y_train))
         max_observed = float(np.max(y_train))
@@ -1195,12 +1208,21 @@ def clean_data(
     step_start = time.perf_counter()
     df_before = df.clone()
     
-    new_cols = {c: _to_snake_case(c) for c in df.columns}
+    new_cols = {}
+    seen: dict[str, int] = {}
+    for c in df.columns:
+        sc = _to_snake_case(c)
+        if sc in seen:
+            seen[sc] += 1
+            new_cols[c] = f"{sc}_{seen[sc]}"
+        else:
+            seen[sc] = 0
+            new_cols[c] = sc
     df = df.rename(new_cols)
-    report.columns_renamed = new_cols
+    changed_cols = {k: v for k, v in new_cols.items() if k != v}
+    report.columns_renamed = changed_cols
     
     # Only add node if columns actually changed
-    changed_cols = {k: v for k, v in new_cols.items() if k != v}
     if changed_cols:
         dag.add_node(
             operation="rename_columns",
@@ -1223,19 +1245,26 @@ def clean_data(
         # Exact duplicates are left to Step 3 so existing dedupe accounting is unchanged.
         drop_mask = triage.exclude_mask_without("exact_duplicate")
         if drop_mask.any():
-            df_before = df.clone()
-            dropped_ids = [int(i) for i in triage.row_ids[drop_mask][:1000]]
-            df = df.filter(pl.Series(~drop_mask))
-            dropped = int(drop_mask.sum())
-            report.non_data_rows_dropped = dropped
-            dag.add_node(
-                operation="drop_non_data_rows",
-                df_before=df_before,
-                df_after=df,
-                parameters={"rows_dropped": dropped, "reasons": triage.summary()["by_reason"]},
-                stored_data={"dropped_row_ids": dropped_ids},
-                duration_ms=(time.perf_counter() - step_start) * 1000,
-            )
+            if drop_mask.sum() < df.height:
+                df_before = df.clone()
+                dropped_ids = [int(i) for i in triage.row_ids[drop_mask][:1000]]
+                df = df.filter(pl.Series(~drop_mask))
+                dropped = int(drop_mask.sum())
+                report.non_data_rows_dropped = dropped
+                dag.add_node(
+                    operation="drop_non_data_rows",
+                    df_before=df_before,
+                    df_after=df,
+                    parameters={"rows_dropped": dropped, "reasons": triage.summary()["by_reason"]},
+                    stored_data={"dropped_row_ids": dropped_ids},
+                    duration_ms=(time.perf_counter() - step_start) * 1000,
+                )
+            else:
+                logger.warning(
+                    "Row triage attempted to drop all %d rows (%s). Preserving original rows to prevent empty dataset.",
+                    df.height,
+                    triage.summary().get("by_reason", {}),
+                )
 
     # ─── Step 2: Apply User Rules (Interactive) ──────────────────────────────
     rules_applied_cols: set[str] = set()
@@ -1261,21 +1290,22 @@ def clean_data(
                 )
                 
             elif action == "fill_mean":
-                if df[target_col].dtype in [pl.Int64, pl.Float64]:
+                if df[target_col].dtype in [pl.Int64, pl.Float64, pl.Int32, pl.Float32]:
                     mean_val = df[target_col].mean()
-                    null_cnt = df[target_col].null_count()
-                    if null_cnt > 0:
-                        df = df.with_columns(pl.col(target_col).fill_null(mean_val))
-                        report.numeric_nans_filled += null_cnt
-                        dag.add_node(
-                            operation="fill_null_mean",
-                            df_before=df_before,
-                            df_after=df,
-                            target_column=target_col,
-                            parameters={"fill_value": mean_val, "nulls_filled": null_cnt},
-                            duration_ms=(time.perf_counter() - step_start) * 1000,
-                            values_changed=null_cnt,
-                        )
+                    if mean_val is not None:
+                        null_cnt = df[target_col].null_count()
+                        if null_cnt > 0:
+                            df = df.with_columns(pl.col(target_col).fill_null(mean_val))
+                            report.numeric_nans_filled += null_cnt
+                            dag.add_node(
+                                operation="fill_null_mean",
+                                df_before=df_before,
+                                df_after=df,
+                                target_column=target_col,
+                                parameters={"fill_value": mean_val, "nulls_filled": null_cnt},
+                                duration_ms=(time.perf_counter() - step_start) * 1000,
+                                values_changed=null_cnt,
+                            )
 
             elif action == "fill_median":
                 if df[target_col].dtype in [pl.Int64, pl.Float64, pl.Float32, pl.Int32]:
@@ -1469,6 +1499,8 @@ def clean_data(
     keep_lit = pl.lit(pl.Series(~sparse)) if sparse.any() else None
 
     def _gated_fill(col_name: str, value: Any) -> pl.Expr:
+        if value is None:
+            return pl.col(col_name)
         if keep_lit is None:
             return pl.col(col_name).fill_null(value)
         return pl.when(pl.col(col_name).is_null() & keep_lit).then(pl.lit(value)).otherwise(pl.col(col_name))
@@ -1485,6 +1517,13 @@ def clean_data(
         col_lower = col.lower()
         is_id = any(p in col_lower for p in id_patterns)
         dtype = df[col].dtype
+
+        # Promote Object column to String series to support native Polars string kernels
+        if dtype == pl.Object:
+            str_vals = [str(x) if x is not None else None for x in df[col]]
+            df = df.with_columns(pl.Series(col, str_vals, dtype=pl.String))
+            dtype = pl.String
+
         is_phone = _is_phone_column(col, df[col])
         
         # 4a. Sanitize Phone Numbers (Remove leading hyphens/dashes, standardize to Utf8 string)
@@ -1544,14 +1583,15 @@ def clean_data(
                 )
             continue
         
-        # 4b. Strip masked null string placeholders in Utf8/Object columns & fill categorical
-        if dtype == pl.Utf8 or dtype == pl.Object:
+        # 4b. Strip masked null string placeholders in Utf8/String columns & fill categorical
+        if dtype in (pl.Utf8, pl.String):
             step_start = time.perf_counter()
             df_before = df.clone()
             
             # Convert masked string placeholders to null
+            col_str_expr = pl.col(col).str.strip_chars().str.to_lowercase()
             df = df.with_columns(
-                pl.when(pl.col(col).str.strip_chars().str.to_lowercase().is_in(masked_placeholders))
+                pl.when(col_str_expr.is_in(masked_placeholders))
                 .then(None)
                 .otherwise(pl.col(col))
                 .alias(col)
@@ -1787,4 +1827,4 @@ def sanitize_df_for_csv_export(df: pl.DataFrame) -> pl.DataFrame:
             exprs.append(sanitized.alias(col_name))
         else:
             exprs.append(pl.col(col_name))
-    return df.with_columns(exprs)
+    return df.with_columns(exprs)

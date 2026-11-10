@@ -52,6 +52,16 @@ services:
         value: "52428800"
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: LOKY_MAX_CPU_COUNT
+        value: "1"
+      - key: JOBLIB_MULTIPROCESSING
+        value: "0"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
 
   - type: static
     name: getreport-frontend

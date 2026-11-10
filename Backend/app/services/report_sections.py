@@ -210,14 +210,18 @@ def _build_cleaning_section(
         if key in report:
             table_data.append([label, str(report[key])])
 
-    if report.get("columns_renamed"):
-        table_data.append(["", ""])
-        table_data.append(["Columns Renamed", ""])
-        table_data.append(["Original Name", "New Name"])
-        for old, new in report["columns_renamed"].items():
-            table_data.append([old, new])
-
     story.append(_build_styled_table(table_data, col_widths=[3.5 * inch, 2.0 * inch]))
+
+    # Only show actual renames in a dedicated, properly labeled separate table
+    renamed = {k: v for k, v in report.get("columns_renamed", {}).items() if k != v}
+    if renamed:
+        story.append(Spacer(1, 0.15 * inch))
+        story.append(Paragraph("<b>Standardized Column Names</b>", styles["TableCaption"]))
+        story.append(Spacer(1, 0.05 * inch))
+        rename_data = [["Original Header", "Cleaned Identifier"]]
+        for old, new in renamed.items():
+            rename_data.append([str(old), str(new)])
+        story.append(_build_styled_table(rename_data, col_widths=[3.0 * inch, 3.0 * inch]))
     story.extend(_divider())
     meta.sections_included.append("Cleaning Summary")
     return story
