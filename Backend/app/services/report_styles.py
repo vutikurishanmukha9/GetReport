@@ -107,50 +107,62 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
     # Normal — base style
     custom["Normal"] = base["Normal"]
 
-    # Title — large, white, centered (used on the dark title page)
+    # Title — high-contrast obsidian
     custom["ReportTitle"] = ParagraphStyle(
         "ReportTitle",
         parent=base["Title"],
-        fontSize=28,
-        textColor=Brand.ACCENT,
-        alignment=TA_CENTER,
+        fontSize=26,
+        textColor=Brand.PRIMARY,
+        alignment=TA_LEFT,
         fontName="Helvetica-Bold",
-        leading=34,
-        spaceAfter=10,
+        leading=32,
+        spaceAfter=8,
     )
 
-    # Subtitle — smaller, light accent, centered
+    # Subtitle — accessible muted text
     custom["ReportSubtitle"] = ParagraphStyle(
         "ReportSubtitle",
         parent=base["Normal"],
-        fontSize=12,
+        fontSize=11,
         textColor=Brand.TEXT_MUTED,
-        alignment=TA_CENTER,
+        alignment=TA_LEFT,
         fontName="Helvetica",
-        leading=16,
+        leading=15,
         spaceAfter=6,
     )
 
-    # Section heading — accent color, left-aligned, keepWithNext=True to prevent orphan titles!
+    # Eyebrow / Brand mark tag
+    custom["ReportEyebrow"] = ParagraphStyle(
+        "ReportEyebrow",
+        parent=base["Normal"],
+        fontSize=8,
+        textColor=Brand.ACCENT_INDIGO,
+        alignment=TA_LEFT,
+        fontName="Helvetica-Bold",
+        leading=10,
+        spaceAfter=4,
+    )
+
+    # Section heading — uppercase, high-contrast, keepWithNext=True
     custom["SectionHeading"] = ParagraphStyle(
         "SectionHeading",
         parent=base["Heading2"],
-        fontSize=15,
-        textColor=Brand.ACCENT,
+        fontSize=13,
+        textColor=Brand.PRIMARY,
         fontName="Helvetica-Bold",
-        spaceBefore=14,
+        spaceBefore=16,
         spaceAfter=6,
         alignment=TA_LEFT,
-        leading=18,
+        leading=17,
         keepWithNext=True,
     )
 
-    # Sub-heading — slightly smaller, dark text
+    # Sub-heading — crisp obsidian-muted
     custom["SubHeading"] = ParagraphStyle(
         "SubHeading",
         parent=base["Heading3"],
-        fontSize=11,
-        textColor=Brand.TEXT_DARK,
+        fontSize=10,
+        textColor=Brand.PRIMARY_MUTED,
         fontName="Helvetica-Bold",
         spaceBefore=10,
         spaceAfter=4,
@@ -158,15 +170,15 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
         keepWithNext=True,
     )
 
-    # Body text — justified, readable
+    # Body text — high-contrast, readable
     custom["Body"] = ParagraphStyle(
         "Body",
         parent=base["Normal"],
-        fontSize=9.5,
-        textColor=Brand.TEXT_DARK,
+        fontSize=8.5,
+        textColor=Brand.PRIMARY_MUTED,
         fontName="Helvetica",
         alignment=TA_LEFT,
-        leading=14,
+        leading=13.5,
         spaceAfter=4,
     )
 
@@ -174,13 +186,13 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
     custom["InsightText"] = ParagraphStyle(
         "InsightText",
         parent=base["Normal"],
-        fontSize=9.5,
-        textColor=Brand.TEXT_DARK,
+        fontSize=8.5,
+        textColor=Brand.PRIMARY,
         fontName="Helvetica",
         alignment=TA_LEFT,
-        leading=14,
-        leftIndent=8,
-        rightIndent=8,
+        leading=13.5,
+        leftIndent=4,
+        rightIndent=4,
     )
 
     # Insight — alias for general usage
@@ -190,23 +202,23 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
     custom["WarningText"] = ParagraphStyle(
         "WarningText",
         parent=base["Normal"],
-        fontSize=9,
-        textColor=colors.HexColor("#7C2D12"),
+        fontSize=8.5,
+        textColor=Brand.WARNING_TEXT,
         fontName="Helvetica",
         alignment=TA_LEFT,
         leading=13,
-        leftIndent=6,
+        leftIndent=4,
     )
 
     # Table Caption — used above tables
     custom["TableCaption"] = ParagraphStyle(
         "TableCaption",
         parent=base["Normal"],
-        fontSize=10,
-        textColor=Brand.TEXT_DARK,
+        fontSize=9.5,
+        textColor=Brand.PRIMARY,
         alignment=TA_LEFT,
         fontName="Helvetica-Bold",
-        leading=14,
+        leading=13,
         spaceAfter=4,
         keepWithNext=True,
     )
@@ -215,8 +227,8 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
     custom["Footer"] = ParagraphStyle(
         "Footer",
         parent=base["Normal"],
-        fontSize=8,
-        textColor=colors.grey,
+        fontSize=7.5,
+        textColor=Brand.TEXT_MUTED,
         alignment=TA_CENTER,
     )
 
@@ -225,7 +237,7 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
         "ModernTitle",
         parent=base["Title"],
         fontSize=22,
-        textColor=Brand.ACCENT,
+        textColor=Brand.PRIMARY,
         alignment=TA_LEFT,
         spaceAfter=8,
         fontName="Helvetica-Bold",
@@ -236,24 +248,24 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
     custom["ModernHeading"] = ParagraphStyle(
         "ModernHeading",
         parent=base["Heading2"],
-        fontSize=15,
-        textColor=Brand.ACCENT,
+        fontSize=13,
+        textColor=Brand.PRIMARY,
         fontName="Helvetica-Bold",
         spaceBefore=14,
         spaceAfter=6,
         alignment=TA_LEFT,
-        leading=18,
+        leading=17,
         keepWithNext=True,
     )
 
     custom["ModernBody"] = ParagraphStyle(
         "ModernBody",
         parent=base["Normal"],
-        fontSize=9.5,
-        textColor=Brand.TEXT_DARK,
+        fontSize=8.5,
+        textColor=Brand.PRIMARY_MUTED,
         fontName="Helvetica",
         alignment=TA_LEFT,
-        leading=14,
+        leading=13.5,
         spaceAfter=4,
     )
 
@@ -261,7 +273,7 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
         "MetaValue",
         parent=base["Normal"],
         fontSize=18,
-        textColor=Brand.ACCENT,
+        textColor=Brand.PRIMARY,
         alignment=TA_CENTER,
         fontName="Helvetica-Bold",
         spaceAfter=2,
@@ -270,8 +282,8 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
     custom["MetaLabel"] = ParagraphStyle(
         "MetaLabel",
         parent=base["Normal"],
-        fontSize=8.5,
-        textColor=colors.HexColor("#555555"),
+        fontSize=7.5,
+        textColor=Brand.TEXT_MUTED,
         fontName="Helvetica-Bold",
         alignment=TA_CENTER,
     )
@@ -279,18 +291,18 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
     custom["InsightBox"] = ParagraphStyle(
         "InsightBox",
         parent=base["Normal"],
-        fontSize=9.5,
-        textColor=Brand.TEXT_DARK,
+        fontSize=8.5,
+        textColor=Brand.PRIMARY,
         fontName="Helvetica",
         alignment=TA_LEFT,
-        leading=14,
+        leading=13.5,
         leftIndent=8,
         rightIndent=8,
         backColor=Brand.INSIGHT_BG,
         borderColor=Brand.INSIGHT_BORDER,
         borderWidth=1,
         borderPadding=8,
-        borderRadius=6,
+        borderRadius=4,
     )
 
     return custom
@@ -298,28 +310,34 @@ def get_custom_styles() -> dict[str, ParagraphStyle]:
 
 # ─── Page Header / Footer Callbacks ──────────────────────────────────────────
 def _header_callback(canvas, doc) -> None:
-    """Draw a thin burgundy accent bar at the top of every page (except page 1 = title)."""
+    """Draw an executive minimalist running header with hairline divider."""
     if doc.page == 1:
         return  # title page has no running header
     canvas.saveState()
-    canvas.setFillColor(Brand.ACCENT)
-    canvas.rect(0, letter[1] - 0.35 * inch, letter[0], 0.35 * inch, fill=1, stroke=0)
-    canvas.setFillColor(Brand.TEXT_LIGHT)
-    canvas.setFont("Helvetica-Bold", 8.5)
-    canvas.drawString(0.6 * inch, letter[1] - 0.22 * inch, "GetReport — Executive Data Analysis Briefing")
+    # 0.75pt hairline divider
+    canvas.setStrokeColor(Brand.BORDER)
+    canvas.setLineWidth(0.75)
+    canvas.line(0.6 * inch, letter[1] - 0.45 * inch, letter[0] - 0.6 * inch, letter[1] - 0.45 * inch)
+    # Left: Uppercase technical brand marker
+    canvas.setFillColor(Brand.TEXT_MUTED)
+    canvas.setFont("Helvetica-Bold", 7)
+    canvas.drawString(0.6 * inch, letter[1] - 0.38 * inch, "GETREPORT  |  DATA INTELLIGENCE & AUDIT")
+    # Right: Confidential indicator
+    canvas.setFont("Helvetica", 7)
+    canvas.drawRightString(letter[0] - 0.6 * inch, letter[1] - 0.38 * inch, "CONFIDENTIAL")
     canvas.restoreState()
 
 
 def _footer_callback(canvas, doc) -> None:
-    """Draw footer page number and confidentiality note at the bottom of every page."""
+    """Draw footer page number and zero-persistence verification at bottom of page."""
     canvas.saveState()
-    canvas.setStrokeColor(Brand.DIVIDER)
-    canvas.setLineWidth(0.5)
+    canvas.setStrokeColor(Brand.BORDER)
+    canvas.setLineWidth(0.75)
     canvas.line(0.6 * inch, 0.45 * inch, letter[0] - 0.6 * inch, 0.45 * inch)
-    canvas.setFillColor(colors.HexColor("#666666"))
-    canvas.setFont("Helvetica", 8)
-    canvas.drawString(0.6 * inch, 0.3 * inch, "Confidential — Generated by GetReport AI")
-    canvas.drawRightString(letter[0] - 0.6 * inch, 0.3 * inch, f"Page {doc.page}")
+    canvas.setFillColor(Brand.TEXT_MUTED)
+    canvas.setFont("Helvetica", 7.5)
+    canvas.drawString(0.6 * inch, 0.30 * inch, "Automated Zero-Persistence Data Audit  ·  GetReport")
+    canvas.drawRightString(letter[0] - 0.6 * inch, 0.30 * inch, f"Page {doc.page}")
     canvas.restoreState()
 
 
@@ -417,41 +435,37 @@ def _build_styled_table(
     col_widths: list[float] | None = None,
 ) -> Table:
     """
-    Build a ReportLab Table with the branded GetReport style.
-
-    Args:
-        data:       2D list where data[0] is the header row.
-        col_widths: Optional list of column widths in points.
-
-    Returns:
-        A styled ReportLab Table.
+    Build an executive ReportLab Table with clean hairline borders and modern typography.
     """
     wrapped_data = _wrap_table_cells(data)
     t = Table(wrapped_data, colWidths=col_widths, splitByRow=True, repeatRows=1)
 
     style_commands = [
-        # Header row
+        # Header row — subtle zinc well with high-contrast text and crisp hairline
         ("BACKGROUND", (0, 0), (-1, 0), Brand.TABLE_HEADER),
-        ("TEXTCOLOR", (0, 0), (-1, 0), Brand.TEXT_LIGHT),
+        ("TEXTCOLOR", (0, 0), (-1, 0), Brand.TABLE_HEADER_TEXT),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 0), 9),
+        ("FONTSIZE", (0, 0), (-1, 0), 8),
+        ("LINEABOVE", (0, 0), (-1, 0), 1.0, Brand.BORDER),
+        ("LINEBELOW", (0, 0), (-1, 0), 1.25, Brand.BORDER),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-        ("TOPPADDING", (0, 0), (-1, 0), 8),
-        # Body rows
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+        ("TOPPADDING", (0, 0), (-1, 0), 6),
+        # Body rows — high readability, comfortable row height
         ("BACKGROUND", (0, 1), (-1, -1), Brand.TABLE_ROW),
         ("TEXTCOLOR", (0, 1), (-1, -1), Brand.TEXT_DARK),
         ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-        ("FONTSIZE", (0, 1), (-1, -1), 9),
-        ("TOPPADDING", (0, 1), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
-        # Grid
-        ("GRID", (0, 0), (-1, -1), 0.5, Brand.DIVIDER),
-        # Left-align first column (metric names)
+        ("FONTSIZE", (0, 1), (-1, -1), 8),
+        ("TOPPADDING", (0, 1), (-1, -1), 4.5),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 4.5),
+        # Precision hairline boundaries
+        ("GRID", (0, 0), (-1, -1), 0.5, Brand.BORDER),
+        ("LINEBELOW", (0, -1), (-1, -1), 1.0, Brand.BORDER),
+        # Left-align first column (labels/features)
         ("ALIGN", (0, 0), (0, -1), "LEFT"),
     ]
 
-    # Alternating row backgrounds
+    # Alternating row backgrounds (ultra-light zinc)
     for row_idx in range(1, len(wrapped_data)):
         if row_idx % 2 == 0:
             style_commands.append(
@@ -470,17 +484,17 @@ def _wrap_table_cells(data: list[list[Any]]) -> list[list[Any]]:
     header_style = ParagraphStyle(
         "ReportTableHeader",
         fontName="Helvetica-Bold",
-        fontSize=8,
-        leading=10,
-        textColor=Brand.TEXT_LIGHT,
+        fontSize=7.5,
+        leading=9.5,
+        textColor=Brand.TABLE_HEADER_TEXT,
         alignment=TA_CENTER,
         wordWrap="CJK",
     )
     body_style = ParagraphStyle(
         "ReportTableCell",
         fontName="Helvetica",
-        fontSize=7,
-        leading=9,
+        fontSize=7.5,
+        leading=9.5,
         textColor=Brand.TEXT_DARK,
         alignment=TA_LEFT,
         wordWrap="CJK",
@@ -517,9 +531,9 @@ def _safe_table_markup(value: Any) -> str:
 
 # ─── Section Divider ─────────────────────────────────────────────────────────
 def _divider() -> list[Flowable]:
-    """Return a spacer + horizontal rule + spacer for visual section breaks."""
+    """Return an executive hairline divider."""
     return [
-        Spacer(1, 0.15 * inch),
-        HRFlowable(width="100%", thickness=1, color=Brand.DIVIDER, spaceAfter=6),
-        Spacer(1, 0.1 * inch),
+        Spacer(1, 0.12 * inch),
+        HRFlowable(width="100%", thickness=0.75, color=Brand.BORDER, spaceAfter=6),
+        Spacer(1, 0.08 * inch),
     ]
