@@ -98,6 +98,8 @@ _MONEY = {"price", "amount", "cost", "revenue", "salary", "income", "sales", "pr
 _CATEGORICAL_HINT = {"status", "type", "category", "cat", "class", "flag", "gender", "sex", "kind",
                      "mode", "label", "cluster", "segment", "group", "code", "region", "is", "has"}
 _ORDINAL_HINT = {"rating", "rank", "grade", "level", "tier", "stars", "priority"}
+_ANALYTICAL_HINT = {"feature", "feat", "metric", "measure", "value", "val", "target", "signal",
+                    "input", "output", "pred", "prediction", "score", "weight", "x", "y", "z"}
 
 
 def tokenize(name: str) -> list[str]:
@@ -144,6 +146,7 @@ def _name_features(name: str, cfg: ClassifierConfig) -> dict[str, Any]:
         "money": bool(tset & _MONEY),
         "cat_hint": bool(tset & _CATEGORICAL_HINT),
         "ordinal_hint": bool(tset & _ORDINAL_HINT),
+        "analytical_hint": bool(tset & _ANALYTICAL_HINT),
     }
 
 
@@ -272,16 +275,23 @@ def _collect_evidence(col: str, prof: dict[str, Any], cfg: ClassifierConfig, n_r
     elif nf["id_weak"] or nf["index_weak"]:
         add("identifier", "name_weakly_suggests_id", 0.2)
 
-    if int_valued and n >= cfg.min_rows_uniqueness and prof["unique_ratio"] >= cfg.id_uniqueness_threshold:
-        add("identifier", f"high_uniqueness_{round(prof['unique_ratio'] * 100)}%", 0.4)
-        if prof["density"] is not None and prof["density"] >= 0.5:
-            add("identifier", "dense_integer_range", 0.2)
-    if int_valued and n >= cfg.min_rows_sequential:
-        if prof["step1"]:
+    has_id_name = nf["id_strong"] or nf["index_strong"] or nf["id_weak"] or nf["index_weak"]
+    is_analytical = nf.get("analytical_hint", False) and not (nf["id_strong"] or nf["index_strong"])
+
+    if int_valued and mn >= 0 and n >= cfg.min_rows_uniqueness and prof["unique_ratio"] >= cfg.id_uniqueness_threshold:
+        if has_id_name:
+            add("identifier", f"high_uniqueness_{round(prof['unique_ratio'] * 100)}%", 0.4)
+            if prof["density"] is not None and prof["density"] >= 0.5:
+                add("identifier", "dense_integer_range", 0.2)
+        elif not is_analytical and prof["int_dtype"]:
+            add("identifier", f"high_uniqueness_{round(prof['unique_ratio'] * 100)}%", 0.2)
+
+    if int_valued and mn >= 0 and n >= cfg.min_rows_sequential and not is_analytical:
+        if prof["step1"] and (prof["int_dtype"] or has_id_name):
             add("identifier", "strictly_sequential_auto_increment", 0.6, "row_index")
-        elif prof["const_step"] is not None:
+        elif prof["const_step"] is not None and (prof["int_dtype"] or has_id_name):
             add("identifier", "constant_step_sequence", 0.5, "row_index")
-        elif prof["contiguous"]:
+        elif prof["contiguous"] and has_id_name:
             add("identifier", "contiguous_integer_range", 0.5, "row_index")
     if (int_valued and prof["digit_mode"] and prof["digit_mode"] >= 7
             and prof["digit_share"] >= 0.95 and prof["unique_ratio"] >= 0.9):

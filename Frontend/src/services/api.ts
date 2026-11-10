@@ -136,14 +136,18 @@ export const api = {
                 try {
                     const data = await response.json();
                     errorMessage = data.detail || errorMessage;
-                } catch {}
+                } catch {
+                    /* fallback to default error message */
+                }
             } else {
                 try {
                     const text = await response.text();
                     if (text && text.length < 200) {
                         errorMessage = text;
                     }
-                } catch {}
+                } catch {
+                    /* fallback to default error message */
+                }
             }
             throw new Error(errorMessage);
         }
@@ -292,7 +296,9 @@ export const api = {
             try {
                 const data = await response.json();
                 errorMessage = data.detail || errorMessage;
-            } catch {}
+            } catch {
+                /* fallback to default error message */
+            }
             throw new Error(errorMessage);
         }
         return response.json();
@@ -316,7 +322,9 @@ export const api = {
             try {
                 const data = await response.json();
                 errorMessage = data.detail || errorMessage;
-            } catch {}
+            } catch {
+                /* fallback to default error message */
+            }
             throw new Error(errorMessage);
         }
         return response.json();
