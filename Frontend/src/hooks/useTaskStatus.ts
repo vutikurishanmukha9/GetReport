@@ -90,12 +90,13 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       const data: StatusResponse = await api.getTaskStatus(taskId);
       pollFailureCountRef.current = 0;
       applyStatusUpdate(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       pollFailureCountRef.current = (pollFailureCountRef.current || 0) + 1;
       console.warn("HTTP Status poll warning:", err);
 
+      const errorMsg = err instanceof Error ? err.message : String(err || "");
       // Backoff if rate-limited or repeatedly failing to avoid request storms
-      const isRateLimited = err?.message?.includes("429") || err?.message?.includes("Rate limit");
+      const isRateLimited = errorMsg.includes("429") || errorMsg.includes("Rate limit");
       const backoffDelay = isRateLimited ? 8000 : Math.min(10000, 2500 + pollFailureCountRef.current * 1500);
 
       if (pollIntervalRef.current) {

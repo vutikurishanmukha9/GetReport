@@ -113,7 +113,7 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
     const axisPositions = dimensions.map((_, i) => leftMargin + i * axisSpacing);
 
     // Compute Y coordinate for a given value on a dimension
-    const getY = (dim: HiPlotDimension, val: any): number => {
+    const getY = (dim: HiPlotDimension, val: unknown): number => {
       if (val === null || val === undefined) return height - bottomMargin;
       if (dim.is_numeric) {
         const min = dim.min ?? 0;

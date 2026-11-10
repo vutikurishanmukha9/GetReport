@@ -4,8 +4,8 @@ import {
   AlertTriangle, ArrowRight, BarChart3, PieChart, Activity,
   FileSpreadsheet, TrendingUp, ChevronDown, ChevronUp, ShieldCheck,
   BookOpen, Table2, Grid, Cpu, Terminal, Play, Sliders, Search,
-  Copy, Check, Bookmark, BookmarkCheck, Trash2, Database, Columns,
-  History, ArrowUpDown, Code2, PanelLeftClose, PanelLeftOpen, Filter
+  Copy, Check, Trash2, Database,
+  History, ArrowUpDown, Code2, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, AnimatedDeleteButton, ShimmerActionButton, SaveKpiButton } from "@/components/ui/button";
@@ -80,7 +80,6 @@ export const ReportGeneration = ({
   info,
   analysis,
   charts,
-  insights: _insights,
   onComplete,
   onReset
 }: ReportGenerationProps) => {
@@ -91,6 +90,15 @@ export const ReportGeneration = ({
   const [status, setStatus] = useState("Initializing report engine…");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Prevent memory leaks by revoking created object URL on unmount or URL replacement
+  useEffect(() => {
+    return () => {
+      if (downloadUrl) {
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+    };
+  }, [downloadUrl]);
 
   // Top-level Command Center tab
   const [activeMainTab, setActiveMainTab] = useState<string>("overview");
@@ -163,10 +171,11 @@ export const ReportGeneration = ({
         title: "Query Saved as Golden KPI",
         description: "Successfully added this query to verified golden benchmarks.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Could not save query.";
       toast({
         title: "Save Failed",
-        description: err?.message || "Could not save query.",
+        description: errorMsg,
         variant: "destructive",
       });
     }
@@ -1383,17 +1392,20 @@ export const ReportGeneration = ({
                   </CardHeader>
                   <CardContent className="pt-4">
                     <div className="grid gap-3 sm:grid-cols-2 font-mono text-xs">
-                      {analysis.time_series_analysis.analyses && Object.entries(analysis.time_series_analysis.analyses).map(([col, data]: [string, any]) => (
-                        <div key={col} className="p-3 bg-muted/10 border border-border rounded-xl space-y-1.5">
-                          <span className="font-bold text-foreground block truncate">{col}</span>
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-muted-foreground">Direction:</span>
-                            <Badge variant={data.trend?.direction === "upward" ? "default" : "secondary"} className="text-[10px] px-2 h-4.5 rounded-full">
-                              {data.trend?.direction || "neutral"} ({data.trend?.strength || "stable"})
-                            </Badge>
+                      {analysis.time_series_analysis.analyses && Object.entries(analysis.time_series_analysis.analyses).map(([col, data]) => {
+                        const trendData = data as { trend?: { direction?: string; strength?: string } };
+                        return (
+                          <div key={col} className="p-3 bg-muted/10 border border-border rounded-xl space-y-1.5">
+                            <span className="font-bold text-foreground block truncate">{col}</span>
+                            <div className="flex justify-between items-center text-[11px]">
+                              <span className="text-muted-foreground">Direction:</span>
+                              <Badge variant={trendData.trend?.direction === "upward" ? "default" : "secondary"} className="text-[10px] px-2 h-4.5 rounded-full">
+                                {trendData.trend?.direction || "neutral"} ({trendData.trend?.strength || "stable"})
+                              </Badge>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
@@ -1983,10 +1995,29 @@ export const ReportGeneration = ({
 
                         {/* Pagination Bar */}
                         {filteredAndSortedRecords.length > resultsPerPage && (
-                          <div className="flex items-center justify-between px-4 py-2 border-t border-border/60 bg-muted/20 text-xs font-mono text-muted-foreground">
-                            <span>
-                              Showing {((resultsPage - 1) * resultsPerPage) + 1} to {Math.min(resultsPage * resultsPerPage, filteredAndSortedRecords.length)} of {filteredAndSortedRecords.length}
-                            </span>
+                          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 border-t border-border/60 bg-muted/20 text-xs font-mono text-muted-foreground">
+                            <div className="flex items-center gap-3">
+                              <span>
+                                Showing {((resultsPage - 1) * resultsPerPage) + 1} to {Math.min(resultsPage * resultsPerPage, filteredAndSortedRecords.length)} of {filteredAndSortedRecords.length}
+                              </span>
+                              <div className="flex items-center gap-1.5 text-[11px]">
+                                <span>Per page:</span>
+                                <select
+                                  aria-label="Results per page"
+                                  value={resultsPerPage}
+                                  onChange={(e) => {
+                                    setResultsPerPage(Number(e.target.value));
+                                    setResultsPage(1);
+                                  }}
+                                  className="h-6 px-1.5 rounded border border-border bg-background text-[11px] font-mono cursor-pointer"
+                                >
+                                  <option value={10}>10</option>
+                                  <option value={15}>15</option>
+                                  <option value={25}>25</option>
+                                  <option value={50}>50</option>
+                                </select>
+                              </div>
+                            </div>
                             <div className="flex items-center gap-1.5">
                               <Button
                                 size="sm"

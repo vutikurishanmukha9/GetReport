@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   ArrowLeft, ArrowRight, FileSpreadsheet, Hash, Calendar, Type,
-  AlertTriangle, Search, CheckCircle2, Database, Layers, FileText
+  Search, CheckCircle2, Database, Layers, FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

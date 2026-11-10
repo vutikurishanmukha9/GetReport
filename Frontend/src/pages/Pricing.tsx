@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { 
-  Check, ArrowRight, ShieldCheck, Database,
+  Check, ArrowRight, ShieldCheck,
   FileSpreadsheet, FileText, SlidersHorizontal, BarChart3,
   ChevronDown, ChevronUp
 } from "lucide-react";

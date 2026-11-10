@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,27 +16,21 @@ import {
   Database,
   KeyRound,
   Lock,
-  Server,
   Table,
   CheckCircle2,
   AlertCircle,
   Loader2,
   ShieldCheck,
   Eye,
-  FileCode,
   ArrowRight,
-  RefreshCw,
   LogOut,
   ChevronRight,
   ChevronDown,
   Folder,
-  FolderOpen,
   Search,
   Upload,
   AlertTriangle,
   HardDrive,
-  Trash2,
-  Copy,
 } from "lucide-react";
 import { api } from "@/services/api";
 import type {

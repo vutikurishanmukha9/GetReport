@@ -6,8 +6,6 @@ import {
     AlertCircle, 
     Info, 
     Lock, 
-    CheckCheck, 
-    XCircle, 
     ArrowRight, 
     Search, 
     Code2, 

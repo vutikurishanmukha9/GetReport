@@ -2,8 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import DOMPurify from "dompurify";
 import { 
   Send, Terminal, User, RefreshCw, ChevronDown, ChevronUp, 
-  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check,
-  Bookmark, BookmarkCheck, Trash2
+  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check
 } from "lucide-react";
 import { Button, AnimatedDeleteButton, SaveKpiButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -222,10 +221,11 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
         title: "Saved as Golden KPI",
         description: `Verified KPI saved: "${userQuestion.slice(0, 45)}...". Future queries will return instant ground truth.`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "An error occurred while saving the query.";
       toast({
         title: "Failed to Save Golden KPI",
-        description: err.message || "An error occurred while saving the query.",
+        description: errorMsg,
         variant: "destructive",
       });
     }
@@ -532,9 +532,7 @@ interface SourcesExpanderProps {
 }
 
 const SourcesExpander = ({ 
-  messageId: _messageId, 
   sources, 
-  activeSourceId: _activeSourceId, 
   highlightedIdx, 
   onSelectSource 
 }: SourcesExpanderProps) => {
