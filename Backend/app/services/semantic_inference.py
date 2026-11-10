@@ -518,6 +518,18 @@ def map_column_role(df: pl.DataFrame, column: str) -> ColumnRole:
                     all_matches = ["low_uniqueness_id"]
         except Exception as e:
             logger.debug(f"Identifier post-check failed for {column}: {e}")
+
+    # Ensure role consistency with physical data type
+    try:
+        dtype = df[column].dtype
+        if best_role == "name_label" and dtype not in (pl.Utf8, pl.String):
+            best_role = "dimension" if dtype in (pl.Int64, pl.Int32) else "predictor_metric"
+            best_confidence = 0.65
+        elif best_role == "datetime" and dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32):
+            best_role = "temporal_metric" if any(t in col_name for t in ["year", "month", "day", "quarter"]) else "predictor_metric"
+            best_confidence = 0.70
+    except Exception as e:
+        logger.debug(f"Role type consistency check failed for {column}: {e}")
             
     return ColumnRole(
         column=column,

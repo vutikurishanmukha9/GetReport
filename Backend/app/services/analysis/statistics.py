@@ -298,11 +298,16 @@ def _robust_block(arr: np.ndarray, mean_val: float, median: float, q1: float, q3
     trimmed = float(s[k:n - k].mean()) if n - 2 * k > 0 else mean_val
 
     iqr = q3 - q1
-    lo, hi = q1 - cfg.iqr_multiplier * iqr, q3 + cfg.iqr_multiplier * iqr
-    elo, ehi = q1 - 3.0 * iqr, q3 + 3.0 * iqr
-    low_ct = int((arr < lo).sum())
-    high_ct = int((arr > hi).sum())
-    extreme = int(((arr < elo) | (arr > ehi)).sum())
+    if iqr == 0 or np.unique(arr).size <= 2:
+        lo, hi = float(np.min(arr)), float(np.max(arr))
+        elo, ehi = lo, hi
+        low_ct, high_ct, extreme = 0, 0, 0
+    else:
+        lo, hi = q1 - cfg.iqr_multiplier * iqr, q3 + cfg.iqr_multiplier * iqr
+        elo, ehi = q1 - 3.0 * iqr, q3 + 3.0 * iqr
+        low_ct = int((arr < lo).sum())
+        high_ct = int((arr > hi).sum())
+        extreme = int(((arr < elo) | (arr > ehi)).sum())
 
     if mad > 0:
         mz = 0.6745 * (arr - median) / mad

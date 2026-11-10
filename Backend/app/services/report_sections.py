@@ -404,16 +404,23 @@ def _build_executive_summary(
         meta.sections_skipped.append({"section": "Executive Summary Stats", "reason": "No summary stats available."})
     else:
         summary = analysis_results["summary"]
-        story.append(Paragraph("<b>Descriptive Statistics</b>", styles["SubHeading"]))
+        story.append(Paragraph("<b>Key Numerical Metrics Summary</b>", styles["SubHeading"]))
         story.append(Spacer(1, 0.05 * inch))
-        for col_name, metrics in summary.items():
-            story.append(Paragraph(f"<i>{_esc(col_name)}</i>", styles["TableCaption"]))
-            table_data = [["Metric", "Value"]]
-            for k, v in metrics.items():
-                val = f"{v:.2f}" if isinstance(v, (int, float)) else str(v)
-                table_data.append([k.capitalize(), val])
-            story.append(_build_styled_table(table_data, col_widths=[3.0 * inch, 2.5 * inch]))
-            story.append(Spacer(1, 0.1 * inch))
+        matrix_data = [["Column", "Mean", "Std", "Min", "Median", "Max", "IQR", "Null %"]]
+        for col_name, m in list(summary.items())[:30]:
+            if not isinstance(m, dict):
+                continue
+            null_pct = f"{m.get('null_pct', 0.0):.1f}%"
+            mean_v = f"{m.get('mean', 0.0):.2f}"
+            std_v = f"{m.get('std', 0.0):.2f}"
+            min_v = f"{m.get('min', 0.0):.2f}"
+            med_v = f"{m.get('median', m.get('50%', 0.0)):.2f}"
+            max_v = f"{m.get('max', 0.0):.2f}"
+            iqr_v = f"{m.get('iqr', 0.0):.2f}"
+            matrix_data.append([_esc(col_name)[:18], mean_v, std_v, min_v, med_v, max_v, iqr_v, null_pct])
+        col_widths = [1.5 * inch, 0.7 * inch, 0.7 * inch, 0.7 * inch, 0.7 * inch, 0.7 * inch, 0.6 * inch, 0.6 * inch]
+        story.append(_build_styled_table(matrix_data, col_widths=col_widths))
+        story.append(Spacer(1, 0.1 * inch))
 
     story.extend(_divider())
     meta.sections_included.append("Executive Summary")
@@ -551,12 +558,19 @@ def _build_outliers_section(
 
     table_data = [["Column", "Outlier Count", "% of Data", "Lower Bound", "Upper Bound"]]
     for col, info in analysis_results["outliers"].items():
+        if str(col).startswith("_") or not isinstance(info, dict):
+            continue
+        lower_b = f"{info['lower_bound']:.2f}" if isinstance(info.get("lower_bound"), (int, float)) else str(info.get("lower_bound", "—"))
+        upper_b = f"{info['upper_bound']:.2f}" if isinstance(info.get("upper_bound"), (int, float)) else str(info.get("upper_bound", "—"))
         table_data.append([
-            col, str(info.get("count", "—")), f"{info.get('percentage', 0):.1f}%",
-            f"{info.get('lower_bound', '—')}", f"{info.get('upper_bound', '—')}",
+            _esc(str(col)), str(info.get("count", "—")), f"{info.get('percentage', 0):.1f}%",
+            lower_b, upper_b,
         ])
-    col_widths = [1.6 * inch, 1.1 * inch, 1.0 * inch, 1.2 * inch, 1.2 * inch]
-    story.append(_build_styled_table(table_data, col_widths=col_widths))
+    if len(table_data) == 1:
+        story.append(Paragraph("<i>No significant univariate outliers detected.</i>", styles["Body"]))
+    else:
+        col_widths = [1.6 * inch, 1.1 * inch, 1.0 * inch, 1.2 * inch, 1.2 * inch]
+        story.append(_build_styled_table(table_data, col_widths=col_widths))
     story.extend(_divider())
     meta.sections_included.append("Outlier Detection")
     return story

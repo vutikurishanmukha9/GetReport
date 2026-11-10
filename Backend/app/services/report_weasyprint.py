@@ -81,6 +81,9 @@ def safe_url_fetcher(url: str, *args, **kwargs) -> dict:
         scheme = "file"
 
     if scheme not in ("data", "file", ""):
+        # Return empty stylesheet for external web fonts to let WeasyPrint fall back to system fonts safely without crashing
+        if "fonts.googleapis.com" in url or "fonts.gstatic.com" in url:
+            return {"string": b"", "mime_type": "text/css"}
         logger.warning(f"WeasyPrint SSRF attempt blocked: {url}")
         raise ValueError(f"External network request to '{url}' is forbidden for security.")
 

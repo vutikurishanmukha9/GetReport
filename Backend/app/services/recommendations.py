@@ -240,6 +240,20 @@ def _generate_quality_recommendations(
 # ANALYSIS RECOMMENDATIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _select_segmentation_cat(df: pl.DataFrame, cat_cols: list[str]) -> str | None:
+    for c in cat_cols:
+        c_lower = c.lower().strip()
+        if c_lower in ("id", "uuid", "hash") or c_lower.endswith(("_id", "_key", "_fk", "_hash", "_num")):
+            continue
+        try:
+            n_unq = df[c].n_unique()
+            if 2 <= n_unq <= 30:
+                return c
+        except Exception:
+            continue
+    return None
+
+
 def _generate_analysis_recommendations(
     df: pl.DataFrame,
     analysis_results: dict[str, Any] | None = None
@@ -275,15 +289,16 @@ def _generate_analysis_recommendations(
         ))
     
     # Recommend segmentation if categorical columns present
-    if cat_cols and numeric_cols:
+    best_cat = _select_segmentation_cat(df, cat_cols)
+    if best_cat and numeric_cols:
         recommendations.append(Recommendation(
             category="analysis",
             priority="medium",
             title="Categorical Segmentation",
-            description=f"Compare metrics across '{cat_cols[0]}' categories",
-            action=f"Group by '{cat_cols[0]}' and aggregate numeric columns",
+            description=f"Compare metrics across '{best_cat}' categories",
+            action=f"Group by '{best_cat}' and aggregate numeric columns",
             impact="Identify best/worst performing segments",
-            code_hint=f"df.group_by('{cat_cols[0]}').agg([pl.mean('{numeric_cols[0]}')])"
+            code_hint=f"df.group_by('{best_cat}').agg([pl.mean('{numeric_cols[0]}')])"
         ))
     
     # Recommend outlier investigation if outliers detected
@@ -336,13 +351,14 @@ def _generate_viz_recommendations(
             impact="Identify trends and patterns"
         ))
     
-    if cat_cols and numeric_cols:
+    best_cat = _select_segmentation_cat(df, cat_cols)
+    if best_cat and numeric_cols:
         recommendations.append(Recommendation(
             category="visualization",
             priority="medium",
             title="Box Plots by Category",
             description="Compare distributions across categories",
-            action=f"Create box plot of '{numeric_cols[0]}' grouped by '{cat_cols[0]}'",
+            action=f"Create box plot of '{numeric_cols[0]}' grouped by '{best_cat}'",
             impact="Identify category-level differences"
         ))
     

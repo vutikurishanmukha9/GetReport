@@ -248,6 +248,15 @@ def _detect_special_string_type(series: pl.Series) -> tuple[str | None, float]:
 # RELATIONSHIP DETECTION
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _is_id_like(col_name: str) -> bool:
+    name = col_name.lower().strip()
+    return bool(
+        name == "id"
+        or name.endswith(("_id", "_key", "_fk", "_code", "_num", "_no"))
+        or name.startswith(("id_", "fk_"))
+    )
+
+
 def _detect_foreign_key_relationships(df: pl.DataFrame) -> list[RelationshipDetection]:
     """Detect potential foreign key relationships between columns."""
     relationships = []
@@ -257,6 +266,10 @@ def _detect_foreign_key_relationships(df: pl.DataFrame) -> list[RelationshipDete
     
     for i, col1 in enumerate(int_cols):
         for col2 in int_cols[i+1:]:
+            # Require at least one column to have identifier-like semantics
+            if not (_is_id_like(col1) or _is_id_like(col2)):
+                continue
+
             # Check if one column's values are a subset of another
             unique1 = df[col1].unique()
             unique2 = df[col2].unique()

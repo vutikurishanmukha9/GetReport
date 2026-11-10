@@ -301,7 +301,10 @@ def _detect_business_rule_violations(df: pl.DataFrame) -> list[Issue]:
                     ))
 
         # ── 2. Out of Range Age ──
-        if "age" in col_lower and dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.Int16, pl.Int8):
+        is_human_age = bool(re.search(r"(?:^|_)age(?:$|_)", col_lower)) and not any(
+            skip in col_lower for skip in ["usage", "percentage", "coverage", "storage", "mileage", "package", "damage", "leverage", "tonnage", "dosage"]
+        )
+        if is_human_age and dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.Int16, pl.Int8):
             non_null = df[col].drop_nulls()
             if non_null.len() > 0:
                 age_out_bounds = int(((non_null < 0) | (non_null > 120)).sum())
