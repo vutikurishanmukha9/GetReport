@@ -183,13 +183,6 @@ async def websocket_status(websocket: WebSocket, task_id: str):
     Enterprise-grade WebSocket status stream with Redis PubSub / DB polling,
     immediate initial hydration, and 15s ping/pong heartbeats to prevent proxy timeouts.
     """
-    global _active_ws_connections
-
-    # Connection limit guard before accepting socket
-    if _active_ws_connections >= MAX_WS_CONNECTIONS:
-        await websocket.close(code=4002, reason="Too many connections")
-        return
-
     # §6: Protocol-level authentication — accept key via first message, not URL query
     await websocket.accept()
     
@@ -215,6 +208,13 @@ async def websocket_status(websocket: WebSocket, task_id: str):
         await websocket.send_json({"type": "error", "message": "Invalid task ID"})
         await websocket.close(code=4000, reason="Invalid task ID")
         return
+    
+    # VULN-06: Connection limit guard
+    global _active_ws_connections
+    if _active_ws_connections >= MAX_WS_CONNECTIONS:
+        await websocket.send_json({"type": "error", "message": "Too many connections"})
+        await websocket.close(code=4002, reason="Too many connections")
+        return
 
     # Verify task exists and verify tenant ownership
     job = await title_task_manager.get_job_async(task_id)
@@ -229,23 +229,23 @@ async def websocket_status(websocket: WebSocket, task_id: str):
     _active_ws_connections += 1
     logger.info(f"WebSocket connected for task {task_id} (active: {_active_ws_connections})")
     
-    drain_task = None
-    try:
-        # Background task to drain incoming client frames (pings, pongs, close)
-        async def _drain_client_frames():
-            try:
-                while True:
-                    msg = await websocket.receive_text()
-                    try:
-                        payload = json.loads(msg)
-                        if payload.get("type") == "ping":
-                            await websocket.send_json({"type": "pong", "timestamp": time.time()})
-                    except Exception:
-                        pass
-            except Exception:
-                pass  # Socket closed or disconnected
+    # Background task to drain incoming client frames (pings, pongs, close)
+    async def _drain_client_frames():
+        try:
+            while True:
+                msg = await websocket.receive_text()
+                try:
+                    payload = json.loads(msg)
+                    if payload.get("type") == "ping":
+                        await websocket.send_json({"type": "pong", "timestamp": time.time()})
+                except Exception:
+                    pass
+        except Exception:
+            pass  # Socket closed or disconnected
 
-        drain_task = asyncio.create_task(_drain_client_frames())
+    drain_task = asyncio.create_task(_drain_client_frames())
+
+    try:
         # 1. Immediate Initial Hydration (0ms latency for client)
         if job:
             initial_payload = {
@@ -379,9 +379,8 @@ async def websocket_status(websocket: WebSocket, task_id: str):
         except Exception:
             pass
     finally:
-        if drain_task:
-            drain_task.cancel()
-        _active_ws_connections = max(0, _active_ws_connections - 1)
+        drain_task.cancel()
+        _active_ws_connections -= 1
         logger.info(f"WebSocket closed for task {task_id} (active: {_active_ws_connections})")
 
 

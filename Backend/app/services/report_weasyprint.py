@@ -18,7 +18,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from app.services.report_styles import ReportMetadata, normalize_report_payload
+from app.services.report_styles import ReportMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,6 @@ def _domain_label_filter(val: Any) -> str:
     return str(val).replace("_", " ").title()
 
 _JINJA_ENV.filters["domain_label"] = _domain_label_filter
-_JINJA_ENV.filters["strip"] = lambda v: str(v).strip() if v is not None else ""
 
 
 class CSSCache:
@@ -82,9 +81,6 @@ def safe_url_fetcher(url: str, *args, **kwargs) -> dict:
         scheme = "file"
 
     if scheme not in ("data", "file", ""):
-        # Return empty stylesheet for external web fonts to let WeasyPrint fall back to system fonts safely without crashing
-        if "fonts.googleapis.com" in url or "fonts.gstatic.com" in url:
-            return {"string": b"", "mime_type": "text/css"}
         logger.warning(f"WeasyPrint SSRF attempt blocked: {url}")
         raise ValueError(f"External network request to '{url}' is forbidden for security.")
 
@@ -150,13 +146,12 @@ def generate_pdf_weasyprint(
     template = _JINJA_ENV.get_template("report.html")
 
     # Build template context
-    analysis_normalized = normalize_report_payload(dict(analysis_results))
-    metadata = analysis_normalized.get("metadata", {})
+    metadata = analysis_results.get("metadata", {})
     context = {
         "filename": filename,
         "generated_at": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
         "metadata": metadata,
-        "analysis": analysis_normalized,
+        "analysis": analysis_results,
         "charts": charts or {},
     }
 

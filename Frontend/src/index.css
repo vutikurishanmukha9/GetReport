@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&family=Dancing+Script:wght@400..700&family=Great+Vibes&family=Satisfy&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @font-face {
   font-family: 'Mont';
@@ -56,18 +56,6 @@
 .bg-mesh-dark,
 .bg-mesh-home,
 .bg-mesh-hero {
-  background-color: #fafafa;
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -15%, rgba(0, 0, 0, 0.03) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 40% at 85% 25%, rgba(0, 0, 0, 0.015) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 15% 75%, rgba(0, 0, 0, 0.015) 0%, transparent 60%);
-  background-size: 100% 100%;
-}
-
-.dark .bg-mesh-aurora,
-.dark .bg-mesh-dark,
-.dark .bg-mesh-home,
-.dark .bg-mesh-hero {
   background-color: #07080a;
   background-image:
     radial-gradient(ellipse 80% 50% at 50% -15%, rgba(255, 255, 255, 0.04) 0%, transparent 70%),
@@ -80,17 +68,6 @@
 .bg-hero-custom-gradient {
   position: relative;
   overflow: hidden;
-  background-color: #ffffff;
-  background:
-    radial-gradient(ellipse 90% 65% at 50% -12%,
-      rgba(0, 0, 0, 0.04) 0%,
-      rgba(0, 0, 0, 0.01) 45%,
-      rgba(255, 255, 255, 0) 75%),
-    linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
-}
-
-.dark .hero,
-.dark .bg-hero-custom-gradient {
   background-color: #07080a;
   background:
     radial-gradient(ellipse 90% 65% at 50% -12%,
@@ -108,72 +85,18 @@
   background-size: 140px 140px;
   mix-blend-mode: overlay;
   pointer-events: none;
-  opacity: 0.02;
+  opacity: 0.035;
   z-index: 1;
 }
 
-.dark .hero-grain-overlay {
-  opacity: 0.035;
-}
-
 /* 
-Unified Design System:
-- Light Mode: Vercel Geist / Stripe / Apple Human Interface Inspired Clean High-Precision Architecture
-- Dark Mode: Raycast / Linear / Resend Obsidian Canvas
-All colors HSL.
+Raycast / Linear / Resend Inspired Dark Design System
+Strictly dark theme only across all surfaces. All colors HSL.
 */
 
 @layer base {
-  :root {
-    /* Pure Crisp Light Canvas (#FFFFFF) */
-    --background: 0 0% 100%;
-    /* High-Precision Off-Black Typography (#09090B) */
-    --foreground: 240 10% 3.9%;
 
-    /* Crisp Card Surfaces (#FFFFFF) with Hairline Separation */
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-
-    /* Solid Obsidian Primary CTA Pill (#18181B) */
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-
-    /* Secondary Surface: Soft Neutral Slate (#F4F4F5) */
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-
-    /* Muted Slate (#F4F4F5 & #71717A - Meets WCAG AA 4.8:1 contrast on white) */
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-
-    /* Subtle Focus Accent (#F4F4F5) */
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-
-    /* Destructive Ruby (#E11D48) */
-    --destructive: 347 77% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* Hairlines: 1px crisp neutral borders (#E4E4E7) */
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-
-    --radius: 0.75rem;
-
-    --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 240 10% 3.9%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 240 5.9% 90%;
-    --sidebar-ring: 240 5.9% 10%;
-  }
-
+  :root,
   .dark {
     /* Pure Raycast/Linear Obsidian Canvas (#07080A) - Strictly Neutral */
     --background: 0 0% 3.5%;
@@ -230,7 +153,7 @@ All colors HSL.
     @apply border-border;
   }
 
-  /* Universal Autofill Normalizer (Eliminates blinding white autofill boxes in dark mode and keeps light mode crisp) */
+  /* Universal Dark-Mode Autofill Normalizer (Eliminates blinding white autofill boxes) */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
@@ -239,21 +162,6 @@ All colors HSL.
   textarea:-webkit-autofill:hover,
   textarea:-webkit-autofill:focus,
   textarea:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
-    -webkit-text-fill-color: #09090b !important;
-    caret-color: #09090b !important;
-    border-color: rgba(0, 0, 0, 0.15) !important;
-    transition: background-color 9999s ease-in-out 0s;
-  }
-
-  .dark input:-webkit-autofill,
-  .dark input:-webkit-autofill:hover,
-  .dark input:-webkit-autofill:focus,
-  .dark input:-webkit-autofill:active,
-  .dark textarea:-webkit-autofill,
-  .dark textarea:-webkit-autofill:hover,
-  .dark textarea:-webkit-autofill:focus,
-  .dark textarea:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 1000px #121215 inset !important;
     -webkit-text-fill-color: #f1f5f9 !important;
     caret-color: #f1f5f9 !important;
@@ -261,13 +169,9 @@ All colors HSL.
     transition: background-color 9999s ease-in-out 0s;
   }
 
-  /* Stable, sleek scrollbar preventing layout twitching and horizontal shakiness */
+  /* Stable, sleek dark scrollbar preventing layout twitching and horizontal shakiness */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-  }
-
-  .dark * {
     scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
   }
 
@@ -281,19 +185,11 @@ All colors HSL.
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.18);
+    background: rgba(255, 255, 255, 0.16);
     border-radius: 9999px;
   }
 
-  .dark ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.16);
-  }
-
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.35);
-  }
-
-  .dark ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
   }
 
@@ -363,15 +259,8 @@ All colors HSL.
   background: hsl(var(--muted-foreground) / 0.4);
 }
 
-/* High-Precision Inset & Card Shadows */
+/* High-Precision Dark Inset & Card Shadows */
 .shadow-premium {
-  box-shadow:
-    0 1px 3px 0 rgba(0, 0, 0, 0.05),
-    0 10px 25px -5px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
-}
-
-.dark .shadow-premium {
   box-shadow:
     0 1px 3px 0 rgba(0, 0, 0, 0.4),
     0 10px 25px -5px rgba(0, 0, 0, 0.6),
@@ -380,41 +269,23 @@ All colors HSL.
 
 .shadow-card-elevated {
   box-shadow:
-    0 4px 14px -2px rgba(0, 0, 0, 0.06),
-    0 12px 30px -4px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
-}
-
-.dark .shadow-card-elevated {
-  box-shadow:
     0 4px 14px -2px rgba(0, 0, 0, 0.5),
     0 12px 30px -4px rgba(0, 0, 0, 0.7),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
 }
 
-/* ─── Tactile Button & Glass Utilities ────────────── */
+/* ─── Raycast & Linear Tactile Button & Glass Utilities ────────────── */
 .btn-pill-primary {
-  background-color: #18181b;
-  color: #ffffff;
-  border: 1px solid #18181b;
-  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.12);
-  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.dark .btn-pill-primary {
   background-color: #ffffff;
   color: #07080a;
   border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-pill-primary:hover {
-  background-color: #27272a;
-  transform: translateY(-1px);
-}
-
-.dark .btn-pill-primary:hover {
   background-color: #f1f5f9;
+  transform: translateY(-1px);
   box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
@@ -423,28 +294,14 @@ All colors HSL.
 }
 
 .btn-pill-secondary {
-  background-color: rgba(0, 0, 0, 0.04);
-  color: #18181b;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
-  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.dark .btn-pill-secondary {
   background-color: rgba(255, 255, 255, 0.05);
   color: #f1f5f9;
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-pill-secondary:hover {
-  background-color: rgba(0, 0, 0, 0.07);
-  border-color: rgba(0, 0, 0, 0.15);
-  color: #09090b;
-  transform: translateY(-1px);
-}
-
-.dark .btn-pill-secondary:hover {
   background-color: rgba(255, 255, 255, 0.09);
   border-color: rgba(255, 255, 255, 0.22);
   color: #ffffff;
@@ -456,14 +313,6 @@ All colors HSL.
 }
 
 .card-dark-glass {
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
-}
-
-.dark .card-dark-glass {
   background-color: rgba(12, 13, 18, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);

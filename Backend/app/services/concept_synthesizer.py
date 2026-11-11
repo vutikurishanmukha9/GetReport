@@ -38,23 +38,6 @@ class ConceptSynthesizerSecurityViolation(Exception):
     pass
 
 
-class _ColumnToPolarsTransformer(ast.NodeTransformer):
-    """Safely transforms raw column identifier tokens into pl.col('col_name') AST nodes without regex corruption."""
-    def __init__(self, col_map: Dict[str, str]):
-        self.col_map = col_map
-
-    def visit_Name(self, node: ast.Name):
-        lower = node.id.lower()
-        if lower in self.col_map:
-            exact_col = self.col_map[lower]
-            return ast.Call(
-                func=ast.Attribute(value=ast.Name(id="pl", ctx=ast.Load()), attr="col", ctx=ast.Load()),
-                args=[ast.Constant(value=exact_col)],
-                keywords=[],
-            )
-        return node
-
-
 class VirtualConceptSynthesizer:
     """
     Synthesizes, validates, and materializes custom analytical concepts
@@ -178,13 +161,25 @@ class VirtualConceptSynthesizer:
             self.validate_expression_ast(raw)
             return raw
 
-        # 2. Check if expression is arithmetic formula referencing columns via AST transformation
+        # 2. Check if expression is arithmetic formula referencing columns
+        # Case-insensitive mapping for existing columns
         col_map = {c.lower(): c for c in schema.keys()}
+        
+        # Tokenize identifiers in formula
+        # Replace column names with pl.col('exact_name')
+        def replace_col(match: re.Match) -> str:
+            ident = match.group(0)
+            ident_lower = ident.lower()
+            if ident_lower in col_map:
+                exact_col = col_map[ident_lower]
+                return f"pl.col('{exact_col}')"
+            return ident
+
+        # Regex matching word identifiers that aren't Python keywords
+        candidate_expr = re.sub(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b", replace_col, raw)
+
+        # Check if the transformed candidate parses as a valid Polars AST
         try:
-            tree = ast.parse(raw, mode="eval")
-            transformed_tree = _ColumnToPolarsTransformer(col_map).visit(tree)
-            ast.fix_missing_locations(transformed_tree)
-            candidate_expr = ast.unparse(transformed_tree)
             self.validate_expression_ast(candidate_expr)
             # Test compile in evaluation scope to verify validity
             test_scope = {"pl": pl}

@@ -78,14 +78,8 @@ import io
 
 # ─── Storage-Based Result Management ─────────────────────────────────────────
 
-def _save_result_to_storage(task_id: str, result: Dict[str, Any], old_ref: Optional[str] = None) -> str:
-    """Save result JSON to storage (Local or S3). Cleans up any existing file reference. Returns reference."""
-    if old_ref:
-        try:
-            storage.delete(old_ref)
-        except Exception as e:
-            logger.debug(f"Failed to delete old result file {old_ref}: {e}")
-
+def _save_result_to_storage(task_id: str, result: Dict[str, Any]) -> str:
+    """Save result JSON to storage (Local or S3). Returns reference."""
     json_bytes = json.dumps(result, indent=2, default=str).encode("utf-8")
     file_obj = io.BytesIO(json_bytes)
     filename = f"{task_id}_result.json"
@@ -214,9 +208,7 @@ class TaskManager:
         """
         result_ref = None
         if result:
-            current_job = await self.get_job_async(task_id)
-            old_ref = current_job.result_path if current_job else None
-            result_ref = _save_result_to_storage(task_id, result, old_ref=old_ref)
+            result_ref = _save_result_to_storage(task_id, result)
 
         async with get_async_db_connection() as conn:
             if result_ref:
@@ -248,9 +240,7 @@ class TaskManager:
 
     async def update_result_async(self, task_id: str, result: Dict[str, Any]):
         """Async update just the result JSON without changing status."""
-        current_job = await self.get_job_async(task_id)
-        old_ref = current_job.result_path if current_job else None
-        result_ref = _save_result_to_storage(task_id, result, old_ref=old_ref)
+        result_ref = _save_result_to_storage(task_id, result)
         async with get_async_db_connection() as conn:
             await conn.execute(
                 "UPDATE jobs SET result_path = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
@@ -351,9 +341,7 @@ class TaskManager:
     def update_status(self, task_id: str, status: TaskStatus, result: Optional[Dict[str, Any]] = None):
         with get_db_connection() as conn:
             if result:
-                current_job = self.get_job(task_id)
-                old_ref = current_job.result_path if current_job else None
-                result_ref = _save_result_to_storage(task_id, result, old_ref=old_ref)
+                result_ref = _save_result_to_storage(task_id, result)
                 conn.execute(
                     "UPDATE jobs SET status = ?, result_path = ?, updated_at = CURRENT_TIMESTAMP, version = version + 1 WHERE task_id = ?",
                     (status, result_ref, task_id)
@@ -395,19 +383,13 @@ class TaskManager:
             "error": error_msg
         })
 
-    def find_previous_completed_job(self, task_id: str, filename: str, owner_id: Optional[str] = None) -> Optional[Job]:
-        """Find the latest completed run for the same dataset name and tenant without affecting existing jobs."""
+    def find_previous_completed_job(self, task_id: str, filename: str) -> Optional[Job]:
+        """Find the latest completed run for the same dataset name without affecting existing jobs."""
         with get_db_connection() as conn:
-            if owner_id:
-                row = conn.execute(
-                    "SELECT task_id FROM jobs WHERE filename = ? AND status = ? AND task_id != ? AND COALESCE(owner_id, 'anonymous') = ? ORDER BY created_at DESC LIMIT 1",
-                    (filename, TaskStatus.COMPLETED.value, task_id, owner_id),
-                ).fetchone()
-            else:
-                row = conn.execute(
-                    "SELECT task_id FROM jobs WHERE filename = ? AND status = ? AND task_id != ? ORDER BY created_at DESC LIMIT 1",
-                    (filename, TaskStatus.COMPLETED.value, task_id),
-                ).fetchone()
+            row = conn.execute(
+                "SELECT task_id FROM jobs WHERE filename = ? AND status = ? AND task_id != ? ORDER BY created_at DESC LIMIT 1",
+                (filename, TaskStatus.COMPLETED.value, task_id),
+            ).fetchone()
         if not row:
             return None
         previous_id = row["task_id"] if hasattr(row, "keys") else row[0]
@@ -431,9 +413,7 @@ class TaskManager:
             conn.commit()
     
     def complete_job(self, task_id: str, result: Dict[str, Any], report_path: Optional[str] = None):
-        current_job = self.get_job(task_id)
-        old_ref = current_job.result_path if current_job else None
-        result_ref = _save_result_to_storage(task_id, result, old_ref=old_ref)
+        result_ref = _save_result_to_storage(task_id, result)
         with get_db_connection() as conn:
             conn.execute(
                 """

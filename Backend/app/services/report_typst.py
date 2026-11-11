@@ -24,14 +24,13 @@ from typing import Any
 
 import typst
 
-from app.services.report_styles import ReportMetadata, normalize_report_payload
+from app.services.report_styles import ReportMetadata
 
 logger = logging.getLogger(__name__)
 
 # Primary template path
 _TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
 _PRIMARY_TEMPLATE = _TEMPLATE_DIR / "audit_report.typ"
-_FALLBACK_TEMPLATE = _PRIMARY_TEMPLATE
 
 
 def _get_template_content() -> str:
@@ -185,13 +184,12 @@ def generate_pdf_typst(
         chart_list = _extract_charts(charts or {}, tmpdir)
 
         # 2. Build structured context payload
-        analysis_normalized = normalize_report_payload(dict(analysis_results), engine="typst")
-        metadata = analysis_normalized.get("metadata", {})
+        metadata = analysis_results.get("metadata", {})
         payload = {
             "filename": filename,
             "generated_at": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
             "metadata": metadata,
-            "analysis": analysis_normalized,
+            "analysis": analysis_results,
             "chart_list": chart_list,
         }
 

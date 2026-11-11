@@ -1,9 +1,8 @@
 import type { Config } from "tailwindcss";
-import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
-  content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}", "./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
+  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
     container: {
@@ -90,16 +89,16 @@ export default {
         "spring-smooth": "cubic-bezier(0.22, 1, 0.36, 1)",
       },
       fontFamily: {
-        sans: ["'Outfit'", "'Plus Jakarta Sans'", "'Mont'", "system-ui", "-apple-system", "sans-serif"],
-        display: ["'Outfit'", "'Plus Jakarta Sans'", "'Mont'", "sans-serif"],
-        hero: ["'Outfit'", "'Plus Jakarta Sans'", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["'Plus Jakarta Sans'", "'Mont'", "Inter", "system-ui", "-apple-system", "sans-serif"],
+        display: ["'Plus Jakarta Sans'", "'Mont'", "sans-serif"],
+        hero: ["'Plus Jakarta Sans'", "system-ui", "-apple-system", "sans-serif"],
         editorial: ["'Instrument Serif'", "Georgia", "serif"],
-        outfit: ["'Outfit'", "'Plus Jakarta Sans'", "sans-serif"],
-        geist: ["'Geist'", "'Inter'", "sans-serif"],
         heavy: ["'Mont Heavy'", "'Mont'", "sans-serif"],
         mono: ["'JetBrains Mono'", "monospace"],
+        outfit: ["'Plus Jakarta Sans'", "'Mont'", "sans-serif"],
+        cursive: ["'Alex Brush'", "'Satisfy'", "'Great Vibes'", "'Dancing Script'", "'Segoe Script'", "cursive"],
       },
     },
   },
-  plugins: [tailwindcssAnimate],
+  plugins: [require("tailwindcss-animate")],
 } satisfies Config;

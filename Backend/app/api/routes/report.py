@@ -178,8 +178,6 @@ async def download_full_report_pdf(
     params["cleaning_report"] = analysis.get("cleaning_report")
     params["metadata"] = raw_analysis.get("metadata") or analysis.get("info")
     params["comparison_report"] = analysis.get("comparison_report")
-    params["insights"] = analysis.get("insights")
-    params["issue_ledger"] = analysis.get("issue_ledger")
     
     charts = analysis.get("charts", {})
     filename = analysis.get("filename", "report.pdf")
@@ -413,8 +411,7 @@ async def export_cleaned_data_or_report(
     elif clean_fmt == "html":
         info = job.result.get("info", {})
         summary = job.result.get("analysis", {}).get("executive_summary", "No executive summary available.")
-        ml_readiness = job.result.get("analysis", {}).get("ml_readiness") or job.result.get("ml_readiness") or {}
-        score = ml_readiness.get("overall_score", 100)
+        score = job.result.get("ml_readiness", {}).get("overall_score", 100)
 
         # Security: Escape all user-controlled data to prevent Stored XSS (SEC-01)
         safe_filename_display = html.escape(str(filename_base))
@@ -624,11 +621,7 @@ async def export_great_expectations_suite(
     filename_base = _sanitize_download_filename(job.filename or "dataset")
     suite_name = f"{filename_base}_suite"
 
-    quality_info = {
-        **(job.result.get("info") or {}),
-        **(job.result.get("confidence") or {}),
-        **(job.result.get("analysis", {}).get("confidence_scores") or {}),
-    }
+    quality_info = job.result.get("info")
     issue_ledger_data = job.result.get("issue_ledger", {})
     approved_issues = [
         issue

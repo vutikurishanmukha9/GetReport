@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   ArrowLeft, ArrowRight, FileSpreadsheet, Hash, Calendar, Type,
-  Search, CheckCircle2, Database, Layers, FileText
+  AlertTriangle, Search, CheckCircle2, Database, Layers, FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,25 +30,25 @@ const getTypeStyle = (type: string) => {
   const t = type.toLowerCase();
   if (t.includes("int") || t.includes("float")) {
     return {
-      icon: <Hash className="h-3 w-3 text-muted-foreground" />,
-      className: "bg-muted text-foreground/80 border-border dark:border-white/10 dark:bg-white/[0.06] dark:text-zinc-200",
+      icon: <Hash className="h-3 w-3 text-zinc-300" />,
+      className: "bg-white/[0.06] text-zinc-200 border-white/10",
     };
   }
   if (t.includes("datetime") || t.includes("date") || t.includes("time")) {
     return {
-      icon: <Calendar className="h-3 w-3 text-amber-500 dark:text-amber-400" />,
-      className: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25",
+      icon: <Calendar className="h-3 w-3 text-amber-400" />,
+      className: "bg-amber-500/10 text-amber-400 border-amber-500/25",
     };
   }
   if (t.includes("bool")) {
     return {
-      icon: <CheckCircle2 className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />,
-      className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/25",
+      icon: <CheckCircle2 className="h-3 w-3 text-emerald-400" />,
+      className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
     };
   }
   return {
-    icon: <Type className="h-3 w-3 text-muted-foreground" />,
-    className: "bg-muted text-foreground/80 border-border dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-300",
+    icon: <Type className="h-3 w-3 text-zinc-300" />,
+    className: "bg-white/[0.04] text-zinc-300 border-white/10",
   };
 };
 
@@ -129,7 +129,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                 </Badge>
               )}
               {analysis?.snowflake_meta?.sampled && (
-                <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-wider bg-muted text-foreground/80 border-border dark:border-white/10 dark:bg-white/[0.06] dark:text-zinc-300">
+                <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-wider bg-white/[0.06] text-zinc-300 border-white/10">
                   Sampled (10% Bernoulli)
                 </Badge>
               )}
@@ -153,11 +153,11 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
             onClick={onGenerateReport}
             variant="hero"
             size="default"
-            className="h-10 px-5 rounded-xl group font-sans text-xs sm:text-sm font-bold tracking-tight cursor-pointer"
+            className="h-10 px-5 rounded-xl group font-sans text-xs sm:text-sm font-bold tracking-tight shadow-[0_2px_16px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] cursor-pointer"
           >
-            <FileText className="h-4 w-4 text-white dark:text-zinc-950" />
+            <FileText className="h-4 w-4 text-zinc-950" />
             <span>Generate Full Report</span>
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 dark:bg-zinc-950/10 text-white dark:text-zinc-950 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950/10 text-zinc-950 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0">
               <ArrowRight className="h-3 w-3" />
             </span>
           </Button>

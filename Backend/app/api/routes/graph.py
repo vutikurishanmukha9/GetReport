@@ -54,12 +54,7 @@ async def _resolve_graph_store(task_id: str, request: Request) -> DatasetGraphSt
     # 2. Build dynamically from job result
     if job.result and isinstance(job.result, dict):
         try:
-            ledger_obj = job.result.get("issue_ledger") or {}
-            ledger_issues = (
-                ledger_obj.get("issues")
-                if isinstance(ledger_obj, dict)
-                else None
-            ) or job.result.get("ledger_issues") or job.result.get("issues") or []
+            ledger_issues = job.result.get("ledger_issues", job.result.get("issues", []))
             store = build_dataset_graph(task_id, job.result, ledger_issues)
             store.save_to_file(graph_path)
             # Generate HTML view

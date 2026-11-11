@@ -11,16 +11,16 @@
 #let analysis = d.at("analysis", default: (:))
 #let chart_list = d.at("chart_list", default: ())
 
-// ── Color System (Unified Light Mode Design System Tokens) ────────────────────
-#let c-obsidian = rgb("#09090b")     // Obsidian 950 primary text
-#let c-slate-900 = rgb("#09090b")   // Zinc 950
-#let c-slate-800 = rgb("#27272a")   // Zinc 800 secondary text
-#let c-slate-700 = rgb("#3f3f46")   // Zinc 700 body copy
-#let c-slate-500 = rgb("#71717a")   // Zinc 500 accessible muted text
-#let c-slate-300 = rgb("#d4d4d8")   // Zinc 300
-#let c-slate-100 = rgb("#f4f4f6")   // Zinc 100 recessed well / header
-#let c-slate-50 = rgb("#fafafa")    // Zinc 50 subtle alternate row
-#let c-border = rgb("#e4e4e7")      // Zinc 200 1px hairline border
+// ── Color System ──────────────────────────────────────────────────────────────
+#let c-obsidian = rgb("#090d16")     // Deep obsidian 950
+#let c-slate-900 = rgb("#0f172a")   // Slate 900
+#let c-slate-800 = rgb("#1e293b")   // Slate 800
+#let c-slate-700 = rgb("#334155")   // Slate 700
+#let c-slate-500 = rgb("#64748b")   // Slate 500
+#let c-slate-300 = rgb("#cbd5e1")   // Slate 300
+#let c-slate-100 = rgb("#f1f5f9")   // Slate 100
+#let c-slate-50 = rgb("#f8fafc")    // Slate 50
+#let c-border = rgb("#e2e8f0")      // Border 200
 
 #let c-blue-600 = rgb("#2563eb")    // Electric blue
 #let c-blue-50 = rgb("#eff6ff")     // Soft blue

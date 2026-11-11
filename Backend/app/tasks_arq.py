@@ -269,39 +269,16 @@ async def resume_analysis_pipeline_task(
 
         df = await asyncio.to_thread(load_dataframe, file_path)
 
-        # Apply user's reviewed Issue Ledger remediation if present
-        saved_ledger_data = (job.result or {}).get("issue_ledger") if job else None
-        user_issue_ledger = None
-        if saved_ledger_data and isinstance(saved_ledger_data, dict) and saved_ledger_data.get("issues"):
-            try:
-                from app.services.issue_ledger import IssueLedger, apply_remediation
-                user_issue_ledger = IssueLedger.from_dict(saved_ledger_data)
-                has_approved_or_modified = any(
-                    getattr(i, "status", None) in ("approved", "modified") for i in user_issue_ledger.issues
-                )
-                if has_approved_or_modified:
-                    logger.info("Executing user-approved issue ledger remediations for task %s", task_id)
-                    df = await asyncio.to_thread(apply_remediation, df, user_issue_ledger)
-            except Exception as rem_err:
-                logger.warning("Error executing issue ledger remediation: %s", rem_err)
+        def _clean_and_compare_worker():
+            cleaned_df, cleaning_report, transformation_dag = clean_data(df, rules, None, filename)
+            comp_report = comparison_service.compare(df, cleaned_df)
+            return cleaned_df, cleaning_report, transformation_dag, comp_report
 
-        def _clean_worker():
-            return clean_data(df, rules, None, filename)
-
-        cleaned_df, cleaning_report, transformation_dag = await asyncio.to_thread(_clean_worker)
-
-        # Step 1b: Dataset Quality Comparison
-        title_task_manager.update_progress(task_id, 50, "Evaluating data quality improvements...")
-
-        def _compare_worker():
-            return comparison_service.compare(df, cleaned_df)
-
-        comparison_report = await asyncio.to_thread(_compare_worker)
+        cleaned_df, cleaning_report, transformation_dag, comparison_report = await asyncio.to_thread(_clean_and_compare_worker)
         del df
         gc.collect()
 
-        # Step 1c: Persist intermediate cleaned data (Parquet)
-        title_task_manager.update_progress(task_id, 55, "Persisting cleaned dataset...")
+        # Persist intermediate cleaned data (Parquet)
         buffer = BytesIO()
         cleaned_df.write_parquet(buffer)
         buffer.seek(0)
@@ -334,8 +311,7 @@ async def resume_analysis_pipeline_task(
             ds_info = get_dataset_info(cleaned_df)
             iss_ledger = detect_issues(cleaned_df)
             sch_profile = build_schema_profile(cleaned_df)
-            owner_id = job.owner_id if job else None
-            prev_job = title_task_manager.find_previous_completed_job(task_id, filename, owner_id=owner_id)
+            prev_job = title_task_manager.find_previous_completed_job(task_id, filename)
             hist_comp = build_historical_comparison(
                 prev_job.id if prev_job else None,
                 prev_job.result if prev_job else None,
@@ -419,10 +395,7 @@ async def resume_analysis_pipeline_task(
             "comparison_report": (
                 comparison_report.to_dict() if hasattr(comparison_report, "to_dict") else comparison_report
             ),
-            "issue_ledger": user_issue_ledger.to_dict() if user_issue_ledger else (
-                issue_ledger.to_dict() if hasattr(issue_ledger, "to_dict") else issue_ledger
-            ),
-            "post_cleaning_issues": issue_ledger.to_dict().get("issues", []) if hasattr(issue_ledger, "to_dict") else [],
+            "issue_ledger": issue_ledger.to_dict() if hasattr(issue_ledger, "to_dict") else issue_ledger,
             "analysis_config": config_snapshot,
             "schema_profile": schema_profile,
             "historical_comparison": historical_comparison,
@@ -546,12 +519,7 @@ async def rag_ingest_task(ctx: Optional[dict], task_id: str, text: str):
             try:
                 from app.core.rag_utils import TableSemanticChunker
                 chunker = TableSemanticChunker()
-                ledger_obj = job.result.get("issue_ledger") or {}
-                ledger_issues = (
-                    ledger_obj.get("issues")
-                    if isinstance(ledger_obj, dict)
-                    else None
-                ) or job.result.get("ledger_issues") or job.result.get("issues") or []
+                ledger_issues = job.result.get("ledger_issues", job.result.get("issues", []))
                 structured_chunks = chunker.chunk_dataset_profile(job.result, ledger_issues)
                 if structured_chunks:
                     combined_structured = "\n\n".join(c["content"] for c in structured_chunks)
@@ -574,12 +542,7 @@ async def rag_ingest_task(ctx: Optional[dict], task_id: str, text: str):
                 cache_dir = os.path.join(base_dir, "temp_cache")
                 os.makedirs(cache_dir, exist_ok=True)
                 graph_path = os.path.join(cache_dir, f"{task_id}_graph.json")
-                ledger_obj = job.result.get("issue_ledger") or {}
-                ledger_issues = (
-                    ledger_obj.get("issues")
-                    if isinstance(ledger_obj, dict)
-                    else None
-                ) or job.result.get("ledger_issues") or job.result.get("issues") or []
+                ledger_issues = job.result.get("ledger_issues", job.result.get("issues", []))
                 graph_store = build_dataset_graph(task_id, job.result, ledger_issues)
                 graph_store.save_to_file(graph_path)
                 logger.info("Dataset Knowledge Graph constructed and saved to disk: %s", graph_path)

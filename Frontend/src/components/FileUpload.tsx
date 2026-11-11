@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
-  Upload, FileSpreadsheet, Shield, Lock, Database,
-  ArrowRightLeft, Link2, AlertCircle, Loader2, CheckCircle2
+  Upload, FileSpreadsheet, Shield, Lock, Trash2, Database,
+  ArrowRightLeft, Link2, AlertCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -113,7 +113,6 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
   // New States for Interactive Cleaning
   const [taskId, setTaskId] = useState<string | null>(null);
   const [inspectionData, setInspectionData] = useState<InspectionResult | null>(null);
-  const [cleaningRules, setCleaningRules] = useState<CleaningRulesMap>({});
   const [isSnowflakeModalOpen, setIsSnowflakeModalOpen] = useState(false);
 
   // Track what we are waiting for
@@ -134,20 +133,6 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     if (expectedPhase === 'INSPECTION') {
       if ((normalizedStatus === 'WAITING_FOR_USER' || normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS') && isInspectionResult(taskResult)) {
         setInspectionData(taskResult);
-        const initialRules: CleaningRulesMap = {};
-        (taskResult.quality_report?.issues || []).forEach(issue => {
-          if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
-            const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
-              ? "cap_outliers"
-              : issue.action;
-            initialRules[issue.column] = {
-              action: normalizedAction as any,
-              value: normalizedAction === "fill_value" ? "Unknown" : undefined,
-              params: (issue as any).params || {}
-            };
-          }
-        });
-        setCleaningRules(initialRules);
         setIsProcessing(false);
         setExpectedPhase(null); // Stop waiting
         toast({ title: "Data Inspection Complete", description: "Please review the detected issues found." });
@@ -398,7 +383,6 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     setFileHeaders({});
     setKeyMapping({});
     setInspectionData(null);
-    setCleaningRules({});
     setExpectedPhase(null);
     setTaskId(null);
   };
@@ -521,16 +505,13 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             taskId={taskId!}
             data={issueLedgerData}
             onRefresh={refreshIssues}
-            onProceed={() => handleCleaningRules(cleaningRules)}
+            onProceed={() => handleCleaningRules({})}
           />
         )}
 
         <DataHealthCheck
           report={inspectionData.quality_report}
-          onContinue={(rules) => {
-            setCleaningRules(rules);
-            handleCleaningRules(rules);
-          }}
+          onContinue={handleCleaningRules}
           isProcessing={isProcessing}
         />
       </div>
@@ -557,14 +538,14 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
         )}
       </AnimatePresence>
 
-      <Card className="border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/95 shadow-sm dark:shadow-tactile rounded-3xl overflow-hidden transition-all duration-300 backdrop-blur-xl">
+      <Card className="border border-white/10 bg-[#0c0d12]/95 shadow-tactile rounded-3xl overflow-hidden transition-all duration-300 backdrop-blur-xl">
         <CardContent className="p-4 sm:p-6 space-y-6">
           {/* Dropzone Container */}
           <div
             className={`
               relative p-6 sm:p-8 md:p-10 text-center transition-all duration-200 min-h-[270px] flex flex-col items-center justify-center
               border-2 border-dashed rounded-2xl
-              ${isDragging ? "bg-emerald-500/10 dark:bg-white/[0.06] border-emerald-500/50 dark:border-white/40 shadow-inner" : "bg-slate-50/70 hover:bg-slate-50 dark:bg-[#08090d]/80 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20"}
+              ${isDragging ? "bg-white/[0.06] border-white/40 shadow-inner" : "bg-[#08090d]/80 border-white/10 hover:border-white/20"}
               ${isProcessing ? "opacity-75 pointer-events-none" : ""}
             `}
             onDragOver={(e) => {
@@ -574,19 +555,12 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
           >
-            {/* Upload / Status Icon */}
+            {/* Upload Icon */}
             <motion.div
               className={`
                 mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center 
                 rounded-full transition-all duration-200 shadow-premium border
-                ${isProcessing 
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:bg-emerald-500/15 dark:border-emerald-500/40 dark:text-emerald-400" 
-                  : isDragging 
-                    ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-600 dark:text-primary" 
-                    : stagedFiles.length > 0
-                      ? "bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300"
-                      : "bg-white dark:bg-[#121215] border-slate-200 dark:border-white/10 text-slate-800 dark:text-zinc-300 shadow-sm"
-                }
+                ${isDragging ? "bg-primary/20 border-primary/50 text-primary" : "bg-[#121215] border-white/10 text-zinc-300"}
               `}
               animate={{ scale: isDragging ? 1.08 : 1 }}
               transition={{ type: "spring", stiffness: 260 }}
@@ -595,21 +569,12 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                 {isProcessing ? (
                   <motion.div
                     key="processing"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                  >
-                    <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-600 dark:text-emerald-400 animate-spin" />
-                  </motion.div>
-                ) : stagedFiles.length > 0 ? (
-                  <motion.div
-                    key="staged"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                  >
-                    <FileSpreadsheet className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-600 dark:text-emerald-400" />
-                  </motion.div>
+                    initial={{ opacity: 0, rotate: 0 }}
+                    animate={{ opacity: 1, rotate: 360 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ rotate: { repeat: Infinity, duration: 1.2, ease: "linear" } }}
+                    className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border-2 border-primary border-t-transparent"
+                  />
                 ) : (
                   <motion.div
                     key="upload"
@@ -617,7 +582,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <Upload className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-600 dark:text-primary" />
+                    <Upload className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -625,51 +590,12 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
             {/* Dropzone Text & File Selector */}
             <div className="space-y-2">
-              {isProcessing ? (
-                <>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-semibold font-sans mb-1 shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
-                    <span>Analyzing In-Memory Pipeline</span>
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-display font-bold text-slate-900 dark:text-foreground tracking-tight">
-                    {taskMessage || "Ingesting & auditing datasets..."}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground max-w-md font-sans">
-                    Polars engine is calculating distribution metrics, data health grades, and checking column hygiene.
-                  </p>
-                </>
-              ) : isDragging ? (
-                <>
-                  <h3 className="text-lg sm:text-xl font-display font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">
-                    Drop datasets to stage
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground max-w-md font-sans">
-                    Release to add files into the memory queue.
-                  </p>
-                </>
-              ) : stagedFiles.length > 0 ? (
-                <>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-semibold font-sans mb-1 shadow-2xs">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>{stagedFiles.length} dataset{stagedFiles.length > 1 ? "s" : ""} staged & ready</span>
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-display font-bold text-slate-900 dark:text-foreground tracking-tight">
-                    Ready to analyze or drop more files
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground max-w-md font-sans">
-                    Click 'Start Analysis' below to begin audit, or drop more files to append.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-lg sm:text-xl font-display font-bold text-slate-900 dark:text-foreground tracking-tight">
-                    Drag & drop files or browse
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-muted-foreground max-w-md font-sans">
-                    Upload CSV, Excel (.xlsx, .xls), Parquet, TSV, or JSON files. Add as many files as you need before starting analysis.
-                  </p>
-                </>
-              )}
+              <h3 className="text-lg sm:text-xl font-display font-bold text-foreground tracking-tight">
+                {isDragging ? "Drop datasets here" : "Drag & drop files or browse"}
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-md font-sans">
+                Upload CSV, Excel (.xlsx, .xls), Parquet, TSV, or JSON files. Add as many files as you need before starting analysis.
+              </p>
             </div>
 
             {/* Browse Button & Snowflake Connector */}
@@ -683,9 +609,9 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                     onChange={handleFileSelect}
                     className="sr-only"
                   />
-                  <Button asChild variant="outline" size="default" className="cursor-pointer border border-slate-200 dark:border-white/10 bg-white dark:bg-[#121215] text-slate-900 dark:text-zinc-100 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-xs min-h-[44px]">
+                  <Button asChild variant="outline" size="default" className="cursor-pointer border-white/10 bg-[#121215] text-zinc-100 hover:bg-white/10 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]">
                     <span className="text-xs font-semibold flex items-center gap-2">
-                      <Upload className="h-3.5 w-3.5 text-emerald-600 dark:text-primary" />
+                      <Upload className="h-3.5 w-3.5 text-primary" />
                       Browse Files to Stage
                     </span>
                   </Button>
@@ -696,12 +622,12 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                   variant="outline"
                   size="default"
                   onClick={() => setIsSnowflakeModalOpen(true)}
-                  className="cursor-pointer border border-slate-200 dark:border-white/10 bg-white dark:bg-[#121215] text-slate-900 dark:text-zinc-100 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-xs min-h-[44px]"
+                  className="cursor-pointer border-white/10 bg-[#121215] text-zinc-100 hover:bg-white/10 hover:border-white/20 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]"
                 >
                   <span className="text-xs font-semibold flex items-center gap-2">
-                    <Database className="h-3.5 w-3.5 text-slate-500 dark:text-muted-foreground" />
+                    <Database className="h-3.5 w-3.5 text-zinc-300" />
                     <span>Connect Snowflake Warehouse</span>
-                    <span className="px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-widest text-slate-600 dark:text-muted-foreground bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded leading-none">
+                    <span className="px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-widest text-zinc-400 bg-white/[0.06] border border-white/10 rounded leading-none">
                       Beta
                     </span>
                   </span>
@@ -710,42 +636,40 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             )}
 
             {/* Supported formats */}
-            {!isProcessing && (
-              <div className="flex flex-wrap items-center justify-center gap-2 mt-6 text-xs">
-                {['.csv', '.xlsx', '.parquet', '.json', '.tsv'].map((fmt) => (
-                  <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white dark:bg-[#121215] text-slate-600 dark:text-muted-foreground font-mono text-[10px] font-medium rounded-full border border-slate-200 dark:border-white/10 shadow-2xs">
-                    <FileSpreadsheet className="h-3 w-3 text-emerald-600 dark:text-primary" />
-                    {fmt}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-6 text-xs">
+              {['.csv', '.xlsx', '.parquet', '.json', '.tsv'].map((fmt) => (
+                <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#121215] text-zinc-300 font-mono text-[10px] font-medium rounded-full border border-white/10 shadow-2xs">
+                  <FileSpreadsheet className="h-3 w-3 text-primary" />
+                  {fmt}
+                </span>
+              ))}
+            </div>
 
             {/* Quick-Load Sample Datasets */}
             {!isProcessing && stagedFiles.length === 0 && (
-              <div className="pt-4 mt-4 border-t border-slate-200/80 dark:border-white/5 flex flex-col items-center gap-2">
-                <span className="text-xs font-sans font-medium text-slate-500 dark:text-muted-foreground">
+              <div className="pt-4 mt-4 border-t border-white/5 flex flex-col items-center gap-2">
+                <span className="text-xs font-sans font-medium text-muted-foreground">
                   Or load an instant sample ledger:
                 </span>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleLoadSample("sales_retail")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 dark:text-muted-foreground hover:text-slate-950 dark:hover:text-foreground bg-slate-100 dark:bg-white/[0.04] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] border border-slate-200 dark:border-white/10 transition-all cursor-pointer shadow-2xs active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white border border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
                   >
                     <span>E-Commerce Sales (CSV)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleLoadSample("clinical_vitals")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 dark:text-muted-foreground hover:text-slate-950 dark:hover:text-foreground bg-slate-100 dark:bg-white/[0.04] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] border border-slate-200 dark:border-white/10 transition-all cursor-pointer shadow-2xs active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white border border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
                   >
                     <span>Clinical Vitals (CSV)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleLoadSample("finance_budget")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 dark:text-muted-foreground hover:text-slate-950 dark:hover:text-foreground bg-slate-100 dark:bg-white/[0.04] hover:bg-slate-200/70 dark:hover:bg-white/[0.08] border border-slate-200 dark:border-white/10 transition-all cursor-pointer shadow-2xs active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white border border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
                   >
                     <span>Department Budget (CSV)</span>
                   </button>
@@ -761,12 +685,12 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-border/60 pb-2">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-xs sm:text-sm font-display font-bold text-slate-900 dark:text-foreground">
+                  <h4 className="text-xs sm:text-sm font-display font-bold text-foreground">
                     Staged Datasets
                   </h4>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-primary border border-emerald-500/20 font-mono text-xs font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary font-mono text-xs font-bold">
                     {stagedFiles.length}
                   </span>
                 </div>
@@ -791,25 +715,25 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                   return (
                     <motion.div
                       key={`${file.name}-${file.size}-${file.lastModified}`}
-                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 dark:bg-[#121215] border border-slate-200 dark:border-white/10 shadow-2xs hover:border-slate-300 dark:hover:border-white/20 t-card-lift"
+                      className="flex items-center justify-between p-3 rounded-xl bg-[#121215] border border-white/10 shadow-2xs hover:border-white/20 t-card-lift"
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-primary shrink-0">
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
                           <FileSpreadsheet className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-display font-semibold text-xs sm:text-sm text-slate-900 dark:text-foreground truncate max-w-[140px] sm:max-w-[320px]">
+                            <span className="font-display font-semibold text-xs sm:text-sm text-white truncate max-w-[140px] sm:max-w-[320px]">
                               {file.name}
                             </span>
-                            <span className="px-1.5 py-0.2 rounded bg-slate-200/70 dark:bg-white/[0.06] text-[10px] font-mono text-slate-700 dark:text-muted-foreground uppercase">
+                            <span className="px-1.5 py-0.2 rounded bg-white/[0.06] text-[10px] font-mono text-zinc-300 uppercase">
                               {ext}
                             </span>
                           </div>
-                          <span className="text-[11px] text-slate-500 dark:text-muted-foreground font-mono">
+                          <span className="text-[11px] text-zinc-400 font-mono">
                             {formatFileSize(file.size)}
                           </span>
                         </div>
@@ -820,7 +744,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                           size="icon"
                           variant="ghost"
                           onDelete={() => removeFileFromStaging(idx)}
-                          className="h-7 w-7 rounded-lg text-slate-400 hover:text-rose-500 dark:text-muted-foreground"
+                          className="h-7 w-7 rounded-lg"
                           title="Delete this file from staging"
                         />
                       )}
@@ -851,22 +775,22 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                   : [];
 
                 return (
-                  <div className="p-4 rounded-2xl bg-slate-50/90 dark:bg-gradient-to-b dark:from-white/[0.04] dark:to-white/[0.01] border border-slate-200 dark:border-white/10 shadow-xs dark:shadow-premium space-y-3.5">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 dark:border-white/[0.06] pb-3">
+                  <div className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 shadow-premium space-y-3.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
                       <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-slate-200/80 dark:bg-white/[0.06] text-slate-700 dark:text-zinc-300 border border-slate-300/80 dark:border-white/10">
+                        <div className="p-1.5 rounded-lg bg-white/[0.06] text-zinc-300 border border-white/10">
                           <ArrowRightLeft className="h-4 w-4" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-display font-bold text-slate-900 dark:text-white tracking-wide">
+                            <span className="text-xs font-display font-bold text-white tracking-wide">
                               Multi-Dataset Join Configuration
                             </span>
-                            <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-zinc-300 text-[10px] font-mono border border-emerald-500/20 dark:border-white/10">
+                            <span className="px-1.5 py-0.5 rounded-md bg-white/[0.06] text-zinc-300 text-[10px] font-mono border border-white/10">
                               Polars Engine
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                          <p className="text-[11px] text-zinc-400">
                             {stagedFiles.length === 2 && joinMode === "asymmetric"
                               ? "Relational cross-dataset key mapping"
                               : `Matching rows across ${stagedFiles.length} staged datasets`}
@@ -875,14 +799,14 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       </div>
 
                       {stagedFiles.length === 2 && (
-                        <div className="inline-flex rounded-lg p-0.5 bg-slate-200/80 dark:bg-black/40 border border-slate-300/80 dark:border-white/10">
+                        <div className="inline-flex rounded-lg p-0.5 bg-black/40 border border-white/10">
                           <button
                             type="button"
                             onClick={() => setJoinMode("common")}
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
                               joinMode === "common"
-                                ? "bg-white text-slate-900 shadow-xs dark:bg-white/10 dark:text-white"
-                                : "text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                ? "bg-white/10 text-white shadow-sm"
+                                : "text-zinc-400 hover:text-zinc-200"
                             }`}
                           >
                             Single Key
@@ -892,11 +816,11 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                             onClick={() => setJoinMode("asymmetric")}
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all flex items-center gap-1 cursor-pointer ${
                               joinMode === "asymmetric"
-                                ? "bg-white text-slate-900 shadow-xs dark:bg-white/[0.12] dark:text-white border border-slate-300/80 dark:border-white/20"
-                                : "text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                ? "bg-white/[0.12] text-white border border-white/20 shadow-sm"
+                                : "text-zinc-400 hover:text-zinc-200"
                             }`}
                           >
-                            <Link2 className="h-3 w-3 text-slate-500 dark:text-zinc-300" />
+                            <Link2 className="h-3 w-3 text-zinc-300" />
                             Key Mapping
                           </button>
                         </div>
@@ -908,14 +832,14 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 md:grid-cols-11 gap-2.5 items-center">
                           {/* Left Dataset Key */}
-                          <div className="md:col-span-5 p-3 rounded-xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 shadow-xs space-y-1.5">
+                          <div className="md:col-span-5 p-3 rounded-xl bg-black/30 border border-white/10 space-y-1.5">
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-900 dark:text-zinc-200 font-semibold truncate max-w-[170px]" title={f1.name}>
+                              <span className="text-zinc-200 font-semibold truncate max-w-[170px]" title={f1.name}>
                                 {f1.name}
                               </span>
-                              <span className="text-[10px] text-slate-500 dark:text-muted-foreground font-sans uppercase tracking-wider font-semibold">Left Dataset</span>
+                              <span className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider font-semibold">Left Dataset</span>
                             </div>
-                            <label htmlFor="left-join-select" className="text-[10px] text-slate-600 dark:text-zinc-400 font-medium font-sans block">
+                            <label htmlFor="left-join-select" className="text-[10px] text-zinc-400 font-medium font-sans block">
                               Join Key Column
                             </label>
                             {cols1.length > 0 ? (
@@ -925,7 +849,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                 onChange={(e) =>
                                   setKeyMapping(prev => ({ ...prev, [f1.name]: e.target.value }))
                                 }
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0d0f17] text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-white/40 font-mono text-xs cursor-pointer"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs cursor-pointer"
                               >
                                 {cols1.map(col => (
                                   <option key={col} value={col}>
@@ -942,27 +866,27 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                   setKeyMapping(prev => ({ ...prev, [f1.name]: e.target.value }))
                                 }
                                 placeholder="e.g. match_id"
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0d0f17] text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-white/40 font-mono text-xs"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs"
                               />
                             )}
                           </div>
 
                           {/* Linking Center Indicator */}
                           <div className="md:col-span-1 flex flex-col items-center justify-center py-1">
-                            <div className="h-7 w-7 rounded-full bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-300 flex items-center justify-center">
+                            <div className="h-7 w-7 rounded-full bg-white/[0.06] border border-white/10 text-zinc-300 flex items-center justify-center">
                               <Link2 className="h-3.5 w-3.5" />
                             </div>
                           </div>
 
                           {/* Right Dataset Key */}
-                          <div className="md:col-span-5 p-3 rounded-xl bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 shadow-xs space-y-1.5">
+                          <div className="md:col-span-5 p-3 rounded-xl bg-black/30 border border-white/10 space-y-1.5">
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-900 dark:text-zinc-200 font-semibold truncate max-w-[170px]" title={f2.name}>
+                              <span className="text-zinc-200 font-semibold truncate max-w-[170px]" title={f2.name}>
                                 {f2.name}
                               </span>
-                              <span className="text-[10px] text-slate-500 dark:text-zinc-500 font-mono">Right Dataset</span>
+                              <span className="text-[10px] text-zinc-500 font-mono">Right Dataset</span>
                             </div>
-                            <label htmlFor="right-join-select" className="text-[10px] text-slate-600 dark:text-zinc-400 font-medium block">
+                            <label htmlFor="right-join-select" className="text-[10px] text-zinc-400 font-medium block">
                               Matching Key Column
                             </label>
                             {cols2.length > 0 ? (
@@ -972,7 +896,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                 onChange={(e) =>
                                   setKeyMapping(prev => ({ ...prev, [f2.name]: e.target.value }))
                                 }
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0d0f17] text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-white/40 font-mono text-xs cursor-pointer"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs cursor-pointer"
                               >
                                 {cols2.map(col => (
                                   <option key={col} value={col}>
@@ -989,7 +913,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                   setKeyMapping(prev => ({ ...prev, [f2.name]: e.target.value }))
                                 }
                                 placeholder="e.g. id"
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0d0f17] text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-white/40 font-mono text-xs"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs"
                               />
                             )}
                           </div>
@@ -998,7 +922,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                         {/* Join Strategy & Summary Banner */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                           <div>
-                            <label htmlFor="join-strategy-select" className="block text-slate-600 dark:text-zinc-400 font-medium mb-1 text-xs">
+                            <label htmlFor="join-strategy-select" className="block text-zinc-400 font-medium mb-1 text-xs">
                               Join Strategy
                             </label>
                             <select
@@ -1006,7 +930,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                               aria-label="Join Strategy"
                               value={joinType}
                               onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
-                              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0d0f17] text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-white/40 font-sans text-xs cursor-pointer"
+                              className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-sans text-xs cursor-pointer"
                             >
                               <option value="inner">Inner Join (Matched Rows Only)</option>
                               <option value="left">Left Join (Keep All in {f1.name})</option>
@@ -1014,10 +938,10 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                             </select>
                           </div>
                           <div className="flex items-end">
-                            <div className="w-full p-2 rounded-lg bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 text-[11px] text-slate-700 dark:text-zinc-300 flex items-center gap-1.5 shadow-2xs">
-                              <Link2 className="h-3.5 w-3.5 text-slate-500 dark:text-zinc-300 shrink-0" />
+                            <div className="w-full p-2 rounded-lg bg-white/[0.04] border border-white/10 text-[11px] text-zinc-300 flex items-center gap-1.5">
+                              <Link2 className="h-3.5 w-3.5 text-zinc-300 shrink-0" />
                               <span className="truncate">
-                                Linking <strong className="text-slate-950 dark:text-white font-mono">{f1.name}.{keyMapping[f1.name] || '?'}</strong> = <strong className="text-slate-950 dark:text-white font-mono">{f2.name}.{keyMapping[f2.name] || '?'}</strong>
+                                Linking <strong className="text-white font-mono">{f1.name}.{keyMapping[f1.name] || '?'}</strong> = <strong className="text-white font-mono">{f2.name}.{keyMapping[f2.name] || '?'}</strong>
                               </span>
                             </div>
                           </div>
@@ -1028,7 +952,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       <div className="space-y-2">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                           <div>
-                            <label htmlFor="primary-join-key" className="block text-slate-600 dark:text-zinc-400 font-medium mb-1">
+                            <label htmlFor="primary-join-key" className="block text-zinc-400 font-medium mb-1">
                               Primary Join Key Column
                             </label>
                             {commonCols.length > 0 ? (
@@ -1036,7 +960,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                 id="primary-join-key"
                                 value={joinKey}
                                 onChange={(e) => setJoinKey(e.target.value)}
-                                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0d0f17] text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-white/40 font-mono text-xs cursor-pointer"
+                                className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs cursor-pointer"
                               >
                                 {commonCols.map(col => (
                                   <option key={col} value={col}>
@@ -1051,12 +975,12 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                 value={joinKey}
                                 onChange={(e) => setJoinKey(e.target.value)}
                                 placeholder="e.g. id, match_id, user_id"
-                                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0d0f17] text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-white/40 font-mono text-xs"
+                                className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs"
                               />
                             )}
                           </div>
                           <div>
-                            <label htmlFor="join-strategy-select-common" className="block text-slate-600 dark:text-zinc-400 font-medium mb-1">
+                            <label htmlFor="join-strategy-select-common" className="block text-zinc-400 font-medium mb-1">
                               Join Strategy
                             </label>
                             <select
@@ -1064,7 +988,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                               aria-label="Join Strategy"
                               value={joinType}
                               onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
-                              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#0d0f17] text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-white/40 font-sans text-xs cursor-pointer"
+                              className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-sans text-xs cursor-pointer"
                             >
                               <option value="inner">Inner Join (Matched Rows)</option>
                               <option value="left">Left Join (Keep Base Dataset)</option>
@@ -1075,18 +999,18 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
                         {/* Missing key warning banner */}
                         {missingInFiles.length > 0 && (
-                          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 text-xs flex items-center justify-between gap-2">
+                          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5">
-                              <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                              <AlertCircle className="h-4 w-4 shrink-0 text-amber-400" />
                               <span>
-                                Key <strong className="text-amber-950 dark:text-white font-mono">'{joinKey}'</strong> is not present in <strong>{missingInFiles.join(", ")}</strong>.
+                                Key <strong className="text-white font-mono">'{joinKey}'</strong> is not present in <strong>{missingInFiles.join(", ")}</strong>.
                               </span>
                             </div>
                             {stagedFiles.length === 2 && (
                               <button
                                 type="button"
                                 onClick={() => setJoinMode("asymmetric")}
-                                className="text-xs font-semibold text-amber-800 dark:text-amber-200 hover:text-amber-950 dark:hover:text-white underline cursor-pointer shrink-0"
+                                className="text-xs font-semibold text-amber-200 hover:text-white underline cursor-pointer shrink-0"
                               >
                                 Switch to Key Mapping
                               </button>
@@ -1132,10 +1056,10 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       disabled={isDisabled}
                       className={cn(
                         "w-full min-h-[50px] rounded-2xl",
-                        isDisabled && "opacity-50 cursor-not-allowed bg-slate-200 dark:bg-zinc-900 border-slate-300 dark:border-white/10 text-slate-400 dark:text-zinc-500 shadow-none"
+                        isDisabled && "opacity-50 cursor-not-allowed bg-zinc-900 border-white/10 text-zinc-500 shadow-none"
                       )}
-                      icon={<FileSpreadsheet className={`h-4 w-4 shrink-0 ${isDisabled ? "text-slate-400 dark:text-zinc-500" : "text-white dark:text-zinc-950"}`} />}
-                      trailingIcon={<ArrowRightLeft className={`h-3.5 w-3.5 stroke-[2.5] ${isDisabled ? "text-slate-400 dark:text-zinc-500" : "text-white dark:text-zinc-950"}`} />}
+                      icon={<FileSpreadsheet className={`h-4 w-4 shrink-0 ${isDisabled ? "text-zinc-500" : "text-zinc-950"}`} />}
+                      trailingIcon={<ArrowRightLeft className="h-3.5 w-3.5 text-zinc-950 stroke-[2.5]" />}
                     >
                       <span className="truncate px-1.5 font-bold">{buttonLabel}</span>
                     </ShimmerActionButton>
@@ -1149,49 +1073,49 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
       {/* Privacy & Data Handling Disclosure */}
       <motion.div
-        className="p-6 rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/95 shadow-sm dark:shadow-tactile space-y-4 backdrop-blur-xl"
+        className="p-6 rounded-3xl border border-white/10 bg-[#0c0d12]/95 shadow-tactile space-y-4 backdrop-blur-xl"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/[0.08] pb-3.5">
+        <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.06] border border-white/10 text-emerald-400 shrink-0">
               <Shield className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-sm font-display font-bold text-slate-900 dark:text-foreground leading-none">
+              <h3 className="text-sm font-display font-bold text-white leading-none">
                 Zero-Persistence Privacy Architecture
               </h3>
-              <p className="text-[11px] font-mono text-slate-500 dark:text-muted-foreground mt-1">
+              <p className="text-[11px] font-mono text-zinc-400 mt-1">
                 Polars ephemeral RAM execution • 100% locally isolated
               </p>
             </div>
           </div>
         </div>
 
-        <ul className="space-y-2 text-[11px] sm:text-xs text-slate-600 dark:text-muted-foreground leading-relaxed font-sans">
+        <ul className="space-y-2 text-[11px] sm:text-xs text-muted-foreground leading-relaxed font-sans">
           <li className="flex items-start gap-2">
-            <Lock className="h-3.5 w-3.5 text-emerald-600 dark:text-primary/70 mt-0.5 shrink-0" />
-            <span><strong className="text-slate-900 dark:text-foreground">Session-scoped processing:</strong> Your file is processed for this audit session and is not used for training.</span>
+            <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
+            <span><strong className="text-foreground">Session-scoped processing:</strong> Your file is processed for this audit session and is not used for training.</span>
           </li>
           <li className="flex items-start gap-2">
-            <Lock className="h-3.5 w-3.5 text-emerald-600 dark:text-primary/70 mt-0.5 shrink-0" />
-            <span><strong className="text-slate-900 dark:text-foreground">Controlled retention:</strong> Download the outputs you need before the session expires.</span>
+            <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
+            <span><strong className="text-foreground">Controlled retention:</strong> Download the outputs you need before the session expires.</span>
           </li>
           <li className="flex items-start gap-2">
-            <Lock className="h-3.5 w-3.5 text-emerald-600 dark:text-primary/70 mt-0.5 shrink-0" />
-            <span><strong className="text-slate-900 dark:text-foreground">No Third-Party Sharing:</strong> Raw row-level data is never sent to any external AI provider. Only aggregated statistical summaries are used for insight generation.</span>
+            <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
+            <span><strong className="text-foreground">No Third-Party Sharing:</strong> Raw row-level data is never sent to any external AI provider. Only aggregated statistical summaries are used for insight generation.</span>
           </li>
           <li className="flex items-start gap-2">
-            <Lock className="h-3.5 w-3.5 text-emerald-600 dark:text-primary/70 mt-0.5 shrink-0" />
-            <span><strong className="text-slate-900 dark:text-foreground">End-to-End Encryption:</strong> All uploads are transmitted over HTTPS / TLS 1.3. Server-side memory is isolated per request.</span>
+            <Lock className="h-3.5 w-3.5 text-primary/70 mt-0.5 shrink-0" />
+            <span><strong className="text-foreground">End-to-End Encryption:</strong> All uploads are transmitted over HTTPS / TLS 1.3. Server-side memory is isolated per request.</span>
           </li>
         </ul>
 
-        <div className="pt-2 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between text-[11px] text-slate-500 dark:text-muted-foreground">
+        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-muted-foreground">
           <span>Enterprise privacy standards built-in</span>
-          <Link to="/privacy-policy" className="text-slate-900 dark:text-foreground/80 hover:text-slate-950 dark:hover:text-foreground hover:underline font-medium">
+          <Link to="/privacy-policy" className="text-zinc-200 hover:text-white hover:underline font-medium">
             Read Security Architecture &rarr;
           </Link>
         </div>

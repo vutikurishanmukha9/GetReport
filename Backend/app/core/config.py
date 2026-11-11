@@ -1,15 +1,6 @@
 import os
 import sys
 
-# Prevent Scikit-learn / Joblib / OpenMP from spawning child processes or thread storms in memory-constrained environments
-os.environ.setdefault("LOKY_MAX_CPU_COUNT", "1")
-os.environ.setdefault("JOBLIB_MULTIPROCESSING", "0")
-os.environ.setdefault("OMP_NUM_THREADS", "1")
-os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
-os.environ.setdefault("MKL_NUM_THREADS", "1")
-os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
-os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -40,8 +31,6 @@ class Settings(BaseSettings):
     REQUIRE_AUTH: bool = False
     # Secret used for Snowflake vault key derivation. Must be configured for persistent deployments.
     SECRET_KEY: str = ""
-    # Optional shared secret to trust upstream reverse proxy headers (e.g. X-User-Id / X-Consumer-Id)
-    TRUSTED_PROXY_SECRET: str = ""
     
     # Max length for chat questions (prompt injection mitigation)
     MAX_CHAT_QUESTION_LENGTH: int = 500
@@ -76,7 +65,7 @@ class Settings(BaseSettings):
     CHART_DPI: int = 96
 
     # ─── PDF Engine ──────────────────────────────────────────────────────
-    PDF_ENGINE: str = "weasyprint"  # "weasyprint" (deployment default), "typst" (ultra-fast, <25MB RAM) or "reportlab" (fallback)
+    PDF_ENGINE: str = "typst"  # "typst" (default, ultra-fast, <25MB RAM) or "reportlab" (fallback)
     
     # ─── RAG & Embeddings ────────────────────────────────────────────────
     EMBEDDING_DIMENSION: int = 768  # 768 for Google Gemini (default), 1536 for OpenAI

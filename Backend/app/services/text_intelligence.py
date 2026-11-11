@@ -262,9 +262,6 @@ def _conflict_layer(
     data: pl.DataFrame, roles: dict[str, str], valid: np.ndarray, cfg: RowTriageConfig,
     flags: list[RowFlag], explanations: dict[int, list[dict[str, Any]]], info: dict[str, Any],
 ) -> None:
-    if not getattr(cfg, "text_conflicts_enabled", False):
-        info["conflicts_skipped"] = "disabled_by_config"
-        return
     if int(valid.sum()) < cfg.learned_min_rows:
         info["conflicts_skipped"] = f"too_few_rows ({int(valid.sum())} < {cfg.learned_min_rows})"
         return

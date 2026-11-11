@@ -90,13 +90,12 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       const data: StatusResponse = await api.getTaskStatus(taskId);
       pollFailureCountRef.current = 0;
       applyStatusUpdate(data);
-    } catch (err: unknown) {
+    } catch (err: any) {
       pollFailureCountRef.current = (pollFailureCountRef.current || 0) + 1;
       console.warn("HTTP Status poll warning:", err);
 
-      const errorMsg = err instanceof Error ? err.message : String(err || "");
       // Backoff if rate-limited or repeatedly failing to avoid request storms
-      const isRateLimited = errorMsg.includes("429") || errorMsg.includes("Rate limit");
+      const isRateLimited = err?.message?.includes("429") || err?.message?.includes("Rate limit");
       const backoffDelay = isRateLimited ? 8000 : Math.min(10000, 2500 + pollFailureCountRef.current * 1500);
 
       if (pollIntervalRef.current) {
@@ -152,10 +151,6 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
   const connect = useCallback((taskId: string) => {
     disconnect();
     taskIdRef.current = taskId;
-    setProgress(0);
-    setResult(null);
-    setError(null);
-    setMessage('');
     setTaskStatus('CONNECTING');
 
     // Immediate state fetch to give instant feedback
@@ -164,7 +159,6 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     // ── 1. Primary Strategy: Server-Sent Events (SSE) Stream ──────────
     if ("EventSource" in globalThis) {
       try {
-        resetWatchdog(taskId);
         const unsub = api.subscribeTaskStatus(taskId, {
           onProgress: (data) => {
             setIsConnected(true);

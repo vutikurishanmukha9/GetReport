@@ -213,13 +213,9 @@ class RealSnowflakeDriver(SnowflakeIngestDriver):
             return sfqid
 
     def is_query_running(self, config: Dict[str, Any], query_id: str) -> bool:
-        try:
-            with self._create_connection(config) as conn:
-                status = conn.get_query_status(query_id)
-                return conn.is_still_running(status)
-        except Exception as e:
-            logger.warning("Error checking Snowflake query status %s: %s", query_id, e)
-            return False
+        with self._create_connection(config) as conn:
+            status = conn.get_query_status(query_id)
+            return conn.is_still_running(status)
 
     def abort_query(self, config: Dict[str, Any], query_id: str) -> bool:
         try:

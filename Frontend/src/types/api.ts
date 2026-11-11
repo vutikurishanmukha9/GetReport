@@ -1,8 +1,6 @@
 export type PrimitiveValue = string | number | boolean | null;
 export type DataRow = Record<string, PrimitiveValue>;
 
-export type AppStep = "upload" | "preview" | "generating" | "complete";
-
 export interface DatasetInfo {
   rows: number;
   columns: string[];
@@ -243,7 +241,6 @@ export interface QualityIssue {
   confidence_score?: number;
   target_pillar?: "Completeness" | "Validity" | "Consistency" | "Stability" | (string & {});
   impact_estimate?: string;
-  params?: Record<string, any>;
   before_sample?: (string | number | null)[];
   after_sample?: (string | number | null)[];
 }
@@ -302,7 +299,6 @@ export interface CleaningRule {
     | "none"
     | (string & {});
   value?: string | number;
-  params?: Record<string, any>;
 }
 
 export interface CleaningRulesMap {

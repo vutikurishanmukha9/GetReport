@@ -8,13 +8,13 @@ import logging
 from typing import Dict, List, Any, Tuple, Optional
 import networkx as nx
 
-# Import directly from optional graphify package; fallback gracefully to built-in NetworkX engine
+# Import directly from graphify package
 try:
     from graphify.cluster import cluster, label_communities_by_hub, cohesion_score
     from graphify.analyze import god_nodes, surprising_connections
     HAS_GRAPHIFY_CLUSTER = True
 except ImportError as err:
-    logging.getLogger(__name__).debug("Optional graphify cluster/analyze not found, using built-in NetworkX engine: %s", err)
+    logging.getLogger(__name__).warning("Failed to import graphify cluster/analyze: %s", err)
     HAS_GRAPHIFY_CLUSTER = False
 
 logger = logging.getLogger(__name__)

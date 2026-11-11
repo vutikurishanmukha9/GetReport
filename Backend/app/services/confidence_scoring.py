@@ -391,32 +391,10 @@ def calculate_confidence_scores(df: pl.DataFrame) -> ConfidenceReport:
     Calculate confidence scores for all columns in the dataset with role-adaptive calibration
     and Benford's Law forensic analysis.
     """
-    if df.width == 0 or len(df.columns) == 0:
-        return ConfidenceReport(
-            columns=[],
-            dataset_confidence=0.0,
-            high_confidence_count=0,
-            low_confidence_count=0,
-            critical_issues=["Dataset contains no columns"],
-            data_quality_index=0.0,
-            ml_readiness={
-                "score": 0.0,
-                "status": "Not Ready",
-                "reasons": ["Empty dataset"],
-                "recommendation": "Upload a valid dataset to calculate ML readiness.",
-                "column_context": "0 of 0 columns have issues",
-            },
-        )
-
     column_scores: list[ColumnConfidence] = []
     critical_issues: list[str] = []
-    seen_cols: set[str] = set()
-
+    
     for col in df.columns:
-        if col in seen_cols:
-            continue
-        seen_cols.add(col)
-
         series = df[col]
         dtype = df.schema[col]
         

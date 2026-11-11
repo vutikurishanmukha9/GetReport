@@ -289,8 +289,7 @@ async def start_snowflake_import(
 
     # Validate that the session is still active
     creds = _resolve_session_config(payload.session_id, user_id=user_id)
-    clean_dataset_name = re.sub(r"[^a-zA-Z0-9_\-]", "_", payload.dataset_name or "snowflake")
-    filename = f"{clean_dataset_name}_{uuid.uuid4().hex[:8]}.parquet"
+    filename = f"{payload.dataset_name or 'snowflake'}_{uuid.uuid4().hex[:8]}.parquet"
     from app.services.storage import get_storage_provider
     storage = get_storage_provider()
     base_dir = str(getattr(storage, "base_dir", "temp_uploads"))
@@ -349,12 +348,6 @@ async def cancel_snowflake_query(
         sfqid = redis_client.get(f"snowflake:active_query:{task_id}")
         if sfqid:
             logger.info("Found active sfqid %s for task %s; aborting...", sfqid, task_id)
-            try:
-                driver = get_snowflake_driver()
-                config = vault.retrieve_credentials(task_id) or {}
-                driver.abort_query(config, sfqid)
-            except Exception as e:
-                logger.warning("Failed to invoke driver abort_query for task %s: %s", task_id, e)
     
     title_task_manager.fail_job(task_id, "Snowflake ingestion cancelled by user.")
 

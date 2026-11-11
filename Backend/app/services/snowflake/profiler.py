@@ -43,14 +43,13 @@ def profile_parquet_out_of_core(parquet_path: str) -> Dict[str, Any]:
         for i in range(0, len(col_names), chunk_size):
             chunk = col_names[i : i + chunk_size]
             select_clauses = []
-            for c_idx, col in enumerate(chunk):
-                # Properly escaped and quoted identifier for safe SQL execution in DuckDB
-                clean_col = col.replace('"', '""')
-                qcol = f'"{clean_col}"'
+            for col in chunk:
+                # Quoted identifier for safe SQL extraction in DuckDB
+                qcol = f'"{col}"'
                 select_clauses.extend([
-                    f"COUNT({qcol}) AS c_{c_idx}_cnt",
-                    f"COUNT(*) - COUNT({qcol}) AS c_{c_idx}_nulls",
-                    f"approx_count_distinct({qcol}) AS c_{c_idx}_dist",
+                    f"COUNT({qcol}) AS count_{col}",
+                    f"COUNT(*) - COUNT({qcol}) AS nulls_{col}",
+                    f"approx_count_distinct({qcol}) AS distinct_{col}",
                 ])
 
             query = f"SELECT {', '.join(select_clauses)} FROM read_parquet('{escaped_path}')"

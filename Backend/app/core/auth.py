@@ -171,24 +171,14 @@ def check_task_ownership(task_owner_id: str | None, caller_owner_id: str | None)
 def get_authenticated_owner_id(request: Request | WebSocket | None = None) -> str | None:
     """Return the caller principal for tenant boundary isolation.
 
-    If an explicit x-user-id or x-consumer-id header is provided, it is trusted only if:
-    1. settings.TRUSTED_PROXY_SECRET is configured and matches x-proxy-secret, OR
-    2. settings.TRUSTED_PROXY_SECRET is not configured and not in production mode.
+    If an explicit x-user-id or x-consumer-id header is provided, it is returned.
     Otherwise, if API_KEY authentication is configured, returns 'api-key:shared'.
     In local unauthenticated development without identity headers, returns None.
     """
     if request is not None and hasattr(request, "headers"):
         caller = request.headers.get("x-user-id") or request.headers.get("x-consumer-id")
         if caller:
-            proxy_secret = request.headers.get("x-proxy-secret")
-            if settings.TRUSTED_PROXY_SECRET:
-                if proxy_secret and proxy_secret.strip() == settings.TRUSTED_PROXY_SECRET:
-                    return caller.strip()
-                logger.warning("Rejected untrusted x-user-id header without valid x-proxy-secret.")
-            elif settings.ENVIRONMENT != "production" and not settings.REQUIRE_AUTH:
-                return caller.strip()
-            else:
-                logger.warning("Rejected untrusted proxy header in production/authenticated environment.")
+            return caller.strip()
     if not settings.API_KEY:
         return None
     return "api-key:shared"

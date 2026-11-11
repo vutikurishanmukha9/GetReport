@@ -72,63 +72,6 @@ class CleaningReport:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        steps_applied: list[dict[str, str]] = []
-        if self.empty_rows_dropped > 0:
-            steps_applied.append({
-                "name": "Empty Rows Dropped",
-                "action": f"Purged {self.empty_rows_dropped:,} empty row(s)",
-                "impact": f"-{self.empty_rows_dropped:,} rows",
-            })
-        if self.empty_columns_dropped > 0:
-            steps_applied.append({
-                "name": "Empty Columns Dropped",
-                "action": f"Dropped {self.empty_columns_dropped:,} completely unpopulated column(s)",
-                "impact": f"-{self.empty_columns_dropped:,} columns",
-            })
-        if self.duplicate_rows_removed > 0:
-            steps_applied.append({
-                "name": "Duplicate De-duplication",
-                "action": f"Identified and removed {self.duplicate_rows_removed:,} redundant row(s)",
-                "impact": f"-{self.duplicate_rows_removed:,} rows",
-            })
-        if self.non_data_rows_dropped > 0:
-            steps_applied.append({
-                "name": "Preamble/Metadata Rows",
-                "action": f"Stripped {self.non_data_rows_dropped:,} title/header metadata row(s)",
-                "impact": f"-{self.non_data_rows_dropped:,} rows",
-            })
-        if self.numeric_nans_filled > 0:
-            steps_applied.append({
-                "name": "Numeric Imputation",
-                "action": f"Imputed {self.numeric_nans_filled:,} missing numerical value(s) with 0",
-                "impact": f"+{self.numeric_nans_filled:,} values filled",
-            })
-        if self.categorical_nans_filled > 0:
-            steps_applied.append({
-                "name": "Categorical Imputation",
-                "action": f"Imputed {self.categorical_nans_filled:,} missing categorical value(s) with 'Unknown'",
-                "impact": f"+{self.categorical_nans_filled:,} values filled",
-            })
-        if self.phone_numbers_cleaned > 0:
-            steps_applied.append({
-                "name": "Phone Number Standardization",
-                "action": f"Sanitized and standardized {self.phone_numbers_cleaned:,} phone number(s) to E.164",
-                "impact": f"{self.phone_numbers_cleaned:,} formatted",
-            })
-        renamed_count = sum(1 for k, v in self.columns_renamed.items() if k != v)
-        if renamed_count > 0:
-            steps_applied.append({
-                "name": "Header Normalization",
-                "action": f"Standardized {renamed_count:,} column header(s) to snake_case identifiers",
-                "impact": f"{renamed_count:,} columns normalized",
-            })
-        for tc in self.type_conversions:
-            steps_applied.append({
-                "name": "Type Casting",
-                "action": f"Coerced column '{tc.get('column')}' from {tc.get('from')} to {tc.get('to')}",
-                "impact": f"Cast to {tc.get('to')}",
-            })
-
         return {
             "empty_rows_dropped":       self.empty_rows_dropped,
             "empty_columns_dropped":    self.empty_columns_dropped,
@@ -142,7 +85,6 @@ class CleaningReport:
             "total_changes":            self.total_changes,
             "timing_ms":                round(self.timing_ms, 2),
             "row_triage":               self.row_triage,
-            "steps_applied":            steps_applied,
         }
 
 # ─── Utility: Snake Case Conversion ──────────────────────────────────────────
@@ -1134,6 +1076,8 @@ def _contextual_impute_series(
         return None, None
 
     try:
+        from sklearn.linear_model import Ridge
+
         target_series = df[col]
         target_np = np.array(target_series)
         target_null_mask = np.array(target_series.is_null())
@@ -1177,30 +1121,15 @@ def _contextual_impute_series(
         X_train = X_selected[valid_target_idx]
         y_train = y_valid
 
-        # Pure NumPy Ridge Regression (closed form: w = (X^T X + alpha*I)^-1 X^T y)
-        n_train = len(y_train)
-        X_train_bias = np.column_stack([np.ones(n_train), X_train])
-        d = X_train_bias.shape[1]
-        reg_matrix = 1.0 * np.eye(d)
-        reg_matrix[0, 0] = 0.0  # do not regularize intercept
+        model = Ridge(alpha=1.0)
+        model.fit(X_train, y_train)
 
-        try:
-            weights = np.linalg.solve(X_train_bias.T @ X_train_bias + reg_matrix, X_train_bias.T @ y_train)
-        except np.linalg.LinAlgError:
-            weights = np.linalg.lstsq(X_train_bias.T @ X_train_bias + reg_matrix, X_train_bias.T @ y_train, rcond=None)[0]
-
-        y_pred_train = X_train_bias @ weights
-        ss_res = np.sum((y_train - y_pred_train) ** 2)
-        ss_tot = np.sum((y_train - np.mean(y_train)) ** 2)
-        r2 = float(1.0 - (ss_res / ss_tot)) if ss_tot > 1e-9 else 0.0
-
+        r2 = float(model.score(X_train, y_train))
         if r2 < 0.15 or np.isnan(r2):
             return None, None
 
         X_missing = X_selected[target_null_mask]
-        n_missing = len(X_missing)
-        X_missing_bias = np.column_stack([np.ones(n_missing), X_missing])
-        preds = X_missing_bias @ weights
+        preds = model.predict(X_missing)
 
         min_observed = float(np.min(y_train))
         max_observed = float(np.max(y_train))
@@ -1266,21 +1195,12 @@ def clean_data(
     step_start = time.perf_counter()
     df_before = df.clone()
     
-    new_cols = {}
-    seen: dict[str, int] = {}
-    for c in df.columns:
-        sc = _to_snake_case(c)
-        if sc in seen:
-            seen[sc] += 1
-            new_cols[c] = f"{sc}_{seen[sc]}"
-        else:
-            seen[sc] = 0
-            new_cols[c] = sc
+    new_cols = {c: _to_snake_case(c) for c in df.columns}
     df = df.rename(new_cols)
-    changed_cols = {k: v for k, v in new_cols.items() if k != v}
-    report.columns_renamed = changed_cols
+    report.columns_renamed = new_cols
     
     # Only add node if columns actually changed
+    changed_cols = {k: v for k, v in new_cols.items() if k != v}
     if changed_cols:
         dag.add_node(
             operation="rename_columns",
@@ -1303,33 +1223,26 @@ def clean_data(
         # Exact duplicates are left to Step 3 so existing dedupe accounting is unchanged.
         drop_mask = triage.exclude_mask_without("exact_duplicate")
         if drop_mask.any():
-            if drop_mask.sum() < df.height:
-                df_before = df.clone()
-                dropped_ids = [int(i) for i in triage.row_ids[drop_mask][:1000]]
-                df = df.filter(pl.Series(~drop_mask))
-                dropped = int(drop_mask.sum())
-                report.non_data_rows_dropped = dropped
-                dag.add_node(
-                    operation="drop_non_data_rows",
-                    df_before=df_before,
-                    df_after=df,
-                    parameters={"rows_dropped": dropped, "reasons": triage.summary()["by_reason"]},
-                    stored_data={"dropped_row_ids": dropped_ids},
-                    duration_ms=(time.perf_counter() - step_start) * 1000,
-                )
-            else:
-                logger.warning(
-                    "Row triage attempted to drop all %d rows (%s). Preserving original rows to prevent empty dataset.",
-                    df.height,
-                    triage.summary().get("by_reason", {}),
-                )
+            df_before = df.clone()
+            dropped_ids = [int(i) for i in triage.row_ids[drop_mask][:1000]]
+            df = df.filter(pl.Series(~drop_mask))
+            dropped = int(drop_mask.sum())
+            report.non_data_rows_dropped = dropped
+            dag.add_node(
+                operation="drop_non_data_rows",
+                df_before=df_before,
+                df_after=df,
+                parameters={"rows_dropped": dropped, "reasons": triage.summary()["by_reason"]},
+                stored_data={"dropped_row_ids": dropped_ids},
+                duration_ms=(time.perf_counter() - step_start) * 1000,
+            )
 
     # ─── Step 2: Apply User Rules (Interactive) ──────────────────────────────
     rules_applied_cols: set[str] = set()
     if rules:
         for original_col, rule in rules.items():
-            target_col = "*" if original_col == "*" else _to_snake_case(original_col)
-            if target_col != "*" and target_col not in df.columns: 
+            target_col = _to_snake_case(original_col)
+            if target_col not in df.columns: 
                 continue
             rules_applied_cols.add(target_col)
             
@@ -1348,22 +1261,21 @@ def clean_data(
                 )
                 
             elif action == "fill_mean":
-                if df[target_col].dtype in [pl.Int64, pl.Float64, pl.Int32, pl.Float32]:
+                if df[target_col].dtype in [pl.Int64, pl.Float64]:
                     mean_val = df[target_col].mean()
-                    if mean_val is not None:
-                        null_cnt = df[target_col].null_count()
-                        if null_cnt > 0:
-                            df = df.with_columns(pl.col(target_col).fill_null(mean_val))
-                            report.numeric_nans_filled += null_cnt
-                            dag.add_node(
-                                operation="fill_null_mean",
-                                df_before=df_before,
-                                df_after=df,
-                                target_column=target_col,
-                                parameters={"fill_value": mean_val, "nulls_filled": null_cnt},
-                                duration_ms=(time.perf_counter() - step_start) * 1000,
-                                values_changed=null_cnt,
-                            )
+                    null_cnt = df[target_col].null_count()
+                    if null_cnt > 0:
+                        df = df.with_columns(pl.col(target_col).fill_null(mean_val))
+                        report.numeric_nans_filled += null_cnt
+                        dag.add_node(
+                            operation="fill_null_mean",
+                            df_before=df_before,
+                            df_after=df,
+                            target_column=target_col,
+                            parameters={"fill_value": mean_val, "nulls_filled": null_cnt},
+                            duration_ms=(time.perf_counter() - step_start) * 1000,
+                            values_changed=null_cnt,
+                        )
 
             elif action == "fill_median":
                 if df[target_col].dtype in [pl.Int64, pl.Float64, pl.Float32, pl.Int32]:
@@ -1519,17 +1431,7 @@ def clean_data(
                 try:
                     from app.services.auto_suggestion_engine import apply_suggestion, _EXECUTORS
                     if action in _EXECUTORS:
-                        rule_params = rule.get("params") or {}
-                        if not isinstance(rule_params, dict):
-                            rule_params = {}
-                        suggestion_payload = {
-                            "action": action,
-                            "column": target_col,
-                            "params": rule_params,
-                            **rule,
-                        }
-                        suggestion_payload["params"] = rule_params
-                        df = apply_suggestion(df, suggestion_payload)
+                        df = apply_suggestion(df, {"action": action, "column": target_col, **rule})
                         dag.add_node(
                             operation=action,
                             df_before=df_before,
@@ -1567,8 +1469,6 @@ def clean_data(
     keep_lit = pl.lit(pl.Series(~sparse)) if sparse.any() else None
 
     def _gated_fill(col_name: str, value: Any) -> pl.Expr:
-        if value is None:
-            return pl.col(col_name)
         if keep_lit is None:
             return pl.col(col_name).fill_null(value)
         return pl.when(pl.col(col_name).is_null() & keep_lit).then(pl.lit(value)).otherwise(pl.col(col_name))
@@ -1585,13 +1485,6 @@ def clean_data(
         col_lower = col.lower()
         is_id = any(p in col_lower for p in id_patterns)
         dtype = df[col].dtype
-
-        # Promote Object column to String series to support native Polars string kernels
-        if dtype == pl.Object:
-            str_vals = [str(x) if x is not None else None for x in df[col]]
-            df = df.with_columns(pl.Series(col, str_vals, dtype=pl.String))
-            dtype = pl.String
-
         is_phone = _is_phone_column(col, df[col])
         
         # 4a. Sanitize Phone Numbers (Remove leading hyphens/dashes, standardize to Utf8 string)
@@ -1651,15 +1544,14 @@ def clean_data(
                 )
             continue
         
-        # 4b. Strip masked null string placeholders in Utf8/String columns & fill categorical
-        if dtype in (pl.Utf8, pl.String):
+        # 4b. Strip masked null string placeholders in Utf8/Object columns & fill categorical
+        if dtype == pl.Utf8 or dtype == pl.Object:
             step_start = time.perf_counter()
             df_before = df.clone()
             
             # Convert masked string placeholders to null
-            col_str_expr = pl.col(col).str.strip_chars().str.to_lowercase()
             df = df.with_columns(
-                pl.when(col_str_expr.is_in(masked_placeholders))
+                pl.when(pl.col(col).str.strip_chars().str.to_lowercase().is_in(masked_placeholders))
                 .then(None)
                 .otherwise(pl.col(col))
                 .alias(col)
@@ -1895,4 +1787,4 @@ def sanitize_df_for_csv_export(df: pl.DataFrame) -> pl.DataFrame:
             exprs.append(sanitized.alias(col_name))
         else:
             exprs.append(pl.col(col_name))
-    return df.with_columns(exprs)
+    return df.with_columns(exprs)

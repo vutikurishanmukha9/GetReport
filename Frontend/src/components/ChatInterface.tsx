@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import DOMPurify from "dompurify";
 import { 
   Send, Terminal, User, RefreshCw, ChevronDown, ChevronUp, 
-  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check
+  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check,
+  Bookmark, BookmarkCheck, Trash2
 } from "lucide-react";
 import { Button, AnimatedDeleteButton, SaveKpiButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,7 +83,6 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
   const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
   const [highlightedSourceIdx, setHighlightedSourceIdx] = useState<number | null>(null);
   const [savedGoldenIds, setSavedGoldenIds] = useState<Set<string>>(new Set());
-  const msgToGoldenQueryIdRef = useRef<Map<string, string>>(new Map());
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -216,35 +216,22 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
     }
 
     try {
-      const savedQuery = await api.saveGoldenQuery(taskId, userQuestion, sqlQuery, "Saved via AI Chat Interface");
-      if (savedQuery?.id) {
-        msgToGoldenQueryIdRef.current.set(msg.id, savedQuery.id);
-      }
+      await api.saveGoldenQuery(taskId, userQuestion, sqlQuery, "Saved via AI Chat Interface");
       setSavedGoldenIds((prev) => new Set(prev).add(msg.id));
       toast({
         title: "Saved as Golden KPI",
         description: `Verified KPI saved: "${userQuestion.slice(0, 45)}...". Future queries will return instant ground truth.`,
       });
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "An error occurred while saving the query.";
+    } catch (err: any) {
       toast({
         title: "Failed to Save Golden KPI",
-        description: errorMsg,
+        description: err.message || "An error occurred while saving the query.",
         variant: "destructive",
       });
     }
   };
 
-  const handleDeleteGoldenKPI = async (msgId: string) => {
-    const queryId = msgToGoldenQueryIdRef.current.get(msgId);
-    if (queryId) {
-      try {
-        await api.deleteGoldenQuery(taskId, queryId);
-        msgToGoldenQueryIdRef.current.delete(msgId);
-      } catch (err) {
-        console.warn("Failed to delete golden query from backend:", err);
-      }
-    }
+  const handleDeleteGoldenKPI = (msgId: string) => {
     setSavedGoldenIds((prev) => {
       const next = new Set(prev);
       next.delete(msgId);
@@ -545,7 +532,9 @@ interface SourcesExpanderProps {
 }
 
 const SourcesExpander = ({ 
+  messageId: _messageId, 
   sources, 
+  activeSourceId: _activeSourceId, 
   highlightedIdx, 
   onSelectSource 
 }: SourcesExpanderProps) => {

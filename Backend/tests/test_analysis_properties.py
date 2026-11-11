@@ -188,11 +188,10 @@ class TestAnalyzeDatasetProperties:
 
         for pair in result.get("strong_correlations", []):
             r = pair.get("r_value")
-            rho = pair.get("spearman_rho")
-            corr_val = max(abs(float(r)) if r is not None else 0.0, abs(float(rho)) if rho is not None else 0.0)
-            assert corr_val >= CORRELATION_STRONG_THRESHOLD, (
-                f"Neither |r|={r} nor |rho|={rho} exceeds threshold {CORRELATION_STRONG_THRESHOLD}"
-            )
+            if r is not None:
+                assert abs(float(r)) >= CORRELATION_STRONG_THRESHOLD, (
+                    f"|r|={abs(float(r))} below threshold {CORRELATION_STRONG_THRESHOLD}"
+                )
 
     @given(data=numeric_columns(min_cols=2, max_cols=3))
     @settings(max_examples=10, deadline=None, suppress_health_check=[HealthCheck.too_slow])

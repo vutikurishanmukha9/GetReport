@@ -17,18 +17,10 @@ RUN pip install --no-cache-dir --prefix=/install \
 FROM python:3.12-slim AS runtime
 
 # System dependencies:
-#   - WeasyPrint C-libraries: libpango-1.0-0, libharfbuzz0b, libpangoft2-1.0-0, libpangocairo-1.0-0, libgdk-pixbuf-2.0-0, libffi8, shared-mime-info
-#   - Fonts for PDF report rendering: fonts-dejavu-core
+#   - Fonts for Typst report rendering: fonts-dejavu-core
 #   - Neon DB: ca-certificates (SSL connections)
 #   - Shell script utilities: dos2unix
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpango-1.0-0 \
-    libharfbuzz0b \
-    libpangoft2-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf-2.0-0 \
-    libffi8 \
-    shared-mime-info \
     fonts-dejavu-core \
     ca-certificates \
     dos2unix \
@@ -55,15 +47,9 @@ RUN useradd --create-home --shell /bin/bash appuser && \
 USER appuser
 
 # ─── Environment ─────────────────────────────────────────────────────────────
-ENV PDF_ENGINE=weasyprint
+ENV PDF_ENGINE=typst
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV LOKY_MAX_CPU_COUNT=1
-ENV JOBLIB_MULTIPROCESSING=0
-ENV OMP_NUM_THREADS=1
-ENV OPENBLAS_NUM_THREADS=1
-ENV MKL_NUM_THREADS=1
-ENV NUMEXPR_NUM_THREADS=1
 
 # ─── Health check ────────────────────────────────────────────────────────────
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

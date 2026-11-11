@@ -45,8 +45,8 @@ class TypstReportEngine(BaseReportEngine):
     def is_available(cls) -> bool:
         try:
             import typst  # noqa: F401
-            from app.services.report_typst import _PRIMARY_TEMPLATE
-            return _PRIMARY_TEMPLATE.exists()
+            from app.services.report_typst import _FALLBACK_TEMPLATE, _PRIMARY_TEMPLATE
+            return _PRIMARY_TEMPLATE.exists() or _FALLBACK_TEMPLATE.exists()
         except (ImportError, Exception):
             return False
 

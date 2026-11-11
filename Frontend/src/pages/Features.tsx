@@ -3,7 +3,8 @@ import {
   ArrowRight, Layers, CheckCircle2, 
   FileText, ArrowLeftRight, Activity, ShieldCheck,
   Code2, MessageSquareCode, Lock, Database,
-  ChevronDown, Check
+  Sliders, Eye, Download, AlertTriangle, ChevronDown,
+  Check, X
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,13 +13,13 @@ import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
-// Module scope pure function for Confidence Grade calculation with high-contrast light & dark modes
+// Module scope pure function for Confidence Grade calculation
 const getConfidenceGrade = (score: number) => {
-  if (score >= 90) return { grade: "A", label: "Production Ready", color: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/30" };
-  if (score >= 80) return { grade: "B", label: "Minor Issues", color: "bg-blue-500/10 text-blue-800 dark:text-blue-300 border-blue-500/30" };
-  if (score >= 70) return { grade: "C", label: "Needs Remediation", color: "bg-amber-500/10 text-amber-800 dark:text-amber-400 border-amber-500/30" };
-  if (score >= 60) return { grade: "D", label: "High Risk", color: "bg-orange-500/10 text-orange-800 dark:text-orange-400 border-orange-500/30" };
-  return { grade: "F", label: "Critical Anomalies", color: "bg-rose-500/10 text-rose-800 dark:text-rose-400 border-rose-500/30" };
+  if (score >= 90) return { grade: "A", label: "Production Ready", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" };
+  if (score >= 80) return { grade: "B", label: "Minor Issues", color: "bg-white/10 text-zinc-300 border-white/20" };
+  if (score >= 70) return { grade: "C", label: "Needs Remediation", color: "bg-amber-500/10 text-amber-400 border-amber-500/30" };
+  if (score >= 60) return { grade: "D", label: "High Risk", color: "bg-orange-500/10 text-orange-400 border-orange-500/30" };
+  return { grade: "F", label: "Critical Anomalies", color: "bg-rose-500/10 text-rose-400 border-rose-500/30" };
 };
 
 export const Features = () => {
@@ -70,16 +71,16 @@ export const Features = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200 animate-in fade-in duration-500 relative">
+    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.04)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-50 dark:opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
       <div className="hero-grain-overlay" />
       <Header onReset={() => {}} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28">
         
         {/* Section 1: Hero Header & Live Polars Benchmark Terminal */}
-        <section className="border-b border-border bg-background/90 py-8 sm:py-16 relative z-10">
+        <section className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               
@@ -106,7 +107,7 @@ export const Features = () => {
                     </Button>
                   </Link>
                   <Link to="/how-it-works" className="w-full sm:w-auto">
-                    <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-6 rounded-xl border-border bg-card hover:bg-muted/40 shadow-premium t-card-lift t-spring-press font-sans font-medium text-sm cursor-pointer">
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-6 rounded-xl border-border bg-card/80 hover:bg-muted/20 shadow-premium t-card-lift t-spring-press font-sans font-medium text-sm cursor-pointer">
                       <span>Pipeline Architecture</span>
                     </Button>
                   </Link>
@@ -119,26 +120,26 @@ export const Features = () => {
                     <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-[0.15em]">Permanent Storage</span>
                   </div>
                   <div>
-                    <span className="block font-bold text-emerald-600 dark:text-emerald-400 text-sm sm:text-base tabular-nums">&lt; 50ms</span>
+                    <span className="block font-bold text-emerald-400 text-sm sm:text-base tabular-nums">&lt; 50ms</span>
                     <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-[0.15em]">Polars Streaming</span>
                   </div>
                   <div>
-                    <span className="block font-bold text-foreground text-sm sm:text-base">A to F</span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Confidence Grading</span>
+                    <span className="block font-bold text-primary text-sm sm:text-base">A to F</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Confidence Grading</span>
                   </div>
                 </div>
               </div>
 
-              {/* Right Column: Live Polars vs Pandas Benchmark Terminal (Theme-Adaptive) */}
+              {/* Right Column: Live Polars vs Pandas Benchmark Terminal */}
               <div className="lg:col-span-5 w-full">
-                <Card className="border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/95 rounded-3xl shadow-md dark:shadow-tactile overflow-hidden t-card-lift backdrop-blur-xl">
-                  <CardHeader className="bg-slate-50 dark:bg-white/[0.02] border-b border-slate-200 dark:border-white/[0.08] p-5">
+                <Card className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl shadow-tactile overflow-hidden t-card-lift backdrop-blur-xl">
+                  <CardHeader className="bg-white/[0.02] border-b border-white/[0.08] p-5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 font-mono text-xs font-semibold text-foreground">
-                        <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <Activity className="h-4 w-4 text-primary" />
                         <span>Polars Zero-Copy Benchmark</span>
                       </div>
-                      <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/30 font-semibold">
+                      <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
                         100k Rows Streamed
                       </Badge>
                     </div>
@@ -146,34 +147,34 @@ export const Features = () => {
                   <CardContent className="p-4 sm:p-5 space-y-3.5 font-mono text-xs">
                     <div className="space-y-3">
                       {/* Polars Row */}
-                      <div className="p-3.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/30 space-y-1.5 shadow-2xs">
+                      <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-1.5">
                         <div className="flex justify-between items-center text-[11px]">
-                          <span className="font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 stroke-[2.2]" /> Polars Engine
+                          <span className="font-bold text-emerald-300 flex items-center gap-1.5">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Polars Engine
                           </span>
-                          <span className="font-bold text-white bg-emerald-700 dark:bg-emerald-500/30 dark:text-emerald-300 px-2 py-0.5 rounded text-[10px] shadow-2xs">22.4x Speedup</span>
+                          <span className="font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded text-[10px]">22.4x Speedup</span>
                         </div>
-                        <div className="flex justify-between text-[11px] text-emerald-950/90 dark:text-emerald-200/90 font-sans">
-                          <span>Execution: <strong className="font-mono text-emerald-900 dark:text-emerald-300 font-bold">42ms</strong></span>
-                          <span>RAM Usage: <strong className="font-mono text-emerald-900 dark:text-emerald-300 font-bold">12MB</strong></span>
+                        <div className="flex justify-between text-[11px] text-emerald-200/90 font-sans">
+                          <span>Execution: <strong className="font-mono text-emerald-300">42ms</strong></span>
+                          <span>RAM Usage: <strong className="font-mono text-emerald-300">12MB</strong></span>
                         </div>
                       </div>
 
                       {/* Standard Pandas Row */}
-                      <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-muted/20 border border-slate-200 dark:border-border/50 space-y-1.5 shadow-2xs">
+                      <div className="p-3 rounded-xl bg-muted/20 border border-border/50 space-y-1.5 opacity-80">
                         <div className="flex justify-between items-center text-[11px]">
-                          <span className="text-slate-900 dark:text-muted-foreground font-semibold">Standard Pandas (Baseline)</span>
-                          <span className="text-slate-600 dark:text-muted-foreground text-[10px] font-medium">Disk Cache Bound</span>
+                          <span className="text-muted-foreground font-semibold">Standard Pandas (Baseline)</span>
+                          <span className="text-muted-foreground text-[10px]">Disk Cache Bound</span>
                         </div>
-                        <div className="flex justify-between text-[11px] text-slate-600 dark:text-muted-foreground font-sans">
-                          <span>Execution: <strong className="font-mono text-slate-900 dark:text-foreground font-bold">940ms</strong></span>
-                          <span>RAM Usage: <strong className="font-mono text-slate-900 dark:text-foreground font-bold">148MB</strong></span>
+                        <div className="flex justify-between text-[11px] text-muted-foreground font-sans">
+                          <span>Execution: <strong className="font-mono text-foreground">940ms</strong></span>
+                          <span>RAM Usage: <strong className="font-mono text-foreground">148MB</strong></span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-3.5 bg-slate-100/80 dark:bg-muted/30 rounded-xl border border-slate-200 dark:border-border/40 text-[11px] font-sans text-slate-700 dark:text-muted-foreground space-y-1 shadow-2xs">
-                      <strong className="text-slate-900 dark:text-foreground font-mono block text-[10px] uppercase tracking-wider font-bold">Zero-Copy Memory Guarantee:</strong>
+                    <div className="p-3 bg-muted/30 rounded-xl border border-border/40 text-[11px] font-sans text-muted-foreground space-y-1">
+                      <strong className="text-foreground font-mono block text-[10px] uppercase tracking-wider">Zero-Copy Memory Guarantee:</strong>
                       <span>Files are memory-mapped into Polars ChunkedArrays in RAM. Intermediate buffers are purged automatically upon execution.</span>
                     </div>
                   </CardContent>
@@ -184,11 +185,11 @@ export const Features = () => {
           </div>
         </section>
 
-        {/* Section 2: Interactive Confidence Grade Simulator (Theme-Adaptive) */}
+        {/* Section 2: Interactive Confidence Grade Simulator */}
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 max-w-6xl">
-          <Card className="border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-10 shadow-md dark:shadow-tactile space-y-8 backdrop-blur-xl text-card-foreground">
+          <Card className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-10 shadow-tactile space-y-8 backdrop-blur-xl">
             
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-slate-200 dark:border-border pb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-border/60 pb-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] bg-primary/10 text-primary border-primary/20">
@@ -203,27 +204,27 @@ export const Features = () => {
                   Adjust the four core quality dimensions below to simulate how our scoring engine grades individual tabular variables in real time.
                 </p>
                 
-                {/* Preset Scenario Buttons with High Contrast */}
+                {/* Preset Scenario Buttons */}
                 <div className="flex flex-wrap items-center gap-2 pt-1 font-sans text-xs">
-                  <span className="text-slate-700 dark:text-muted-foreground text-[10px] font-bold uppercase tracking-wider mr-1">Presets:</span>
+                  <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider mr-1">Presets:</span>
                   <button
                     type="button"
                     onClick={() => applyPreset(96, 92, 88, 94)}
-                    className="px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] text-slate-800 dark:text-zinc-200 transition-all cursor-pointer shadow-2xs text-xs font-semibold"
+                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim text-xs font-medium"
                   >
                     Clean Data (93%)
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset(72, 68, 75, 70)}
-                    className="px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] text-slate-800 dark:text-zinc-200 transition-all cursor-pointer shadow-2xs text-xs font-semibold"
+                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim text-xs font-medium"
                   >
                     Mixed Schema (71%)
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset(40, 50, 45, 35)}
-                    className="px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] text-slate-800 dark:text-zinc-200 transition-all cursor-pointer shadow-2xs text-xs font-semibold"
+                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim text-xs font-medium"
                   >
                     Anomalous Export (43%)
                   </button>
@@ -242,8 +243,8 @@ export const Features = () => {
                 </div>
                 <div className="border-l border-current/20 pl-4 space-y-1">
                   <span className="text-lg sm:text-xl font-sans font-bold tabular-nums block">{overallScore}%</span>
-                  <span className="text-xs font-sans font-semibold block opacity-95">{gradeInfo.label}</span>
-                  <span className="text-[10px] font-mono block opacity-80">Formula: 35%C + 25%S + 25%V + 15%T</span>
+                  <span className="text-xs font-sans font-medium block opacity-95">{gradeInfo.label}</span>
+                  <span className="text-[10px] font-mono block opacity-75">Formula: 35%C + 25%S + 25%V + 15%T</span>
                 </div>
               </div>
             </div>
@@ -252,12 +253,12 @@ export const Features = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 font-sans text-xs">
               
               {/* Slider 1: Completeness */}
-              <div className="space-y-2.5 p-4 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 shadow-2xs">
+              <div className="space-y-2.5 p-4 rounded-xl bg-muted/20 border border-border/60">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-slate-900 dark:text-foreground flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 stroke-[2.2]" /> Completeness (Weight: 35%)
+                  <span className="font-semibold text-foreground flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" /> Completeness (Weight: 35%)
                   </span>
-                  <span className="font-bold text-white bg-slate-900 dark:bg-white dark:text-slate-900 px-2.5 py-0.5 rounded text-[11px] tabular-nums shadow-xs">{completeness}%</span>
+                  <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">{completeness}%</span>
                 </div>
                 <div className="space-y-1 pt-1">
                   <input
@@ -266,26 +267,26 @@ export const Features = () => {
                     max="100"
                     value={completeness}
                     onChange={(e) => setCompleteness(Number(e.target.value))}
-                    className="w-full accent-slate-900 dark:accent-emerald-400 cursor-pointer h-2 bg-slate-200 dark:bg-zinc-700 rounded-full transition-all"
+                    className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-full transition-all"
                     aria-label="Completeness percentage"
                   />
-                  <div className="flex justify-between text-[9px] text-slate-500 dark:text-muted-foreground font-mono">
+                  <div className="flex justify-between text-[9px] text-muted-foreground font-mono">
                     <span>0% (Empty)</span>
                     <span>100% (Zero Nulls)</span>
                   </div>
                 </div>
-                <span className="text-[11px] text-slate-600 dark:text-muted-foreground font-sans block">
+                <span className="text-[11px] text-muted-foreground font-sans block">
                   Measures null values, empty strings, and masked NaN values across columns.
                 </span>
               </div>
 
               {/* Slider 2: Consistency */}
-              <div className="space-y-2.5 p-4 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 shadow-2xs">
+              <div className="space-y-2.5 p-4 rounded-xl bg-muted/20 border border-border/60">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-slate-900 dark:text-foreground flex items-center gap-2">
+                  <span className="font-semibold text-foreground flex items-center gap-2">
                     <Layers className="h-4 w-4 text-primary" /> Consistency (Weight: 25%)
                   </span>
-                  <span className="font-bold text-white bg-slate-900 dark:bg-white dark:text-slate-900 px-2.5 py-0.5 rounded text-[11px] tabular-nums shadow-xs">{consistency}%</span>
+                  <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">{consistency}%</span>
                 </div>
                 <div className="space-y-1 pt-1">
                   <input
@@ -294,26 +295,26 @@ export const Features = () => {
                     max="100"
                     value={consistency}
                     onChange={(e) => setConsistency(Number(e.target.value))}
-                    className="w-full accent-slate-900 dark:accent-emerald-400 cursor-pointer h-2 bg-slate-200 dark:bg-zinc-700 rounded-full transition-all"
+                    className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-full transition-all"
                     aria-label="Consistency percentage"
                   />
-                  <div className="flex justify-between text-[9px] text-slate-500 dark:text-muted-foreground font-mono">
+                  <div className="flex justify-between text-[9px] text-muted-foreground font-mono">
                     <span>0% (Mixed Types)</span>
                     <span>100% (Uniform Types)</span>
                   </div>
                 </div>
-                <span className="text-[11px] text-slate-600 dark:text-muted-foreground font-sans block">
+                <span className="text-[11px] text-muted-foreground font-sans block">
                   Evaluates type cohesion, datetime format consistency, and schema anomalies.
                 </span>
               </div>
 
               {/* Slider 3: Validity */}
-              <div className="space-y-2.5 p-4 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 shadow-2xs">
+              <div className="space-y-2.5 p-4 rounded-xl bg-muted/20 border border-border/60">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-slate-900 dark:text-foreground flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Validity (Weight: 25%)
+                  <span className="font-semibold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary" /> Validity (Weight: 25%)
                   </span>
-                  <span className="font-bold text-white bg-slate-900 dark:bg-white dark:text-slate-900 px-2.5 py-0.5 rounded text-[11px] tabular-nums shadow-xs">{validity}%</span>
+                  <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">{validity}%</span>
                 </div>
                 <div className="space-y-1 pt-1">
                   <input
@@ -322,26 +323,26 @@ export const Features = () => {
                     max="100"
                     value={validity}
                     onChange={(e) => setValidity(Number(e.target.value))}
-                    className="w-full accent-slate-900 dark:accent-emerald-400 cursor-pointer h-2 bg-slate-200 dark:bg-zinc-700 rounded-full transition-all"
+                    className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-full transition-all"
                     aria-label="Validity percentage"
                   />
-                  <div className="flex justify-between text-[9px] text-slate-500 dark:text-muted-foreground font-mono">
+                  <div className="flex justify-between text-[9px] text-muted-foreground font-mono">
                     <span>0% (Out-of-Bound)</span>
                     <span>100% (Domain Valid)</span>
                   </div>
                 </div>
-                <span className="text-[11px] text-slate-600 dark:text-muted-foreground font-sans block">
+                <span className="text-[11px] text-muted-foreground font-sans block">
                   Detects range violations, negative balances, and invalid regex domains.
                 </span>
               </div>
 
               {/* Slider 4: Stability */}
-              <div className="space-y-2.5 p-4 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 shadow-2xs">
+              <div className="space-y-2.5 p-4 rounded-xl bg-muted/20 border border-border/60">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-slate-900 dark:text-foreground flex items-center gap-2">
+                  <span className="font-semibold text-foreground flex items-center gap-2">
                     <Activity className="h-4 w-4 text-primary" /> Stability (Weight: 15%)
                   </span>
-                  <span className="font-bold text-white bg-slate-900 dark:bg-white dark:text-slate-900 px-2.5 py-0.5 rounded text-[11px] tabular-nums shadow-xs">{stability}%</span>
+                  <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">{stability}%</span>
                 </div>
                 <div className="space-y-1 pt-1">
                   <input
@@ -350,15 +351,15 @@ export const Features = () => {
                     max="100"
                     value={stability}
                     onChange={(e) => setStability(Number(e.target.value))}
-                    className="w-full accent-slate-900 dark:accent-emerald-400 cursor-pointer h-2 bg-slate-200 dark:bg-zinc-700 rounded-full transition-all"
+                    className="w-full accent-primary cursor-pointer h-2 bg-muted rounded-full transition-all"
                     aria-label="Stability percentage"
                   />
-                  <div className="flex justify-between text-[9px] text-slate-500 dark:text-muted-foreground font-mono">
+                  <div className="flex justify-between text-[9px] text-muted-foreground font-mono">
                     <span>0% (High Drift)</span>
                     <span>100% (Stable Dist)</span>
                   </div>
                 </div>
-                <span className="text-[11px] text-slate-600 dark:text-muted-foreground font-sans block">
+                <span className="text-[11px] text-muted-foreground font-sans block">
                   Flags distribution skewness, extreme kurtosis, and chronological concept drift.
                 </span>
               </div>
@@ -367,7 +368,7 @@ export const Features = () => {
           </Card>
         </section>
 
-        {/* Section 3: Core Capabilities Bento Grid (Theme-Adaptive) */}
+        {/* Section 3: Core Capabilities Bento Grid */}
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 max-w-7xl space-y-10">
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <Badge variant="outline" className="text-[10px] font-mono uppercase tracking-wider bg-primary/10 text-primary border-primary/20">
@@ -384,7 +385,7 @@ export const Features = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
             {/* Bento Tile 1: Interactive Issue Ledger (Large 2-col) */}
-            <Card className="lg:col-span-2 border border-border dark:border-white/10 bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-sm dark:shadow-premium t-card-lift">
+            <Card className="lg:col-span-2 border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -397,13 +398,13 @@ export const Features = () => {
                   </div>
 
                   {/* Transformation Switcher */}
-                  <div className="flex items-center bg-muted/60 dark:bg-muted/40 p-1 rounded-xl font-mono text-[10px] border border-border/80 dark:border-border/50">
+                  <div className="flex items-center bg-muted/40 p-1 rounded-xl font-mono text-[10px] border border-border/50">
                     <button
                       type="button"
                       onClick={() => setPreviewMode("raw")}
                       className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
                         previewMode === "raw" 
-                          ? "bg-rose-600 dark:bg-rose-500/20 text-white dark:text-rose-300 border border-rose-600 dark:border-rose-500/30 shadow-xs" 
+                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" 
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -414,7 +415,7 @@ export const Features = () => {
                       onClick={() => setPreviewMode("remediated")}
                       className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
                         previewMode === "remediated" 
-                          ? "bg-emerald-600 dark:bg-emerald-500/20 text-white dark:text-emerald-300 border border-emerald-600 dark:border-emerald-500/30 shadow-xs" 
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -425,7 +426,7 @@ export const Features = () => {
                       onClick={() => setPreviewMode("python")}
                       className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
                         previewMode === "python" 
-                          ? "bg-zinc-950 dark:bg-white text-white dark:text-black border border-zinc-950 dark:border-white shadow-xs" 
+                          ? "bg-primary/20 text-primary border border-primary/30" 
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -443,56 +444,56 @@ export const Features = () => {
                   </p>
                 </div>
 
-                {/* Interactive Code / Data Preview Box (High Contrast) */}
-                <div className="border border-border dark:border-border/80 bg-background dark:bg-background/60 rounded-xl p-4 font-mono text-xs space-y-2.5 overflow-x-auto shadow-2xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[10px] text-muted-foreground border-b border-border pb-2 gap-1">
-                    <span className="flex items-center gap-1.5 font-semibold text-foreground/80">
+                {/* Interactive Code / Data Preview Box */}
+                <div className="border border-border/80 bg-background/60 rounded-xl p-4 font-mono text-xs space-y-2.5 overflow-x-auto">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[10px] text-muted-foreground border-b border-border/60 pb-2 gap-1">
+                    <span className="flex items-center gap-1.5">
                       <Database className="h-3.5 w-3.5 text-primary" />
                       TRANSACTION_RECORD (SAMPLE 10492)
                     </span>
                     <span className="font-bold font-mono">
-                      {previewMode === "raw" && <span className="text-rose-700 dark:text-rose-400">UNFILTERED RAW ANOMALIES</span>}
-                      {previewMode === "remediated" && <span className="text-emerald-700 dark:text-emerald-400">ARROW CHUNKEDARRAY TYPES</span>}
-                      {previewMode === "python" && <span className="text-foreground">POLARS EXECUTABLE SNIPPET</span>}
+                      {previewMode === "raw" && <span className="text-rose-400">UNFILTERED RAW ANOMALIES</span>}
+                      {previewMode === "remediated" && <span className="text-emerald-400">ARROW CHUNKEDARRAY TYPES</span>}
+                      {previewMode === "python" && <span className="text-primary">POLARS EXECUTABLE SNIPPET</span>}
                     </span>
                   </div>
 
                   {previewMode === "raw" && (
-                    <div className="space-y-1.5 text-rose-950 dark:text-rose-300 bg-rose-50/90 dark:bg-rose-950/20 p-3 rounded-lg border border-rose-300/80 dark:border-rose-500/30 break-words text-[11px] sm:text-xs">
+                    <div className="space-y-1.5 text-rose-300/90 bg-rose-950/20 p-3 rounded-lg border border-rose-500/30 break-words text-[11px] sm:text-xs">
                       <div className="flex items-center justify-between flex-wrap gap-1">
-                        <span className="font-semibold">customer_id: &quot;  10492  &quot;</span>
-                        <span className="text-[10px] bg-rose-700 text-white dark:bg-rose-500/20 dark:text-rose-300 px-2 py-0.5 rounded font-bold shadow-2xs">Trailing Whitespace</span>
+                        <span>customer_id: &quot;  10492  &quot;</span>
+                        <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">Trailing Whitespace</span>
                       </div>
                       <div className="flex items-center justify-between flex-wrap gap-1">
-                        <span className="font-semibold">amount: &quot;$1,240.50&quot;</span>
-                        <span className="text-[10px] bg-rose-700 text-white dark:bg-rose-500/20 dark:text-rose-300 px-2 py-0.5 rounded font-bold shadow-2xs">Uncoerced String Symbol</span>
+                        <span>amount: &quot;$1,240.50&quot;</span>
+                        <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">Uncoerced String Symbol</span>
                       </div>
                       <div className="flex items-center justify-between flex-wrap gap-1">
-                        <span className="font-semibold">transaction_date: &quot;2024/02/31&quot;</span>
-                        <span className="text-[10px] bg-rose-700 text-white dark:bg-rose-500/20 dark:text-rose-300 px-2 py-0.5 rounded font-bold shadow-2xs">Invalid Calendar Leap Day</span>
+                        <span>transaction_date: &quot;2024/02/31&quot;</span>
+                        <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">Invalid Calendar Leap Day</span>
                       </div>
                     </div>
                   )}
 
                   {previewMode === "remediated" && (
-                    <div className="space-y-1.5 text-emerald-950 dark:text-emerald-300 bg-emerald-50/90 dark:bg-emerald-950/20 p-3 rounded-lg border border-emerald-300/80 dark:border-emerald-500/30 break-words text-[11px] sm:text-xs">
+                    <div className="space-y-1.5 text-emerald-300/90 bg-emerald-950/20 p-3 rounded-lg border border-emerald-500/30 break-words text-[11px] sm:text-xs">
                       <div className="flex items-center justify-between flex-wrap gap-1">
-                        <span className="font-semibold">customer_id: &quot;10492&quot;</span>
-                        <span className="text-[10px] bg-emerald-700 text-white dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-0.5 rounded font-bold shadow-2xs">Trimmed Utf8</span>
+                        <span>customer_id: &quot;10492&quot;</span>
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Trimmed Utf8</span>
                       </div>
                       <div className="flex items-center justify-between flex-wrap gap-1">
-                        <span className="font-semibold">amount: 1240.50</span>
-                        <span className="text-[10px] bg-emerald-700 text-white dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-0.5 rounded font-bold shadow-2xs">Strict Float64</span>
+                        <span>amount: 1240.50</span>
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Strict Float64</span>
                       </div>
                       <div className="flex items-center justify-between flex-wrap gap-1">
-                        <span className="font-semibold">transaction_date: &quot;2024-02-29&quot;</span>
-                        <span className="text-[10px] bg-emerald-700 text-white dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-0.5 rounded font-bold shadow-2xs">Validated Date32</span>
+                        <span>transaction_date: &quot;2024-02-29&quot;</span>
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Validated Date32</span>
                       </div>
                     </div>
                   )}
 
                   {previewMode === "python" && (
-                    <div className="space-y-1 text-foreground dark:text-foreground/90 bg-muted/60 dark:bg-primary/5 p-3 rounded-lg border border-border dark:border-primary/20 break-words text-[11px] sm:text-xs">
+                    <div className="space-y-1 text-primary/90 bg-primary/5 p-3 rounded-lg border border-primary/20 break-words text-[11px] sm:text-xs">
                       <div>df = df.with_columns([</div>
                       <div className="pl-4">pl.col(&quot;customer_id&quot;).str.strip_chars(),</div>
                       <div className="pl-4">pl.col(&quot;amount&quot;).str.replace_all(r&quot;[\$,]&quot;, &quot;&quot;).cast(pl.Float64),</div>
@@ -503,16 +504,16 @@ export const Features = () => {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] text-muted-foreground">
+              <div className="pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] text-muted-foreground">
                 <span className="text-foreground font-semibold">Ledger Guarantees:</span>
-                <span className="text-emerald-700 dark:text-emerald-400 font-semibold">100% Human Approvals Required • Zero Silent Mutability</span>
+                <span className="text-emerald-400">100% Human Approvals Required • Zero Silent Mutability</span>
               </div>
             </Card>
 
             {/* Bento Tile 2: Multi-Dataset Relational Joins */}
-            <Card className="border border-border dark:border-white/10 bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-sm dark:shadow-premium t-card-lift">
+            <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-muted dark:bg-white/[0.05] text-foreground dark:text-zinc-300 border border-border dark:border-white/10 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-white/[0.05] text-zinc-300 flex items-center justify-center">
                   <ArrowLeftRight className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
@@ -524,29 +525,29 @@ export const Features = () => {
                   </p>
                 </div>
 
-                {/* Visual Schema Relational Diagram (High Contrast) */}
-                <div className="p-3 bg-slate-50 dark:bg-muted/20 rounded-xl border border-slate-200 dark:border-border/60 font-mono text-[11px] space-y-2 shadow-2xs">
-                  <div className="flex items-center justify-between text-slate-700 dark:text-muted-foreground text-[10px] font-semibold">
+                {/* Visual Schema Relational Diagram */}
+                <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
+                  <div className="flex items-center justify-between text-muted-foreground text-[10px]">
                     <span>users.csv (10.4k)</span>
-                    <span className="text-primary font-bold">⟷ INNER JOIN ⟷</span>
+                    <span className="text-zinc-200 font-bold">⟷ INNER JOIN ⟷</span>
                     <span>orders.parquet (84k)</span>
                   </div>
-                  <div className="flex items-center justify-between bg-white dark:bg-white/[0.05] text-slate-900 dark:text-zinc-300 p-2.5 rounded-lg border border-slate-200 dark:border-white/10 text-[10.5px] shadow-2xs">
-                    <span>Key: <strong className="text-slate-900 dark:text-foreground">customer_id</strong></span>
-                    <span className="text-emerald-900 dark:text-emerald-400 font-bold">Match: 99.2% (14 Orphan Keys)</span>
+                  <div className="flex items-center justify-between bg-white/[0.05] text-zinc-300 p-1.5 rounded-lg border border-white/10 text-[10px]">
+                    <span>Key: customer_id</span>
+                    <span>Match: 99.2% (14 Orphan Keys)</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border font-mono text-[11px] text-muted-foreground">
+              <div className="pt-3 border-t border-border/40 font-mono text-[11px] text-muted-foreground">
                 <span className="text-foreground font-semibold">Join Strategies:</span> Inner, Left Outer, Cross, Composite Keys
               </div>
             </Card>
 
             {/* Bento Tile 3: Statistical Drift & Multicollinearity */}
-            <Card className="border border-border dark:border-white/10 bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-sm dark:shadow-premium t-card-lift">
+            <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
                   <Activity className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
@@ -559,27 +560,27 @@ export const Features = () => {
                 </div>
 
                 {/* Visual Statistical Diagnostic Metric Mock */}
-                <div className="p-3 bg-slate-50 dark:bg-muted/20 rounded-xl border border-slate-200 dark:border-border/60 font-mono text-[11px] space-y-2 shadow-2xs">
+                <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-slate-800 dark:text-foreground/80 font-semibold">marketing_spend:</span>
-                    <span className="text-amber-950 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-300 dark:border-amber-500/30 font-bold shadow-2xs">VIF = 7.42 (Collinear)</span>
+                    <span className="text-muted-foreground">marketing_spend:</span>
+                    <span className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">VIF = 7.42 (Collinear)</span>
                   </div>
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-slate-800 dark:text-foreground/80 font-semibold">revenue ⟷ units:</span>
-                    <span className="text-purple-950 dark:text-purple-300 bg-purple-100 dark:bg-purple-500/10 px-2.5 py-0.5 rounded border border-purple-300 dark:border-purple-500/30 font-bold shadow-2xs">r = 0.88 (Pearson)</span>
+                    <span className="text-muted-foreground">revenue ⟷ units:</span>
+                    <span className="text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">r = 0.88 (Pearson)</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border font-mono text-[11px] text-muted-foreground">
+              <div className="pt-3 border-t border-border/40 font-mono text-[11px] text-muted-foreground">
                 <span className="text-foreground font-semibold">Statistical Metrics:</span> Pearson r, VIF, Kurtosis, KS Test
               </div>
             </Card>
 
             {/* Bento Tile 4: Ephemeral RAG AI Companion */}
-            <Card className="border border-border dark:border-white/10 bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-sm dark:shadow-premium t-card-lift">
+            <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
                   <MessageSquareCode className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
@@ -592,25 +593,25 @@ export const Features = () => {
                 </div>
 
                 {/* Visual RAG Mini Prompt Mock */}
-                <div className="p-3 bg-slate-50 dark:bg-muted/20 rounded-xl border border-slate-200 dark:border-border/60 font-mono text-[11px] space-y-2 shadow-2xs">
-                  <div className="text-[10px] text-slate-900 dark:text-foreground font-semibold">
+                <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
+                  <div className="text-[10px] text-muted-foreground">
                     &gt; &quot;Explain the Q3 gross margin dip.&quot;
                   </div>
-                  <div className="text-[11px] text-amber-950 dark:text-amber-200 bg-amber-50/90 dark:bg-amber-500/10 p-3 rounded-lg border border-amber-300/80 dark:border-amber-500/20 font-sans leading-relaxed shadow-2xs">
+                  <div className="text-[10px] text-amber-300/90 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 font-sans">
                     Logistics cost spiked 18.2% across EU routes. Zero PII transmitted.
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border font-mono text-[11px] text-muted-foreground">
+              <div className="pt-3 border-t border-border/40 font-mono text-[11px] text-muted-foreground">
                 <span className="text-foreground font-semibold">Privacy Guarantee:</span> Zero raw row transmission
               </div>
             </Card>
 
             {/* Bento Tile 5: Board-Ready PDF Generation */}
-            <Card className="border border-border dark:border-white/10 bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-sm dark:shadow-premium t-card-lift">
+            <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                   <FileText className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
@@ -623,27 +624,27 @@ export const Features = () => {
                 </div>
 
                 {/* Visual PDF Audit Certificate Mock */}
-                <div className="p-3 bg-slate-50 dark:bg-muted/20 rounded-xl border border-slate-200 dark:border-border/60 font-mono text-[11px] space-y-2 shadow-2xs">
+                <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-slate-900 dark:text-foreground font-bold">Executive Audit Certificate</span>
-                    <span className="text-emerald-950 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/15 border border-emerald-300 dark:border-emerald-500/30 px-2.5 py-0.5 rounded font-bold shadow-2xs">Pass Grade A</span>
+                    <span className="text-foreground font-bold">Executive Audit Certificate</span>
+                    <span className="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Pass Grade A</span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-slate-600 dark:text-muted-foreground font-medium">
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>WeasyPrint 300 DPI</span>
                     <span>Remediation Hash: 9e4f2a</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border font-mono text-[11px] text-muted-foreground">
+              <div className="pt-3 border-t border-border/40 font-mono text-[11px] text-muted-foreground">
                 <span className="text-foreground font-semibold">Formats:</span> PDF, Parquet, CSV, HTML, SQL DDL
               </div>
             </Card>
 
             {/* Bento Tile 6: Zero-Retention & PII Masking Vault */}
-            <Card className="border border-border dark:border-white/10 bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-sm dark:shadow-premium t-card-lift">
+            <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
                   <Lock className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
@@ -656,19 +657,19 @@ export const Features = () => {
                 </div>
 
                 {/* Visual PII Masking Mock */}
-                <div className="p-3 bg-muted/40 dark:bg-muted/20 rounded-xl border border-border dark:border-border/60 font-mono text-[11px] space-y-2">
+                <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-foreground/80 font-medium">email:</span>
-                    <span className="text-rose-800 dark:text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 font-semibold">j***@acme.com (SHA-256)</span>
+                    <span className="text-muted-foreground">email:</span>
+                    <span className="text-rose-300">j***@acme.com (SHA-256)</span>
                   </div>
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-foreground/80 font-medium">ssn_id:</span>
-                    <span className="text-rose-800 dark:text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 font-semibold">***-**-4921 (Redacted)</span>
+                    <span className="text-muted-foreground">ssn_id:</span>
+                    <span className="text-rose-300">***-**-4921 (Redacted)</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border font-mono text-[11px] text-muted-foreground">
+              <div className="pt-3 border-t border-border/40 font-mono text-[11px] text-muted-foreground">
                 <span className="text-foreground font-semibold">Compliance:</span> SOC 2 Type II, HIPAA, GDPR Ready
               </div>
             </Card>
@@ -676,7 +677,7 @@ export const Features = () => {
           </div>
         </section>
 
-        {/* Section 4: Architectural Head-to-Head Comparison Matrix (Theme-Adaptive & High Contrast) */}
+        {/* Section 4: Architectural Head-to-Head Comparison Matrix */}
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 max-w-6xl">
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-8 sm:mb-12">
             <Badge variant="outline" className="text-[10px] font-mono uppercase tracking-wider bg-primary/10 text-primary border-primary/20">
@@ -690,82 +691,80 @@ export const Features = () => {
             </p>
           </div>
 
-          <div className="border border-border dark:border-border/80 bg-card rounded-2xl overflow-hidden shadow-sm dark:shadow-premium">
+          <div className="border border-border/80 bg-card rounded-2xl overflow-hidden shadow-premium">
             <div className="overflow-x-auto">
               <table className="w-full text-left font-sans text-xs sm:text-sm border-collapse min-w-[620px]">
                 <thead>
-                  <tr className="border-b border-border bg-muted/60 dark:bg-muted/30 font-sans text-xs">
-                    <th className="p-4 sm:p-5 font-bold text-foreground">Capability / Standard</th>
-                    <th className="p-4 sm:p-5 font-extrabold text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 dark:bg-primary/10 border-x border-emerald-500/20 dark:border-border/60">
-                      GetReport Stack
-                    </th>
-                    <th className="p-4 sm:p-5 font-semibold text-foreground/80 dark:text-muted-foreground">Custom Python / Pandas</th>
-                    <th className="p-4 sm:p-5 font-semibold text-foreground/80 dark:text-muted-foreground">Manual Excel Sheets</th>
+                  <tr className="border-b border-border/60 bg-muted/30 font-mono text-[11px] sm:text-xs text-muted-foreground">
+                    <th className="p-4 sm:p-5 font-semibold text-foreground">Capability / Standard</th>
+                    <th className="p-4 sm:p-5 font-semibold text-primary bg-primary/5 border-x border-border/60">GetReport Stack</th>
+                    <th className="p-4 sm:p-5 font-semibold">Custom Python / Pandas</th>
+                    <th className="p-4 sm:p-5 font-semibold">Manual Excel Sheets</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/60 font-sans text-xs sm:text-sm">
+                <tbody className="divide-y divide-border/40 font-sans text-xs sm:text-sm">
                   
-                  <tr className="hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors">
+                  <tr>
                     <td className="p-4 sm:p-5 font-medium text-foreground">
-                      <div className="font-semibold">Execution Engine</div>
+                      <div>Execution Engine</div>
                       <span className="text-[11px] text-muted-foreground font-normal">Throughput and parallelism</span>
                     </td>
-                    <td className="p-4 sm:p-5 bg-emerald-500/[0.04] dark:bg-primary/5 border-x border-emerald-500/20 dark:border-border/60 font-semibold text-emerald-800 dark:text-emerald-400">
+                    <td className="p-4 sm:p-5 bg-primary/5 border-x border-border/60 font-semibold text-emerald-400">
                       Polars Rust Core (&lt;50ms)
                     </td>
-                    <td className="p-4 sm:p-5 text-foreground/80 dark:text-muted-foreground">Single-Thread GIL Pandas</td>
-                    <td className="p-4 sm:p-5 text-foreground/80 dark:text-muted-foreground">Formula calculation freeze</td>
+                    <td className="p-4 sm:p-5 text-muted-foreground">Single-Thread GIL Pandas</td>
+                    <td className="p-4 sm:p-5 text-muted-foreground">Formula calculation freeze</td>
                   </tr>
 
-                  <tr className="hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors">
+                  <tr>
                     <td className="p-4 sm:p-5 font-medium text-foreground">
-                      <div className="font-semibold">Human-in-the-Loop DAG</div>
+                      <div>Human-in-the-Loop DAG</div>
                       <span className="text-[11px] text-muted-foreground font-normal">Interactive approval receipts</span>
                     </td>
-                    <td className="p-4 sm:p-5 bg-emerald-500/[0.04] dark:bg-primary/5 border-x border-emerald-500/20 dark:border-border/60 font-semibold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5 pt-5">
-                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
+                    <td className="p-4 sm:p-5 bg-primary/5 border-x border-border/60 font-semibold text-emerald-400 flex items-center gap-1.5 pt-5">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
                       <span>Interactive Issue Ledger</span>
                     </td>
-                    <td className="p-4 sm:p-5 text-foreground/80 dark:text-muted-foreground">Hardcoded script edits</td>
-                    <td className="p-4 sm:p-5 text-foreground/80 dark:text-muted-foreground">Manual destructive overwrite</td>
+                    <td className="p-4 sm:p-5 text-muted-foreground">Hardcoded script edits</td>
+                    <td className="p-4 sm:p-5 text-muted-foreground">Manual destructive overwrite</td>
                   </tr>
 
-                  <tr className="hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors">
+                  <tr>
                     <td className="p-4 sm:p-5 font-medium text-foreground">
-                      <div className="font-semibold">Zero-Retention Privacy</div>
+                      <div>Zero-Retention Privacy</div>
                       <span className="text-[11px] text-muted-foreground font-normal">RAM buffer memory management</span>
                     </td>
-                    <td className="p-4 sm:p-5 bg-emerald-500/[0.04] dark:bg-primary/5 border-x border-emerald-500/20 dark:border-border/60 font-semibold text-emerald-800 dark:text-emerald-400">
+                    <td className="p-4 sm:p-5 bg-primary/5 border-x border-border/60 font-semibold text-emerald-400">
                       0 bytes written to disk
                     </td>
-                    <td className="p-4 sm:p-5 text-foreground/80 dark:text-muted-foreground">Cached in /tmp or Jupyter</td>
-                    <td className="p-4 sm:p-5 text-foreground/80 dark:text-muted-foreground">Unencrypted desktop files</td>
+                    <td className="p-4 sm:p-5 text-muted-foreground">Cached in /tmp or Jupyter</td>
+                    <td className="p-4 sm:p-5 text-muted-foreground">Unencrypted desktop files</td>
                   </tr>
 
-                  <tr className="hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors">
+                  <tr>
                     <td className="p-4 sm:p-5 font-medium text-foreground">
-                      <div className="font-semibold">Statistical Drift Auditing</div>
+                      <div>Statistical Drift Auditing</div>
                       <span className="text-[11px] text-muted-foreground font-normal">VIF, KS test, and Kurtosis</span>
                     </td>
-                    <td className="p-4 sm:p-5 bg-emerald-500/[0.04] dark:bg-primary/5 border-x border-emerald-500/20 dark:border-border/60 font-semibold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5 pt-5">
-                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
+                    <td className="p-4 sm:p-5 bg-primary/5 border-x border-border/60 font-semibold text-emerald-400 flex items-center gap-1.5 pt-5">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
                       <span>Automated 9-Metric Scan</span>
                     </td>
-                    <td className="p-4 sm:p-5 text-foreground/80 dark:text-muted-foreground">Requires SciPy custom code</td>
-                    <td className="p-4 sm:p-5 text-foreground/80 dark:text-muted-foreground">Not supported</td>
+                    <td className="p-4 sm:p-5 text-muted-foreground">Requires SciPy custom code</td>
+                    <td className="p-4 sm:p-5 text-muted-foreground">Not supported</td>
                   </tr>
 
-                  <tr className="hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors">
+                  <tr>
                     <td className="p-4 sm:p-5 font-medium text-foreground">
-                      <div className="font-semibold">Board-Ready PDF Report</div>
+                      <div>Board-Ready PDF Report</div>
                       <span className="text-[11px] text-muted-foreground font-normal">Executive audit documentation</span>
                     </td>
-                    <td className="p-4 sm:p-5 bg-emerald-500/[0.04] dark:bg-primary/5 border-x border-emerald-500/20 dark:border-border/60 font-semibold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5 pt-5">
-                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
+                    <td className="p-4 sm:p-5 bg-primary/5 border-x border-border/60 font-semibold text-emerald-400 flex items-center gap-1.5 pt-5">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
                       <span>High-DPI WeasyPrint PDF</span>
                     </td>
-                    <td className="p-4 sm:p-5 text-foreground/80 dark:text-muted-foreground">Jupyter notebook printouts</td>
-                    <td className="p-4 sm:p-5 text-foreground/80 dark:text-muted-foreground">Screenshots into slide decks</td>
+                    <td className="p-4 sm:p-5 text-muted-foreground">Jupyter notebook printouts</td>
+                    <td className="p-4 sm:p-5 text-muted-foreground">Screenshots into slide decks</td>
                   </tr>
 
                 </tbody>
@@ -794,7 +793,7 @@ export const Features = () => {
               return (
                 <div
                   key={item.q}
-                  className="border border-border dark:border-border/80 bg-card rounded-xl overflow-hidden transition-all duration-200 shadow-2xs"
+                  className="border border-border/80 bg-card rounded-xl overflow-hidden transition-all duration-200"
                 >
                   <button
                     type="button"
@@ -809,7 +808,7 @@ export const Features = () => {
                     />
                   </button>
                   {isOpen && (
-                    <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-0 text-xs sm:text-sm text-muted-foreground font-sans leading-relaxed border-t border-border mt-1 pt-3">
+                    <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-0 text-xs sm:text-sm text-muted-foreground font-sans leading-relaxed border-t border-border/40 mt-1 pt-3">
                       {item.a}
                     </div>
                   )}
@@ -819,12 +818,12 @@ export const Features = () => {
           </div>
         </section>
 
-        {/* Section 6: High-Converting Conversion Banner */}
-        <section className="border-t border-border bg-gradient-to-b from-card/30 via-background to-background py-14 sm:py-20">
+        {/* Section 6: High-Converting Obsidian Conversion Banner */}
+        <section className="border-t border-border/60 bg-gradient-to-b from-card/30 via-background to-background py-14 sm:py-20">
           <div className="container mx-auto px-4 max-w-4xl">
-            <div className="relative rounded-3xl border border-border dark:border-primary/30 bg-card p-8 sm:p-12 text-center space-y-5 shadow-sm dark:shadow-premium overflow-hidden">
+            <div className="relative rounded-3xl border border-primary/30 bg-card/80 p-8 sm:p-12 text-center space-y-5 shadow-premium overflow-hidden">
               <div className="space-y-2">
-                <Badge variant="outline" className="text-[10px] font-mono uppercase tracking-wider bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/30 font-semibold">
+                <Badge variant="outline" className="text-[10px] font-mono uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
                   Instant Access • Zero Setup
                 </Badge>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-extrabold text-foreground tracking-[-0.02em]">
@@ -843,21 +842,21 @@ export const Features = () => {
                   </Button>
                 </Link>
                 <Link to="/how-it-works" className="w-full sm:w-auto">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-6 rounded-xl border-border bg-card hover:bg-muted/40 font-display text-sm">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-6 rounded-xl border-border bg-card hover:bg-muted/20 font-display text-sm">
                     <span>Inspect Pipeline</span>
                   </Button>
                 </Link>
               </div>
 
-              <div className="pt-4 border-t border-border flex flex-wrap items-center justify-center gap-6 font-mono text-[11px] text-muted-foreground font-medium">
+              <div className="pt-4 border-t border-border/40 flex flex-wrap items-center justify-center gap-6 font-mono text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> 100% In-Memory RAM
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> 100% In-Memory RAM
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Activity className="h-3.5 w-3.5 text-foreground" /> Sub-50ms Execution
+                  <Activity className="h-3.5 w-3.5 text-primary" /> Sub-50ms Execution
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Lock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Zero Disk Writes
+                  <Lock className="h-3.5 w-3.5 text-emerald-400" /> Zero Disk Writes
                 </span>
               </div>
             </div>

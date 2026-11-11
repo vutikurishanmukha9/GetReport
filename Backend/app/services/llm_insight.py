@@ -477,14 +477,13 @@ async def _call_provider(
             raise InsightGenerationError(f"{provider.name}: {str(e)}")
 
         except APIStatusError as e:
-            # 402 Payment Required / insufficient credits / quota exhausted — raise CreditsExhaustedError
-            msg = str(e).lower()
-            if e.status_code in (402, 403) or "credit" in msg or "quota" in msg or "resource_exhausted" in msg:
+            # 402 Payment Required / insufficient credits — raise CreditsExhaustedError
+            if e.status_code in (402, 403) or "credit" in str(e).lower():
                 logger.warning(
-                    "%s credits exhausted or quota exceeded (HTTP %d: %s)",
+                    "%s credits exhausted or forbidden (HTTP %d: %s)",
                     provider.name, e.status_code, str(e)
                 )
-                raise CreditsExhaustedError(f"{provider.name}: HTTP {e.status_code} Credits/Quota Exhausted")
+                raise CreditsExhaustedError(f"{provider.name}: HTTP {e.status_code} Credits Exhausted")
             raise  # Re-raise unknown status errors
 
         except _RETRYABLE_EXCEPTIONS as e:
@@ -563,10 +562,10 @@ async def _call_llm_with_retry(
                 skip_paid_models = True
             last_error = e
             continue
-        except (InsightGenerationError, AuthenticationError, APIConnectionError, APITimeoutError, APIStatusError, Exception) as e:
+        except (InsightGenerationError, AuthenticationError) as e:
             logger.warning(
-                "%s failed (%s: %s). Trying next provider...",
-                provider.name, type(e).__name__, str(e)
+                "%s failed (%s). Trying next provider...",
+                provider.name, str(e)
             )
             last_error = e
             continue
