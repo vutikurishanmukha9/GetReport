@@ -23,11 +23,14 @@ SIGNATURES = {
     "gz": b"\x1f\x8b",
 }
 
-def verify_header_bytes(header: bytes, filename: str) -> None:
+def verify_header_bytes(header: bytes, filename: str | None) -> None:
     """
     Synchronously validate raw initial bytes match the extension signature.
     Raises HTTPException(400) on mismatch.
     """
+    if not filename:
+        raise HTTPException(status_code=400, detail="Missing filename.")
+
     fn_lower = filename.lower()
     
     # 1. Excel (XLSX)
@@ -77,17 +80,33 @@ def verify_header_bytes(header: bytes, filename: str) -> None:
 
     # 6. CSV (Text-based)
     elif fn_lower.endswith(".csv"):
+        has_utf16_bom = header.startswith((b"\xff\xfe", b"\xfe\xff"))
+        if b"\x00" in header and not has_utf16_bom:
+            logger.warning(f"Validation failed: {filename} contains binary null bytes without UTF-16 BOM.")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file content. CSV file appears to be binary."
+            )
+
         is_text = False
-        for encoding in ["utf-8", "utf-16", "latin-1"]:
+        for encoding in ["utf-8", "utf-16"]:
             try:
                 header.decode(encoding)
                 is_text = True
                 break
             except UnicodeError:
                 continue
+
+        # Fallback check for ascii/latin-1 only if no null bytes present
+        if not is_text and b"\x00" not in header:
+            try:
+                header.decode("latin-1")
+                is_text = True
+            except UnicodeError:
+                is_text = False
                 
-        if not is_text and b"\x00" in header:
-            logger.warning(f"Validation failed: {filename} contains null bytes and failed text decoding.")
+        if not is_text:
+            logger.warning(f"Validation failed: {filename} failed text decoding.")
             raise HTTPException(
                 status_code=400,
                 detail="Invalid file content. CSV file appears to be binary."

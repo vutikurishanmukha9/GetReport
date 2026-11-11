@@ -152,6 +152,10 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
   const connect = useCallback((taskId: string) => {
     disconnect();
     taskIdRef.current = taskId;
+    setProgress(0);
+    setResult(null);
+    setError(null);
+    setMessage('');
     setTaskStatus('CONNECTING');
 
     // Immediate state fetch to give instant feedback
@@ -160,6 +164,7 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     // ── 1. Primary Strategy: Server-Sent Events (SSE) Stream ──────────
     if ("EventSource" in globalThis) {
       try {
+        resetWatchdog(taskId);
         const unsub = api.subscribeTaskStatus(taskId, {
           onProgress: (data) => {
             setIsConnected(true);

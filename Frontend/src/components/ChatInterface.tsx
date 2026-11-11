@@ -82,6 +82,7 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
   const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
   const [highlightedSourceIdx, setHighlightedSourceIdx] = useState<number | null>(null);
   const [savedGoldenIds, setSavedGoldenIds] = useState<Set<string>>(new Set());
+  const msgToGoldenQueryIdRef = useRef<Map<string, string>>(new Map());
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -215,7 +216,10 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
     }
 
     try {
-      await api.saveGoldenQuery(taskId, userQuestion, sqlQuery, "Saved via AI Chat Interface");
+      const savedQuery = await api.saveGoldenQuery(taskId, userQuestion, sqlQuery, "Saved via AI Chat Interface");
+      if (savedQuery?.id) {
+        msgToGoldenQueryIdRef.current.set(msg.id, savedQuery.id);
+      }
       setSavedGoldenIds((prev) => new Set(prev).add(msg.id));
       toast({
         title: "Saved as Golden KPI",
@@ -231,7 +235,16 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
     }
   };
 
-  const handleDeleteGoldenKPI = (msgId: string) => {
+  const handleDeleteGoldenKPI = async (msgId: string) => {
+    const queryId = msgToGoldenQueryIdRef.current.get(msgId);
+    if (queryId) {
+      try {
+        await api.deleteGoldenQuery(taskId, queryId);
+        msgToGoldenQueryIdRef.current.delete(msgId);
+      } catch (err) {
+        console.warn("Failed to delete golden query from backend:", err);
+      }
+    }
     setSavedGoldenIds((prev) => {
       const next = new Set(prev);
       next.delete(msgId);

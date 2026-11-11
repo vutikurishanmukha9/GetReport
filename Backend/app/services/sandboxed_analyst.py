@@ -27,6 +27,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 
+_mpl_lock = threading.Lock()
+
 logger = logging.getLogger(__name__)
 
 # ─── Constants ────────────────────────────────────────────────────────────────
@@ -116,6 +118,15 @@ class SandboxedAnalystAgent:
         "system", "popen", "spawn", "call", "run",
     }
 
+    ALLOWED_MODULES: Set[str] = {"math", "numpy", "pandas", "polars", "scipy", "matplotlib"}
+
+    @staticmethod
+    def _safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+        root_pkg = name.split(".")[0]
+        if root_pkg not in SandboxedAnalyst.ALLOWED_MODULES:
+            raise SandboxedSecurityViolation(f"Import of module '{name}' is strictly forbidden.")
+        return __import__(name, globals, locals, fromlist, level)
+
     SAFE_BUILTINS: Dict[str, Any] = {
         "abs": abs,
         "all": all,
@@ -144,6 +155,7 @@ class SandboxedAnalystAgent:
         "True": True,
         "False": False,
         "None": None,
+        "__import__": _safe_import,
     }
 
     def __init__(
@@ -292,7 +304,8 @@ class SandboxedAnalystAgent:
                 execution_time_ms=0.0,
             )
 
-        plt.close("all")
+        with _mpl_lock:
+            plt.close("all")
         stdout_buf = io.StringIO()
         chart_base64: Optional[str] = None
 
@@ -333,7 +346,8 @@ class SandboxedAnalystAgent:
                 except Exception:
                     pass
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
-            plt.close("all")
+            with _mpl_lock:
+                plt.close("all")
             return ExecutionResult(
                 success=False,
                 output="",
@@ -347,12 +361,13 @@ class SandboxedAnalystAgent:
                 raise exec_error[0]
 
             # Check if Matplotlib created any plots
-            fig = plt.gcf()
-            if fig and fig.axes:
-                img_buf = io.BytesIO()
-                fig.savefig(img_buf, format="png", bbox_inches="tight", dpi=130)
-                img_buf.seek(0)
-                chart_base64 = base64.b64encode(img_buf.read()).decode("utf-8")
+            with _mpl_lock:
+                fig = plt.gcf()
+                if fig and fig.axes:
+                    img_buf = io.BytesIO()
+                    fig.savefig(img_buf, format="png", bbox_inches="tight", dpi=130)
+                    img_buf.seek(0)
+                    chart_base64 = base64.b64encode(img_buf.read()).decode("utf-8")
 
             elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 
@@ -389,7 +404,8 @@ class SandboxedAnalystAgent:
                 error=str(exc),
             )
         finally:
-            plt.close("all")
+            with _mpl_lock:
+                plt.close("all")
 
     def execute_sandboxed_code(self, code_str: str) -> Dict[str, Any]:
         """

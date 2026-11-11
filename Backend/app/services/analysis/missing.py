@@ -274,8 +274,10 @@ def analyze_missing_patterns(df: pl.DataFrame, config: MissingnessConfig | None 
     for c in cols_missing:
         rate = null_counts[c] / total_rows
         column_details[c] = {
-            "count": null_counts[c], "percentage": round(rate * 100, 2),
+            "count": null_counts[c], "missing_count": null_counts[c],
+            "percentage": round(rate * 100, 2), "missing_pct": round(rate * 100, 2),
             "severity": _severity(rate), "dtype": str(schema[c]),
+            "pattern": "MCAR",
         }
 
     # ---- order-preserving stride sample for the heavy tests
@@ -430,7 +432,7 @@ def analyze_missing_patterns(df: pl.DataFrame, config: MissingnessConfig | None 
                 conf = "medium" if n_tests_by_target[c] >= 10 and d["count"] >= 30 else "low"
                 evidence = [f"No significant dependence across {n_tests_by_target[c]} tests."]
         strat, flag, why = _recommend(schema[c], rate, mech, preds)
-        d.update({"mechanism": mech, "confidence": conf, "evidence": evidence,
+        d.update({"mechanism": mech, "pattern": mech, "confidence": conf, "evidence": evidence,
                   "conditioning_predictors": preds[:5], "recommended_imputation": strat,
                   "add_missing_indicator": flag, "rationale": why})
 
@@ -520,6 +522,7 @@ def analyze_missing_patterns(df: pl.DataFrame, config: MissingnessConfig | None 
         "has_missing": True,
         "columns_affected": len(cols_missing),
         "column_details": column_details,
+        "columns": column_details,
         "missing_correlations": corr_out,
         "missing_inter_correlations": inter[:10],
         "row_patterns": row_patterns,

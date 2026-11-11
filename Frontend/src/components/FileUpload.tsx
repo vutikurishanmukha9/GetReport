@@ -113,6 +113,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
   // New States for Interactive Cleaning
   const [taskId, setTaskId] = useState<string | null>(null);
   const [inspectionData, setInspectionData] = useState<InspectionResult | null>(null);
+  const [cleaningRules, setCleaningRules] = useState<CleaningRulesMap>({});
   const [isSnowflakeModalOpen, setIsSnowflakeModalOpen] = useState(false);
 
   // Track what we are waiting for
@@ -133,6 +134,20 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     if (expectedPhase === 'INSPECTION') {
       if ((normalizedStatus === 'WAITING_FOR_USER' || normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS') && isInspectionResult(taskResult)) {
         setInspectionData(taskResult);
+        const initialRules: CleaningRulesMap = {};
+        (taskResult.quality_report?.issues || []).forEach(issue => {
+          if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
+            const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
+              ? "cap_outliers"
+              : issue.action;
+            initialRules[issue.column] = {
+              action: normalizedAction as any,
+              value: normalizedAction === "fill_value" ? "Unknown" : undefined,
+              params: (issue as any).params || {}
+            };
+          }
+        });
+        setCleaningRules(initialRules);
         setIsProcessing(false);
         setExpectedPhase(null); // Stop waiting
         toast({ title: "Data Inspection Complete", description: "Please review the detected issues found." });
@@ -383,6 +398,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     setFileHeaders({});
     setKeyMapping({});
     setInspectionData(null);
+    setCleaningRules({});
     setExpectedPhase(null);
     setTaskId(null);
   };
@@ -505,13 +521,16 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             taskId={taskId!}
             data={issueLedgerData}
             onRefresh={refreshIssues}
-            onProceed={() => handleCleaningRules({})}
+            onProceed={() => handleCleaningRules(cleaningRules)}
           />
         )}
 
         <DataHealthCheck
           report={inspectionData.quality_report}
-          onContinue={handleCleaningRules}
+          onContinue={(rules) => {
+            setCleaningRules(rules);
+            handleCleaningRules(rules);
+          }}
           isProcessing={isProcessing}
         />
       </div>

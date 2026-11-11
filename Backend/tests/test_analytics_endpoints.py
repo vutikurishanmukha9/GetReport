@@ -3,6 +3,7 @@ Integration Tests for Analytics & Superset BI Companion API Endpoints (/api/anal
 """
 
 from datetime import date
+import uuid
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -13,6 +14,9 @@ from app.api.routes.analytics import router as analytics_router
 from app.core.limiter import limiter
 from app.db import init_db
 from app.services.superset_engine import superset_engine
+from app.services.superset_service import superset_service
+
+MOCK_TASK_ID = str(uuid.uuid4())
 
 # Initialize database schema for isolated endpoint testing
 try:
@@ -34,7 +38,9 @@ def client():
 
 @pytest.fixture
 def mock_dataset(monkeypatch):
-    """Mocks dataset resolution inside superset_engine."""
+    """Mocks dataset resolution inside superset_engine and task manager."""
+    import asyncio
+    from app.services.task_manager import Job, TaskStatus, title_task_manager
     df = pl.DataFrame({
         "order_id": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         "category": ["Tech", "Fashion", "Tech", "Food", "Fashion", "Tech", "Food", "Tech", "Fashion", "Food"],
@@ -43,10 +49,17 @@ def mock_dataset(monkeypatch):
         "order_date": [date(2026, 1, i + 1) for i in range(10)],
     })
     monkeypatch.setattr(superset_engine, "resolve_dataset_df", lambda task_id: df)
+    mock_job = Job(id=MOCK_TASK_ID, status=TaskStatus.COMPLETED, message="done", owner_id=None)
+    async def mock_get_job(_id):
+        return mock_job
+    monkeypatch.setattr(title_task_manager, "get_job_async", mock_get_job)
     return df
 
 
-def test_get_analytics_status(client):
+def test_get_analytics_status(client, monkeypatch):
+    async def mock_health():
+        return {"enabled": True, "status": "online", "superset_url": "http://localhost:8088", "message": "OK"}
+    monkeypatch.setattr(superset_service, "check_health", mock_health)
     response = client.get("/api/analytics/status")
     assert response.status_code == 200
     data = response.json()
@@ -71,10 +84,10 @@ def test_list_datasets(client):
 
 
 def test_get_superset_dataset_schema(client, mock_dataset):
-    response = client.get("/api/analytics/explore/mock_task_001/schema")
+    response = client.get(f"/api/analytics/explore/{MOCK_TASK_ID}/schema")
     assert response.status_code == 200
     data = response.json()
-    assert data["task_id"] == "mock_task_001"
+    assert data["task_id"] == MOCK_TASK_ID
     assert data["total_rows"] == 10
     assert "sales" in data["numeric_columns"]
     assert "category" in data["categorical_columns"]
@@ -83,7 +96,7 @@ def test_get_superset_dataset_schema(client, mock_dataset):
 
 def test_execute_superset_explore_query(client, mock_dataset):
     payload = {
-        "task_id": "mock_task_001",
+        "task_id": MOCK_TASK_ID,
         "chart_type": "echarts_bar",
         "dimension": "category",
         "metric": "sales",
@@ -102,7 +115,7 @@ def test_execute_superset_explore_query(client, mock_dataset):
 
 def test_execute_superset_explore_query_with_filters(client, mock_dataset):
     payload = {
-        "task_id": "mock_task_001",
+        "task_id": MOCK_TASK_ID,
         "chart_type": "echarts_line",
         "dimension": "category",
         "metric": "sales",
@@ -121,7 +134,7 @@ def test_execute_superset_explore_query_with_filters(client, mock_dataset):
 
 def test_execute_superset_explore_query_invalid_dimension(client, mock_dataset):
     payload = {
-        "task_id": "mock_task_001",
+        "task_id": MOCK_TASK_ID,
         "chart_type": "echarts_bar",
         "dimension": "non_existent_column",
     }
@@ -137,7 +150,7 @@ def test_aggregate_dataset_metrics(client, mock_dataset):
         "limit": 5,
         "sort_order": "desc",
     }
-    response = client.post("/api/analytics/aggregate/mock_task_001", json=payload)
+    response = client.post(f"/api/analytics/aggregate/{MOCK_TASK_ID}", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["dimension"] == "category"
@@ -147,7 +160,7 @@ def test_aggregate_dataset_metrics(client, mock_dataset):
 def test_generate_guest_token_offline_fallback(client):
     payload = {
         "dashboard_id": "1",
-        "task_id": "mock_task_001",
+        "task_id": MOCK_TASK_ID,
     }
     response = client.post("/api/analytics/guest-token", json=payload)
     assert response.status_code == 200

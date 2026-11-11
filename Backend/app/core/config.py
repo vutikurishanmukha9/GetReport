@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     REQUIRE_AUTH: bool = False
     # Secret used for Snowflake vault key derivation. Must be configured for persistent deployments.
     SECRET_KEY: str = ""
+    # Optional shared secret to trust upstream reverse proxy headers (e.g. X-User-Id / X-Consumer-Id)
+    TRUSTED_PROXY_SECRET: str = ""
     
     # Max length for chat questions (prompt injection mitigation)
     MAX_CHAT_QUESTION_LENGTH: int = 500

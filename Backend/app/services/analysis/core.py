@@ -11,7 +11,7 @@ from app.services.insight_ranking import rank_insights
 # Import modularized components
 from app.services.analysis.validation import validate_input, EmptyDatasetError, InsufficientDataError, AnalysisError
 from app.services.analysis.classification import classify_numeric_columns
-from app.services.analysis.statistics import compute_summary, compute_correlation
+from app.services.analysis.statistics import compute_summary, compute_correlation, StatsConfig
 from app.services.analysis.correlations import compute_phik_matrix
 from app.services.analysis.outliers import detect_outliers
 from app.services.analysis.time_series import analyze_time_series
@@ -93,15 +93,19 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
         "exclusion_reasons": column_classification["exclusion_reasons"]
     }
     
+    stats_config = StatsConfig(
+        strong_corr=config.correlation_strong_threshold,
+    )
+
     # Use ONLY analytical columns for meaningful analysis
-    summary_stats = compute_summary(df, analytical_cols)
+    summary_stats = compute_summary(df, analytical_cols, config=stats_config)
     
     correlation = {}
     strong_pairs = []
     phik_matrix = {}
     phik_strong = []
     if config.enable_correlation:
-        correlation, strong_pairs = compute_correlation(df, analytical_cols)
+        correlation, strong_pairs = compute_correlation(df, analytical_cols, config=stats_config)
         try:
             phik_cols = analytical_cols + cat_cols[:6]
             phik_matrix, phik_strong = compute_phik_matrix(df, columns=phik_cols)
@@ -110,7 +114,13 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
     
     outliers = {}
     if config.enable_outliers:
-        outliers = detect_outliers(df, analytical_cols)
+        iqr_mult = getattr(config, "outlier_iqr_multiplier", 1.5)
+        outliers = detect_outliers(
+            df,
+            analytical_cols,
+            iqr_lower_multiplier=getattr(config, "iqr_lower_multiplier", iqr_mult),
+            iqr_upper_multiplier=getattr(config, "iqr_upper_multiplier", iqr_mult),
+        )
     
     # Tier 1: Time Series Analysis (still use all numeric for now, since it looks for datetime cols)
     time_series_analysis = {}

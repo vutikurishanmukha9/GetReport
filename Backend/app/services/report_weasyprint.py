@@ -18,7 +18,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from app.services.report_styles import ReportMetadata
+from app.services.report_styles import ReportMetadata, normalize_report_payload
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ def _domain_label_filter(val: Any) -> str:
     return str(val).replace("_", " ").title()
 
 _JINJA_ENV.filters["domain_label"] = _domain_label_filter
+_JINJA_ENV.filters["strip"] = lambda v: str(v).strip() if v is not None else ""
 
 
 class CSSCache:
@@ -149,12 +150,13 @@ def generate_pdf_weasyprint(
     template = _JINJA_ENV.get_template("report.html")
 
     # Build template context
-    metadata = analysis_results.get("metadata", {})
+    analysis_normalized = normalize_report_payload(dict(analysis_results))
+    metadata = analysis_normalized.get("metadata", {})
     context = {
         "filename": filename,
         "generated_at": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
         "metadata": metadata,
-        "analysis": analysis_results,
+        "analysis": analysis_normalized,
         "charts": charts or {},
     }
 

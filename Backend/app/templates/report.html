@@ -587,9 +587,9 @@
             {% set text_val = ins if ins is string else ins.get('insights_text') %}
             {% set blocks = text_val.replace('**', '').split('\n\n') %}
             {% for block in blocks %}
-                {% if block | strip | length > 0 %}
+                {% if block | trim | length > 0 %}
                 <div class="insight-card mb-8">
-                    <div class="insight-card__text" style="white-space: pre-line;">{{ block }}</div>
+                    <div class="insight-card__text" style="white-space: pre-line;">{{ block | safe }}</div>
                 </div>
                 {% endif %}
             {% endfor %}

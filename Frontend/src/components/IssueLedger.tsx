@@ -163,6 +163,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
     // Handle single issue approval
     const handleApprove = async (issueId: string) => {
+        if (locked) return;
         setLoading(issueId);
         setError(null);
 
@@ -184,6 +185,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
     // Handle single issue rejection
     const handleReject = async (issueId: string) => {
+        if (locked) return;
         setLoading(issueId);
         setError(null);
 
@@ -205,6 +207,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
     // Handle Approve All
     const handleApproveAll = async () => {
+        if (locked) return;
         setLoading('all-approve');
         setError(null);
 
@@ -226,6 +229,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
     // Handle Reject All
     const handleRejectAll = async () => {
+        if (locked) return;
         setLoading('all-reject');
         setError(null);
 

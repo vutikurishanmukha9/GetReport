@@ -162,7 +162,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     : issue.action;
                 initial[issue.column] = {
                     action: normalizedAction as CleaningRule["action"],
-                    value: normalizedAction === "fill_value" ? "Unknown" : undefined
+                    value: normalizedAction === "fill_value" ? "Unknown" : undefined,
+                    params: (issue as any).params || {}
                 };
             }
         });
@@ -182,7 +183,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                         : issue.action;
                     initial[issue.column] = {
                         action: normalizedAction as CleaningRule["action"],
-                        value: normalizedAction === "fill_value" ? "Unknown" : undefined
+                        value: normalizedAction === "fill_value" ? "Unknown" : undefined,
+                        params: (issue as any).params || {}
                     };
                 }
             });
@@ -194,11 +196,13 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
         const normalizedAction = (action === "replace_outliers_median" || action === "winsorize")
             ? "cap_outliers"
             : action;
+        const matchingIssue = (report?.issues || []).find(i => i.column === column && i.action === action);
         setRules(prev => ({
             ...prev,
             [column]: {
                 action: normalizedAction as CleaningRule["action"],
-                value: normalizedAction === "fill_value" ? "Unknown" : undefined
+                value: normalizedAction === "fill_value" ? "Unknown" : undefined,
+                params: matchingIssue?.params || prev[column]?.params || {}
             }
         }));
     };
@@ -212,7 +216,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     : issue.action;
                 updated[issue.column] = {
                     action: normalizedAction as CleaningRule["action"],
-                    value: normalizedAction === "fill_value" ? "Unknown" : undefined
+                    value: normalizedAction === "fill_value" ? "Unknown" : undefined,
+                    params: (issue as any).params || {}
                 };
             }
         });
@@ -234,7 +239,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     : issue.action;
                 updated[issue.column] = {
                     action: normalizedAction as CleaningRule["action"],
-                    value: normalizedAction === "fill_value" ? "Unknown" : undefined
+                    value: normalizedAction === "fill_value" ? "Unknown" : undefined,
+                    params: (issue as any).params || {}
                 };
             }
         });
@@ -252,7 +258,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             ) {
                 updated[issue.column] = {
                     action: issue.action as CleaningRule["action"],
-                    value: issue.action === "fill_value" ? "Unknown" : undefined
+                    value: issue.action === "fill_value" ? "Unknown" : undefined,
+                    params: (issue as any).params || {}
                 };
             }
         });

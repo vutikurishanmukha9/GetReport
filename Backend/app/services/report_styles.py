@@ -537,3 +537,86 @@ def _divider() -> list[Flowable]:
         HRFlowable(width="100%", thickness=0.75, color=Brand.BORDER, spaceAfter=6),
         Spacer(1, 0.08 * inch),
     ]
+
+
+# ─── Cross-Engine Payload Normalizer ──────────────────────────────────────────
+def normalize_report_payload(analysis: dict[str, Any], engine: str = "general") -> dict[str, Any]:
+    """
+    Normalizes analysis dictionary schema across Typst, WeasyPrint, and ReportLab.
+    Ensures missing patterns, cleaning reports, and comparison metrics conform to template contracts.
+    """
+    if not isinstance(analysis, dict):
+        return {}
+
+    import re
+
+    # 1. Normalize Missing Value Patterns schema
+    mp = analysis.get("missing_patterns")
+    if isinstance(mp, dict):
+        col_details = mp.get("column_details") or mp.get("columns") or {}
+        if isinstance(col_details, dict):
+            for cname, cinfo in col_details.items():
+                if isinstance(cinfo, dict):
+                    if "missing_count" not in cinfo and "count" in cinfo:
+                        cinfo["missing_count"] = cinfo["count"]
+                    if "missing_pct" not in cinfo and "percentage" in cinfo:
+                        cinfo["missing_pct"] = cinfo["percentage"]
+                    if "pattern" not in cinfo and "mechanism" in cinfo:
+                        cinfo["pattern"] = cinfo["mechanism"]
+            mp["columns"] = col_details
+            mp["column_details"] = col_details
+
+    # 2. Normalize Data Cleaning & Comparison Report
+    cr = analysis.get("cleaning_report")
+    comp = analysis.get("comparison_report")
+    if isinstance(cr, dict):
+        if not cr.get("before_after") and isinstance(comp, dict):
+            summary = comp.get("summary", {})
+            before_after = []
+            if "rows" in summary:
+                before_after.append({
+                    "metric": "Total Records",
+                    "before": f"{summary['rows'].get('before', 0):,}",
+                    "after": f"{summary['rows'].get('after', 0):,}",
+                    "delta": summary["rows"].get("delta", 0),
+                })
+            if "cols" in summary:
+                before_after.append({
+                    "metric": "Feature Columns",
+                    "before": f"{summary['cols'].get('before', 0):,}",
+                    "after": f"{summary['cols'].get('after', 0):,}",
+                    "delta": summary["cols"].get("delta", 0),
+                })
+            if "completeness" in summary:
+                before_after.append({
+                    "metric": "Data Completeness",
+                    "before": f"{summary['completeness'].get('before', 0.0):.1f}%",
+                    "after": f"{summary['completeness'].get('after', 0.0):.1f}%",
+                    "delta": summary["completeness"].get("delta", 0.0),
+                })
+            if "uniqueness" in summary:
+                before_after.append({
+                    "metric": "Record Uniqueness",
+                    "before": f"{summary['uniqueness'].get('before', 0.0):.1f}%",
+                    "after": f"{summary['uniqueness'].get('after', 0.0):.1f}%",
+                    "delta": summary["uniqueness"].get("delta", 0.0),
+                })
+            cr["before_after"] = before_after
+
+    # 3. Clean and convert HTML tags in insights if engine is Typst
+    if engine == "typst":
+        ins = analysis.get("insights")
+        if isinstance(ins, str):
+            ins = re.sub(r"<b>(.*?)</b>", r"*\1*", ins)
+            ins = re.sub(r"<i>(.*?)</i>", r"_\1_", ins)
+            ins = re.sub(r"<[^>]+>", "", ins)
+            analysis["insights"] = ins
+        elif isinstance(ins, dict):
+            text_val = ins.get("insights_text")
+            if isinstance(text_val, str):
+                text_val = re.sub(r"<b>(.*?)</b>", r"*\1*", text_val)
+                text_val = re.sub(r"<i>(.*?)</i>", r"_\1_", text_val)
+                text_val = re.sub(r"<[^>]+>", "", text_val)
+                ins["insights_text"] = text_val
+
+    return analysis

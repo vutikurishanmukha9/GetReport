@@ -23,6 +23,8 @@ class AnalysisConfig(BaseModel):
     # ─── Thresholds ──────────────────────────────────────────────────────────
     correlation_strong_threshold: float = 0.7
     outlier_iqr_multiplier: float = 1.5
+    iqr_lower_multiplier: float = 1.5
+    iqr_upper_multiplier: float = 1.5
     min_distinct_for_categorical: int = 2
     max_distinct_for_categorical: int = 50  # Max categories to analyze specifically
     

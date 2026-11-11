@@ -72,6 +72,63 @@ class CleaningReport:
         )
 
     def to_dict(self) -> dict[str, Any]:
+        steps_applied: list[dict[str, str]] = []
+        if self.empty_rows_dropped > 0:
+            steps_applied.append({
+                "name": "Empty Rows Dropped",
+                "action": f"Purged {self.empty_rows_dropped:,} empty row(s)",
+                "impact": f"-{self.empty_rows_dropped:,} rows",
+            })
+        if self.empty_columns_dropped > 0:
+            steps_applied.append({
+                "name": "Empty Columns Dropped",
+                "action": f"Dropped {self.empty_columns_dropped:,} completely unpopulated column(s)",
+                "impact": f"-{self.empty_columns_dropped:,} columns",
+            })
+        if self.duplicate_rows_removed > 0:
+            steps_applied.append({
+                "name": "Duplicate De-duplication",
+                "action": f"Identified and removed {self.duplicate_rows_removed:,} redundant row(s)",
+                "impact": f"-{self.duplicate_rows_removed:,} rows",
+            })
+        if self.non_data_rows_dropped > 0:
+            steps_applied.append({
+                "name": "Preamble/Metadata Rows",
+                "action": f"Stripped {self.non_data_rows_dropped:,} title/header metadata row(s)",
+                "impact": f"-{self.non_data_rows_dropped:,} rows",
+            })
+        if self.numeric_nans_filled > 0:
+            steps_applied.append({
+                "name": "Numeric Imputation",
+                "action": f"Imputed {self.numeric_nans_filled:,} missing numerical value(s) with 0",
+                "impact": f"+{self.numeric_nans_filled:,} values filled",
+            })
+        if self.categorical_nans_filled > 0:
+            steps_applied.append({
+                "name": "Categorical Imputation",
+                "action": f"Imputed {self.categorical_nans_filled:,} missing categorical value(s) with 'Unknown'",
+                "impact": f"+{self.categorical_nans_filled:,} values filled",
+            })
+        if self.phone_numbers_cleaned > 0:
+            steps_applied.append({
+                "name": "Phone Number Standardization",
+                "action": f"Sanitized and standardized {self.phone_numbers_cleaned:,} phone number(s) to E.164",
+                "impact": f"{self.phone_numbers_cleaned:,} formatted",
+            })
+        renamed_count = sum(1 for k, v in self.columns_renamed.items() if k != v)
+        if renamed_count > 0:
+            steps_applied.append({
+                "name": "Header Normalization",
+                "action": f"Standardized {renamed_count:,} column header(s) to snake_case identifiers",
+                "impact": f"{renamed_count:,} columns normalized",
+            })
+        for tc in self.type_conversions:
+            steps_applied.append({
+                "name": "Type Casting",
+                "action": f"Coerced column '{tc.get('column')}' from {tc.get('from')} to {tc.get('to')}",
+                "impact": f"Cast to {tc.get('to')}",
+            })
+
         return {
             "empty_rows_dropped":       self.empty_rows_dropped,
             "empty_columns_dropped":    self.empty_columns_dropped,
@@ -85,6 +142,7 @@ class CleaningReport:
             "total_changes":            self.total_changes,
             "timing_ms":                round(self.timing_ms, 2),
             "row_triage":               self.row_triage,
+            "steps_applied":            steps_applied,
         }
 
 # ─── Utility: Snake Case Conversion ──────────────────────────────────────────
@@ -1270,8 +1328,8 @@ def clean_data(
     rules_applied_cols: set[str] = set()
     if rules:
         for original_col, rule in rules.items():
-            target_col = _to_snake_case(original_col)
-            if target_col not in df.columns: 
+            target_col = "*" if original_col == "*" else _to_snake_case(original_col)
+            if target_col != "*" and target_col not in df.columns: 
                 continue
             rules_applied_cols.add(target_col)
             
@@ -1461,7 +1519,17 @@ def clean_data(
                 try:
                     from app.services.auto_suggestion_engine import apply_suggestion, _EXECUTORS
                     if action in _EXECUTORS:
-                        df = apply_suggestion(df, {"action": action, "column": target_col, **rule})
+                        rule_params = rule.get("params") or {}
+                        if not isinstance(rule_params, dict):
+                            rule_params = {}
+                        suggestion_payload = {
+                            "action": action,
+                            "column": target_col,
+                            "params": rule_params,
+                            **rule,
+                        }
+                        suggestion_payload["params"] = rule_params
+                        df = apply_suggestion(df, suggestion_payload)
                         dag.add_node(
                             operation=action,
                             df_before=df_before,

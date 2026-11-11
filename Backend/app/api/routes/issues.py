@@ -33,7 +33,7 @@ def _recalc_summary(issues: list) -> dict:
     return summary
 
 
-async def _get_job_and_ledger(task_id: str, caller_owner_id: str | None = None):
+async def _get_job_and_ledger(task_id: str, caller_owner_id: str | None = None, check_unlocked: bool = False):
     """Helper: get job, verify tenant ownership, and validate it's in approval phase with a ledger."""
     job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
@@ -47,6 +47,9 @@ async def _get_job_and_ledger(task_id: str, caller_owner_id: str | None = None):
     ledger_data = job.result.get("issue_ledger")
     if not ledger_data:
         raise HTTPException(400, "No issue ledger found")
+    
+    if check_unlocked and ledger_data.get("locked"):
+        raise HTTPException(400, "Cannot modify issues in a locked ledger")
     
     return job, ledger_data
 
@@ -79,7 +82,7 @@ async def approve_issue(request: Request, task_id: str, issue_id: str, body: Iss
     """Approve a single issue for execution."""
     validate_task_id(task_id)
     caller_owner_id = get_authenticated_owner_id(request)
-    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
+    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id, check_unlocked=True)
     
     for issue in ledger_data.get("issues", []):
         if issue["id"] == issue_id:
@@ -88,7 +91,7 @@ async def approve_issue(request: Request, task_id: str, issue_id: str, body: Iss
                 issue["user_note"] = body.note
             ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
             await title_task_manager.update_result_async(task_id, job.result)
-            return {"message": "Issue approved", "issue_id": issue_id}
+            return {"message": "Issue approved", "issue_id": issue_id, "summary": ledger_data["summary"]}
     
     raise HTTPException(404, "Issue not found")
 
@@ -99,7 +102,7 @@ async def reject_issue(request: Request, task_id: str, issue_id: str, body: Issu
     """Reject an issue - fix will not be applied."""
     validate_task_id(task_id)
     caller_owner_id = get_authenticated_owner_id(request)
-    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
+    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id, check_unlocked=True)
     
     for issue in ledger_data.get("issues", []):
         if issue["id"] == issue_id:
@@ -108,7 +111,7 @@ async def reject_issue(request: Request, task_id: str, issue_id: str, body: Issu
                 issue["user_note"] = body.note
             ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
             await title_task_manager.update_result_async(task_id, job.result)
-            return {"message": "Issue rejected", "issue_id": issue_id}
+            return {"message": "Issue rejected", "issue_id": issue_id, "summary": ledger_data["summary"]}
     
     raise HTTPException(404, "Issue not found")
 
@@ -125,10 +128,7 @@ async def modify_issue(
     """Modify the suggested fix code for an issue."""
     validate_task_id(task_id)
     caller_owner_id = get_authenticated_owner_id(request)
-    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
-
-    if ledger_data.get("locked"):
-        raise HTTPException(400, "Cannot modify issues in a locked ledger")
+    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id, check_unlocked=True)
 
     for issue in ledger_data.get("issues", []):
         if issue["id"] == issue_id:
@@ -138,7 +138,7 @@ async def modify_issue(
                 issue["user_note"] = body.note
             ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
             await title_task_manager.update_result_async(task_id, job.result)
-            return {"message": "Issue modified", "issue_id": issue_id, "fix_code": body.fix_code}
+            return {"message": "Issue modified", "issue_id": issue_id, "fix_code": body.fix_code, "summary": ledger_data["summary"]}
 
     raise HTTPException(404, "Issue not found")
 
@@ -149,7 +149,7 @@ async def approve_all_issues(request: Request, task_id: str, _auth: None = Depen
     """Approve all pending issues."""
     validate_task_id(task_id)
     caller_owner_id = get_authenticated_owner_id(request)
-    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
+    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id, check_unlocked=True)
     
     count = 0
     for issue in ledger_data.get("issues", []):
@@ -159,7 +159,7 @@ async def approve_all_issues(request: Request, task_id: str, _auth: None = Depen
     
     ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
     await title_task_manager.update_result_async(task_id, job.result)
-    return {"message": f"Approved {count} issues", "count": count}
+    return {"message": f"Approved {count} issues", "count": count, "summary": ledger_data["summary"]}
 
 
 @router.post("/jobs/{task_id}/issues/reject-all")
@@ -168,7 +168,7 @@ async def reject_all_issues(request: Request, task_id: str, _auth: None = Depend
     """Reject all pending issues."""
     validate_task_id(task_id)
     caller_owner_id = get_authenticated_owner_id(request)
-    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id)
+    job, ledger_data = await _get_job_and_ledger(task_id, caller_owner_id, check_unlocked=True)
     
     count = 0
     for issue in ledger_data.get("issues", []):
@@ -178,7 +178,7 @@ async def reject_all_issues(request: Request, task_id: str, _auth: None = Depend
     
     ledger_data["summary"] = _recalc_summary(ledger_data["issues"])
     await title_task_manager.update_result_async(task_id, job.result)
-    return {"message": f"Rejected {count} issues", "count": count}
+    return {"message": f"Rejected {count} issues", "count": count, "summary": ledger_data["summary"]}
 
 
 @router.post("/jobs/{task_id}/issues/lock")

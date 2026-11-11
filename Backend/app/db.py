@@ -18,9 +18,13 @@ _db_dir = settings.DB_DIR if os.path.isabs(settings.DB_DIR) else os.path.join(_b
 os.makedirs(_db_dir, exist_ok=True)
 DB_PATH = os.path.join(_db_dir, "tasks.db")
 
-# Global Connection Pools
+import threading
+
+# Global Connection Pools & Initialization Guards
 pg_pool = None
 async_pg_pool = None
+_db_init_lock = threading.Lock()
+_schema_initialized = False
 
 # ─── SYNC PostgreSQL Wrapper (Legacy/Celery) ─────────────────────────────────
 class PostgresCursor:
@@ -186,15 +190,17 @@ async def init_async_db():
 
 def close_db():
     """Sync Cleanup"""
-    global pg_pool
-    if pg_pool:
-        try:
-            pg_pool.closeall()
-            logger.info("Sync PostgreSQL Pool closed.")
-        except Exception as e:
-            logger.warning(f"Error closing sync PostgreSQL Pool: {e}")
-        finally:
-            pg_pool = None
+    global pg_pool, _schema_initialized
+    with _db_init_lock:
+        if pg_pool:
+            try:
+                pg_pool.closeall()
+                logger.info("Sync PostgreSQL Pool closed.")
+            except Exception as e:
+                logger.warning(f"Error closing sync PostgreSQL Pool: {e}")
+            finally:
+                pg_pool = None
+        _schema_initialized = False
 
 async def close_async_db():
     """Async Cleanup"""
@@ -205,89 +211,98 @@ async def close_async_db():
 
 # ─── Sync Implementation Details ─────────────────────────────────────────────
 def _init_sqlite_sync():
-    conn = sqlite3.connect(DB_PATH, timeout=10.0)
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA busy_timeout=5000;")
-    cursor = conn.cursor()
-    _create_schema(cursor)
-    conn.commit()
-    conn.close()
-    logger.info("SQLite initialized with WAL mode and busy_timeout=5000ms.")
+    global _schema_initialized
+    with _db_init_lock:
+        if _schema_initialized:
+            return
+        conn = sqlite3.connect(DB_PATH, timeout=10.0)
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA busy_timeout=5000;")
+        cursor = conn.cursor()
+        _create_schema(cursor)
+        conn.commit()
+        conn.close()
+        _schema_initialized = True
+        logger.info("SQLite initialized with WAL mode and busy_timeout=5000ms.")
 
 def _init_postgres_sync():
-    global pg_pool
-    try:
-        import psycopg2
-        from psycopg2 import pool
-        from psycopg2.extras import RealDictCursor
-        
-        # Debug: Log DB URL (Masked)
-        masked_url = settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else "MASKED"
-        logger.info(f"Connecting to PostgreSQL at ...{masked_url}")
-
-        if not pg_pool:
-            # Enforce public schema for Sync pool too via options
-            pg_pool = psycopg2.pool.ThreadedConnectionPool(
-                minconn=settings.DB_POOL_MIN_SIZE,
-                maxconn=settings.DB_POOL_MAX_SIZE,
-                dsn=settings.DATABASE_URL,
-                cursor_factory=RealDictCursor
-            )
-            logger.info("PostgreSQL Sync Pool created.")
-            
-        conn = pg_pool.getconn()
+    global pg_pool, _schema_initialized
+    with _db_init_lock:
+        if _schema_initialized and pg_pool:
+            return
         try:
-            cursor = conn.cursor()
-            cursor.execute("SELECT current_schema(), current_user, current_database();")
-            env_info = cursor.fetchone()
-            logger.debug(f"DB Env: Schema={env_info['current_schema']}, User={env_info['current_user']}, DB={env_info['current_database']}")
+            import psycopg2
+            from psycopg2 import pool
+            from psycopg2.extras import RealDictCursor
             
-            cursor.execute("SHOW search_path;")
-            logger.debug(f"Search Path: {cursor.fetchone()['search_path']}")
+            # Debug: Log DB URL (Masked)
+            masked_url = settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else "MASKED"
+            logger.info(f"Connecting to PostgreSQL at ...{masked_url}")
 
-            # 1. Create Core Tables (Critical)
-            logger.info("Creating core tables in public schema...")
-            try:
-                cursor.execute("CREATE SCHEMA IF NOT EXISTS public;")
-                _create_core_tables_explicit(cursor)
-                conn.commit()
-                logger.info("Core tables created & committed.")
+            if not pg_pool:
+                # Enforce public schema for Sync pool too via options
+                pg_pool = psycopg2.pool.ThreadedConnectionPool(
+                    minconn=settings.DB_POOL_MIN_SIZE,
+                    maxconn=settings.DB_POOL_MAX_SIZE,
+                    dsn=settings.DATABASE_URL,
+                    cursor_factory=RealDictCursor
+                )
+                logger.info("PostgreSQL Sync Pool created.")
                 
-                cursor.execute("SELECT to_regclass('jobs');")
-                result = cursor.fetchone()
-                if result and result['to_regclass']:
-                     logger.info(f"Verified: Table 'jobs' exists (OID: {result['to_regclass']})")
-                else:
-                     logger.error("Critical: Table 'jobs' does not exist after commit!")
-                     
-            except Exception as e:
-                conn.rollback()
-                logger.error(f"Failed to create core tables: {e}")
-                raise e
-
-            # 2. Enable Extensions (Optional/Risky)
+            conn = pg_pool.getconn()
             try:
                 cursor = conn.cursor()
-                _enable_vector_extension(cursor)
-                conn.commit()
-                logger.info("Vector extension verified/enabled.")
-            except Exception as e:
-                conn.rollback()
-                logger.warning(f"Vector extension init failed: {e}. Attempting standard fallback (no pgvector)...")
+                cursor.execute("SELECT current_schema(), current_user, current_database();")
+                env_info = cursor.fetchone()
+                logger.debug(f"DB Env: Schema={env_info['current_schema']}, User={env_info['current_user']}, DB={env_info['current_database']}")
+                
+                cursor.execute("SHOW search_path;")
+                logger.debug(f"Search Path: {cursor.fetchone()['search_path']}")
+
+                # 1. Create Core Tables (Critical)
+                logger.info("Creating core tables in public schema...")
+                try:
+                    cursor.execute("CREATE SCHEMA IF NOT EXISTS public;")
+                    _create_core_tables_explicit(cursor)
+                    conn.commit()
+                    logger.info("Core tables created & committed.")
+                    
+                    cursor.execute("SELECT to_regclass('jobs');")
+                    result = cursor.fetchone()
+                    if result and result['to_regclass']:
+                         logger.info(f"Verified: Table 'jobs' exists (OID: {result['to_regclass']})")
+                    else:
+                         logger.error("Critical: Table 'jobs' does not exist after commit!")
+                         
+                except Exception as e:
+                    conn.rollback()
+                    logger.error(f"Failed to create core tables: {e}")
+                    raise e
+
+                # 2. Enable Extensions (Optional/Risky)
                 try:
                     cursor = conn.cursor()
-                    _create_fallback_rag_table(cursor)
+                    _enable_vector_extension(cursor)
                     conn.commit()
-                    logger.info("Fallback standard RAG tables created successfully.")
-                except Exception as fallback_err:
+                    logger.info("Vector extension verified/enabled.")
+                except Exception as e:
                     conn.rollback()
-                    logger.error(f"Critical: Fallback table creation failed: {fallback_err}")
+                    logger.warning(f"Vector extension init failed: {e}. Attempting standard fallback (no pgvector)...")
+                    try:
+                        cursor = conn.cursor()
+                        _create_fallback_rag_table(cursor)
+                        conn.commit()
+                        logger.info("Fallback standard RAG tables created successfully.")
+                    except Exception as fallback_err:
+                        conn.rollback()
+                        logger.error(f"Critical: Fallback table creation failed: {fallback_err}")
 
-        finally:
-            pg_pool.putconn(conn)
-    except Exception as e:
-        logger.error(f"PostgreSQL Init Fatal Error: {e}")
-        raise e
+                _schema_initialized = True
+            finally:
+                pg_pool.putconn(conn)
+        except Exception as e:
+            logger.error(f"PostgreSQL Init Fatal Error: {e}")
+            raise e
 
 def _create_schema(cursor):
     """SQLite Schema"""
@@ -465,7 +480,10 @@ def get_db_connection():
     if settings.DATABASE_URL:
         # Postgres Sync
         global pg_pool
-        if not pg_pool: _init_postgres_sync()
+        if not pg_pool:
+            with _db_init_lock:
+                if not pg_pool:
+                    _init_postgres_sync()
         
         import psycopg2
         conn = None

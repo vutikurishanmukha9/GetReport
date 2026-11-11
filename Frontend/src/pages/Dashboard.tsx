@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FileSpreadsheet, Search, Download, Calendar, AlertCircle, ArrowRight } from "lucide-react";
+import { FileSpreadsheet, Search, Download, Calendar, AlertCircle, ArrowRight, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/services/api";
 
 interface AuditHistoryItem {
   task_id: string;
@@ -25,15 +26,59 @@ export const Dashboard = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [historyItems, setHistoryItems] = useState<AuditHistoryItem[]>([]);
+  const [downloadingTaskId, setDownloadingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load audit history from localStorage cache or fallback
-    try {
-      const cached = localStorage.getItem("getreport_audit_history");
-      if (cached) {
-        setHistoryItems(JSON.parse(cached));
+    const loadAudits = async () => {
+      let localItems: AuditHistoryItem[] = [];
+      try {
+        const cached = localStorage.getItem("getreport_audit_history");
+        if (cached) {
+          localItems = JSON.parse(cached);
+        }
+      } catch (e) {
+        console.error("Failed to parse cached audit history:", e);
+      }
+
+      try {
+        const res = await api.listRecentDatasets(15);
+        if (res && Array.isArray(res.datasets)) {
+          const remoteItems: AuditHistoryItem[] = res.datasets.map((d) => ({
+            task_id: d.task_id,
+            filename: d.filename,
+            created_at: new Date(d.created_at || Date.now()).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+            rows: d.rows,
+            columns: d.columns_count,
+            grade: "A",
+            score: 90,
+            status: "COMPLETED",
+            isDemo: false,
+          }));
+
+          const seen = new Set<string>();
+          const combined: AuditHistoryItem[] = [];
+          for (const item of [...localItems, ...remoteItems]) {
+            if (!seen.has(item.task_id)) {
+              seen.add(item.task_id);
+              combined.push(item);
+            }
+          }
+          if (combined.length > 0) {
+            setHistoryItems(combined);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch remote recent datasets, using local cache:", err);
+      }
+
+      if (localItems.length > 0) {
+        setHistoryItems(localItems);
       } else {
-        // Sample preview record
         setHistoryItems([
           {
             task_id: "demo_audit_01",
@@ -48,10 +93,42 @@ export const Dashboard = () => {
           }
         ]);
       }
-    } catch (e) {
-      console.error("Failed to load audit history:", e);
-    }
+    };
+
+    loadAudits();
   }, []);
+
+  const handleDownloadReport = async (item: AuditHistoryItem) => {
+    try {
+      setDownloadingTaskId(item.task_id);
+      toast({
+        title: "Downloading Report",
+        description: `Preparing PDF report for ${item.filename}...`,
+      });
+      const blob = await api.downloadReportBlob(item.task_id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${item.filename.replace(/\.[^/.]+$/, "")}_audit_report.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: "Download Complete",
+        description: "Report downloaded successfully.",
+      });
+    } catch (err) {
+      console.error("Failed to download report blob:", err);
+      toast({
+        title: "Download Failed",
+        description: "The PDF report is not yet generated or could not be retrieved.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingTaskId(null);
+    }
+  };
 
   const filteredItems = historyItems.filter(item =>
     item.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -182,15 +259,15 @@ export const Dashboard = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              toast({
-                                title: "Report Ready",
-                                description: `Downloading audit summary for ${item.filename}...`
-                              });
-                            }}
+                            disabled={downloadingTaskId === item.task_id}
+                            onClick={() => handleDownloadReport(item)}
                             className="h-8 text-xs gap-1.5 rounded-lg border-border text-foreground hover:bg-muted"
                           >
-                            <Download className="h-3 w-3" />
+                            {downloadingTaskId === item.task_id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Download className="h-3 w-3" />
+                            )}
                             <span>Report</span>
                           </Button>
                         )}
