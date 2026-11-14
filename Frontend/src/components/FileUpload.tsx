@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Upload, FileSpreadsheet, Shield, Lock, Trash2, Database,
-  ArrowRightLeft, Link2, AlertCircle
+  ArrowRightLeft, ArrowRight, Link2, AlertCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -609,9 +609,9 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                     onChange={handleFileSelect}
                     className="sr-only"
                   />
-                  <Button asChild variant="outline" size="default" className="cursor-pointer border-white/10 bg-[#121215] text-zinc-100 hover:bg-white/10 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]">
+                  <Button asChild variant="outline" size="default" className="cursor-pointer border-[#800000] bg-[#800000] text-white hover:bg-[#6b0000] dark:border-white dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 transition-all duration-150 rounded-xl px-6 py-2.5 shadow-sm min-h-[44px]">
                     <span className="text-xs font-semibold flex items-center gap-2">
-                      <Upload className="h-3.5 w-3.5 text-primary" />
+                      <Upload className="h-3.5 w-3.5 text-white dark:text-zinc-950" />
                       Browse Files to Stage
                     </span>
                   </Button>
@@ -622,12 +622,12 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                   variant="outline"
                   size="default"
                   onClick={() => setIsSnowflakeModalOpen(true)}
-                  className="cursor-pointer border-white/10 bg-[#121215] text-zinc-100 hover:bg-white/10 hover:border-white/20 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]"
+                  className="cursor-pointer border-stone-300 bg-stone-200/80 text-stone-800 hover:bg-stone-300 dark:border-white/10 dark:bg-[#121215] dark:text-zinc-100 dark:hover:bg-white/10 transition-colors duration-150 rounded-xl px-5 py-2.5 shadow-sm min-h-[44px]"
                 >
                   <span className="text-xs font-semibold flex items-center gap-2">
-                    <Database className="h-3.5 w-3.5 text-zinc-300" />
+                    <Database className="h-3.5 w-3.5 text-stone-600 dark:text-zinc-300" />
                     <span>Connect Snowflake Warehouse</span>
-                    <span className="px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-widest text-zinc-400 bg-white/[0.06] border border-white/10 rounded leading-none">
+                    <span className="px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-widest text-stone-600 bg-stone-300/80 border border-stone-300 dark:text-zinc-400 dark:bg-white/[0.06] dark:border-white/10 rounded leading-none">
                       Beta
                     </span>
                   </span>
@@ -638,8 +638,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             {/* Supported formats */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-6 text-xs">
               {['.csv', '.xlsx', '.parquet', '.json', '.tsv'].map((fmt) => (
-                <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#121215] text-zinc-300 font-mono text-[10px] font-medium rounded-full border border-white/10 shadow-2xs">
-                  <FileSpreadsheet className="h-3 w-3 text-primary" />
+                <span key={fmt} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-stone-200/80 text-stone-800 dark:bg-[#121215] dark:text-zinc-300 font-mono text-[10px] font-medium rounded-full border border-stone-300 dark:border-white/10 shadow-2xs">
+                  <FileSpreadsheet className="h-3 w-3 text-[#800000] dark:text-primary" />
                   {fmt}
                 </span>
               ))}
@@ -647,29 +647,29 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
             {/* Quick-Load Sample Datasets */}
             {!isProcessing && stagedFiles.length === 0 && (
-              <div className="pt-4 mt-4 border-t border-white/5 flex flex-col items-center gap-2">
-                <span className="text-xs font-sans font-medium text-muted-foreground">
+              <div className="pt-4 mt-4 border-t border-stone-200 dark:border-white/5 flex flex-col items-center gap-2">
+                <span className="text-xs font-sans font-medium text-stone-600 dark:text-muted-foreground">
                   Or load an instant sample ledger:
                 </span>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleLoadSample("sales_retail")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white border border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-800 hover:text-stone-950 bg-stone-200/90 hover:bg-stone-300 border border-stone-300 dark:text-zinc-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:hover:text-white dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
                   >
                     <span>E-Commerce Sales (CSV)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleLoadSample("clinical_vitals")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white border border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-800 hover:text-stone-950 bg-stone-200/90 hover:bg-stone-300 border border-stone-300 dark:text-zinc-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:hover:text-white dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
                   >
                     <span>Clinical Vitals (CSV)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleLoadSample("finance_budget")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-300 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white border border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-800 hover:text-stone-950 bg-stone-200/90 hover:bg-stone-300 border border-stone-300 dark:text-zinc-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:hover:text-white dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
                   >
                     <span>Department Budget (CSV)</span>
                   </button>
@@ -715,25 +715,25 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                   return (
                     <motion.div
                       key={`${file.name}-${file.size}-${file.lastModified}`}
-                      className="flex items-center justify-between p-3 rounded-xl bg-[#121215] border border-white/10 shadow-2xs hover:border-white/20 t-card-lift"
+                      className="flex items-center justify-between p-3 rounded-xl bg-stone-100 dark:bg-[#121215] border border-stone-200 dark:border-white/10 shadow-2xs hover:border-stone-300 dark:hover:border-white/20 t-card-lift"
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                        <div className="p-2 rounded-lg bg-[#800000]/10 text-[#800000] dark:bg-primary/10 dark:text-primary shrink-0">
                           <FileSpreadsheet className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-display font-semibold text-xs sm:text-sm text-white truncate max-w-[140px] sm:max-w-[320px]">
+                            <span className="font-display font-semibold text-xs sm:text-sm text-stone-900 dark:text-white truncate max-w-[140px] sm:max-w-[320px]">
                               {file.name}
                             </span>
-                            <span className="px-1.5 py-0.2 rounded bg-white/[0.06] text-[10px] font-mono text-zinc-300 uppercase">
+                            <span className="px-1.5 py-0.2 rounded bg-stone-200/80 text-[10px] font-mono text-stone-700 dark:bg-white/[0.06] dark:text-zinc-300 uppercase">
                               {ext}
                             </span>
                           </div>
-                          <span className="text-[11px] text-zinc-400 font-mono">
+                          <span className="text-[11px] text-stone-500 dark:text-zinc-400 font-mono">
                             {formatFileSize(file.size)}
                           </span>
                         </div>
@@ -775,8 +775,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                   : [];
 
                 return (
-                  <div className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 shadow-premium space-y-3.5">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
+                  <div className="p-4 rounded-2xl bg-stone-100/90 dark:bg-gradient-to-b dark:from-white/[0.04] dark:to-white/[0.01] border border-stone-200 dark:border-white/10 shadow-sm dark:shadow-premium space-y-3.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 dark:border-white/[0.06] pb-3">
                       <div className="flex items-center gap-2">
                         <div className="p-1.5 rounded-lg bg-stone-200 text-stone-800 border border-stone-300 dark:bg-white/[0.06] dark:text-zinc-300 dark:border-white/10">
                           <ArrowRightLeft className="h-4 w-4" />
@@ -1054,10 +1054,14 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       disabled={isDisabled}
                       className={cn(
                         "w-full min-h-[50px] rounded-2xl",
-                        isDisabled && "opacity-50 cursor-not-allowed bg-zinc-900 border-white/10 text-zinc-500 shadow-none"
+                        isDisabled && "opacity-50 cursor-not-allowed bg-stone-200 border-stone-300 text-stone-400 dark:bg-zinc-900 dark:border-white/10 dark:text-zinc-500 shadow-none"
                       )}
-                      icon={<FileSpreadsheet className={`h-4 w-4 shrink-0 ${isDisabled ? "text-zinc-500" : "text-zinc-950"}`} />}
-                      trailingIcon={<ArrowRightLeft className="h-3.5 w-3.5 text-zinc-950 stroke-[2.5]" />}
+                      icon={<FileSpreadsheet className={`h-4 w-4 shrink-0 ${isDisabled ? "text-stone-400 dark:text-zinc-500" : "text-white dark:text-zinc-950"}`} />}
+                      trailingIcon={
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[#800000] dark:bg-black dark:text-white transition-transform duration-200 group-hover:translate-x-0.5 shrink-0 shadow-xs">
+                          <ArrowRight className="h-3 w-3 stroke-[3]" />
+                        </span>
+                      }
                     >
                       <span className="truncate px-1.5 font-bold">{buttonLabel}</span>
                     </ShimmerActionButton>
@@ -1111,9 +1115,9 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
           </li>
         </ul>
 
-        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="pt-2 border-t border-stone-200 dark:border-white/10 flex items-center justify-between text-[11px] text-stone-600 dark:text-muted-foreground">
           <span>Enterprise privacy standards built-in</span>
-          <Link to="/privacy-policy" className="text-zinc-200 hover:text-white hover:underline font-medium">
+          <Link to="/privacy-policy" className="text-[#800000] hover:underline dark:text-zinc-200 dark:hover:text-white font-semibold">
             Read Security Architecture &rarr;
           </Link>
         </div>

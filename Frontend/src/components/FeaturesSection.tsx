@@ -41,12 +41,12 @@ export const FeaturesSection = () => {
   const healthScore = Math.round(((12 + approvedCount) / 16) * 100);
 
   return (
-    <section id="features" className="py-10 sm:py-14 bg-[#07080a] border-b border-white/[0.08] relative overflow-hidden text-zinc-100">
+    <section id="features" className="py-10 sm:py-14 bg-[#F5F2EB] border-b border-stone-300/80 dark:bg-[#07080a] dark:border-white/[0.08] relative overflow-hidden text-stone-900 dark:text-zinc-100">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center space-y-2.5 mb-6 sm:mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-200/80 border border-stone-300 text-stone-700 dark:bg-white/[0.05] dark:border-white/10 dark:text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
             <span>Transparency & Control</span>
           </div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-stone-900 dark:text-white tracking-[-0.02em] leading-tight">

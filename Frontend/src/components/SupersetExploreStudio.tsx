@@ -1197,7 +1197,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 <ShimmerActionButton
                   onClick={() => setMobileTab("chart")}
                   className="w-full h-10 text-xs justify-center"
-                  icon={<BarChart3 className="h-3.5 w-3.5 text-zinc-950" />}
+                  icon={<BarChart3 className="h-3.5 w-3.5 text-white dark:text-zinc-950" />}
                 >
                   <span>Apply & View Visual Chart</span>
                 </ShimmerActionButton>

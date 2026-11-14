@@ -314,12 +314,10 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         <button
                             type="button"
                             onClick={onProceed}
-                            className="group relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:via-teal-400 hover:to-emerald-300 text-zinc-950 shadow-[0_0_35px_-5px_rgba(16,185,129,0.5),inset_0_1px_0_rgba(255,255,255,0.7)] border border-emerald-300/60 transition-all duration-200 active:scale-[0.98] cursor-pointer"
+                            className="group relative inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-sm font-bold bg-[#800000] hover:bg-[#6b0000] text-white border border-[#800000] dark:bg-white dark:hover:bg-zinc-100 dark:text-black dark:border-white shadow-md transition-all duration-200 active:scale-[0.98] cursor-pointer"
                         >
                             <span>Proceed to Analysis</span>
-                            <div className="w-6 h-6 rounded-lg bg-black/15 flex items-center justify-center group-hover:translate-x-0.5 transition-transform">
-                                <ArrowRight className="w-3.5 h-3.5 text-zinc-950 stroke-[2.5]" />
-                            </div>
+                            <ArrowRight className="w-4 h-4 text-white dark:text-black stroke-[2.5] group-hover:translate-x-1 transition-transform" />
                         </button>
                     </div>
                 </div>
@@ -441,7 +439,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Filter by column or type..."
-                                    className="w-full h-8 pl-8 pr-3 text-xs rounded-lg bg-white dark:bg-zinc-950/70 border border-stone-300 dark:border-white/[0.08] text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 transition-all font-sans"
+                                    className="w-full h-8 pl-8 pr-3 text-xs rounded-lg bg-white dark:bg-zinc-950/70 border border-stone-300 dark:border-white/[0.08] text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#800000]/60 focus:ring-1 focus:ring-[#800000]/30 dark:focus:border-white/40 dark:focus:ring-white/20 transition-all font-sans"
                                 />
                                 {searchQuery && (
                                     <button
@@ -712,8 +710,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     </span>
                                 </div>
                             ) : (
-                                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm font-medium shadow-[0_0_15px_-4px_rgba(16,185,129,0.2)]">
-                                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-stone-200/80 border border-stone-300 text-stone-800 dark:bg-emerald-500/10 dark:border-emerald-500/25 dark:text-emerald-300 text-xs sm:text-sm font-medium shadow-xs">
+                                    <ShieldCheck className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                                     <span>All issues reviewed! Dataset is ready to be locked and analyzed.</span>
                                 </div>
                             )}
@@ -739,8 +737,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     onClick={handleLockAndProceed}
                                     disabled={loading !== null}
                                     loading={loading === 'lock'}
-                                    className="bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:via-teal-400 hover:to-emerald-300 text-zinc-950 shadow-[0_0_35px_-5px_rgba(16,185,129,0.5),inset_0_1px_0_rgba(255,255,255,0.7)] border-emerald-300/60"
-                                    trailingIcon={<ArrowRight className="w-3.5 h-3.5 text-zinc-950 stroke-[2.5]" />}
+                                    trailingIcon={<ArrowRight className="w-4 h-4 text-white dark:text-zinc-950 stroke-[2.5]" />}
                                 >
                                     <span>Lock & Proceed to Analysis</span>
                                 </ShimmerActionButton>
