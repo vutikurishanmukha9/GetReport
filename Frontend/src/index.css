@@ -299,6 +299,16 @@ Strictly dark theme only across all surfaces. All colors HSL.
     -webkit-tap-highlight-color: transparent;
   }
 
+  :root:not(.dark) select option {
+    background-color: #FAF8F5;
+    color: #1C1917;
+  }
+
+  .dark select option {
+    background-color: #0e1017;
+    color: #f1f5f9;
+  }
+
   body {
     @apply bg-background text-foreground antialiased font-sans;
     color: hsl(var(--foreground));
