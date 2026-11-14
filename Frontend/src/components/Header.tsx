@@ -13,6 +13,7 @@ import {
   ShieldCheck 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
@@ -86,12 +87,12 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
       }`}
     >
       <div className="max-w-5xl mx-auto pointer-events-auto">
-        {/* Clean Single-Border Pill Navigation in Raycast/Linear dark glass */}
+        {/* Clean Single-Border Pill Navigation in Raycast/Linear glass */}
         <div
-          className={`rounded-full bg-[#0c0d12]/85 backdrop-blur-xl px-3.5 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 border border-white/10 ${
+          className={`rounded-full bg-[#FAF8F5]/90 dark:bg-[#0c0d12]/85 backdrop-blur-xl px-3.5 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4 transition-all duration-300 border border-stone-300/80 dark:border-white/10 ${
             isScrolled
-              ? "shadow-[0_16px_40px_-10px_rgba(0,0,0,0.7)]"
-              : "shadow-[0_12px_32px_-10px_rgba(0,0,0,0.5)]"
+              ? "shadow-[0_16px_40px_-10px_rgba(0,0,0,0.15)] dark:shadow-[0_16px_40px_-10px_rgba(0,0,0,0.7)]"
+              : "shadow-[0_12px_32px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_12px_32px_-10px_rgba(0,0,0,0.5)]"
           }`}
         >
           {/* Left Pod: Brand Identity */}
@@ -99,28 +100,28 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
             <Link 
               to="/" 
               onClick={onReset} 
-              className="flex items-center gap-2.5 group shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2"
+              className="flex items-center gap-2.5 group shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#800000] dark:focus-visible:ring-white focus-visible:ring-offset-2"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-black shadow-md shadow-black/40 transition-transform duration-200 group-hover:scale-105">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#800000] text-white dark:bg-white dark:text-black shadow-md shadow-black/20 dark:shadow-black/40 transition-transform duration-200 group-hover:scale-105">
                 <FileSpreadsheet className="h-4 w-4" />
               </div>
-              <span className="text-base font-hero font-extrabold tracking-tight text-white group-hover:text-slate-300 transition-colors">
+              <span className="text-base font-hero font-extrabold tracking-tight text-stone-900 dark:text-white group-hover:text-stone-700 dark:group-hover:text-slate-300 transition-colors">
                 GetReport
               </span>
             </Link>
           </div>
 
           {/* Center Pod: High-Contrast Segmented Navigator Track */}
-          <nav className="hidden md:flex items-center p-1 rounded-full bg-[#12141c]/90 border border-white/10 gap-0.5">
+          <nav className="hidden md:flex items-center p-1 rounded-full bg-stone-200/60 dark:bg-[#12141c]/90 border border-stone-300/80 dark:border-white/10 gap-0.5">
             {navLinks.map(({ to, label }) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `px-3.5 py-1.5 rounded-full text-[13px] font-hero font-medium transition-all duration-150 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                  `px-3.5 py-1.5 rounded-full text-[13px] font-hero font-medium transition-all duration-150 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#800000] dark:focus-visible:ring-white ${
                     isActive
-                      ? "bg-white/[0.12] text-white font-bold shadow-xs border border-white/15"
-                      : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
+                      ? "bg-[#FAF8F5] text-stone-900 font-bold shadow-xs border border-stone-300 dark:bg-white/[0.12] dark:text-white dark:border-white/15"
+                      : "text-stone-600 hover:text-stone-900 hover:bg-stone-300/40 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/[0.06]"
                   }`
                 }
               >
@@ -131,14 +132,16 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
 
           {/* Right Pod: Action Console */}
           <div className="flex items-center gap-2">
+            <ThemeToggle />
+
             {showReset ? (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onReset}
-                className="h-9 px-3.5 rounded-xl border-white/15 bg-[#16171b] text-slate-200 hover:bg-[#1a1d29] hover:text-white hover:border-white/25 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-hero font-semibold text-xs gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="h-9 px-3.5 rounded-xl border-stone-300 bg-[#FAF8F5] text-stone-800 hover:bg-stone-200/70 hover:text-stone-950 dark:border-white/15 dark:bg-[#16171b] dark:text-slate-200 dark:hover:bg-[#1a1d29] dark:hover:text-white dark:hover:border-white/25 transition-all duration-150 hover:-translate-y-0.5 active:scale-95 font-hero font-semibold text-xs gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#800000] dark:focus-visible:ring-white"
               >
-                <RotateCcw className="h-3.5 w-3.5 text-slate-300" />
+                <RotateCcw className="h-3.5 w-3.5 text-stone-600 dark:text-slate-300" />
                 <span>Start Over</span>
               </Button>
             ) : location.pathname !== "/workspace" ? (
@@ -146,13 +149,11 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                 asChild
                 variant="launch"
                 size="sm"
-                className="h-9 px-3.5 sm:px-4 rounded-xl group font-semibold text-xs gap-2"
+                className="h-9 px-4 rounded-xl group font-semibold text-xs gap-1.5 shadow-sm"
               >
                 <Link to="/workspace">
                   <span>Start Free</span>
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/10 text-black transition-transform duration-200 group-hover:translate-x-0.5 shrink-0">
-                    <ArrowRight className="h-3 w-3" />
-                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-white dark:text-zinc-950 transition-transform duration-200 ease-out group-hover:translate-x-1 shrink-0" />
                 </Link>
               </Button>
             ) : null}
@@ -164,7 +165,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9 rounded-xl bg-[#16171b] hover:bg-[#1a1d29] border-white/10 text-slate-200"
+                      className="h-9 w-9 rounded-xl bg-[#FAF8F5] hover:bg-stone-200/70 border-stone-300 text-stone-800 dark:bg-[#16171b] dark:hover:bg-[#1a1d29] dark:border-white/10 dark:text-slate-200"
                       aria-label="Open Navigation Menu"
                     >
                       <Menu className="h-4 w-4" />
@@ -172,23 +173,26 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                   </SheetTrigger>
                   <SheetContent
                     side="right"
-                    className="w-[310px] sm:w-[350px] rounded-l-3xl border-l border-white/10 bg-[#0a0b0e]/95 backdrop-blur-3xl p-5 sm:p-6 flex flex-col justify-between shadow-2xl text-white"
+                    className="w-[310px] sm:w-[350px] rounded-l-3xl border-l border-stone-300/80 bg-[#FAF8F5]/95 backdrop-blur-3xl p-5 sm:p-6 flex flex-col justify-between shadow-2xl text-stone-900 dark:border-white/10 dark:bg-[#0a0b0e]/95 dark:text-white"
                   >
                     <div>
                       {/* Drawer Brand Header */}
-                      <div className="flex items-center gap-3 pb-5 border-b border-white/10">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white text-black shadow-md shadow-black/50">
-                          <FileSpreadsheet className="h-4.5 w-4.5" />
+                      <div className="flex items-center justify-between pb-5 border-b border-stone-300/80 dark:border-white/10">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#800000] text-white dark:bg-white dark:text-black shadow-md shadow-black/20 dark:shadow-black/50">
+                            <FileSpreadsheet className="h-4.5 w-4.5" />
+                          </div>
+                          <div>
+                            <SheetTitle className="text-base font-display font-black text-stone-900 dark:text-white leading-none">
+                              GetReport
+                            </SheetTitle>
+                            <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-1">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
+                              100% Private & Secure
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <SheetTitle className="text-base font-display font-black text-white leading-none">
-                            GetReport
-                          </SheetTitle>
-                          <span className="text-[10px] font-mono text-emerald-400 font-semibold flex items-center gap-1 mt-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            100% Private & Secure
-                          </span>
-                        </div>
+                        <ThemeToggle />
                       </div>
 
                       {/* Tactile Native App Menu Cards */}
@@ -210,29 +214,29 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                               to={to}
                               className={`p-3 rounded-2xl border transition-all duration-150 flex items-center justify-between active:scale-[0.98] ${
                                 isActive
-                                  ? "bg-white/[0.1] border-white/20 text-white shadow-xs"
-                                  : "bg-[#12141c]/60 hover:bg-[#181b26] border-white/5 text-slate-300"
+                                  ? "bg-[#800000]/10 border-[#800000]/30 text-stone-950 dark:bg-white/[0.1] dark:border-white/20 dark:text-white shadow-xs"
+                                  : "bg-stone-100 hover:bg-stone-200/70 border-stone-300/70 text-stone-700 dark:bg-[#12141c]/60 dark:hover:bg-[#181b26] dark:border-white/5 dark:text-slate-300"
                               }`}
                               onClick={() => setMobileMenuOpen(false)}
                             >
                               <div className="flex items-center gap-3">
                                 <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${
                                   isActive
-                                    ? "bg-white text-black shadow-xs"
-                                    : "bg-[#181b26] text-slate-300 border border-white/10 shadow-2xs"
+                                    ? "bg-[#800000] text-white dark:bg-white dark:text-black shadow-xs"
+                                    : "bg-stone-200 text-stone-800 dark:bg-[#181b26] dark:text-slate-300 border border-stone-300 dark:border-white/10 shadow-2xs"
                                 }`}>
                                   <NavIcon className="h-4 w-4" />
                                 </div>
                                 <div className="text-left">
-                                  <span className="text-xs font-display font-bold block leading-tight text-white">
+                                  <span className="text-xs font-display font-bold block leading-tight text-stone-900 dark:text-white">
                                     {label}
                                   </span>
-                                  <span className="text-[10px] text-slate-400 font-sans block leading-tight mt-0.5">
+                                  <span className="text-[10px] text-stone-500 dark:text-slate-400 font-sans block leading-tight mt-0.5">
                                     {desc}
                                   </span>
                                 </div>
                               </div>
-                              <span className="text-slate-400 font-mono text-xs pr-1">→</span>
+                              <span className="text-stone-400 dark:text-slate-400 font-mono text-xs pr-1">→</span>
                             </Link>
                           );
                         })}
@@ -240,19 +244,19 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                     </div>
 
                     {/* Bottom Action Pod */}
-                    <div className="pt-4 border-t border-white/10 space-y-2.5">
+                    <div className="pt-4 border-t border-stone-300/80 dark:border-white/10 space-y-2.5">
                       <Link
                         to="/workspace"
                         className="w-full block"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <button className="w-full h-12 rounded-xl bg-white hover:bg-slate-100 text-black font-display font-bold text-sm shadow-[0_4px_16px_-2px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer">
+                        <button className="w-full h-12 rounded-xl bg-[#800000] hover:bg-[#6b0000] text-white dark:bg-white dark:hover:bg-slate-100 dark:text-black font-display font-bold text-sm shadow-md border border-[#800000] dark:border-white active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer">
                           <span>Launch Workspace</span>
-                          <ArrowRight className="h-4 w-4 text-black" />
+                          <ArrowRight className="h-4 w-4 text-white dark:text-black" />
                         </button>
                       </Link>
-                      <div className="flex items-center justify-center gap-1.5 text-[10px] font-mono text-slate-400">
-                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                      <div className="flex items-center justify-center gap-1.5 text-[10px] font-mono text-stone-500 dark:text-slate-400">
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                         <span>100% Private • Files never saved to disk</span>
                       </div>
                     </div>

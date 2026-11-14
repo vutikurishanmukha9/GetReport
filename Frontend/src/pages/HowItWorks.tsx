@@ -192,22 +192,22 @@ export const HowItWorks = () => {
   const activeStep = pipelineSteps[activeStepIndex];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
+    <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-zinc-100 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
       <div className="hero-grain-overlay" />
       <Header onReset={() => {}} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28">
         {/* Header */}
-        <div className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
+        <div className="border-b border-stone-300/80 bg-[#FAF8F5]/90 dark:border-white/[0.08] dark:bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
             
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-foreground tracking-[-0.02em] leading-[1.12]">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-stone-900 dark:text-foreground tracking-[-0.02em] leading-[1.12]">
               Transparent data pipeline.
             </h1>
             
-            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
+            <p className="text-sm sm:text-base text-stone-600 dark:text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
               From messy spreadsheet fields to board-level audit reports. We expose every decision, every threshold, and every mathematical operation step-by-step.
             </p>
           </div>
@@ -217,7 +217,7 @@ export const HowItWorks = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl space-y-6 sm:space-y-8">
           
           {/* Step Pill Selector Bar */}
-          <div className="flex overflow-x-auto gap-2 sm:gap-2.5 pb-2 scrollbar-none border-b border-border/60">
+          <div className="flex overflow-x-auto gap-2 sm:gap-2.5 pb-2 scrollbar-none border-b border-stone-300 dark:border-border/60">
             {pipelineSteps.map((step, idx) => {
               const Icon = step.icon;
               const isActive = idx === activeStepIndex;
@@ -228,11 +228,11 @@ export const HowItWorks = () => {
                   onClick={() => setActiveStepIndex(idx)}
                   className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full font-mono text-xs transition-all duration-150 shrink-0 cursor-pointer border ${
                     isActive
-                      ? "bg-white text-zinc-950 border-white shadow-[0_2px_14px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)] font-bold scale-[1.02]"
-                      : "bg-[#0c0d12] hover:bg-white/[0.06] text-zinc-400 hover:text-white border-white/10 hover:border-white/20"
+                      ? "bg-[#800000] text-white border-[#800000] shadow-sm font-bold scale-[1.02] dark:bg-white dark:text-zinc-950 dark:border-white dark:shadow-[0_2px_14px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)]"
+                      : "bg-[#FAF8F5] text-stone-700 hover:bg-[#EDE8DE] hover:text-stone-900 border-stone-300 dark:bg-[#0c0d12] dark:text-zinc-400 dark:hover:text-white dark:border-white/10 dark:hover:border-white/20"
                   }`}
                 >
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? "bg-white/20" : "bg-muted"}`}>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? "bg-white/25 text-white dark:bg-black/10 dark:text-zinc-950" : "bg-stone-200 text-stone-700 dark:bg-white/10 dark:text-zinc-400"}`}>
                     {step.stepNum}
                   </span>
                   <Icon className="h-4 w-4" />
@@ -247,35 +247,35 @@ export const HowItWorks = () => {
             
             {/* Left Column: Stage Details & Specs (Col 1-5) */}
             <div className="lg:col-span-5 space-y-4">
-              <Card className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-8 shadow-tactile space-y-6 backdrop-blur-xl">
+              <Card className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-8 shadow-sm dark:shadow-tactile space-y-6 backdrop-blur-xl">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-[10px] font-mono font-bold bg-primary/10 text-primary border-primary/20 uppercase tracking-wider">
+                    <Badge variant="outline" className="text-[10px] font-mono font-bold bg-[#800000]/10 text-[#800000] border-[#800000]/25 dark:bg-primary/10 dark:text-primary dark:border-primary/20 uppercase tracking-wider">
                       {activeStep.badge}
                     </Badge>
-                    <span className="font-mono text-xs text-muted-foreground">
+                    <span className="font-mono text-xs text-stone-600 dark:text-muted-foreground">
                       Stage {activeStep.stepNum} of 05
                     </span>
                   </div>
 
-                  <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground">
+                  <h2 className="text-xl sm:text-2xl font-display font-bold text-stone-900 dark:text-foreground">
                     {activeStep.title}
                   </h2>
 
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-sans">
+                  <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground leading-relaxed font-sans">
                     {activeStep.fullDesc}
                   </p>
                 </div>
 
                 {/* Architecture Specifications */}
-                <div className="border-t border-border/60 pt-3 space-y-2 font-mono text-xs">
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold block">
+                <div className="border-t border-stone-200 dark:border-border/60 pt-3 space-y-2 font-mono text-xs">
+                  <span className="text-[10px] text-stone-500 dark:text-muted-foreground uppercase tracking-wider font-bold block">
                     Execution Parameters
                   </span>
                   {activeStep.specs.map((spec, sIdx) => (
-                    <div key={sIdx} className="flex justify-between items-center py-0.5 border-b border-border/40 last:border-b-0 text-[11px]">
-                      <span className="text-muted-foreground">{spec.label}:</span>
-                      <span className="font-semibold text-foreground">{spec.value}</span>
+                    <div key={sIdx} className="flex justify-between items-center py-1 border-b border-stone-200 dark:border-border/40 last:border-b-0 text-[11px]">
+                      <span className="text-stone-600 dark:text-muted-foreground">{spec.label}:</span>
+                      <span className="font-semibold text-stone-900 dark:text-foreground">{spec.value}</span>
                     </div>
                   ))}
                 </div>
@@ -308,34 +308,36 @@ export const HowItWorks = () => {
             <div className="lg:col-span-7 space-y-4">
               
               {/* Code Terminal Mock */}
-              <Card className="border border-white/10 bg-[#08090d] text-zinc-100 rounded-3xl shadow-tactile overflow-hidden font-mono text-xs">
-                <CardHeader className="bg-white/[0.02] border-b border-white/[0.08] px-5 py-3.5 flex flex-row items-center justify-between">
+              <Card className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#08090d] text-stone-900 dark:text-zinc-100 rounded-3xl shadow-sm dark:shadow-tactile overflow-hidden font-mono text-xs">
+                <CardHeader className="bg-stone-100/90 border-b border-stone-200 dark:bg-white/[0.02] dark:border-white/[0.08] px-5 py-3.5 flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Code2 className="h-3.5 w-3.5 text-zinc-400" />
-                    <span className="text-[11px] text-zinc-300 font-bold ml-0.5">engine_pipeline.py</span>
+                    <Code2 className="h-3.5 w-3.5 text-stone-500 dark:text-zinc-400" />
+                    <span className="text-[11px] text-stone-800 dark:text-zinc-300 font-bold ml-0.5">
+                      {activeStep.codeLanguage === "json" ? "rag_payload.json" : "engine_pipeline.py"}
+                    </span>
                   </div>
-                  <Badge variant="outline" className="text-[10px] bg-zinc-800 text-zinc-300 border-zinc-700">
+                  <Badge variant="outline" className="text-[10px] bg-stone-200 text-stone-800 border-stone-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 font-semibold">
                     STAGE_{activeStep.stepNum}_EXEC
                   </Badge>
                 </CardHeader>
-                <CardContent className="p-4 sm:p-5 overflow-x-auto">
-                  <pre className="text-[11px] sm:text-xs leading-relaxed text-emerald-400 font-mono">
+                <CardContent className="p-4 sm:p-5 overflow-x-auto bg-[#EDE8DE]/70 dark:bg-black/60">
+                  <pre className="text-[11px] sm:text-xs leading-relaxed text-stone-900 dark:text-slate-200 font-mono font-medium">
                     <code>{activeStep.codeSnippet}</code>
                   </pre>
                 </CardContent>
               </Card>
 
               {/* Reasoning Logs Terminal */}
-              <Card className="border border-border bg-card rounded-2xl p-4 sm:p-5 shadow-premium space-y-2.5 font-mono text-xs">
-                <div className="flex items-center gap-2 text-foreground font-semibold border-b border-border/60 pb-2">
-                  <Terminal className="h-4 w-4 text-primary" />
+              <Card className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12] rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-tactile space-y-2.5 font-mono text-xs">
+                <div className="flex items-center gap-2 text-stone-900 dark:text-foreground font-semibold border-b border-stone-200 dark:border-border/60 pb-2">
+                  <Terminal className="h-4 w-4 text-[#800000] dark:text-primary" />
                   <span>Why-I-Did-X Transparency Logs</span>
                 </div>
                 <div className="space-y-1.5">
                   {activeStep.reasoningLogs.map((log, lIdx) => (
-                    <div key={lIdx} className="flex items-start gap-2 text-muted-foreground text-[11px]">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span className="text-foreground">{log}</span>
+                    <div key={lIdx} className="flex items-start gap-2 text-stone-700 dark:text-muted-foreground text-[11px]">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <span className="text-stone-900 dark:text-foreground leading-relaxed">{log}</span>
                     </div>
                   ))}
                 </div>
@@ -348,45 +350,45 @@ export const HowItWorks = () => {
 
         {/* Section 2: Pipeline Invariants Guarantee */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl">
-          <div className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-10 shadow-tactile space-y-8 backdrop-blur-xl">
+          <div className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-10 shadow-sm dark:shadow-tactile space-y-8 backdrop-blur-xl">
             <div className="text-center max-w-2xl mx-auto space-y-1.5">
-              <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground tracking-[-0.015em]">
-                Architectural invariants & safety guarantees
+              <h2 className="text-xl sm:text-2xl font-display font-bold text-stone-900 dark:text-foreground tracking-[-0.015em]">
+                Architectural invariants &amp; safety guarantees
               </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground font-sans">
+              <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground font-sans">
                 Every calculation in GetReport adheres to 4 immutable engineering principles.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs">
-              <div className="p-4 rounded-xl bg-muted/20 border border-border/60 space-y-1.5">
-                <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                <h3 className="font-bold text-foreground font-sans text-xs sm:text-sm">Zero Disk Storage</h3>
-                <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
+              <div className="p-4 rounded-xl bg-stone-100/90 border border-stone-200/90 dark:bg-white/[0.02] dark:border-white/5 space-y-2">
+                <ShieldCheck className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
+                <h3 className="font-bold text-stone-900 dark:text-foreground font-sans text-xs sm:text-sm">Zero Disk Storage</h3>
+                <p className="text-[11px] text-stone-600 dark:text-muted-foreground font-sans leading-relaxed">
                   Dataframe records exist solely in RAM buffers and are wiped immediately upon session reset.
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-muted/20 border border-border/60 space-y-1.5">
-                <RefreshCw className="h-5 w-5 text-primary" />
-                <h3 className="font-bold text-foreground font-sans text-xs sm:text-sm">Deterministic Seeds</h3>
-                <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
+              <div className="p-4 rounded-xl bg-stone-100/90 border border-stone-200/90 dark:bg-white/[0.02] dark:border-white/5 space-y-2">
+                <RefreshCw className="h-5 w-5 text-blue-700 dark:text-blue-400" />
+                <h3 className="font-bold text-stone-900 dark:text-foreground font-sans text-xs sm:text-sm">Deterministic Seeds</h3>
+                <p className="text-[11px] text-stone-600 dark:text-muted-foreground font-sans leading-relaxed">
                   Statistical sample approximations use fixed random seeds to ensure reproducible audit scores.
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-muted/20 border border-border/60 space-y-1.5">
-                <Layers className="h-5 w-5 text-zinc-300" />
-                <h3 className="font-bold text-foreground font-sans text-xs sm:text-sm">Reversible DAGs</h3>
-                <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
+              <div className="p-4 rounded-xl bg-stone-100/90 border border-stone-200/90 dark:bg-white/[0.02] dark:border-white/5 space-y-2">
+                <Layers className="h-5 w-5 text-purple-700 dark:text-purple-400" />
+                <h3 className="font-bold text-stone-900 dark:text-foreground font-sans text-xs sm:text-sm">Reversible DAGs</h3>
+                <p className="text-[11px] text-stone-600 dark:text-muted-foreground font-sans leading-relaxed">
                   Every Issue Ledger transformation records inverse operations so you can inspect raw vs remediated states.
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-muted/20 border border-border/60 space-y-1.5">
-                <Cpu className="h-5 w-5 text-primary" />
-                <h3 className="font-bold text-foreground font-sans text-xs sm:text-sm">Confidential RAG</h3>
-                <p className="text-[11px] text-muted-foreground font-sans leading-relaxed">
+              <div className="p-4 rounded-xl bg-stone-100/90 border border-stone-200/90 dark:bg-white/[0.02] dark:border-white/5 space-y-2">
+                <Cpu className="h-5 w-5 text-amber-700 dark:text-amber-400" />
+                <h3 className="font-bold text-stone-900 dark:text-foreground font-sans text-xs sm:text-sm">Confidential RAG</h3>
+                <p className="text-[11px] text-stone-600 dark:text-muted-foreground font-sans leading-relaxed">
                   LLMs receive only aggregated mathematical metrics (mean, count, VIF) and never raw patient/customer rows.
                 </p>
               </div>

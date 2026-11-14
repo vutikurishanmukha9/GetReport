@@ -180,6 +180,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
     setPrivateKeyFileName(file.name);
     const reader = new FileReader();
     reader.onload = (event) => {
+      // SAFETY: FileReader.readAsText produces string result on successful read
       const content = event.target?.result as string;
       setPrivateKeyPem(content);
       toast({

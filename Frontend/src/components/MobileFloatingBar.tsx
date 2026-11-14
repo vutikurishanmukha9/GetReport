@@ -36,36 +36,36 @@ export const MobileFloatingBar = () => {
           : "translate-y-16 opacity-0 scale-95 pointer-events-none"
       }`}
     >
-      {/* Double-Bezel Hardware Architecture in Obsidian Dark */}
-      <div className="pointer-events-auto p-1 rounded-full bg-white/[0.04] backdrop-blur-2xl ring-1 ring-white/10 shadow-[0_20px_48px_-10px_rgba(0,0,0,0.8),0_4px_16px_rgba(0,0,0,0.4)]">
-        <div className="rounded-full bg-[#0c0d12]/95 backdrop-blur-xl border border-white/10 px-3.5 py-1.5 flex items-center justify-between gap-3">
+      {/* Double-Bezel Hardware Architecture (Dual-Mode) */}
+      <div className="pointer-events-auto p-1 rounded-full bg-stone-200/40 dark:bg-white/[0.04] backdrop-blur-2xl ring-1 ring-stone-300 dark:ring-white/10 shadow-lg dark:shadow-[0_20px_48px_-10px_rgba(0,0,0,0.8),0_4px_16px_rgba(0,0,0,0.4)]">
+        <div className="rounded-full bg-[#FAF8F5]/95 backdrop-blur-xl border border-stone-300/80 dark:bg-[#0c0d12]/95 dark:border-white/10 px-3.5 py-1.5 flex items-center justify-between gap-3">
           
           {/* Left Pod: Brand Identity & Privacy Indicator */}
           <Link to="/" className="flex items-center gap-2.5 min-w-0 group cursor-pointer">
-            <div className="h-9 w-9 rounded-xl bg-white/[0.06] border border-white/10 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200">
-              <FileSpreadsheet className="h-4 w-4 text-white" />
+            <div className="h-9 w-9 rounded-xl bg-[#800000] text-white dark:bg-white dark:text-black flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200 shadow-sm">
+              <FileSpreadsheet className="h-4 w-4" />
             </div>
             <div className="text-left leading-tight min-w-0">
-              <span className="text-xs font-display font-black text-white tracking-tight block truncate">
+              <span className="text-xs font-display font-black text-stone-900 dark:text-white tracking-tight block truncate">
                 GetReport
               </span>
-              <span className="text-[10px] font-mono text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
                 100% Private
               </span>
             </div>
           </Link>
 
-          {/* Right Pod: Solid White Primary CTA Button with 44px min touch target */}
+          {/* Right Pod: Primary CTA Button with 44px min touch target */}
           <Button
             asChild
             variant="launch"
             size="sm"
-            className="shrink-0 min-h-[44px] h-10 px-4 rounded-full shadow-[0_2px_12px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)]"
+            className="shrink-0 min-h-[44px] h-10 px-4 rounded-full shadow-sm"
           >
             <Link to="/workspace">
               <span>Start Free</span>
-              <ArrowRight className="h-3.5 w-3.5 text-black" />
+              <ArrowRight className="h-3.5 w-3.5 text-white dark:text-black" />
             </Link>
           </Button>
 

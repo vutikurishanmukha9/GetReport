@@ -57,6 +57,21 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // First-Class Semantic Brand & Light Mode Palette Tokens
+        maroon: {
+          DEFAULT: "#800000",
+          hover: "#6b0000",
+          active: "#550000",
+          light: "#990000",
+          subtle: "rgba(128, 0, 0, 0.08)",
+        },
+        beige: {
+          canvas: "#F5F2EB",  // Main light canvas background
+          surface: "#FAF8F5", // Elevated cards / elevated pods
+          sand: "#EDE8DE",    // Recessed secondary pods
+          border: "#DCD6C9",  // Hairline borders
+          muted: "#EAE5DB",   // Muted surfaces
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -92,11 +107,10 @@ export default {
         sans: ["'Plus Jakarta Sans'", "'Mont'", "Inter", "system-ui", "-apple-system", "sans-serif"],
         display: ["'Plus Jakarta Sans'", "'Mont'", "sans-serif"],
         hero: ["'Plus Jakarta Sans'", "system-ui", "-apple-system", "sans-serif"],
-        editorial: ["'Instrument Serif'", "Georgia", "serif"],
+        editorial: ["'Plus Jakarta Sans'", "'Mont'", "sans-serif"],
         heavy: ["'Mont Heavy'", "'Mont'", "sans-serif"],
         mono: ["'JetBrains Mono'", "monospace"],
         outfit: ["'Plus Jakarta Sans'", "'Mont'", "sans-serif"],
-        cursive: ["'Alex Brush'", "'Satisfy'", "'Great Vibes'", "'Dancing Script'", "'Segoe Script'", "cursive"],
       },
     },
   },
