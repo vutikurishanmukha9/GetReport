@@ -1059,7 +1059,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       icon={<FileSpreadsheet className={`h-4 w-4 shrink-0 ${isDisabled ? "text-stone-400 dark:text-zinc-500" : "text-white dark:text-zinc-950"}`} />}
                       trailingIcon={
                         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[#800000] dark:bg-black dark:text-white transition-transform duration-200 group-hover:translate-x-0.5 shrink-0 shadow-xs">
-                          <ArrowRight className="h-3 w-3 stroke-[3]" />
+                          <ArrowRight className="!h-3 !w-3 stroke-[3] text-[#800000] dark:text-white" />
                         </span>
                       }
                     >
