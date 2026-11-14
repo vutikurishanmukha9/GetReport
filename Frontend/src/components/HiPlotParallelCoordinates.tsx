@@ -330,21 +330,21 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
   const percentBrushed = Math.round((filteredIndices.size / Math.max(datapoints.length, 1)) * 100);
 
   return (
-    <div className="w-full bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl space-y-4">
+    <div className="w-full bg-[#FAF8F5] border border-stone-300 dark:bg-slate-900 dark:border-slate-800 rounded-xl p-5 shadow-sm dark:shadow-2xl space-y-4">
       {/* Top Header & HUD Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-200 dark:border-slate-800/80 pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white/[0.05] border border-white/10 rounded-lg text-zinc-300">
+          <div className="p-2 bg-stone-100 border border-stone-200 rounded-lg text-stone-700 dark:bg-white/[0.05] dark:border-white/10 dark:text-zinc-300">
             <Sliders className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-white tracking-wide flex items-center gap-2">
+            <h3 className="text-base font-semibold text-stone-900 dark:text-white tracking-wide flex items-center gap-2">
               HiPlot Multidimensional Explorer
-              <span className="text-xs font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
+              <span className="text-xs font-normal text-stone-600 bg-stone-200 px-2 py-0.5 rounded-full border border-stone-300 dark:text-slate-400 dark:bg-slate-800 dark:border-slate-700">
                 Parallel Coordinates
               </span>
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-stone-600 dark:text-slate-400">
               Drag on any vertical axis to brush and isolate multidimensional sub-populations in real-time.
             </p>
           </div>
@@ -352,27 +352,27 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
 
         {/* HUD Statistics & Actions */}
         <div className="flex items-center gap-2.5 text-xs flex-wrap">
-          <div className="bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 rounded-lg text-slate-300 flex items-center gap-2">
-            <Eye className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="bg-stone-100 border border-stone-200 px-3 py-1.5 rounded-lg text-stone-700 dark:bg-slate-800/80 dark:border-slate-700/80 dark:text-slate-300 flex items-center gap-2">
+            <Eye className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>
-              Brushed: <strong className="text-white font-mono">{filteredIndices.size}</strong> / {datapoints.length} ({percentBrushed}%)
+              Brushed: <strong className="text-stone-900 dark:text-white font-mono">{filteredIndices.size}</strong> / {datapoints.length} ({percentBrushed}%)
             </span>
           </div>
 
           {/* Color By Selector */}
           {numericDims.length > 0 && (
-            <div className="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/80 px-2.5 py-1 rounded-lg">
-              <Layers className="w-3.5 h-3.5 text-zinc-300" />
-              <span className="text-slate-400">Color:</span>
+            <div className="flex items-center gap-1.5 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-lg text-stone-700 dark:bg-slate-800/80 dark:border-slate-700/80 dark:text-slate-300">
+              <Layers className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-300" />
+              <span className="text-stone-500 dark:text-slate-400">Color:</span>
               <select
                 id="hiplot-color-column-select"
                 aria-label="Color lines by dimension"
                 value={colorColumn}
                 onChange={e => setColorColumn(e.target.value)}
-                className="bg-transparent text-slate-200 border-none outline-none cursor-pointer text-xs"
+                className="bg-transparent text-stone-800 dark:text-slate-200 border-none outline-none cursor-pointer text-xs"
               >
                 {numericDims.map(d => (
-                  <option key={d.name} value={d.name} className="bg-slate-900 text-white">
+                  <option key={d.name} value={d.name} className="bg-white text-stone-900 dark:bg-slate-900 dark:text-white">
                     {d.display_name}
                   </option>
                 ))}
@@ -386,10 +386,10 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
               variant="outline"
               size="sm"
               onClick={resetAllBrushes}
-              className="h-8 gap-1.5 border-white/10 hover:border-amber-500/40 hover:bg-amber-500/10 text-zinc-300 hover:text-amber-200"
+              className="h-8 gap-1.5 border-stone-300 bg-white hover:bg-stone-100 text-stone-700 dark:border-white/10 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10 dark:text-zinc-300 dark:hover:text-amber-200"
               title="Reset all axis brushes"
             >
-              <RefreshCw className="w-3 h-3 text-amber-400" />
+              <RefreshCw className="w-3 h-3 text-amber-500 dark:text-amber-400" />
               Reset
             </Button>
           )}
@@ -400,10 +400,10 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
             size="sm"
             onClick={handleExportBrushedCsv}
             disabled={filteredIndices.size === 0}
-            className="h-8 gap-1.5 border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/10 text-zinc-200 hover:text-emerald-200"
+            className="h-8 gap-1.5 border-stone-300 bg-white hover:bg-stone-100 text-stone-700 dark:border-white/10 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10 dark:text-zinc-200 dark:hover:text-emerald-200"
             title="Download brushed records as CSV"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-400" />
+            <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             Export CSV ({filteredIndices.size})
           </Button>
 

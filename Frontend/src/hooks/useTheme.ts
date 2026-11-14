@@ -43,6 +43,21 @@ export function applyTheme(theme: Theme): void {
   }
 }
 
+/**
+ * Transitions the theme smoothly using the View Transitions API if supported,
+ * falling back to synchronous atomic application without main-thread jank.
+ */
+function transitionTheme(nextTheme: Theme): void {
+  if (typeof document !== "undefined" && "startViewTransition" in document) {
+    // @ts-ignore - Document.startViewTransition is supported in modern browsers
+    document.startViewTransition(() => {
+      applyTheme(nextTheme);
+    });
+  } else {
+    applyTheme(nextTheme);
+  }
+}
+
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
@@ -61,9 +76,15 @@ export function useTheme() {
     const handleCustomChange = (event: Event) => {
       // SAFETY: getreport-theme-change custom event is dispatched with CustomEvent<Theme> payload
       const customEvent = event as CustomEvent<Theme>;
-      if (customEvent.detail === "light" || customEvent.detail === "dark") {
-        setThemeState(customEvent.detail);
-        applyTheme(customEvent.detail);
+      const nextTheme = customEvent.detail;
+      if (nextTheme === "light" || nextTheme === "dark") {
+        setThemeState((current) => {
+          if (current !== nextTheme) {
+            applyTheme(nextTheme);
+            return nextTheme;
+          }
+          return current;
+        });
       }
     };
 
@@ -74,11 +95,11 @@ export function useTheme() {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener(THEME_CHANGE_EVENT, handleCustomChange);
     };
-  }, [theme]);
+  }, []);
 
   const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
-    applyTheme(nextTheme);
+    transitionTheme(nextTheme);
     try {
       window.dispatchEvent(
         new CustomEvent<Theme>(THEME_CHANGE_EVENT, { detail: nextTheme })
@@ -91,7 +112,7 @@ export function useTheme() {
   const toggleTheme = useCallback(() => {
     setThemeState((current) => {
       const nextTheme: Theme = current === "light" ? "dark" : "light";
-      applyTheme(nextTheme);
+      transitionTheme(nextTheme);
       try {
         window.dispatchEvent(
           new CustomEvent<Theme>(THEME_CHANGE_EVENT, { detail: nextTheme })

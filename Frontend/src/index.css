@@ -109,6 +109,15 @@
   pointer-events: none;
   opacity: 0.035;
   z-index: 1;
+  transform: translateZ(0);
+  will-change: opacity;
+}
+
+/* Hardware-Accelerated Native View Transitions (Smooth 150ms Theme Crossfade) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 150ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* 

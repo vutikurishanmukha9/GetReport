@@ -30,25 +30,25 @@ const getTypeStyle = (type: string) => {
   const t = type.toLowerCase();
   if (t.includes("int") || t.includes("float")) {
     return {
-      icon: <Hash className="h-3 w-3 text-zinc-300" />,
-      className: "bg-white/[0.06] text-zinc-200 border-white/10",
+      icon: <Hash className="h-3 w-3 text-stone-700 dark:text-zinc-300" />,
+      className: "bg-stone-200/80 text-stone-800 border-stone-300 dark:bg-white/[0.06] dark:text-zinc-200 dark:border-white/10",
     };
   }
   if (t.includes("datetime") || t.includes("date") || t.includes("time")) {
     return {
-      icon: <Calendar className="h-3 w-3 text-amber-400" />,
-      className: "bg-amber-500/10 text-amber-400 border-amber-500/25",
+      icon: <Calendar className="h-3 w-3 text-amber-700 dark:text-amber-400" />,
+      className: "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/25",
     };
   }
   if (t.includes("bool")) {
     return {
-      icon: <CheckCircle2 className="h-3 w-3 text-emerald-400" />,
-      className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
+      icon: <CheckCircle2 className="h-3 w-3 text-emerald-700 dark:text-emerald-400" />,
+      className: "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/25",
     };
   }
   return {
-    icon: <Type className="h-3 w-3 text-zinc-300" />,
-    className: "bg-white/[0.04] text-zinc-300 border-white/10",
+    icon: <Type className="h-3 w-3 text-stone-700 dark:text-zinc-300" />,
+    className: "bg-stone-200/80 text-stone-800 border-stone-300 dark:bg-white/[0.04] dark:text-zinc-300 dark:border-white/10",
   };
 };
 
@@ -129,7 +129,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
                 </Badge>
               )}
               {analysis?.snowflake_meta?.sampled && (
-                <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-wider bg-white/[0.06] text-zinc-300 border-white/10">
+                <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-wider bg-stone-200/80 text-stone-800 border-stone-300 dark:bg-white/[0.06] dark:text-zinc-300 dark:border-white/10">
                   Sampled (10% Bernoulli)
                 </Badge>
               )}
@@ -153,12 +153,12 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
             onClick={onGenerateReport}
             variant="hero"
             size="default"
-            className="h-10 px-5 rounded-xl group font-sans text-xs sm:text-sm font-bold tracking-tight shadow-[0_2px_16px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,1)] cursor-pointer"
+            className="h-10 px-5 rounded-xl group font-sans text-xs sm:text-sm font-bold tracking-tight shadow-md cursor-pointer flex items-center gap-2.5"
           >
-            <FileText className="h-4 w-4 text-zinc-950" />
+            <FileText className="h-4 w-4 text-white dark:text-zinc-950" />
             <span>Generate Full Report</span>
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-950/10 text-zinc-950 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0">
-              <ArrowRight className="h-3 w-3" />
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[#800000] dark:bg-black dark:text-white transition-transform duration-200 group-hover:translate-x-0.5 shrink-0 shadow-xs">
+              <ArrowRight className="h-3 w-3 stroke-[3]" />
             </span>
           </Button>
         </div>
@@ -220,20 +220,20 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="h-auto min-h-12 bg-muted/40 dark:bg-white/[0.03] border border-border/80 dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-2xs flex flex-wrap items-center gap-1.5">
+        <TabsList className="h-auto min-h-12 bg-[#EDE8DE] dark:bg-white/[0.03] border border-[#DCD6C9] dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-xs flex flex-wrap items-center gap-1.5">
           <TabsTrigger
             value="preview"
-            className="rounded-xl text-xs sm:text-sm px-5 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all shrink-0"
+            className="group rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.06] dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white transition-all shrink-0 cursor-pointer"
           >
             Data Preview & Types
           </TabsTrigger>
           <TabsTrigger
             value="quality"
-            className="rounded-xl text-xs sm:text-sm px-5 py-2 font-medium data-[state=active]:font-semibold data-[state=active]:bg-card dark:data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground data-[state=active]:border data-[state=active]:border-border/80 dark:data-[state=active]:border-white/15 data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 shrink-0"
+            className="group rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.06] dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white transition-all flex items-center gap-2 shrink-0 cursor-pointer"
           >
             <span>Column Quality Audit</span>
             {totalIssuesCount > 0 && (
-              <Badge variant="secondary" className="bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] px-1.5 py-0 h-4 rounded-full font-mono">
+              <Badge variant="secondary" className="group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white bg-amber-500/15 text-amber-800 border border-amber-500/30 dark:text-amber-400 text-[10px] px-1.5 py-0 h-4 rounded-full font-mono">
                 {totalIssuesCount}
               </Badge>
             )}

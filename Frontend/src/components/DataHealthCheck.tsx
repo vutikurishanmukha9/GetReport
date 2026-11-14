@@ -337,18 +337,18 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
             {/* Strategy Presets Toolbar */}
             {columnsWithIssues.length > 0 && (
-                <div className="bg-[#0e1017] border border-white/10 p-3.5 rounded-2xl space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+                <div className="bg-stone-100/90 dark:bg-[#0e1017] border border-stone-200 dark:border-white/10 p-3.5 rounded-2xl space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200 dark:border-white/5 pb-2.5">
                         <div className="flex items-center gap-2">
-                            <SlidersHorizontal className="w-4 h-4 text-primary" />
-                            <span className="text-xs font-semibold text-foreground tracking-tight">
+                            <SlidersHorizontal className="w-4 h-4 text-[#800000] dark:text-primary" />
+                            <span className="text-xs font-semibold text-stone-900 dark:text-foreground tracking-tight">
                                 Auto-Suggestion Presets
                             </span>
-                            <span className="text-[11px] font-sans font-medium tabular-nums px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
+                            <span className="text-[11px] font-sans font-medium tabular-nums px-2 py-0.5 rounded-full bg-stone-200/80 text-stone-700 border border-stone-300 dark:bg-white/5 dark:text-zinc-400 dark:border-white/10">
                                 {columnsWithIssues.length} columns flagged
                             </span>
                         </div>
-                        <div className="text-[11px] text-muted-foreground font-sans">
+                        <div className="text-[11px] text-stone-600 dark:text-muted-foreground font-sans">
                             Distribution-aware actions calibrated with confidence scores & impact estimates.
                         </div>
                     </div>
@@ -359,7 +359,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             variant="outline"
                             size="sm"
                             onClick={handleApplyHighConfidenceOnly}
-                            className="text-xs h-8 rounded-lg cursor-pointer bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 font-medium font-sans"
+                            className="text-xs h-8 rounded-lg cursor-pointer bg-[#800000]/10 hover:bg-[#800000]/20 text-[#800000] border-[#800000]/30 dark:bg-primary/10 dark:hover:bg-primary/20 dark:text-primary dark:border-primary/30 font-medium font-sans"
                         >
                             <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
                             Apply High-Confidence ({highConfidenceCount})
@@ -370,9 +370,9 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             variant="outline"
                             size="sm"
                             onClick={handleApplyAllSuggestions}
-                            className="text-xs h-8 rounded-lg cursor-pointer hover:bg-white/10 text-foreground border-white/15 font-sans"
+                            className="text-xs h-8 rounded-lg cursor-pointer bg-white hover:bg-stone-100 text-stone-800 border-stone-300 dark:hover:bg-white/10 dark:text-foreground dark:border-white/15 font-sans"
                         >
-                            <Layers className="w-3.5 h-3.5 mr-1.5 text-zinc-400" />
+                            <Layers className="w-3.5 h-3.5 mr-1.5 text-stone-500 dark:text-zinc-400" />
                             Apply All Suggestions
                         </Button>
 
@@ -381,7 +381,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             variant="outline"
                             size="sm"
                             onClick={handleApplyConservative}
-                            className="text-xs h-8 rounded-lg cursor-pointer hover:bg-white/10 text-zinc-300 border-white/10 font-sans"
+                            className="text-xs h-8 rounded-lg cursor-pointer bg-white hover:bg-stone-100 text-stone-800 border-stone-300 dark:hover:bg-white/10 dark:text-zinc-300 dark:border-white/10 font-sans"
                         >
                             Conservative (Safe Only)
                         </Button>
@@ -529,12 +529,12 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                             value={currentAction}
                                             onValueChange={(val) => handleActionChange(col.name, val)}
                                         >
-                                            <SelectTrigger className="w-full bg-[#131620] hover:bg-[#1a1f2c] border-white/10 text-foreground rounded-xl text-xs h-10 font-medium hover:border-primary/40 focus:ring-primary/20 shadow-2xs transition-colors cursor-pointer">
+                                            <SelectTrigger className="w-full bg-white hover:bg-stone-50 border-stone-300 text-stone-900 dark:bg-[#131620] dark:hover:bg-[#1a1f2c] dark:border-white/10 dark:text-foreground rounded-xl text-xs h-10 font-medium focus:border-stone-400 dark:hover:border-primary/40 focus:ring-1 focus:ring-stone-400/20 shadow-2xs transition-colors cursor-pointer">
                                                 <SelectValue placeholder="Select action…">
                                                     {getActionDisplayLabel(currentAction, issue)}
                                                 </SelectValue>
                                             </SelectTrigger>
-                                            <SelectContent className="rounded-xl border border-white/10 bg-[#0e1017] text-popover-foreground shadow-2xl backdrop-blur-xl max-h-72">
+                                            <SelectContent className="rounded-xl border border-stone-300 bg-white text-stone-900 dark:border-white/10 dark:bg-[#0e1017] dark:text-popover-foreground shadow-xl backdrop-blur-xl max-h-72">
                                                 <SelectItem value="default" className="text-xs font-medium text-foreground cursor-pointer focus:bg-accent focus:text-foreground">
                                                     <span className="text-muted-foreground hover:text-foreground flex items-center gap-2">
                                                         <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" /> Ignore (Leave raw as is)
@@ -671,7 +671,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 <SelectItem value="keep_as_text" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center justify-between w-full gap-2">
                                                         <span className="flex items-center gap-2">
-                                                            <Type className="w-3.5 h-3.5 text-zinc-400" /> Preserve as String / Text
+                                                            <Type className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" /> Preserve as String / Text
                                                         </span>
                                                         {issue?.action === "keep_as_text" && (
                                                             <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
@@ -755,7 +755,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 <SelectItem value="fill_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center justify-between w-full gap-2">
                                                         <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Median
+                                                            <Wrench className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" /> Fill with Median
                                                         </span>
                                                         {issue?.action === "fill_median" && (
                                                             <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
@@ -768,7 +768,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 <SelectItem value="fill_mean" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center justify-between w-full gap-2">
                                                         <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Average
+                                                            <Wrench className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" /> Fill with Average
                                                         </span>
                                                         {issue?.action === "fill_mean" && (
                                                             <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
@@ -781,7 +781,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 <SelectItem value="fill_mode" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center justify-between w-full gap-2">
                                                         <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with Most Frequent
+                                                            <Wrench className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" /> Fill with Most Frequent
                                                         </span>
                                                         {issue?.action === "fill_mode" && (
                                                             <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
@@ -794,7 +794,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 <SelectItem value="fill_value" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
                                                     <span className="flex items-center justify-between w-full gap-2">
                                                         <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-zinc-400" /> Fill with &ldquo;Unknown&rdquo;
+                                                            <Wrench className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" /> Fill with &ldquo;Unknown&rdquo;
                                                         </span>
                                                         {issue?.action === "fill_value" && (
                                                             <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
@@ -971,14 +971,14 @@ const SparklineHistogram = ({ data }: { data: { count: number; label: string }[]
     const max = Math.max(...data.map(d => d.count)) || 1;
 
     return (
-        <div className="mt-3.5 pt-2 border-t border-white/5">
+        <div className="mt-3.5 pt-2 border-t border-stone-200 dark:border-white/5">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5 font-sans">
                 <span className="font-semibold text-foreground/80 flex items-center gap-1.5">
-                    <BarChart2 className="w-3.5 h-3.5 text-primary" /> Distribution
+                    <BarChart2 className="w-3.5 h-3.5 text-[#800000] dark:text-primary" /> Distribution
                 </span>
                 <span className="text-[10px] font-mono">{data.length} bins</span>
             </div>
-            <div className="flex items-end h-14 gap-[3px] w-full bg-black/30 p-2 rounded-xl border border-white/5">
+            <div className="flex items-end h-14 gap-[3px] w-full bg-stone-100 dark:bg-black/30 p-2 rounded-xl border border-stone-200 dark:border-white/5">
                 {data.map((d) => (
                     <TooltipProvider key={`hist_bin_${d.label}`}>
                         <Tooltip>
