@@ -476,35 +476,35 @@ export const Documentation = () => {
   }, [searchQuery, selectedCategory]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#07080a] text-slate-100 selection:bg-white/20 selection:text-white font-sans antialiased">
+    <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-slate-100 selection:bg-[#800000]/20 selection:text-[#800000] dark:selection:bg-white/20 dark:selection:text-white font-sans antialiased">
       <Header onReset={() => {}} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28 pb-20">
         
         {/* Hero Section: Machined Raycast/Linear Obsidian Aesthetic */}
-        <div className="relative border-b border-white/10 bg-radial from-white/[0.04] via-transparent to-transparent py-12 sm:py-16 overflow-hidden">
+        <div className="relative border-b border-stone-300 dark:border-white/10 bg-radial from-stone-200/50 via-transparent to-transparent dark:from-white/[0.04] py-12 sm:py-16 overflow-hidden">
           {/* Subtle Ambient Background Mesh */}
           <div className="absolute inset-0 pointer-events-none opacity-40">
-            <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[340px] bg-gradient-to-b from-white/10 via-transparent to-transparent blur-3xl rounded-full" />
+            <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[340px] bg-gradient-to-b from-stone-300/40 via-transparent to-transparent dark:from-white/10 blur-3xl rounded-full" />
           </div>
 
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl relative z-10 space-y-6 text-center">
             
             {/* Eyebrow Pill */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 backdrop-blur-md shadow-xs">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-300">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF8F5] border border-stone-300 shadow-xs dark:bg-white/[0.05] dark:border-white/10 backdrop-blur-md">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-stone-800 dark:text-slate-300">
                 GetReport Technical Hub • Core v2.4.0
               </span>
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-sans font-extrabold tracking-[-0.03em] text-white leading-[1.08] max-w-4xl mx-auto">
-              Engine architecture &amp; <span className="text-slate-400">REST API specification.</span>
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-sans font-extrabold tracking-[-0.03em] text-stone-900 dark:text-white leading-[1.08] max-w-4xl mx-auto">
+              Engine architecture &amp; <span className="text-stone-700 dark:text-slate-400">REST API specification.</span>
             </h1>
 
             {/* Subhead */}
-            <p className="text-sm sm:text-base md:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed font-sans font-normal">
+            <p className="text-sm sm:text-base md:text-lg text-stone-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed font-sans font-normal">
               Zero-copy Polars ingestion, in-process DuckDB OLAP execution, 4-pillar confidence mathematics, and headless endpoints for production data pipelines.
             </p>
 
@@ -518,7 +518,7 @@ export const Documentation = () => {
               >
                 <Link to="/workspace">
                   <span>Interactive Workspace</span>
-                  <ArrowRight className="h-3.5 w-3.5 text-black transition-transform duration-200 group-hover:translate-x-0.5" />
+                  <ArrowRight className="h-3.5 w-3.5 text-white dark:text-black transition-transform duration-200 group-hover:translate-x-0.5" />
                 </Link>
               </Button>
 
@@ -526,10 +526,10 @@ export const Documentation = () => {
                 asChild
                 variant="outline"
                 size="sm"
-                className="h-10 px-4 rounded-xl border-white/15 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08] hover:text-white transition-all text-xs font-mono gap-2"
+                className="h-10 px-4 rounded-xl border border-stone-300 bg-[#FAF8F5] text-stone-900 hover:bg-[#EDE8DE] hover:text-stone-950 font-semibold shadow-xs dark:border-white/15 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:bg-white/[0.08] dark:hover:text-white transition-all text-xs font-mono gap-2"
               >
                 <a href="#api-endpoints">
-                  <Terminal className="h-3.5 w-3.5 text-slate-400" />
+                  <Terminal className="h-3.5 w-3.5 text-stone-700 dark:text-slate-400" />
                   <span>Jump to REST Endpoints</span>
                 </a>
               </Button>
@@ -538,18 +538,18 @@ export const Documentation = () => {
             {/* Quick Filter Search Bar */}
             <div className="pt-4 max-w-xl mx-auto">
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-500 dark:text-slate-400" />
                 <Input
                   type="text"
                   placeholder="Filter endpoints, SQL specs, or quality algorithms (e.g., 'parquet', 'duckdb', 'gx')..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-11 pl-10 pr-4 bg-[#0c0d12]/90 border border-white/15 rounded-xl text-xs sm:text-sm text-slate-200 placeholder:text-slate-500 focus-visible:ring-1 focus-visible:ring-white/40 focus-visible:border-white/30 transition-all font-mono shadow-inner"
+                  className="h-11 pl-10 pr-4 bg-[#FAF8F5] border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 placeholder:text-stone-500 focus-visible:ring-1 focus-visible:ring-[#800000]/40 focus-visible:border-[#800000]/40 dark:bg-[#0c0d12]/90 dark:border-white/15 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus-visible:ring-white/40 dark:focus-visible:border-white/30 transition-all font-mono shadow-xs dark:shadow-inner"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 hover:text-white px-1.5 py-0.5 rounded bg-white/5"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-stone-500 hover:text-stone-900 px-1.5 py-0.5 rounded bg-stone-200/80 dark:text-slate-500 dark:hover:text-white dark:bg-white/5"
                   >
                     Clear
                   </button>
@@ -564,7 +564,7 @@ export const Documentation = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-8 sm:pt-12">
           
           {/* Mobile Quick-Jump Horizontal Strip (< lg) */}
-          <div className="lg:hidden sticky top-16 z-30 bg-[#07080a]/95 backdrop-blur-xl border-b border-white/10 py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 mb-6">
+          <div className="lg:hidden sticky top-16 z-30 bg-[#FAF8F5]/95 backdrop-blur-xl border-b border-stone-300 dark:bg-[#07080a]/95 dark:border-white/10 py-2.5 -mx-4 px-4 sm:-mx-6 sm:px-6 mb-6">
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
               {SECTIONS.map(({ id, title, tag }) => {
                 const isSelected = activeSection === id;
@@ -574,8 +574,8 @@ export const Documentation = () => {
                     href={`#${id}`}
                     className={`px-3 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
                       isSelected
-                        ? "bg-white text-black font-bold shadow-xs"
-                        : "bg-white/[0.05] text-slate-300 hover:bg-white/[0.08] hover:text-white border border-white/5"
+                        ? "bg-[#800000] text-white font-bold shadow-xs dark:bg-white dark:text-black"
+                        : "bg-[#FAF8F5] text-stone-700 hover:bg-stone-200 hover:text-stone-900 border border-stone-300 dark:bg-white/[0.05] dark:text-slate-300 dark:hover:bg-white/[0.08] dark:hover:text-white dark:border-white/5"
                     }`}
                   >
                     <span className="text-[10px] font-bold opacity-60">[{tag}]</span>
@@ -593,15 +593,15 @@ export const Documentation = () => {
               <div className="sticky top-24 space-y-4">
                 
                 {/* Outer Double-Bezel Container */}
-                <div className="rounded-2xl p-1 bg-white/[0.03] border border-white/10 shadow-premium">
-                  <div className="rounded-[calc(1rem-2px)] bg-[#0c0d12] p-4 space-y-3">
+                <div className="rounded-2xl p-1 bg-stone-200/80 border border-stone-300 shadow-sm dark:bg-white/[0.03] dark:border-white/10 dark:shadow-premium">
+                  <div className="rounded-[calc(1rem-2px)] bg-[#FAF8F5] border border-stone-200/60 p-4 space-y-3 dark:bg-[#0c0d12] dark:border-transparent">
                     
-                    <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
-                      <span className="font-mono text-[11px] uppercase tracking-wider font-bold text-slate-400 flex items-center gap-2">
-                        <Terminal className="h-3.5 w-3.5 text-slate-300" />
+                    <div className="flex items-center justify-between pb-2.5 border-b border-stone-200 dark:border-white/10">
+                      <span className="font-mono text-[11px] uppercase tracking-wider font-bold text-stone-600 dark:text-slate-400 flex items-center gap-2">
+                        <Terminal className="h-3.5 w-3.5 text-stone-700 dark:text-slate-300" />
                         <span>Document Index</span>
                       </span>
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      <span className="text-[10px] font-mono text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20">
                         Live Tracking
                       </span>
                     </div>
@@ -615,18 +615,18 @@ export const Documentation = () => {
                             href={`#${id}`}
                             className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-mono transition-all duration-150 group ${
                               isCurrent
-                                ? "bg-white/10 text-white font-bold border border-white/15 shadow-inner"
-                                : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
+                                ? "bg-[#800000] text-white font-bold border border-[#800000] shadow-xs dark:bg-white/10 dark:text-white dark:border-white/15 dark:shadow-inner"
+                                : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/[0.04]"
                             }`}
                           >
                             <div className="flex items-center gap-2.5">
                               <NavIcon className={`h-4 w-4 shrink-0 transition-colors ${
-                                isCurrent ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-300"
+                                isCurrent ? "text-white dark:text-emerald-400" : "text-stone-500 group-hover:text-stone-700 dark:text-slate-500 dark:group-hover:text-slate-300"
                               }`} />
                               <span>{title}</span>
                             </div>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              isCurrent ? "bg-white/15 text-white" : "text-slate-600 group-hover:text-slate-400"
+                              isCurrent ? "bg-white/20 text-white dark:bg-white/15 dark:text-white" : "text-stone-500 group-hover:text-stone-700 dark:text-slate-600 dark:group-hover:text-slate-400"
                             }`}>
                               {tag}
                             </span>
@@ -639,26 +639,26 @@ export const Documentation = () => {
                 </div>
 
                 {/* System Specs Snapshot Card */}
-                <div className="rounded-2xl p-1 bg-white/[0.03] border border-white/10">
-                  <div className="rounded-[calc(1rem-2px)] bg-[#0c0d12] p-4 text-xs font-mono space-y-2 text-slate-400">
-                    <span className="font-bold text-white text-[11px] uppercase tracking-wider block pb-1 border-b border-white/10">
+                <div className="rounded-2xl p-1 bg-stone-200/80 border border-stone-300 dark:bg-white/[0.03] dark:border-white/10">
+                  <div className="rounded-[calc(1rem-2px)] bg-[#FAF8F5] border border-stone-200/60 p-4 text-xs font-mono space-y-2 text-stone-600 dark:bg-[#0c0d12] dark:border-transparent dark:text-slate-400">
+                    <span className="font-bold text-stone-900 text-[11px] uppercase tracking-wider block pb-1 border-b border-stone-200 dark:text-white dark:border-white/10">
                       Runtime Invariants
                     </span>
                     <div className="flex justify-between py-0.5">
                       <span>OLAP Execution:</span>
-                      <span className="text-slate-200 font-semibold">DuckDB In-Process</span>
+                      <span className="text-stone-800 dark:text-slate-200 font-semibold">DuckDB In-Process</span>
                     </div>
                     <div className="flex justify-between py-0.5">
                       <span>Columnar Parser:</span>
-                      <span className="text-slate-200 font-semibold">Polars v1.x (SIMD)</span>
+                      <span className="text-stone-800 dark:text-slate-200 font-semibold">Polars v1.x (SIMD)</span>
                     </div>
                     <div className="flex justify-between py-0.5">
                       <span>Memory Sandboxing:</span>
-                      <span className="text-emerald-400 font-semibold">0-Disk Ephemeral</span>
+                      <span className="text-emerald-700 dark:text-emerald-400 font-semibold">0-Disk Ephemeral</span>
                     </div>
                     <div className="flex justify-between py-0.5">
                       <span>Report Engine:</span>
-                      <span className="text-slate-200 font-semibold">WeasyPrint PDF</span>
+                      <span className="text-stone-800 dark:text-slate-200 font-semibold">WeasyPrint PDF</span>
                     </div>
                   </div>
                 </div>
@@ -671,15 +671,15 @@ export const Documentation = () => {
               
               {/* SECTION 1: Supported File Formats */}
               <section id="supported-formats" className="space-y-5 scroll-mt-28">
-                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 pb-3 border-b border-stone-300 dark:border-white/10">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
                     <FileSpreadsheet className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white tracking-tight">
                       1. Ingestion Engine &amp; Supported Formats
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-400 font-sans">
+                    <p className="text-xs sm:text-sm text-stone-600 dark:text-slate-400 font-sans">
                       Hardware-accelerated binary streaming with automatic dialect resolution.
                     </p>
                   </div>
@@ -718,29 +718,29 @@ export const Documentation = () => {
                   ].map((item) => (
                     <div 
                       key={item.format}
-                      className="rounded-2xl p-1 bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all duration-200"
+                      className="rounded-2xl p-1 bg-stone-200/80 border border-stone-300 hover:border-stone-400 dark:bg-white/[0.03] dark:border-white/10 dark:hover:border-white/20 transition-all duration-200"
                     >
-                      <div className="rounded-[calc(1rem-2px)] bg-[#0c0d12] p-4 sm:p-5 space-y-3 h-full flex flex-col justify-between">
+                      <div className="rounded-[calc(1rem-2px)] bg-[#FAF8F5] border border-stone-200/60 p-4 sm:p-5 space-y-3 h-full flex flex-col justify-between dark:bg-[#0c0d12] dark:border-transparent">
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-sm font-sans font-bold text-white">{item.format}</span>
-                            <Badge variant="outline" className="text-[10px] font-mono border-white/10 text-emerald-400 bg-emerald-500/5">
+                            <span className="text-sm font-sans font-bold text-stone-900 dark:text-white">{item.format}</span>
+                            <Badge variant="outline" className="text-[10px] font-mono border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-white/10 dark:text-emerald-400 dark:bg-emerald-500/5">
                               {item.engine}
                             </Badge>
                           </div>
-                          <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                          <p className="text-xs text-stone-600 dark:text-slate-400 leading-relaxed font-sans">
                             {item.desc}
                           </p>
                         </div>
 
-                        <div className="pt-2 border-t border-white/5 grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-400">
+                        <div className="pt-2 border-t border-stone-200 dark:border-white/5 grid grid-cols-2 gap-2 text-[11px] font-mono text-stone-600 dark:text-slate-400">
                           <div>
-                            <span className="block text-[10px] text-slate-500 uppercase">Throughput</span>
-                            <span className="text-slate-200">{item.throughput}</span>
+                            <span className="block text-[10px] text-stone-500 dark:text-slate-500 uppercase">Throughput</span>
+                            <span className="text-stone-900 dark:text-slate-200 font-semibold">{item.throughput}</span>
                           </div>
                           <div>
-                            <span className="block text-[10px] text-slate-500 uppercase">Footprint</span>
-                            <span className="text-emerald-400">{item.memory}</span>
+                            <span className="block text-[10px] text-stone-500 dark:text-slate-500 uppercase">Footprint</span>
+                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{item.memory}</span>
                           </div>
                         </div>
                       </div>
@@ -749,11 +749,11 @@ export const Documentation = () => {
                 </div>
 
                 {/* Example Ingestion Code Snippet */}
-                <div className="rounded-2xl p-1 bg-white/[0.03] border border-white/10">
-                  <div className="rounded-[calc(1rem-2px)] bg-[#0c0d12] p-4 sm:p-5 space-y-3 font-mono text-xs">
-                    <div className="flex items-center justify-between text-slate-400 pb-2 border-b border-white/10">
-                      <span className="font-bold text-slate-200 flex items-center gap-2">
-                        <Terminal className="h-3.5 w-3.5 text-emerald-400" />
+                <div className="rounded-2xl p-1 bg-stone-200/80 border border-stone-300 dark:bg-white/[0.03] dark:border-white/10">
+                  <div className="rounded-[calc(1rem-2px)] bg-[#FAF8F5] border border-stone-200/60 p-4 sm:p-5 space-y-3 font-mono text-xs dark:bg-[#0c0d12] dark:border-transparent">
+                    <div className="flex items-center justify-between text-stone-600 pb-2 border-b border-stone-200 dark:text-slate-400 dark:border-white/10">
+                      <span className="font-bold text-stone-900 dark:text-slate-200 flex items-center gap-2">
+                        <Terminal className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                         <span>Polars Streaming Buffer Implementation</span>
                       </span>
                       <Button
@@ -770,13 +770,13 @@ df = pl.read_csv(
     ignore_errors=False
 )
 print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`, "snippet_ingest", "Code")}
-                        className="h-7 px-2 font-mono text-[11px] gap-1.5 text-slate-400 hover:text-white"
+                        className="h-7 px-2 font-mono text-[11px] gap-1.5 text-stone-600 hover:text-stone-900 bg-stone-200/80 hover:bg-stone-300 border border-stone-300 dark:text-slate-400 dark:hover:text-white dark:bg-transparent dark:hover:bg-white/10 dark:border-transparent rounded"
                       >
-                        {copiedKey === "snippet_ingest" ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copiedKey === "snippet_ingest" ? <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                         <span>{copiedKey === "snippet_ingest" ? "Copied" : "Copy"}</span>
                       </Button>
                     </div>
-                    <pre className="p-3 bg-black/60 rounded-xl border border-white/5 text-slate-300 text-[11px] overflow-x-auto leading-relaxed">
+                    <pre className="p-3 bg-[#EDE8DE] dark:bg-black/60 rounded-xl border border-stone-300 dark:border-white/5 text-stone-900 dark:text-slate-300 text-[11px] overflow-x-auto leading-relaxed shadow-inner">
                       <code>{`import polars as pl
 
 # Zero-copy memory-mapped ingestion with robust dialect detection
@@ -795,28 +795,28 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
 
               {/* SECTION 2: Confidence Scoring Algorithm */}
               <section id="confidence-scoring" className="space-y-5 scroll-mt-28">
-                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                  <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 pb-3 border-b border-stone-300 dark:border-white/10">
+                  <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-400 flex items-center justify-center shrink-0">
                     <Gauge className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white tracking-tight">
                       2. Mathematical Confidence Scoring Engine
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-400 font-sans">
+                    <p className="text-xs sm:text-sm text-stone-600 dark:text-slate-400 font-sans">
                       Formulation across 4 orthogonal data quality dimensions with letter-grade calibration.
                     </p>
                   </div>
                 </div>
 
                 {/* Mathematical Formula Card */}
-                <div className="rounded-2xl p-1 bg-white/[0.03] border border-white/10">
-                  <div className="rounded-[calc(1rem-2px)] bg-[#0c0d12] p-5 sm:p-6 space-y-4">
-                    <div className="p-3.5 bg-black/60 rounded-xl border border-white/10 font-mono text-xs sm:text-sm text-emerald-400 shadow-inner">
+                <div className="rounded-2xl p-1 bg-stone-200/80 dark:bg-white/[0.03] border border-stone-300 dark:border-white/10">
+                  <div className="rounded-[calc(1rem-2px)] bg-[#FAF8F5] dark:bg-[#0c0d12] p-5 sm:p-6 space-y-4">
+                    <div className="p-3.5 bg-emerald-50 dark:bg-black/60 rounded-xl border border-emerald-200 dark:border-white/10 font-mono text-xs sm:text-sm text-emerald-950 dark:text-emerald-400 shadow-inner font-semibold">
                       <code>Score = (Completeness × 0.35) + (Consistency × 0.25) + (Validity × 0.25) + (Stability × 0.15)</code>
                     </div>
 
-                    <p className="text-xs text-slate-400 font-sans leading-relaxed">
+                    <p className="text-xs text-stone-600 dark:text-slate-400 font-sans leading-relaxed">
                       Every ingested column is assigned a score from 0.0 to 100.0 based on rigorous statistical heuristics. Weights strictly sum to 1.0, penalizing masking sentinels, format drift, and outlier dispersion.
                     </p>
 
@@ -848,46 +848,46 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                           metric: "Dispersion & Drift Index"
                         }
                       ].map((pillar) => (
-                        <div key={pillar.title} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5">
-                          <span className="font-mono text-xs font-bold text-white block">
+                        <div key={pillar.title} className="p-3.5 rounded-xl bg-stone-100/90 border border-stone-200/90 space-y-1.5 dark:bg-white/[0.02] dark:border-white/5">
+                          <span className="font-mono text-xs font-bold text-stone-900 dark:text-white block">
                             {pillar.title}
                           </span>
-                          <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+                          <p className="text-[11px] text-stone-600 dark:text-slate-400 font-sans leading-relaxed">
                             {pillar.desc}
                           </p>
                           <div className="pt-1">
-                            <span className="text-[10px] font-mono text-slate-500 uppercase">Audit Target: </span>
-                            <span className="text-[10px] font-mono text-slate-300">{pillar.metric}</span>
+                            <span className="text-[10px] font-mono text-stone-500 uppercase">Audit Target: </span>
+                            <span className="text-[10px] font-mono text-stone-800 dark:text-slate-300">{pillar.metric}</span>
                           </div>
                         </div>
                       ))}
                     </div>
 
                     {/* Grade Threshold Calibration */}
-                    <div className="pt-3 border-t border-white/10">
-                      <span className="text-xs font-mono font-bold text-slate-300 block mb-2 uppercase tracking-wider">
+                    <div className="pt-3 border-t border-stone-200 dark:border-white/10">
+                      <span className="text-xs font-mono font-bold text-stone-700 dark:text-slate-300 block mb-2 uppercase tracking-wider">
                         Confidence Letter Grade Scale
                       </span>
                       <div className="grid grid-cols-5 gap-2 text-center font-mono text-xs">
-                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                        <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400">
                           <span className="font-bold text-sm block">A</span>
-                          <span className="text-[10px] text-slate-400">90 - 100%</span>
+                          <span className="text-[10px] text-stone-600 dark:text-slate-400">90 - 100%</span>
                         </div>
-                        <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                        <div className="p-2 rounded-lg bg-blue-50 border border-blue-300 text-blue-900 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400">
                           <span className="font-bold text-sm block">B</span>
-                          <span className="text-[10px] text-slate-400">80 - 89%</span>
+                          <span className="text-[10px] text-stone-600 dark:text-slate-400">80 - 89%</span>
                         </div>
-                        <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                        <div className="p-2 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400">
                           <span className="font-bold text-sm block">C</span>
-                          <span className="text-[10px] text-slate-400">70 - 79%</span>
+                          <span className="text-[10px] text-stone-600 dark:text-slate-400">70 - 79%</span>
                         </div>
-                        <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400">
+                        <div className="p-2 rounded-lg bg-orange-50 border border-orange-300 text-orange-900 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400">
                           <span className="font-bold text-sm block">D</span>
-                          <span className="text-[10px] text-slate-400">60 - 69%</span>
+                          <span className="text-[10px] text-stone-600 dark:text-slate-400">60 - 69%</span>
                         </div>
-                        <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                        <div className="p-2 rounded-lg bg-rose-50 border border-rose-300 text-rose-900 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400">
                           <span className="font-bold text-sm block">F</span>
-                          <span className="text-[10px] text-slate-400">&lt; 60%</span>
+                          <span className="text-[10px] text-stone-600 dark:text-slate-400">&lt; 60%</span>
                         </div>
                       </div>
                     </div>
@@ -898,15 +898,15 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
 
               {/* SECTION 3: Transformation DAG & Issue Ledger */}
               <section id="issue-dag" className="space-y-5 scroll-mt-28">
-                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 pb-3 border-b border-stone-300 dark:border-white/10">
+                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400 flex items-center justify-center shrink-0">
                     <Layers className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white tracking-tight">
                       3. Issue Ledger &amp; Remediation Transformation DAG
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-400 font-sans">
+                    <p className="text-xs sm:text-sm text-stone-600 dark:text-slate-400 font-sans">
                       Automated audit with human-in-the-loop decision locking across 9 structural categories.
                     </p>
                   </div>
@@ -924,13 +924,13 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                     { name: "Whitespace Padding", fix: "Trim leading/trailing Unicode spaces", code: "pl.col('txt').str.strip_chars()" },
                     { name: "Inconsistent Casing", fix: "Standardize titlecase or lowercase", code: "pl.col('cat').str.to_lowercase()" }
                   ].map((issue) => (
-                    <div key={issue.name} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5 hover:border-white/15 transition-all">
+                    <div key={issue.name} className="p-3.5 rounded-xl bg-[#FAF8F5] border border-stone-300 space-y-1.5 hover:border-stone-400 shadow-xs dark:bg-white/[0.02] dark:border-white/5 dark:hover:border-white/15 dark:shadow-none transition-all">
                       <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                        <span className="font-bold text-white text-xs font-sans">{issue.name}</span>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span className="font-bold text-stone-900 dark:text-white text-xs font-sans">{issue.name}</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 font-sans leading-tight">{issue.fix}</p>
-                      <code className="text-[10px] font-mono text-slate-500 block truncate pt-1">{issue.code}</code>
+                      <p className="text-[11px] text-stone-600 dark:text-slate-400 font-sans leading-tight">{issue.fix}</p>
+                      <code className="text-[10px] font-mono text-stone-500 dark:text-slate-500 block truncate pt-1">{issue.code}</code>
                     </div>
                   ))}
                 </div>
@@ -938,52 +938,52 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
 
               {/* SECTION 4: DuckDB In-Process SQL Lab & BI Studio */}
               <section id="duckdb-sql" className="space-y-5 scroll-mt-28">
-                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                  <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 pb-3 border-b border-stone-300 dark:border-white/10">
+                  <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
                     <Database className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white tracking-tight">
                       4. In-Process DuckDB SQL Lab &amp; BI Studio
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-400 font-sans">
+                    <p className="text-xs sm:text-sm text-stone-600 dark:text-slate-400 font-sans">
                       Sub-millisecond analytical query execution with zero container disk writes.
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-2xl p-1 bg-white/[0.03] border border-white/10">
-                  <div className="rounded-[calc(1rem-2px)] bg-[#0c0d12] p-5 sm:p-6 space-y-4 text-xs font-mono">
+                <div className="rounded-2xl p-1 bg-stone-200/80 border border-stone-300 dark:bg-white/[0.03] dark:border-white/10">
+                  <div className="rounded-[calc(1rem-2px)] bg-[#FAF8F5] border border-stone-200/60 p-5 sm:p-6 space-y-4 text-xs font-mono dark:bg-[#0c0d12] dark:border-transparent">
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <span className="font-bold text-white font-sans text-sm block">
+                        <span className="font-bold text-stone-900 font-sans text-sm block dark:text-white">
                           Engine Invariants &amp; Security
                         </span>
-                        <ul className="space-y-1.5 text-slate-400 font-sans text-xs">
+                        <ul className="space-y-1.5 text-stone-600 font-sans text-xs dark:text-slate-400">
                           <li className="flex items-start gap-2">
-                            <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                            <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                             <span><strong>Zero-Copy Parquet:</strong> Uses Apache Arrow memory tables to query datasets without serializing to disk.</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                            <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                             <span><strong>C++ Engine Sandbox:</strong> Sets <code>enable_external_access = false</code> to block filesystem access.</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                            <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                             <span><strong>Strict Read-Only:</strong> Blocks DDL, DML, statement chaining, and dangerous table functions.</span>
                           </li>
                         </ul>
                       </div>
 
                       <div className="space-y-2">
-                        <span className="font-bold text-white font-sans text-sm block">
+                        <span className="font-bold text-stone-900 font-sans text-sm block dark:text-white">
                           Jinja Parameter Binding
                         </span>
-                        <p className="text-slate-400 font-sans text-xs leading-relaxed">
+                        <p className="text-stone-600 font-sans text-xs leading-relaxed dark:text-slate-400">
                           Safe mustache parameter replacement (<code>{'{{ param_name }}'}</code>) transforms template placeholders into positional SQL parameters to prevent SQL injection.
                         </p>
-                        <div className="p-2.5 bg-black/60 rounded-xl border border-white/5 text-[11px] text-slate-300">
+                        <div className="p-2.5 bg-stone-100 dark:bg-black/60 rounded-xl border border-stone-300 dark:border-white/5 text-[11px] text-stone-800 dark:text-slate-300">
                           <code>SELECT * FROM dataset WHERE department = &#123;&#123; dept &#125;&#125;</code>
                         </div>
                       </div>
@@ -995,16 +995,16 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
 
               {/* SECTION 5: REST API Endpoint Specifications */}
               <section id="api-endpoints" className="space-y-5 scroll-mt-28">
-                <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center justify-between pb-3 border-b border-stone-300 dark:border-white/10">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                    <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-400 flex items-center justify-center shrink-0">
                       <Code2 className="h-5 w-5" />
                     </div>
                     <div>
-                      <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
+                      <h2 className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white tracking-tight">
                         5. Headless REST API Endpoint Specifications
                       </h2>
-                      <p className="text-xs sm:text-sm text-slate-400 font-sans">
+                      <p className="text-xs sm:text-sm text-stone-600 dark:text-slate-400 font-sans">
                         Production JSON &amp; SSE endpoints for programmatic auditing and CI/CD pipelines.
                       </p>
                     </div>
@@ -1027,8 +1027,8 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                       onClick={() => setSelectedCategory(cat.id)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer whitespace-nowrap ${
                         selectedCategory === cat.id
-                          ? "bg-white text-black font-bold shadow-xs"
-                          : "bg-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.08] border border-white/5"
+                          ? "bg-[#800000] text-white font-bold shadow-xs border border-[#800000] dark:bg-white dark:text-black dark:border-white"
+                          : "bg-[#FAF8F5] text-stone-700 hover:bg-stone-200 hover:text-stone-900 border border-stone-300 dark:bg-white/[0.04] dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/[0.08] dark:border-white/5"
                       }`}
                     >
                       {cat.label}
@@ -1041,30 +1041,30 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                   {filteredEndpoints.map((ep) => (
                     <div
                       key={ep.id}
-                      className="rounded-2xl p-1 bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all duration-200 shadow-premium"
+                      className="rounded-2xl p-1 bg-stone-200/80 border border-stone-300 hover:border-stone-400 dark:bg-white/[0.03] dark:border-white/10 dark:hover:border-white/20 transition-all duration-200 shadow-sm dark:shadow-premium"
                     >
-                      <div className="rounded-[calc(1rem-2px)] bg-[#0c0d12] overflow-hidden">
+                      <div className="rounded-[calc(1rem-2px)] bg-[#FAF8F5] border border-stone-200/60 overflow-hidden dark:bg-[#0c0d12] dark:border-transparent">
                         
                         {/* Endpoint Header Bar */}
-                        <div className="p-4 sm:p-5 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 bg-white/[0.02]">
+                        <div className="p-4 sm:p-5 border-b border-stone-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-3 bg-stone-100/70 dark:bg-white/[0.02]">
                           <div className="flex items-center gap-3">
                             <Badge 
                               className={`font-mono text-xs font-bold px-2.5 py-0.5 rounded-md ${
                                 ep.method === "POST"
-                                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                  ? "bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30"
                                   : ep.method === "GET"
-                                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                                  : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                  ? "bg-blue-100 text-blue-900 border border-blue-300 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30"
+                                  : "bg-rose-100 text-rose-900 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30"
                               }`}
                             >
                               {ep.method}
                             </Badge>
-                            <span className="font-mono text-xs sm:text-sm font-bold text-white">
+                            <span className="font-mono text-xs sm:text-sm font-bold text-stone-900 dark:text-white">
                               {ep.path}
                             </span>
                           </div>
 
-                          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+                          <span className="text-[11px] font-mono text-stone-500 dark:text-slate-500 uppercase tracking-wider">
                             {ep.category}
                           </span>
                         </div>
@@ -1072,10 +1072,10 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                         {/* Endpoint Content Body */}
                         <div className="p-4 sm:p-6 space-y-4">
                           <div>
-                            <h3 className="text-sm font-sans font-bold text-white mb-1">
+                            <h3 className="text-sm font-sans font-bold text-stone-900 dark:text-white mb-1">
                               {ep.title}
                             </h3>
-                            <p className="text-xs text-slate-400 font-sans leading-relaxed">
+                            <p className="text-xs text-stone-600 dark:text-slate-400 font-sans leading-relaxed">
                               {ep.description}
                             </p>
                           </div>
@@ -1083,17 +1083,17 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                           {/* Interactive Language & Snippet Tabs */}
                           <Tabs defaultValue="curl" className="w-full">
                             <div className="flex items-center justify-between pb-2">
-                              <TabsList className="bg-black/40 border border-white/10 p-0.5 h-8 rounded-lg">
-                                <TabsTrigger value="curl" className="text-[11px] font-mono h-7 px-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white">
+                              <TabsList className="bg-stone-200/90 border border-stone-300 dark:bg-black/40 dark:border-white/10 p-0.5 h-8 rounded-lg">
+                                <TabsTrigger value="curl" className="text-[11px] font-mono h-7 px-2.5 text-stone-700 dark:text-slate-300 data-[state=active]:bg-[#800000] data-[state=active]:text-white dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-white">
                                   cURL
                                 </TabsTrigger>
-                                <TabsTrigger value="python" className="text-[11px] font-mono h-7 px-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white">
+                                <TabsTrigger value="python" className="text-[11px] font-mono h-7 px-2.5 text-stone-700 dark:text-slate-300 data-[state=active]:bg-[#800000] data-[state=active]:text-white dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-white">
                                   Python
                                 </TabsTrigger>
-                                <TabsTrigger value="ts" className="text-[11px] font-mono h-7 px-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white">
+                                <TabsTrigger value="ts" className="text-[11px] font-mono h-7 px-2.5 text-stone-700 dark:text-slate-300 data-[state=active]:bg-[#800000] data-[state=active]:text-white dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-white">
                                   TypeScript
                                 </TabsTrigger>
-                                <TabsTrigger value="response" className="text-[11px] font-mono h-7 px-2.5 data-[state=active]:bg-white/10 data-[state=active]:text-white">
+                                <TabsTrigger value="response" className="text-[11px] font-mono h-7 px-2.5 text-stone-700 dark:text-slate-300 data-[state=active]:bg-[#800000] data-[state=active]:text-white dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-white">
                                   JSON Schema
                                 </TabsTrigger>
                               </TabsList>
@@ -1105,13 +1105,13 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleCopy(ep.curlExample, `${ep.id}_curl`, "cURL Command")}
-                                  className="h-7 px-2 font-mono text-[10px] gap-1 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded"
+                                  className="h-7 px-2 font-mono text-[10px] gap-1 text-stone-600 hover:text-stone-900 bg-stone-200/80 hover:bg-stone-300 border border-stone-300 dark:text-slate-400 dark:hover:text-white dark:bg-white/5 dark:hover:bg-white/10 dark:border-transparent rounded"
                                 >
-                                  {copiedKey === `${ep.id}_curl` ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                  {copiedKey === `${ep.id}_curl` ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3 w-3" />}
                                   <span>{copiedKey === `${ep.id}_curl` ? "Copied" : "Copy"}</span>
                                 </Button>
                               </div>
-                              <pre className="p-4 bg-black/80 rounded-xl border border-white/5 text-[11px] font-mono text-slate-300 overflow-x-auto leading-relaxed">
+                              <pre className="p-4 bg-[#EDE8DE] dark:bg-black/80 rounded-xl border border-stone-300 dark:border-white/5 text-[11px] font-mono text-stone-900 dark:text-slate-300 overflow-x-auto leading-relaxed shadow-inner">
                                 <code>{ep.curlExample}</code>
                               </pre>
                             </TabsContent>
@@ -1122,13 +1122,13 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleCopy(ep.pythonExample, `${ep.id}_py`, "Python Snippet")}
-                                  className="h-7 px-2 font-mono text-[10px] gap-1 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded"
+                                  className="h-7 px-2 font-mono text-[10px] gap-1 text-stone-600 hover:text-stone-900 bg-stone-200/80 hover:bg-stone-300 border border-stone-300 dark:text-slate-400 dark:hover:text-white dark:bg-white/5 dark:hover:bg-white/10 dark:border-transparent rounded"
                                 >
-                                  {copiedKey === `${ep.id}_py` ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                  {copiedKey === `${ep.id}_py` ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3 w-3" />}
                                   <span>{copiedKey === `${ep.id}_py` ? "Copied" : "Copy"}</span>
                                 </Button>
                               </div>
-                              <pre className="p-4 bg-black/80 rounded-xl border border-white/5 text-[11px] font-mono text-emerald-300 overflow-x-auto leading-relaxed">
+                              <pre className="p-4 bg-[#EDE8DE] dark:bg-black/80 rounded-xl border border-stone-300 dark:border-white/5 text-[11px] font-mono text-emerald-900 dark:text-emerald-300 overflow-x-auto leading-relaxed shadow-inner font-medium">
                                 <code>{ep.pythonExample}</code>
                               </pre>
                             </TabsContent>
@@ -1139,13 +1139,13 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleCopy(ep.tsExample, `${ep.id}_ts`, "TypeScript Snippet")}
-                                  className="h-7 px-2 font-mono text-[10px] gap-1 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded"
+                                  className="h-7 px-2 font-mono text-[10px] gap-1 text-stone-600 hover:text-stone-900 bg-stone-200/80 hover:bg-stone-300 border border-stone-300 dark:text-slate-400 dark:hover:text-white dark:bg-white/5 dark:hover:bg-white/10 dark:border-transparent rounded"
                                 >
-                                  {copiedKey === `${ep.id}_ts` ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                  {copiedKey === `${ep.id}_ts` ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3 w-3" />}
                                   <span>{copiedKey === `${ep.id}_ts` ? "Copied" : "Copy"}</span>
                                 </Button>
                               </div>
-                              <pre className="p-4 bg-black/80 rounded-xl border border-white/5 text-[11px] font-mono text-blue-300 overflow-x-auto leading-relaxed">
+                              <pre className="p-4 bg-[#EDE8DE] dark:bg-black/80 rounded-xl border border-stone-300 dark:border-white/5 text-[11px] font-mono text-blue-900 dark:text-blue-300 overflow-x-auto leading-relaxed shadow-inner font-medium">
                                 <code>{ep.tsExample}</code>
                               </pre>
                             </TabsContent>
@@ -1156,13 +1156,13 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleCopy(ep.responseBody, `${ep.id}_resp`, "Response JSON")}
-                                  className="h-7 px-2 font-mono text-[10px] gap-1 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded"
+                                  className="h-7 px-2 font-mono text-[10px] gap-1 text-stone-600 hover:text-stone-900 bg-stone-200/80 hover:bg-stone-300 border border-stone-300 dark:text-slate-400 dark:hover:text-white dark:bg-white/5 dark:hover:bg-white/10 dark:border-transparent rounded"
                                 >
-                                  {copiedKey === `${ep.id}_resp` ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                  {copiedKey === `${ep.id}_resp` ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3 w-3" />}
                                   <span>{copiedKey === `${ep.id}_resp` ? "Copied" : "Copy"}</span>
                                 </Button>
                               </div>
-                              <pre className="p-4 bg-black/80 rounded-xl border border-white/5 text-[11px] font-mono text-amber-300 overflow-x-auto leading-relaxed">
+                              <pre className="p-4 bg-[#EDE8DE] dark:bg-black/80 rounded-xl border border-stone-300 dark:border-white/5 text-[11px] font-mono text-amber-900 dark:text-amber-300 overflow-x-auto leading-relaxed shadow-inner font-medium">
                                 <code>{ep.responseBody}</code>
                               </pre>
                             </TabsContent>
@@ -1178,22 +1178,22 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
 
               {/* SECTION 6: Architecture Specs & Security Invariants */}
               <section id="security" className="space-y-5 scroll-mt-28">
-                <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                  <div className="h-10 w-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 pb-3 border-b border-stone-300 dark:border-white/10">
+                  <div className="h-10 w-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 flex items-center justify-center shrink-0">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white tracking-tight">
                       6. Architecture Invariants &amp; Security Compliance
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-400 font-sans">
+                    <p className="text-xs sm:text-sm text-stone-600 dark:text-slate-400 font-sans">
                       Zero-retention ephemeral execution, AST dunder isolation, and privacy boundaries.
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-2xl p-1 bg-white/[0.03] border border-white/10">
-                  <div className="rounded-[calc(1rem-2px)] bg-[#0c0d12] overflow-hidden divide-y divide-white/5 text-xs font-mono">
+                <div className="rounded-2xl p-1 bg-stone-200/80 border border-stone-300 dark:bg-white/[0.03] dark:border-white/10">
+                  <div className="rounded-[calc(1rem-2px)] bg-[#FAF8F5] border border-stone-200/60 overflow-hidden divide-y divide-stone-200 text-xs font-mono dark:bg-[#0c0d12] dark:border-transparent dark:divide-white/5">
                     {[
                       { param: "Storage Architecture", detail: "100% In-Memory RAM Buffers. Zero bytes persisted to permanent disk drives." },
                       { param: "Session Lifetime", detail: "Automatic garbage collection and memory un-registration after 60 minutes of inactivity." },
@@ -1204,9 +1204,9 @@ print(f"Ingested {df.height} rows across {df.width} columns in 18ms")`}</code>
                       { param: "Rate Limiting", detail: "Token-bucket sliding window: 60 uploads/minute per source IP address with 429 throttling." },
                       { param: "LLM Privacy Boundary", detail: "Raw data records strictly excluded from external prompts. Only statistical schemas are analyzed." }
                     ].map((row) => (
-                      <div key={row.param} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 hover:bg-white/[0.02] transition-colors">
-                        <span className="font-bold text-white font-sans text-xs">{row.param}:</span>
-                        <span className="text-slate-400 text-[11px] sm:text-right max-w-md">{row.detail}</span>
+                      <div key={row.param} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 hover:bg-stone-100/60 dark:hover:bg-white/[0.02] transition-colors">
+                        <span className="font-bold text-stone-900 font-sans text-xs dark:text-white">{row.param}:</span>
+                        <span className="text-stone-600 text-[11px] sm:text-right max-w-md dark:text-slate-400">{row.detail}</span>
                       </div>
                     ))}
                   </div>

@@ -129,25 +129,25 @@ const getTypeStyle = (type: string) => {
     const t = (type || "").toLowerCase();
     if (t.includes("int") || t.includes("float") || t.includes("num")) {
         return {
-            icon: <Hash className="h-3 w-3 text-zinc-300" />,
-            className: "bg-white/5 text-zinc-300 border-white/10",
+            icon: <Hash className="h-3 w-3 text-stone-700 dark:text-zinc-300" />,
+            className: "bg-stone-200/80 text-stone-800 border-stone-300 dark:bg-white/5 dark:text-zinc-300 dark:border-white/10",
         };
     }
     if (t.includes("datetime") || t.includes("date") || t.includes("time")) {
         return {
-            icon: <Calendar className="h-3 w-3 text-amber-400" />,
-            className: "bg-amber-500/10 text-amber-400 border-amber-500/25",
+            icon: <Calendar className="h-3 w-3 text-amber-700 dark:text-amber-400" />,
+            className: "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/25",
         };
     }
     if (t.includes("bool")) {
         return {
-            icon: <CheckCircle2 className="h-3 w-3 text-emerald-400" />,
-            className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
+            icon: <CheckCircle2 className="h-3 w-3 text-emerald-700 dark:text-emerald-400" />,
+            className: "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/25",
         };
     }
     return {
-        icon: <Type className="h-3 w-3 text-violet-400" />,
-        className: "bg-violet-500/10 text-violet-400 border-violet-500/25",
+        icon: <Type className="h-3 w-3 text-violet-700 dark:text-violet-400" />,
+        className: "bg-violet-100 text-violet-900 border-violet-300 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/25",
     };
 };
 
@@ -161,6 +161,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     ? "cap_outliers"
                     : issue.action;
                 initial[issue.column] = {
+                    // SAFETY: normalizedAction is validated from issue.action
                     action: normalizedAction as CleaningRule["action"],
                     value: normalizedAction === "fill_value" ? "Unknown" : undefined
                 };
@@ -181,6 +182,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                         ? "cap_outliers"
                         : issue.action;
                     initial[issue.column] = {
+                        // SAFETY: normalizedAction is validated from issue.action
                         action: normalizedAction as CleaningRule["action"],
                         value: normalizedAction === "fill_value" ? "Unknown" : undefined
                     };
@@ -197,6 +199,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
         setRules(prev => ({
             ...prev,
             [column]: {
+                // SAFETY: normalizedAction is validated from action selection
                 action: normalizedAction as CleaningRule["action"],
                 value: normalizedAction === "fill_value" ? "Unknown" : undefined
             }
@@ -211,6 +214,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     ? "cap_outliers"
                     : issue.action;
                 updated[issue.column] = {
+                    // SAFETY: normalizedAction is validated from issue.action
                     action: normalizedAction as CleaningRule["action"],
                     value: normalizedAction === "fill_value" ? "Unknown" : undefined
                 };
@@ -233,6 +237,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     ? "cap_outliers"
                     : issue.action;
                 updated[issue.column] = {
+                    // SAFETY: normalizedAction is validated from issue.action
                     action: normalizedAction as CleaningRule["action"],
                     value: normalizedAction === "fill_value" ? "Unknown" : undefined
                 };
@@ -251,6 +256,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                 ["fill_median", "fill_mean", "fill_mode", "fill_value", "clean_text", "clean_masked_nulls"].includes(issue.action)
             ) {
                 updated[issue.column] = {
+                    // SAFETY: issue.action is checked against valid CleaningRule actions
                     action: issue.action as CleaningRule["action"],
                     value: issue.action === "fill_value" ? "Unknown" : undefined
                 };
@@ -405,8 +411,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     const typeStyle = getTypeStyle(col.inferred_type);
 
                     return (
-                        <Card key={col.name} className="border border-white/10 bg-[#0c0d12] rounded-2xl shadow-premium overflow-hidden flex flex-col justify-between t-card-lift">
-                            <CardHeader className="pb-3 bg-white/[0.02] border-b border-white/5">
+                        <Card key={col.name} className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12] rounded-2xl shadow-sm dark:shadow-premium overflow-hidden flex flex-col justify-between t-card-lift">
+                            <CardHeader className="pb-3 bg-stone-100/70 border-b border-stone-200 dark:bg-white/[0.02] dark:border-white/5">
                                 <div className="flex justify-between items-start gap-2">
                                     <CardTitle className="text-base font-sans font-semibold text-foreground truncate tracking-tight" title={col.name}>
                                         {col.name}
@@ -421,15 +427,15 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     {col.inferred_type}
                                                 </span>
                                             </TooltipTrigger>
-                                            <TooltipContent className="rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl">
-                                                <p className="text-xs font-sans">Inferred Type: <code className="font-mono text-emerald-400 font-semibold">{col.inferred_type}</code> ({col.dtype})</p>
+                                            <TooltipContent className="rounded-xl border border-stone-300 bg-[#FAF8F5] text-stone-900 dark:border-border/80 dark:bg-popover dark:text-popover-foreground shadow-xl">
+                                                <p className="text-xs font-sans">Inferred Type: <code className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold">{col.inferred_type}</code> ({col.dtype})</p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
                                 </div>
 
-                                <CardDescription className="flex items-center gap-1.5 text-amber-400 font-sans text-xs font-semibold mt-1">
-                                    <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                                <CardDescription className="flex items-center gap-1.5 text-amber-800 dark:text-amber-400 font-sans text-xs font-semibold mt-1">
+                                    <AlertTriangle className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
                                     <span>
                                         {issue?.type === 'masked_nulls'
                                             ? `${issue.count} masked placeholder(s)`
@@ -453,20 +459,20 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
                             <CardContent className="py-4 space-y-3">
                                 {/* Suggestion Header with Confidence & Impact */}
-                                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-muted-foreground font-sans space-y-2">
+                                <div className="p-3 rounded-xl bg-stone-100/90 border border-stone-200 text-xs text-stone-600 dark:bg-white/[0.03] dark:border-white/10 dark:text-muted-foreground font-sans space-y-2">
                                     <div className="flex items-center justify-between gap-1 flex-wrap">
-                                        <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider font-sans">
+                                        <span className="text-[10px] text-stone-500 dark:text-muted-foreground uppercase font-semibold tracking-wider font-sans">
                                             Auto-Suggestion
                                         </span>
                                         <div className="flex items-center gap-1.5">
                                             {issue?.confidence_score !== undefined && (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold tabular-nums px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold tabular-nums px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
                                                     <CheckCircle2 className="w-2.5 h-2.5" />
                                                     {issue.confidence_score}%
                                                 </span>
                                             )}
                                             {issue?.impact_estimate && (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold tabular-nums px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold tabular-nums px-2 py-0.5 rounded-full bg-sky-100 text-sky-900 border border-sky-300 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20">
                                                     <TrendingUp className="w-2.5 h-2.5" />
                                                     {issue.impact_estimate}
                                                 </span>
@@ -474,21 +480,21 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                         </div>
                                     </div>
 
-                                    <div className="font-semibold text-foreground text-sm flex items-center gap-1.5">
-                                        <Wrench className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <div className="font-semibold text-stone-900 dark:text-foreground text-sm flex items-center gap-1.5">
+                                        <Wrench className="w-3.5 h-3.5 text-[#800000] dark:text-primary shrink-0" />
                                         <span className="truncate">{issue?.label || issue?.suggestion || "Ignore (Leave as is)"}</span>
                                     </div>
 
                                     {issue?.rationale && (
-                                        <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
+                                        <p className="text-[11px] text-stone-600 dark:text-muted-foreground leading-relaxed font-sans">
                                             {issue.rationale}
                                         </p>
                                     )}
 
                                     {/* Before vs After Visual Diff */}
                                     {issue?.before_sample && issue?.after_sample && issue.before_sample.length > 0 && (
-                                        <div className="p-2 rounded-lg bg-black/40 border border-white/5 space-y-1 font-mono text-[11px] mt-2">
-                                            <div className="flex items-center justify-between text-[9px] text-zinc-400 uppercase tracking-wider font-sans font-semibold">
+                                        <div className="p-2 rounded-lg bg-stone-100/90 border border-stone-200 dark:bg-black/40 dark:border-white/5 space-y-1 font-mono text-[11px] mt-2">
+                                            <div className="flex items-center justify-between text-[9px] text-stone-600 dark:text-zinc-400 uppercase tracking-wider font-sans font-semibold">
                                                 <span>Preview</span>
                                                 <span>Before → After</span>
                                             </div>
@@ -497,11 +503,11 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     const afterVal = issue.after_sample?.[idx];
                                                     return (
                                                         <div key={idx} className="flex items-center justify-between gap-2 text-xs">
-                                                            <span className="text-rose-400/90 truncate max-w-[110px]" title={String(b)}>
+                                                            <span className="text-rose-700 dark:text-rose-400/90 truncate max-w-[110px]" title={String(b)}>
                                                                 {b === null ? "null" : String(b)}
                                                             </span>
-                                                            <ArrowRight className="w-3 h-3 text-zinc-400 shrink-0" />
-                                                            <span className="text-emerald-400/90 truncate max-w-[110px] font-semibold" title={String(afterVal)}>
+                                                            <ArrowRight className="w-3 h-3 text-stone-500 dark:text-zinc-400 shrink-0" />
+                                                            <span className="text-emerald-700 dark:text-emerald-400/90 truncate max-w-[110px] font-semibold" title={String(afterVal)}>
                                                                 {afterVal === null ? "null" : String(afterVal)}
                                                             </span>
                                                         </div>
@@ -874,28 +880,28 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             </div>
 
             {report.issues.length === 0 && (
-                <div className="bg-[#0c0d12] border border-white/10 shadow-premium rounded-2xl p-8 max-w-2xl mx-auto text-center mt-6">
-                    <div className="w-16 h-16 bg-emerald-500/15 rounded-full flex items-center justify-center mx-auto mb-5 border border-emerald-500/30 shadow-2xs">
-                        <Check className="h-8 w-8 text-emerald-400" />
+                <div className="bg-[#FAF8F5] border border-stone-300 dark:bg-[#0c0d12] dark:border-white/10 shadow-sm dark:shadow-premium rounded-2xl p-8 max-w-2xl mx-auto text-center mt-6">
+                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-500/15 rounded-full flex items-center justify-center mx-auto mb-5 border border-emerald-300 dark:border-emerald-500/30 shadow-2xs">
+                        <Check className="h-8 w-8 text-emerald-700 dark:text-emerald-400" />
                     </div>
-                    <h3 className="text-2xl font-sans font-bold text-foreground tracking-[-0.025em]">Data Quality: Excellent</h3>
-                    <p className="text-muted-foreground mt-2 max-w-md mx-auto text-sm leading-relaxed font-sans">
+                    <h3 className="text-2xl font-sans font-bold text-stone-900 dark:text-foreground tracking-[-0.025em]">Data Quality: Excellent</h3>
+                    <p className="text-stone-600 dark:text-muted-foreground mt-2 max-w-md mx-auto text-sm leading-relaxed font-sans">
                         We have successfully run our pre-analysis checks and found no critical issues, missing values, or problematic distributions. Your dataset is clean and ready for deep analysis.
                     </p>
                     
                     <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left font-sans">
-                        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-start gap-3">
-                            <div className="bg-emerald-500/15 p-1.5 rounded-md mt-0.5 border border-emerald-500/25"><Check className="h-4 w-4 text-emerald-400" /></div>
+                        <div className="bg-stone-100/80 border border-stone-200 dark:bg-white/[0.03] dark:border-white/10 rounded-xl p-4 flex items-start gap-3">
+                            <div className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-400 p-1.5 rounded-md mt-0.5 border border-emerald-300 dark:border-emerald-500/25"><Check className="h-4 w-4 text-emerald-700 dark:text-emerald-400" /></div>
                             <div>
-                                <h4 className="text-sm font-semibold text-foreground">Format Integrity</h4>
-                                <p className="text-xs text-muted-foreground mt-1">All columns contain valid types.</p>
+                                <h4 className="text-sm font-semibold text-stone-900 dark:text-foreground">Format Integrity</h4>
+                                <p className="text-xs text-stone-600 dark:text-muted-foreground mt-1">All columns contain valid types.</p>
                             </div>
                         </div>
-                        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-start gap-3">
-                            <div className="bg-emerald-500/15 p-1.5 rounded-md mt-0.5 border border-emerald-500/25"><Check className="h-4 w-4 text-emerald-400" /></div>
+                        <div className="bg-stone-100/80 border border-stone-200 dark:bg-white/[0.03] dark:border-white/10 rounded-xl p-4 flex items-start gap-3">
+                            <div className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-400 p-1.5 rounded-md mt-0.5 border border-emerald-300 dark:border-emerald-500/25"><Check className="h-4 w-4 text-emerald-700 dark:text-emerald-400" /></div>
                             <div>
-                                <h4 className="text-sm font-semibold text-foreground">Data Completeness</h4>
-                                <p className="text-xs text-muted-foreground mt-1">No missing cells detected.</p>
+                                <h4 className="text-sm font-semibold text-stone-900 dark:text-foreground">Data Completeness</h4>
+                                <p className="text-xs text-stone-600 dark:text-muted-foreground mt-1">No missing cells detected.</p>
                             </div>
                         </div>
                     </div>
@@ -904,27 +910,27 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
             {/* DATA PREVIEW TABLE */}
             {report.preview && report.preview.length > 0 && (
-                <div className="border border-white/10 bg-[#0c0d12] shadow-premium rounded-2xl overflow-hidden font-sans">
-                    <div className="bg-white/[0.03] px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
+                <div className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12] shadow-sm dark:shadow-premium rounded-2xl overflow-hidden font-sans">
+                    <div className="bg-stone-100/80 px-5 py-3.5 border-b border-stone-200 dark:bg-white/[0.03] dark:border-white/10 flex items-center justify-between">
                         <h3 className="text-sm font-sans font-semibold text-foreground tracking-tight">Data Preview (First 5 Rows)</h3>
                         <span className="text-xs font-sans font-medium text-muted-foreground tabular-nums">{report.preview.length} sample rows</span>
                     </div>
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-sm text-left border-collapse">
-                            <thead className="bg-white/[0.02] text-foreground font-semibold">
+                            <thead className="bg-stone-100/40 text-foreground font-semibold dark:bg-white/[0.02]">
                                 <tr>
                                     {Object.keys(report.preview[0]).map((header) => (
-                                        <th key={header} className="px-4 py-3 border-b border-r border-white/10 whitespace-nowrap font-sans font-semibold text-xs uppercase tracking-wider text-muted-foreground last:border-r-0">
+                                        <th key={header} className="px-4 py-3 border-b border-r border-stone-200 dark:border-white/10 whitespace-nowrap font-sans font-semibold text-xs uppercase tracking-wider text-muted-foreground last:border-r-0">
                                             {header}
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5 bg-[#0c0d12]">
+                            <tbody className="divide-y divide-stone-200 bg-[#FAF8F5] dark:divide-white/5 dark:bg-[#0c0d12]">
                                 {report.preview.map((row, rowPos) => (
-                                    <tr key={`row_pos_${rowPos}`} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+                                    <tr key={`row_pos_${rowPos}`} className="border-b border-stone-200 dark:border-white/5 last:border-0 hover:bg-stone-100/50 dark:hover:bg-white/[0.02] transition-colors">
                                         {Object.entries(row).map(([header, cell]) => (
-                                            <td key={`cell_${header}_${rowPos}`} className="px-4 py-2.5 border-r border-white/10 font-sans text-xs whitespace-nowrap max-w-[200px] truncate last:border-r-0 text-foreground/90 font-normal tabular-nums" title={String(cell)}>
+                                            <td key={`cell_${header}_${rowPos}`} className="px-4 py-2.5 border-r border-stone-200 dark:border-white/10 font-sans text-xs whitespace-nowrap max-w-[200px] truncate last:border-r-0 text-foreground/90 font-normal tabular-nums" title={String(cell)}>
                                                 {cell === null ? <span className="text-muted-foreground italic font-sans">null</span> : String(cell)}
                                             </td>
                                         ))}

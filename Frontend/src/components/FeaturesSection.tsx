@@ -49,37 +49,37 @@ export const FeaturesSection = () => {
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
             <span>Transparency & Control</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-white tracking-[-0.02em] leading-tight">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-stone-900 dark:text-white tracking-[-0.02em] leading-tight">
             You stay in complete control of every change
           </h2>
-          <p className="text-xs sm:text-base text-zinc-400 max-w-xl mx-auto leading-relaxed font-sans font-normal">
+          <p className="text-xs sm:text-base text-stone-600 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed font-sans font-normal">
             GetReport never alters your data behind your back. Every error is highlighted, and you choose what to fix before generating reports.
           </p>
         </div>
 
-        {/* Bento Grid with Obsidian Dark Surfaces */}
+        {/* Bento Grid with Dual-Mode Surfaces */}
         <div className="space-y-4 sm:space-y-5">
           
           {/* Top Bento Row: 2-col Ledger + 1-col Stacked Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8 items-stretch">
             
             {/* Tile 1: Interactive Issue Ledger (Spans 2 columns) */}
-            <div className="lg:col-span-2 rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-7 lg:p-8 shadow-2xl flex flex-col justify-between">
+            <div className="lg:col-span-2 rounded-[1.75rem] sm:rounded-[2rem] bg-[#FAF8F5] border border-stone-200/90 dark:bg-[#0c0d12] dark:border-white/10 p-5 sm:p-7 lg:p-8 shadow-md dark:shadow-2xl flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3.5 sm:pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/90 dark:border-white/10 pb-3.5 sm:pb-4">
                   <div className="flex items-center gap-2.5 sm:gap-3">
-                    <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-violet-500/10 border border-violet-500/25 text-violet-400 flex items-center justify-center font-bold shrink-0">
+                    <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-violet-100 text-violet-800 border border-violet-200 dark:bg-violet-500/10 dark:border-violet-500/25 dark:text-violet-400 flex items-center justify-center font-bold shrink-0">
                       <SlidersHorizontal className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-display font-bold text-base sm:text-lg text-white">Interactive Review Gate</h3>
-                      <p className="text-[11px] sm:text-xs text-zinc-400 font-medium">Review suggested fixes with a single tap before applying them</p>
+                      <h3 className="font-display font-bold text-base sm:text-lg text-stone-900 dark:text-white">Interactive Review Gate</h3>
+                      <p className="text-[11px] sm:text-xs text-stone-600 dark:text-zinc-400 font-medium">Review suggested fixes with a single tap before applying them</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <span className="text-xs font-mono text-zinc-400 font-medium">Health Score:</span>
-                    <span className="text-base sm:text-lg font-display font-black text-white bg-violet-600/30 border border-violet-500/40 px-2.5 py-0.5 rounded-full">
+                    <span className="text-xs font-mono text-stone-500 dark:text-zinc-400 font-medium">Health Score:</span>
+                    <span className="text-base sm:text-lg font-display font-black text-violet-900 bg-violet-100 border border-violet-300 dark:text-white dark:bg-violet-600/30 dark:border-violet-500/40 px-2.5 py-0.5 rounded-full">
                       {healthScore}%
                     </span>
                   </div>
@@ -87,14 +87,14 @@ export const FeaturesSection = () => {
 
                 {/* Action Toolbar with Save All & Discard All Buttons */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                  <p className="text-xs sm:text-sm text-zinc-300 font-sans font-medium">
+                  <p className="text-xs sm:text-sm text-stone-700 dark:text-zinc-300 font-sans font-medium">
                     Review and test the live action buttons below:
                   </p>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
                       onClick={handleSaveAll}
-                      className="min-h-[44px] sm:min-h-0 h-9 px-4 rounded-full font-sans text-xs font-semibold tracking-tight flex items-center gap-1.5 transition-all duration-200 hover:-translate-y-0.5 active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_2px_10px_rgba(16,185,129,0.3),inset_0_1px_0_rgba(255,255,255,0.25)] border border-emerald-500/80 group"
+                      className="min-h-[44px] sm:min-h-0 h-9 px-4 rounded-full font-sans text-xs font-semibold tracking-tight flex items-center gap-1.5 transition-all duration-200 hover:-translate-y-0.5 active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 bg-[#800000] hover:bg-[#6b0000] text-white border border-[#800000] dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:border-emerald-500/80 shadow-sm group"
                       title="Approve and apply all suggested fixes"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-white stroke-[2.2]" />
@@ -112,12 +112,12 @@ export const FeaturesSection = () => {
                       disabled={approvedCount === 0}
                       className={`min-h-[44px] sm:min-h-0 h-9 px-3.5 rounded-full font-sans text-xs font-semibold tracking-tight flex items-center gap-1.5 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 group ${
                         approvedCount === 0
-                          ? "bg-white/[0.03] text-zinc-600 border border-white/5 cursor-not-allowed opacity-50 shadow-none"
-                          : "bg-white/[0.06] hover:bg-rose-500/15 text-zinc-300 hover:text-rose-300 border border-white/10 hover:border-rose-500/30 hover:-translate-y-0.5 active:scale-95"
+                          ? "bg-stone-200/50 text-stone-400 border border-stone-200 cursor-not-allowed opacity-50 shadow-none dark:bg-white/[0.03] dark:text-zinc-600 dark:border-white/5"
+                          : "bg-stone-200/80 hover:bg-rose-100 text-stone-700 hover:text-rose-900 border border-stone-300 hover:border-rose-300 dark:bg-white/[0.06] dark:hover:bg-rose-500/15 dark:text-zinc-300 dark:hover:text-rose-300 dark:border-white/10 dark:hover:border-rose-500/30 hover:-translate-y-0.5 active:scale-95"
                       }`}
                       title={approvedCount === 0 ? "All fixes already discarded" : "Discard all suggested fixes"}
                     >
-                      <Trash2 className={`h-3.5 w-3.5 shrink-0 transition-colors ${approvedCount === 0 ? "text-zinc-600" : "text-zinc-400 group-hover:text-rose-400 stroke-[2]"}`} />
+                      <Trash2 className={`h-3.5 w-3.5 shrink-0 transition-colors ${approvedCount === 0 ? "text-stone-400 dark:text-zinc-600" : "text-stone-600 dark:text-zinc-400 group-hover:text-rose-600 dark:group-hover:text-rose-400 stroke-[2]"}`} />
                       <span>Discard All</span>
                     </button>
                   </div>
@@ -130,21 +130,21 @@ export const FeaturesSection = () => {
                       key={item.id}
                       className={`p-3 sm:p-3.5 rounded-xl border transition-all duration-150 flex flex-col xs:flex-row xs:items-center justify-between gap-2.5 sm:gap-3 select-none ${
                         item.approved
-                          ? "bg-[#0d1620]/90 border-emerald-500/40 ring-1 ring-emerald-500/15"
-                          : "bg-[#11131c]/90 border-white/10"
+                          ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300/40 dark:bg-[#0d1620]/90 dark:border-emerald-500/40 dark:ring-emerald-500/15"
+                          : "bg-stone-100/90 border-stone-200/90 dark:bg-[#11131c]/90 dark:border-white/10"
                       }`}
                     >
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-xs font-semibold text-zinc-200 bg-white/[0.06] px-2 py-0.5 rounded border border-white/10">
+                          <span className="font-mono text-xs font-semibold text-stone-900 bg-stone-200/90 px-2 py-0.5 rounded border border-stone-300 dark:text-zinc-200 dark:bg-white/[0.06] dark:border-white/10">
                             {item.column}
                           </span>
-                          <Badge variant="outline" className="text-[10px] font-sans px-2 py-0.5 bg-violet-500/10 border-violet-500/25 text-violet-300 font-medium rounded-full">
+                          <Badge variant="outline" className="text-[10px] font-sans px-2 py-0.5 bg-violet-100 text-violet-800 border-violet-200 dark:bg-violet-500/10 dark:border-violet-500/25 dark:text-violet-300 font-medium rounded-full">
                             {item.issue}
                           </Badge>
                         </div>
-                        <div className="text-[11px] sm:text-xs font-sans text-zinc-400">
-                          Suggested Action: <strong className="text-white font-medium">{item.fix}</strong>
+                        <div className="text-[11px] sm:text-xs font-sans text-stone-600 dark:text-zinc-400">
+                          Suggested Action: <strong className="text-stone-900 dark:text-white font-medium">{item.fix}</strong>
                         </div>
                       </div>
 
@@ -155,12 +155,12 @@ export const FeaturesSection = () => {
                           onClick={() => handleSetItemStatus(item.id, true)}
                           className={`min-h-[44px] sm:min-h-0 h-8.5 px-3.5 rounded-full font-sans text-xs font-semibold tracking-tight flex items-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${
                             item.approved
-                              ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] border border-emerald-500 font-bold"
-                              : "bg-white/[0.06] hover:bg-emerald-500/15 text-zinc-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/30 group"
+                              ? "bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:border-emerald-500 font-bold shadow-xs"
+                              : "bg-stone-200/90 hover:bg-emerald-100 text-stone-700 hover:text-emerald-900 border border-stone-300 hover:border-emerald-300 dark:bg-white/[0.06] dark:hover:bg-emerald-500/15 dark:text-zinc-300 dark:hover:text-emerald-300 dark:border-white/10 dark:hover:border-emerald-500/30 group"
                           }`}
                           title="Save & apply this fix"
                         >
-                          <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 transition-colors ${item.approved ? "text-white" : "text-zinc-400 group-hover:text-emerald-400"}`} />
+                          <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 transition-colors ${item.approved ? "text-white" : "text-stone-500 group-hover:text-emerald-700 dark:text-zinc-400 dark:group-hover:text-emerald-400"}`} />
                           <span>Save Fix</span>
                         </button>
 
@@ -169,12 +169,12 @@ export const FeaturesSection = () => {
                           onClick={() => handleSetItemStatus(item.id, false)}
                           className={`min-h-[44px] sm:min-h-0 h-8.5 px-3.5 rounded-full font-sans text-xs font-semibold tracking-tight flex items-center gap-1.5 transition-all duration-150 active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 ${
                             !item.approved
-                              ? "bg-rose-600 hover:bg-rose-500 text-white shadow-[0_2px_8px_rgba(244,63,94,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] border border-rose-500 font-bold"
-                              : "bg-white/[0.06] hover:bg-rose-500/15 text-zinc-300 hover:text-rose-300 border border-white/10 hover:border-rose-500/30 group"
+                              ? "bg-rose-700 hover:bg-rose-600 text-white border border-rose-700 dark:bg-rose-600 dark:hover:bg-rose-500 dark:border-rose-500 font-bold shadow-xs"
+                              : "bg-stone-200/90 hover:bg-rose-100 text-stone-700 hover:text-rose-900 border border-stone-300 hover:border-rose-300 dark:bg-white/[0.06] dark:hover:bg-rose-500/15 dark:text-zinc-300 dark:hover:text-rose-300 dark:border-white/10 dark:hover:border-rose-500/30 group"
                           }`}
                           title="Delete or skip this fix"
                         >
-                          <Trash2 className={`h-3.5 w-3.5 shrink-0 transition-colors ${!item.approved ? "text-white" : "text-zinc-400 group-hover:text-rose-400"}`} />
+                          <Trash2 className={`h-3.5 w-3.5 shrink-0 transition-colors ${!item.approved ? "text-white" : "text-stone-500 group-hover:text-rose-700 dark:text-zinc-400 dark:group-hover:text-rose-400"}`} />
                           <span>Delete</span>
                         </button>
                       </div>
@@ -183,9 +183,9 @@ export const FeaturesSection = () => {
                 </div>
               </div>
 
-              <div className="mt-5 pt-3.5 border-t border-white/10 text-[10px] sm:text-[11px] font-sans text-zinc-400 flex flex-col xs:flex-row gap-1.5 xs:items-center justify-between">
+              <div className="mt-5 pt-3.5 border-t border-stone-200/90 dark:border-white/10 text-[10px] sm:text-[11px] font-sans text-stone-600 dark:text-zinc-400 flex flex-col xs:flex-row gap-1.5 xs:items-center justify-between">
                 <span>{approvedCount} of {ledger.length} fixes approved</span>
-                <span className="text-violet-300 font-medium w-fit">Every change is clearly documented</span>
+                <span className="text-violet-800 dark:text-violet-300 font-semibold w-fit">Every change is clearly documented</span>
               </div>
             </div>
 
@@ -193,80 +193,80 @@ export const FeaturesSection = () => {
             <div className="lg:col-span-1 flex flex-col gap-5 sm:gap-6 justify-between">
               
               {/* Card 2A: Instant Filters & Search */}
-              <div className="rounded-[1.5rem] sm:rounded-[1.75rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-6 shadow-xl flex flex-col justify-between flex-1">
+              <div className="rounded-[1.5rem] sm:rounded-[1.75rem] bg-[#FAF8F5] border border-stone-200/90 dark:bg-[#0c0d12] dark:border-white/10 p-5 sm:p-6 shadow-md dark:shadow-xl flex flex-col justify-between flex-1">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="h-8 w-8 rounded-xl bg-white/[0.05] border border-white/10 text-zinc-300 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-xl bg-stone-200 text-stone-800 border border-stone-300 dark:bg-white/[0.05] dark:border-white/10 dark:text-zinc-300 flex items-center justify-center font-bold">
                       <Terminal className="h-4 w-4" />
                     </div>
-                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-300 bg-white/[0.05] px-2 py-0.5 rounded-full border border-white/10">
+                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-stone-800 bg-stone-200/90 px-2 py-0.5 rounded-full border border-stone-300 dark:text-zinc-300 dark:bg-white/[0.05] dark:border-white/10">
                       Sub-second
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="font-display font-bold text-base text-white">Instant Filters & Search</h3>
-                    <p className="text-[11px] text-zinc-400 font-medium mt-0.5">Filter and slice any column in milliseconds</p>
+                    <h3 className="font-display font-bold text-base text-stone-900 dark:text-white">Instant Filters & Search</h3>
+                    <p className="text-[11px] text-stone-600 dark:text-zinc-400 font-medium mt-0.5">Filter and slice any column in milliseconds</p>
                   </div>
 
-                  <p className="text-xs text-zinc-400 leading-relaxed font-sans font-normal">
+                  <p className="text-xs text-stone-600 dark:text-zinc-400 leading-relaxed font-sans font-normal">
                     Slice customer tiers or revenue categories without waiting or crashing your spreadsheet.
                   </p>
 
-                  <div className="p-2.5 bg-[#121215] rounded-xl border border-white/10 space-y-1 font-sans text-xs">
+                  <div className="p-2.5 bg-stone-100/90 rounded-xl border border-stone-200/90 dark:bg-[#121215] dark:border-white/10 space-y-1 font-sans text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-200 font-medium text-[10.5px]">High-Value Accounts</span>
-                      <span className="text-[10px] font-mono text-emerald-300 font-semibold bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
+                      <span className="text-stone-900 dark:text-zinc-200 font-semibold text-[10.5px]">High-Value Accounts</span>
+                      <span className="text-[10px] font-mono text-emerald-900 bg-emerald-100 border border-emerald-300 dark:text-emerald-300 dark:bg-emerald-500/10 dark:border-emerald-500/20 font-bold px-1.5 py-0.2 rounded">
                         500 rows verified
                       </span>
                     </div>
-                    <div className="text-zinc-400 text-[11px]">
-                      Sorted by: <span className="font-semibold text-white">Highest Revenue First</span>
+                    <div className="text-stone-600 dark:text-zinc-400 text-[11px]">
+                      Sorted by: <span className="font-semibold text-stone-900 dark:text-white">Highest Revenue First</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-3 mt-3 border-t border-white/10 text-[10px] font-mono text-zinc-400 font-medium">
+                <div className="pt-3 mt-3 border-t border-stone-200/90 dark:border-white/10 text-[10px] font-mono text-stone-600 dark:text-zinc-400 font-medium">
                   Instant Local Processing
                 </div>
               </div>
 
               {/* Card 2B: Multi-Column Visual Discovery */}
-              <div className="rounded-[1.5rem] sm:rounded-[1.75rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-6 shadow-xl flex flex-col justify-between flex-1">
+              <div className="rounded-[1.5rem] sm:rounded-[1.75rem] bg-[#FAF8F5] border border-stone-200/90 dark:bg-[#0c0d12] dark:border-white/10 p-5 sm:p-6 shadow-md dark:shadow-xl flex flex-col justify-between flex-1">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="h-8 w-8 rounded-xl bg-white/[0.05] border border-white/10 text-zinc-300 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-xl bg-stone-200 text-stone-800 border border-stone-300 dark:bg-white/[0.05] dark:border-white/10 dark:text-zinc-300 flex items-center justify-center font-bold">
                       <Sliders className="h-4 w-4" />
                     </div>
-                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-300 bg-white/[0.05] px-2 py-0.5 rounded-full border border-white/10">
+                    <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-stone-800 bg-stone-200/90 px-2 py-0.5 rounded-full border border-stone-300 dark:text-zinc-300 dark:bg-white/[0.05] dark:border-white/10">
                       Visual Sparklines
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="font-display font-bold text-base text-white">Multi-Column Discovery</h3>
-                    <p className="text-[11px] text-zinc-400 font-medium mt-0.5">Compare multiple metrics on a single screen</p>
+                    <h3 className="font-display font-bold text-base text-stone-900 dark:text-white">Multi-Column Discovery</h3>
+                    <p className="text-[11px] text-stone-600 dark:text-zinc-400 font-medium mt-0.5">Compare multiple metrics on a single screen</p>
                   </div>
 
-                  <p className="text-xs text-zinc-400 leading-relaxed font-sans font-normal">
+                  <p className="text-xs text-stone-600 dark:text-zinc-400 leading-relaxed font-sans font-normal">
                     Slide across dates, revenue, and categories to spot anomalies and correlations instantly.
                   </p>
 
-                  <div className="p-2.5 bg-[#121215] rounded-xl border border-white/10 space-y-1.5 font-sans text-xs">
-                    <div className="flex items-center justify-between text-[10.5px] text-zinc-300 font-medium">
+                  <div className="p-2.5 bg-stone-100/90 rounded-xl border border-stone-200/90 dark:bg-[#121215] dark:border-white/10 space-y-1.5 font-sans text-xs">
+                    <div className="flex items-center justify-between text-[10.5px] text-stone-800 dark:text-zinc-300 font-medium">
                       <span>Cohort Distribution</span>
-                      <span className="font-mono text-emerald-400 font-semibold">+24.8% Active</span>
+                      <span className="font-mono text-emerald-800 dark:text-emerald-400 font-bold">+24.8% Active</span>
                     </div>
                     <div className="grid grid-cols-4 gap-1.5 h-6 items-end pt-0.5">
-                      <div className="bg-emerald-500/30 rounded-t h-[40%]" />
-                      <div className="bg-emerald-500/50 rounded-t h-[65%]" />
-                      <div className="bg-emerald-500/70 rounded-t h-[85%]" />
-                      <div className="bg-emerald-500 rounded-t h-[100%]" />
+                      <div className="bg-emerald-300 dark:bg-emerald-500/30 rounded-t h-[40%]" />
+                      <div className="bg-emerald-400 dark:bg-emerald-500/50 rounded-t h-[65%]" />
+                      <div className="bg-emerald-500 dark:bg-emerald-500/70 rounded-t h-[85%]" />
+                      <div className="bg-emerald-600 dark:bg-emerald-500 rounded-t h-[100%]" />
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-3 mt-3 border-t border-white/10 text-[10px] font-mono text-zinc-400 font-medium">
+                <div className="pt-3 mt-3 border-t border-stone-200/90 dark:border-white/10 text-[10px] font-mono text-stone-600 dark:text-zinc-400 font-medium">
                   Interactive Visual Charts
                 </div>
               </div>
@@ -278,104 +278,104 @@ export const FeaturesSection = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
             
             {/* Tile 4: Outlier & Anomaly Detection */}
-            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-7 shadow-xl flex flex-col justify-between">
+            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#FAF8F5] border border-stone-200/90 dark:bg-[#0c0d12] dark:border-white/10 p-5 sm:p-7 shadow-md dark:shadow-xl flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-400 flex items-center justify-center">
+                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-500/10 dark:border-amber-500/25 dark:text-amber-400 flex items-center justify-center font-bold">
                   <Activity className="h-5 w-5" />
                 </div>
 
                 <div>
-                  <h3 className="font-display font-bold text-base sm:text-lg text-white">Outlier & Anomaly Detection</h3>
-                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 sm:mt-1 font-medium">Automatic quality and consistency scoring</p>
+                  <h3 className="font-display font-bold text-base sm:text-lg text-stone-900 dark:text-white">Outlier & Anomaly Detection</h3>
+                  <p className="text-[11px] sm:text-xs text-stone-600 dark:text-zinc-400 mt-0.5 sm:mt-1 font-medium">Automatic quality and consistency scoring</p>
                 </div>
 
-                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-sans font-normal">
+                <p className="text-xs sm:text-sm text-stone-600 dark:text-zinc-400 leading-relaxed font-sans font-normal">
                   Automatically spots extreme outliers, unexpected data spikes, and conflicting fields before they skew your calculations.
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 text-xs font-sans">
-                  <div className="p-2.5 rounded-xl bg-[#121215] border border-white/10 text-center">
-                    <span className="text-[10px] text-zinc-400 block font-medium">Data Balance</span>
-                    <span className="font-bold text-white text-xs sm:text-sm mt-0.5 block">Healthy & Normal</span>
+                  <div className="p-2.5 rounded-xl bg-stone-100/90 border border-stone-200/90 dark:bg-[#121215] dark:border-white/10 text-center">
+                    <span className="text-[10px] text-stone-500 dark:text-zinc-400 block font-medium">Data Balance</span>
+                    <span className="font-bold text-stone-900 dark:text-white text-xs sm:text-sm mt-0.5 block">Healthy & Normal</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-[#121215] border border-white/10 text-center">
-                    <span className="text-[10px] text-zinc-400 block font-medium">Conflict Check</span>
-                    <span className="font-bold text-emerald-400 text-xs sm:text-sm mt-0.5 block">0 Conflicts</span>
+                  <div className="p-2.5 rounded-xl bg-stone-100/90 border border-stone-200/90 dark:bg-[#121215] dark:border-white/10 text-center">
+                    <span className="text-[10px] text-stone-500 dark:text-zinc-400 block font-medium">Conflict Check</span>
+                    <span className="font-bold text-emerald-800 dark:text-emerald-400 text-xs sm:text-sm mt-0.5 block">0 Conflicts</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-5 sm:pt-6 mt-4 border-t border-white/10 text-[10px] sm:text-[11px] font-mono text-amber-300 font-medium">
+              <div className="pt-5 sm:pt-6 mt-4 border-t border-stone-200/90 dark:border-white/10 text-[10px] sm:text-[11px] font-mono text-amber-800 dark:text-amber-300 font-medium">
                 Automated Error Detection
               </div>
             </div>
 
             {/* Tile 5: Formula Protection & Safety Guard */}
-            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-7 shadow-xl flex flex-col justify-between">
+            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#FAF8F5] border border-stone-200/90 dark:bg-[#0c0d12] dark:border-white/10 p-5 sm:p-7 shadow-md dark:shadow-xl flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-teal-500/10 border border-teal-500/25 text-teal-400 flex items-center justify-center">
+                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-teal-100 text-teal-900 border border-teal-300 dark:bg-teal-500/10 dark:border-teal-500/25 dark:text-teal-400 flex items-center justify-center font-bold">
                   <Cpu className="h-5 w-5" />
                 </div>
 
                 <div>
-                  <h3 className="font-display font-bold text-base sm:text-lg text-white">Formula Protection Guard</h3>
-                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 sm:mt-1 font-medium">Zero broken #REF! or formula corruptions</p>
+                  <h3 className="font-display font-bold text-base sm:text-lg text-stone-900 dark:text-white">Formula Protection Guard</h3>
+                  <p className="text-[11px] sm:text-xs text-stone-600 dark:text-zinc-400 mt-0.5 sm:mt-1 font-medium">Zero broken #REF! or formula corruptions</p>
                 </div>
 
-                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-sans font-normal">
+                <p className="text-xs sm:text-sm text-stone-600 dark:text-zinc-400 leading-relaxed font-sans font-normal">
                   Protects calculation trees and formulas during cell cleanups so your team never inherits broken workbook sheets.
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 text-xs font-sans">
-                  <div className="p-2.5 rounded-xl bg-[#121215] border border-white/10 text-center">
-                    <span className="text-[10px] text-zinc-400 block font-medium">Formula Trees</span>
-                    <span className="font-bold text-white text-xs sm:text-sm mt-0.5 block">100% Protected</span>
+                  <div className="p-2.5 rounded-xl bg-stone-100/90 border border-stone-200/90 dark:bg-[#121215] dark:border-white/10 text-center">
+                    <span className="text-[10px] text-stone-500 dark:text-zinc-400 block font-medium">Formula Trees</span>
+                    <span className="font-bold text-stone-900 dark:text-white text-xs sm:text-sm mt-0.5 block">100% Protected</span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-[#121215] border border-white/10 text-center">
-                    <span className="text-[10px] text-zinc-400 block font-medium">Syntax Validation</span>
-                    <span className="font-bold text-emerald-400 text-xs sm:text-sm mt-0.5 block">Zero Errors</span>
+                  <div className="p-2.5 rounded-xl bg-stone-100/90 border border-stone-200/90 dark:bg-[#121215] dark:border-white/10 text-center">
+                    <span className="text-[10px] text-stone-500 dark:text-zinc-400 block font-medium">Syntax Validation</span>
+                    <span className="font-bold text-emerald-800 dark:text-emerald-400 text-xs sm:text-sm mt-0.5 block">Zero Errors</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-5 sm:pt-6 mt-4 border-t border-white/10 text-[10px] sm:text-[11px] font-mono text-teal-300 font-medium">
+              <div className="pt-5 sm:pt-6 mt-4 border-t border-stone-200/90 dark:border-white/10 text-[10px] sm:text-[11px] font-mono text-teal-800 dark:text-teal-300 font-medium">
                 Safe Calculation Architecture
               </div>
             </div>
 
             {/* Tile 6: Export in Any Format */}
-            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#0c0d12] border border-white/10 p-5 sm:p-7 shadow-xl flex flex-col justify-between">
+            <div className="rounded-[1.75rem] sm:rounded-[2rem] bg-[#FAF8F5] border border-stone-200/90 dark:bg-[#0c0d12] dark:border-white/10 p-5 sm:p-7 shadow-md dark:shadow-xl flex flex-col justify-between">
               <div className="space-y-4">
-                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 flex items-center justify-center">
+                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-500/10 dark:border-emerald-500/25 dark:text-emerald-400 flex items-center justify-center font-bold">
                   <FileSpreadsheet className="h-5 w-5" />
                 </div>
 
                 <div>
-                  <h3 className="font-display font-bold text-base sm:text-lg text-white">Export in Any Format</h3>
-                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5 sm:mt-1 font-medium">Excel, PDF, and automated validation</p>
+                  <h3 className="font-display font-bold text-base sm:text-lg text-stone-900 dark:text-white">Export in Any Format</h3>
+                  <p className="text-[11px] sm:text-xs text-stone-600 dark:text-zinc-400 mt-0.5 sm:mt-1 font-medium">Excel, PDF, and automated validation</p>
                 </div>
 
-                <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-sans font-normal">
+                <p className="text-xs sm:text-sm text-stone-600 dark:text-zinc-400 leading-relaxed font-sans font-normal">
                   Download cleaned spreadsheets ready for your team, alongside executive PDF briefs and automated pipeline quality rules.
                 </p>
 
-                <div className="p-2.5 sm:p-3 bg-[#121215] border border-white/10 rounded-xl space-y-1.5 font-sans text-[11px]">
-                  <div className="text-zinc-200 font-medium flex items-center gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 stroke-[2.5]" />
+                <div className="p-2.5 sm:p-3 bg-stone-100/90 border border-stone-200/90 dark:bg-[#121215] dark:border-white/10 rounded-xl space-y-1.5 font-sans text-[11px]">
+                  <div className="text-stone-800 dark:text-zinc-200 font-medium flex items-center gap-1.5">
+                    <Check className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
                     <span>Clean Excel Spreadsheet (.xlsx)</span>
                   </div>
-                  <div className="text-zinc-200 font-medium flex items-center gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 stroke-[2.5]" />
+                  <div className="text-stone-800 dark:text-zinc-200 font-medium flex items-center gap-1.5">
+                    <Check className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
                     <span>Executive Summary PDF (.pdf)</span>
                   </div>
-                  <div className="text-zinc-300 font-medium flex items-center gap-1.5">
-                    <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 stroke-[2.5]" />
+                  <div className="text-stone-800 dark:text-zinc-300 font-medium flex items-center gap-1.5">
+                    <Check className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400 shrink-0 stroke-[2.5]" />
                     <span>Automated Pipeline Rules (.json)</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-5 sm:pt-6 mt-4 border-t border-white/10 text-[10px] sm:text-[11px] font-mono text-emerald-300 font-medium">
+              <div className="pt-5 sm:pt-6 mt-4 border-t border-stone-200/90 dark:border-white/10 text-[10px] sm:text-[11px] font-mono text-emerald-800 dark:text-emerald-300 font-medium">
                 Ready for Teams & Executives
               </div>
             </div>

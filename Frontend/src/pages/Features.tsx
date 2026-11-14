@@ -15,11 +15,11 @@ import { Footer } from "@/components/Footer";
 
 // Module scope pure function for Confidence Grade calculation
 const getConfidenceGrade = (score: number) => {
-  if (score >= 90) return { grade: "A", label: "Production Ready", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" };
-  if (score >= 80) return { grade: "B", label: "Minor Issues", color: "bg-white/10 text-zinc-300 border-white/20" };
-  if (score >= 70) return { grade: "C", label: "Needs Remediation", color: "bg-amber-500/10 text-amber-400 border-amber-500/30" };
-  if (score >= 60) return { grade: "D", label: "High Risk", color: "bg-orange-500/10 text-orange-400 border-orange-500/30" };
-  return { grade: "F", label: "Critical Anomalies", color: "bg-rose-500/10 text-rose-400 border-rose-500/30" };
+  if (score >= 90) return { grade: "A", label: "Production Ready", color: "bg-emerald-50 text-emerald-950 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30" };
+  if (score >= 80) return { grade: "B", label: "Minor Issues", color: "bg-blue-50 text-blue-950 border-blue-300 dark:bg-white/10 dark:text-zinc-300 dark:border-white/20" };
+  if (score >= 70) return { grade: "C", label: "Needs Remediation", color: "bg-amber-50 text-amber-950 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30" };
+  if (score >= 60) return { grade: "D", label: "High Risk", color: "bg-orange-50 text-orange-950 border-orange-300 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/30" };
+  return { grade: "F", label: "Critical Anomalies", color: "bg-rose-50 text-rose-950 border-rose-300 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/30" };
 };
 
 export const Features = () => {
@@ -71,16 +71,16 @@ export const Features = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
+    <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-zinc-100 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
       <div className="hero-grain-overlay" />
       <Header onReset={() => {}} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28">
         
         {/* Section 1: Hero Header & Live Polars Benchmark Terminal */}
-        <section className="border-b border-white/[0.08] bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
+        <section className="border-b border-stone-300/80 bg-[#FAF8F5]/90 dark:border-white/[0.08] dark:bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               
@@ -114,32 +114,32 @@ export const Features = () => {
                 </div>
 
                 {/* Micro Guarantee Metrics */}
-                <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border/40 font-sans text-xs">
+                <div className="grid grid-cols-3 gap-3 pt-4 border-t border-stone-200/90 dark:border-border/40 font-sans text-xs">
                   <div>
-                    <span className="block font-bold text-foreground text-sm sm:text-base tabular-nums">0 MB</span>
-                    <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-[0.15em]">Permanent Storage</span>
+                    <span className="block font-bold text-stone-900 dark:text-foreground text-sm sm:text-base tabular-nums">0 MB</span>
+                    <span className="text-[10px] text-stone-600 dark:text-muted-foreground uppercase font-semibold tracking-[0.15em]">Permanent Storage</span>
                   </div>
                   <div>
-                    <span className="block font-bold text-emerald-400 text-sm sm:text-base tabular-nums">&lt; 50ms</span>
-                    <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-[0.15em]">Polars Streaming</span>
+                    <span className="block font-bold text-emerald-700 dark:text-emerald-400 text-sm sm:text-base tabular-nums">&lt; 50ms</span>
+                    <span className="text-[10px] text-stone-600 dark:text-muted-foreground uppercase font-semibold tracking-[0.15em]">Polars Streaming</span>
                   </div>
                   <div>
-                    <span className="block font-bold text-primary text-sm sm:text-base">A to F</span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Confidence Grading</span>
+                    <span className="block font-bold text-[#800000] dark:text-primary text-sm sm:text-base">A to F</span>
+                    <span className="text-[10px] text-stone-600 dark:text-muted-foreground uppercase tracking-wider">Confidence Grading</span>
                   </div>
                 </div>
               </div>
 
               {/* Right Column: Live Polars vs Pandas Benchmark Terminal */}
               <div className="lg:col-span-5 w-full">
-                <Card className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl shadow-tactile overflow-hidden t-card-lift backdrop-blur-xl">
-                  <CardHeader className="bg-white/[0.02] border-b border-white/[0.08] p-5">
+                <Card className="border border-stone-200/90 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12]/95 rounded-3xl shadow-md dark:shadow-tactile overflow-hidden t-card-lift backdrop-blur-xl">
+                  <CardHeader className="bg-stone-100/80 border-b border-stone-200/90 dark:bg-white/[0.02] dark:border-white/[0.08] p-5">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 font-mono text-xs font-semibold text-foreground">
-                        <Activity className="h-4 w-4 text-primary" />
+                      <div className="flex items-center gap-2 font-mono text-xs font-semibold text-stone-900 dark:text-foreground">
+                        <Activity className="h-4 w-4 text-[#800000] dark:text-primary" />
                         <span>Polars Zero-Copy Benchmark</span>
                       </div>
-                      <Badge variant="outline" className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                      <Badge variant="outline" className="text-[10px] font-mono bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30">
                         100k Rows Streamed
                       </Badge>
                     </div>
@@ -147,34 +147,34 @@ export const Features = () => {
                   <CardContent className="p-4 sm:p-5 space-y-3.5 font-mono text-xs">
                     <div className="space-y-3">
                       {/* Polars Row */}
-                      <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-1.5">
+                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 dark:bg-emerald-950/20 dark:border-emerald-500/30 dark:text-emerald-300 space-y-1.5 shadow-xs">
                         <div className="flex justify-between items-center text-[11px]">
-                          <span className="font-bold text-emerald-300 flex items-center gap-1.5">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Polars Engine
+                          <span className="font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" /> Polars Engine
                           </span>
-                          <span className="font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded text-[10px]">22.4x Speedup</span>
+                          <span className="font-bold text-emerald-900 bg-emerald-100 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-transparent px-2 py-0.5 rounded text-[10px]">22.4x Speedup</span>
                         </div>
-                        <div className="flex justify-between text-[11px] text-emerald-200/90 font-sans">
-                          <span>Execution: <strong className="font-mono text-emerald-300">42ms</strong></span>
-                          <span>RAM Usage: <strong className="font-mono text-emerald-300">12MB</strong></span>
+                        <div className="flex justify-between text-[11px] text-emerald-800 dark:text-emerald-200/90 font-sans">
+                          <span>Execution: <strong className="font-mono text-emerald-950 dark:text-emerald-300 font-bold">42ms</strong></span>
+                          <span>RAM Usage: <strong className="font-mono text-emerald-950 dark:text-emerald-300 font-bold">12MB</strong></span>
                         </div>
                       </div>
 
                       {/* Standard Pandas Row */}
-                      <div className="p-3 rounded-xl bg-muted/20 border border-border/50 space-y-1.5 opacity-80">
+                      <div className="p-3 rounded-xl bg-stone-100/90 border border-stone-200/90 dark:bg-muted/20 dark:border-border/50 space-y-1.5 opacity-90">
                         <div className="flex justify-between items-center text-[11px]">
-                          <span className="text-muted-foreground font-semibold">Standard Pandas (Baseline)</span>
-                          <span className="text-muted-foreground text-[10px]">Disk Cache Bound</span>
+                          <span className="text-stone-700 dark:text-muted-foreground font-semibold">Standard Pandas (Baseline)</span>
+                          <span className="text-stone-500 dark:text-muted-foreground text-[10px]">Disk Cache Bound</span>
                         </div>
-                        <div className="flex justify-between text-[11px] text-muted-foreground font-sans">
-                          <span>Execution: <strong className="font-mono text-foreground">940ms</strong></span>
-                          <span>RAM Usage: <strong className="font-mono text-foreground">148MB</strong></span>
+                        <div className="flex justify-between text-[11px] text-stone-600 dark:text-muted-foreground font-sans">
+                          <span>Execution: <strong className="font-mono text-stone-900 dark:text-foreground">940ms</strong></span>
+                          <span>RAM Usage: <strong className="font-mono text-stone-900 dark:text-foreground">148MB</strong></span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-3 bg-muted/30 rounded-xl border border-border/40 text-[11px] font-sans text-muted-foreground space-y-1">
-                      <strong className="text-foreground font-mono block text-[10px] uppercase tracking-wider">Zero-Copy Memory Guarantee:</strong>
+                    <div className="p-3 bg-stone-100/90 rounded-xl border border-stone-200/90 dark:bg-muted/30 dark:border-border/40 text-[11px] font-sans text-stone-600 dark:text-muted-foreground space-y-1">
+                      <strong className="text-stone-900 dark:text-foreground font-mono block text-[10px] uppercase tracking-wider">Zero-Copy Memory Guarantee:</strong>
                       <span>Files are memory-mapped into Polars ChunkedArrays in RAM. Intermediate buffers are purged automatically upon execution.</span>
                     </div>
                   </CardContent>
@@ -187,44 +187,44 @@ export const Features = () => {
 
         {/* Section 2: Interactive Confidence Grade Simulator */}
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 max-w-6xl">
-          <Card className="border border-white/10 bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-10 shadow-tactile space-y-8 backdrop-blur-xl">
+          <Card className="border border-stone-300 bg-[#FAF8F5] rounded-3xl p-6 sm:p-10 shadow-sm space-y-8 dark:border-white/10 dark:bg-[#0c0d12]/95 dark:shadow-tactile dark:backdrop-blur-xl">
             
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-border/60 pb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-stone-200/90 dark:border-border/60 pb-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] bg-primary/10 text-primary border-primary/20">
+                  <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] bg-[#800000]/10 text-[#800000] border-[#800000]/20 dark:bg-primary/10 dark:text-primary dark:border-primary/20">
                     Interactive Simulator
                   </Badge>
-                  <span className="text-xs text-muted-foreground font-sans font-medium">Weighted Algorithm</span>
+                  <span className="text-xs text-stone-600 dark:text-muted-foreground font-sans font-medium">Weighted Algorithm</span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-sans font-bold text-foreground tracking-[-0.015em]">
+                <h2 className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-foreground tracking-[-0.015em]">
                   Column Confidence Scoring Engine
                 </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground max-w-xl font-sans">
+                <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground max-w-xl font-sans">
                   Adjust the four core quality dimensions below to simulate how our scoring engine grades individual tabular variables in real time.
                 </p>
                 
                 {/* Preset Scenario Buttons */}
                 <div className="flex flex-wrap items-center gap-2 pt-1 font-sans text-xs">
-                  <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider mr-1">Presets:</span>
+                  <span className="text-stone-500 dark:text-muted-foreground text-[10px] font-semibold uppercase tracking-wider mr-1">Presets:</span>
                   <button
                     type="button"
                     onClick={() => applyPreset(96, 92, 88, 94)}
-                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim text-xs font-medium"
+                    className="px-3 py-1 rounded-full border border-stone-300 bg-stone-100/90 hover:bg-stone-200 hover:border-stone-400 text-stone-700 hover:text-stone-900 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:hover:border-white/20 dark:text-zinc-300 dark:hover:text-white transition-all cursor-pointer shadow-xs text-xs font-medium"
                   >
                     Clean Data (93%)
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset(72, 68, 75, 70)}
-                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim text-xs font-medium"
+                    className="px-3 py-1 rounded-full border border-stone-300 bg-stone-100/90 hover:bg-stone-200 hover:border-stone-400 text-stone-700 hover:text-stone-900 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:hover:border-white/20 dark:text-zinc-300 dark:hover:text-white transition-all cursor-pointer shadow-xs text-xs font-medium"
                   >
                     Mixed Schema (71%)
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPreset(40, 50, 45, 35)}
-                    className="px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/20 text-zinc-300 hover:text-white transition-all cursor-pointer shadow-rim text-xs font-medium"
+                    className="px-3 py-1 rounded-full border border-stone-300 bg-stone-100/90 hover:bg-stone-200 hover:border-stone-400 text-stone-700 hover:text-stone-900 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:hover:border-white/20 dark:text-zinc-300 dark:hover:text-white transition-all cursor-pointer shadow-xs text-xs font-medium"
                   >
                     Anomalous Export (43%)
                   </button>
@@ -398,14 +398,14 @@ export const Features = () => {
                   </div>
 
                   {/* Transformation Switcher */}
-                  <div className="flex items-center bg-muted/40 p-1 rounded-xl font-mono text-[10px] border border-border/50">
+                  <div className="flex items-center bg-stone-100/90 dark:bg-muted/40 p-1 rounded-xl font-mono text-[10px] border border-stone-200/90 dark:border-border/50">
                     <button
                       type="button"
                       onClick={() => setPreviewMode("raw")}
                       className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
                         previewMode === "raw" 
-                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" 
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "bg-rose-100 text-rose-900 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30" 
+                          : "text-stone-600 hover:text-stone-900 dark:text-muted-foreground dark:hover:text-foreground"
                       }`}
                     >
                       Raw Input
@@ -415,8 +415,8 @@ export const Features = () => {
                       onClick={() => setPreviewMode("remediated")}
                       className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
                         previewMode === "remediated" 
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30" 
+                          : "text-stone-600 hover:text-stone-900 dark:text-muted-foreground dark:hover:text-foreground"
                       }`}
                     >
                       Remediated DAG
@@ -426,8 +426,8 @@ export const Features = () => {
                       onClick={() => setPreviewMode("python")}
                       className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
                         previewMode === "python" 
-                          ? "bg-primary/20 text-primary border border-primary/30" 
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "bg-[#800000] text-white border border-[#800000] dark:bg-primary/20 dark:text-primary dark:border-primary/30" 
+                          : "text-stone-600 hover:text-stone-900 dark:text-muted-foreground dark:hover:text-foreground"
                       }`}
                     >
                       Polars Code
@@ -436,64 +436,64 @@ export const Features = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <h3 className="text-lg sm:text-xl font-display font-bold text-foreground">
+                  <h3 className="text-lg sm:text-xl font-display font-bold text-stone-900 dark:text-foreground">
                     Interactive Issue Ledger & Transformation DAG
                   </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-sans">
+                  <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground leading-relaxed font-sans">
                     Never trust a black-box data cleaner. GetReport identifies anomalies, duplicates, and type mismatches across 9 categories. Review, approve, or reject fixes before the pipeline executes.
                   </p>
                 </div>
 
                 {/* Interactive Code / Data Preview Box */}
-                <div className="border border-border/80 bg-background/60 rounded-xl p-4 font-mono text-xs space-y-2.5 overflow-x-auto">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[10px] text-muted-foreground border-b border-border/60 pb-2 gap-1">
-                    <span className="flex items-center gap-1.5">
-                      <Database className="h-3.5 w-3.5 text-primary" />
+                <div className="border border-stone-200/90 bg-stone-50/80 dark:border-border/80 dark:bg-background/60 rounded-xl p-4 font-mono text-xs space-y-2.5 overflow-x-auto shadow-inner">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[10px] text-stone-500 dark:text-muted-foreground border-b border-stone-200/90 dark:border-border/60 pb-2 gap-1">
+                    <span className="flex items-center gap-1.5 font-semibold text-stone-700 dark:text-zinc-300">
+                      <Database className="h-3.5 w-3.5 text-[#800000] dark:text-primary" />
                       TRANSACTION_RECORD (SAMPLE 10492)
                     </span>
                     <span className="font-bold font-mono">
-                      {previewMode === "raw" && <span className="text-rose-400">UNFILTERED RAW ANOMALIES</span>}
-                      {previewMode === "remediated" && <span className="text-emerald-400">ARROW CHUNKEDARRAY TYPES</span>}
-                      {previewMode === "python" && <span className="text-primary">POLARS EXECUTABLE SNIPPET</span>}
+                      {previewMode === "raw" && <span className="text-rose-700 dark:text-rose-400">UNFILTERED RAW ANOMALIES</span>}
+                      {previewMode === "remediated" && <span className="text-emerald-700 dark:text-emerald-400">ARROW CHUNKEDARRAY TYPES</span>}
+                      {previewMode === "python" && <span className="text-[#800000] dark:text-primary">POLARS EXECUTABLE SNIPPET</span>}
                     </span>
                   </div>
 
                   {previewMode === "raw" && (
-                    <div className="space-y-1.5 text-rose-300/90 bg-rose-950/20 p-3 rounded-lg border border-rose-500/30 break-words text-[11px] sm:text-xs">
+                    <div className="space-y-1.5 text-rose-950 bg-rose-50 dark:bg-rose-950/20 dark:text-rose-300/90 p-3 rounded-lg border border-rose-200 dark:border-rose-500/30 break-words text-[11px] sm:text-xs">
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <span>customer_id: &quot;  10492  &quot;</span>
-                        <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">Trailing Whitespace</span>
+                        <span className="text-[10px] bg-rose-100 text-rose-900 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-transparent px-1.5 py-0.5 rounded font-semibold">Trailing Whitespace</span>
                       </div>
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <span>amount: &quot;$1,240.50&quot;</span>
-                        <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">Uncoerced String Symbol</span>
+                        <span className="text-[10px] bg-rose-100 text-rose-900 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-transparent px-1.5 py-0.5 rounded font-semibold">Uncoerced String Symbol</span>
                       </div>
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <span>transaction_date: &quot;2024/02/31&quot;</span>
-                        <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">Invalid Calendar Leap Day</span>
+                        <span className="text-[10px] bg-rose-100 text-rose-900 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-transparent px-1.5 py-0.5 rounded font-semibold">Invalid Calendar Leap Day</span>
                       </div>
                     </div>
                   )}
 
                   {previewMode === "remediated" && (
-                    <div className="space-y-1.5 text-emerald-300/90 bg-emerald-950/20 p-3 rounded-lg border border-emerald-500/30 break-words text-[11px] sm:text-xs">
+                    <div className="space-y-1.5 text-emerald-950 bg-emerald-50 dark:bg-emerald-950/20 dark:text-emerald-300/90 p-3 rounded-lg border border-emerald-200 dark:border-emerald-500/30 break-words text-[11px] sm:text-xs">
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <span>customer_id: &quot;10492&quot;</span>
-                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Trimmed Utf8</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-900 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-transparent px-1.5 py-0.5 rounded font-semibold">Trimmed Utf8</span>
                       </div>
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <span>amount: 1240.50</span>
-                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Strict Float64</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-900 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-transparent px-1.5 py-0.5 rounded font-semibold">Strict Float64</span>
                       </div>
                       <div className="flex items-center justify-between flex-wrap gap-1">
                         <span>transaction_date: &quot;2024-02-29&quot;</span>
-                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Validated Date32</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-900 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-transparent px-1.5 py-0.5 rounded font-semibold">Validated Date32</span>
                       </div>
                     </div>
                   )}
 
                   {previewMode === "python" && (
-                    <div className="space-y-1 text-primary/90 bg-primary/5 p-3 rounded-lg border border-primary/20 break-words text-[11px] sm:text-xs">
+                    <div className="space-y-1 text-stone-900 bg-stone-100 dark:bg-primary/5 dark:text-primary/90 p-3 rounded-lg border border-stone-200 dark:border-primary/20 break-words text-[11px] sm:text-xs font-mono">
                       <div>df = df.with_columns([</div>
                       <div className="pl-4">pl.col(&quot;customer_id&quot;).str.strip_chars(),</div>
                       <div className="pl-4">pl.col(&quot;amount&quot;).str.replace_all(r&quot;[\$,]&quot;, &quot;&quot;).cast(pl.Float64),</div>
@@ -505,172 +505,172 @@ export const Features = () => {
               </div>
 
               <div className="pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] text-muted-foreground">
-                <span className="text-foreground font-semibold">Ledger Guarantees:</span>
-                <span className="text-emerald-400">100% Human Approvals Required • Zero Silent Mutability</span>
+                <span className="text-stone-900 dark:text-foreground font-semibold">Ledger Guarantees:</span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-semibold">100% Human Approvals Required • Zero Silent Mutability</span>
               </div>
             </Card>
 
             {/* Bento Tile 2: Multi-Dataset Relational Joins */}
-            <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
+            <Card className="border border-stone-200/90 bg-[#FAF8F5] dark:border-border dark:bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-md dark:shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-white/[0.05] text-zinc-300 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-stone-200 text-stone-800 dark:bg-white/[0.05] dark:text-zinc-300 flex items-center justify-center font-bold">
                   <ArrowLeftRight className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
-                  <h3 className="text-base sm:text-lg font-display font-bold text-foreground">
+                  <h3 className="text-base sm:text-lg font-display font-bold text-stone-900 dark:text-foreground">
                     Multi-Dataset Relational Joins
                   </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-sans">
+                  <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground leading-relaxed font-sans">
                     Ingest up to 5 related datasets simultaneously. Merge on shared primary keys with automated schema reconciliation and duplicate key detection.
                   </p>
                 </div>
 
                 {/* Visual Schema Relational Diagram */}
-                <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
-                  <div className="flex items-center justify-between text-muted-foreground text-[10px]">
+                <div className="p-3 bg-stone-100/90 dark:bg-muted/20 rounded-xl border border-stone-200 dark:border-border/60 font-mono text-[11px] space-y-2">
+                  <div className="flex items-center justify-between text-stone-600 dark:text-muted-foreground text-[10px]">
                     <span>users.csv (10.4k)</span>
-                    <span className="text-zinc-200 font-bold">⟷ INNER JOIN ⟷</span>
+                    <span className="text-stone-900 dark:text-zinc-200 font-bold">⟷ INNER JOIN ⟷</span>
                     <span>orders.parquet (84k)</span>
                   </div>
-                  <div className="flex items-center justify-between bg-white/[0.05] text-zinc-300 p-1.5 rounded-lg border border-white/10 text-[10px]">
+                  <div className="flex items-center justify-between bg-stone-200/80 text-stone-900 dark:bg-white/[0.05] dark:text-zinc-300 p-1.5 rounded-lg border border-stone-300 dark:border-white/10 text-[10px]">
                     <span>Key: customer_id</span>
                     <span>Match: 99.2% (14 Orphan Keys)</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border/40 font-mono text-[11px] text-muted-foreground">
-                <span className="text-foreground font-semibold">Join Strategies:</span> Inner, Left Outer, Cross, Composite Keys
+              <div className="pt-3 border-t border-stone-200 dark:border-border/40 font-mono text-[11px] text-stone-600 dark:text-muted-foreground">
+                <span className="text-stone-900 dark:text-foreground font-semibold">Join Strategies:</span> Inner, Left Outer, Cross, Composite Keys
               </div>
             </Card>
 
             {/* Bento Tile 3: Statistical Drift & Multicollinearity */}
-            <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
+            <Card className="border border-stone-200/90 bg-[#FAF8F5] dark:border-border dark:bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-md dark:shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-purple-100 text-purple-900 dark:bg-purple-500/10 dark:text-purple-400 flex items-center justify-center font-bold">
                   <Activity className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
-                  <h3 className="text-base sm:text-lg font-display font-bold text-foreground">
+                  <h3 className="text-base sm:text-lg font-display font-bold text-stone-900 dark:text-foreground">
                     VIF & Statistical Drift
                   </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-sans">
+                  <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground leading-relaxed font-sans">
                     Identify collinear predictor columns using Variance Inflation Factors (VIF &gt; 5.0). Flag chronological concept drift across temporal partitions.
                   </p>
                 </div>
 
                 {/* Visual Statistical Diagnostic Metric Mock */}
-                <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
+                <div className="p-3 bg-stone-100/90 dark:bg-muted/20 rounded-xl border border-stone-200 dark:border-border/60 font-mono text-[11px] space-y-2">
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-muted-foreground">marketing_spend:</span>
-                    <span className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">VIF = 7.42 (Collinear)</span>
+                    <span className="text-stone-600 dark:text-muted-foreground">marketing_spend:</span>
+                    <span className="text-amber-900 bg-amber-100 dark:text-amber-400 dark:bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-500/20 font-semibold">VIF = 7.42 (Collinear)</span>
                   </div>
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-muted-foreground">revenue ⟷ units:</span>
-                    <span className="text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">r = 0.88 (Pearson)</span>
+                    <span className="text-stone-600 dark:text-muted-foreground">revenue ⟷ units:</span>
+                    <span className="text-purple-900 bg-purple-100 dark:text-purple-300 dark:bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-300 dark:border-purple-500/20 font-semibold">r = 0.88 (Pearson)</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border/40 font-mono text-[11px] text-muted-foreground">
-                <span className="text-foreground font-semibold">Statistical Metrics:</span> Pearson r, VIF, Kurtosis, KS Test
+              <div className="pt-3 border-t border-stone-200 dark:border-border/40 font-mono text-[11px] text-stone-600 dark:text-muted-foreground">
+                <span className="text-stone-900 dark:text-foreground font-semibold">Statistical Metrics:</span> Pearson r, VIF, Kurtosis, KS Test
               </div>
             </Card>
 
             {/* Bento Tile 4: Ephemeral RAG AI Companion */}
-            <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
+            <Card className="border border-stone-200/90 bg-[#FAF8F5] dark:border-border dark:bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-md dark:shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-amber-100 text-amber-900 dark:bg-amber-500/10 dark:text-amber-400 flex items-center justify-center font-bold">
                   <MessageSquareCode className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
-                  <h3 className="text-base sm:text-lg font-display font-bold text-foreground">
+                  <h3 className="text-base sm:text-lg font-display font-bold text-stone-900 dark:text-foreground">
                     Ephemeral RAG Companion
                   </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-sans">
+                  <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground leading-relaxed font-sans">
                     Chat with your dataset without sending raw private rows to external LLMs. Ingests statistical summaries, correlations, and ledger receipts.
                   </p>
                 </div>
 
                 {/* Visual RAG Mini Prompt Mock */}
-                <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
-                  <div className="text-[10px] text-muted-foreground">
+                <div className="p-3 bg-stone-100/90 dark:bg-muted/20 rounded-xl border border-stone-200 dark:border-border/60 font-mono text-[11px] space-y-2">
+                  <div className="text-[10px] text-stone-600 dark:text-muted-foreground">
                     &gt; &quot;Explain the Q3 gross margin dip.&quot;
                   </div>
-                  <div className="text-[10px] text-amber-300/90 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 font-sans">
+                  <div className="text-[10px] text-amber-950 bg-amber-50 dark:text-amber-300/90 dark:bg-amber-500/10 p-2 rounded-lg border border-amber-200 dark:border-amber-500/20 font-sans font-medium">
                     Logistics cost spiked 18.2% across EU routes. Zero PII transmitted.
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border/40 font-mono text-[11px] text-muted-foreground">
-                <span className="text-foreground font-semibold">Privacy Guarantee:</span> Zero raw row transmission
+              <div className="pt-3 border-t border-stone-200 dark:border-border/40 font-mono text-[11px] text-stone-600 dark:text-muted-foreground">
+                <span className="text-stone-900 dark:text-foreground font-semibold">Privacy Guarantee:</span> Zero raw row transmission
               </div>
             </Card>
 
             {/* Bento Tile 5: Board-Ready PDF Generation */}
-            <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
+            <Card className="border border-stone-200/90 bg-[#FAF8F5] dark:border-border dark:bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-md dark:shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-emerald-100 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-400 flex items-center justify-center font-bold">
                   <FileText className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
-                  <h3 className="text-base sm:text-lg font-display font-bold text-foreground">
+                  <h3 className="text-base sm:text-lg font-display font-bold text-stone-900 dark:text-foreground">
                     Board-Ready PDF Output
                   </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-sans">
+                  <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground leading-relaxed font-sans">
                     High-DPI executive audit documents compiled via WeasyPrint with Matplotlib visualization galleries, executive summaries, and remediation receipts.
                   </p>
                 </div>
 
                 {/* Visual PDF Audit Certificate Mock */}
-                <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
+                <div className="p-3 bg-stone-100/90 dark:bg-muted/20 rounded-xl border border-stone-200 dark:border-border/60 font-mono text-[11px] space-y-2">
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-foreground font-bold">Executive Audit Certificate</span>
-                    <span className="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Pass Grade A</span>
+                    <span className="text-stone-900 dark:text-foreground font-bold">Executive Audit Certificate</span>
+                    <span className="text-emerald-900 bg-emerald-100 border border-emerald-300 dark:text-emerald-400 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded font-bold">Pass Grade A</span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <div className="flex justify-between text-[10px] text-stone-600 dark:text-muted-foreground">
                     <span>WeasyPrint 300 DPI</span>
                     <span>Remediation Hash: 9e4f2a</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border/40 font-mono text-[11px] text-muted-foreground">
-                <span className="text-foreground font-semibold">Formats:</span> PDF, Parquet, CSV, HTML, SQL DDL
+              <div className="pt-3 border-t border-stone-200 dark:border-border/40 font-mono text-[11px] text-stone-600 dark:text-muted-foreground">
+                <span className="text-stone-900 dark:text-foreground font-semibold">Formats:</span> PDF, Parquet, CSV, HTML, SQL DDL
               </div>
             </Card>
 
             {/* Bento Tile 6: Zero-Retention & PII Masking Vault */}
-            <Card className="border border-border bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-premium t-card-lift">
+            <Card className="border border-stone-200/90 bg-[#FAF8F5] dark:border-border dark:bg-card rounded-2xl p-5 sm:p-7 flex flex-col justify-between shadow-md dark:shadow-premium t-card-lift">
               <div className="space-y-4">
-                <div className="h-9 w-9 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-rose-100 text-rose-900 dark:bg-rose-500/10 dark:text-rose-400 flex items-center justify-center font-bold">
                   <Lock className="h-4 w-4" />
                 </div>
                 <div className="space-y-1.5">
-                  <h3 className="text-base sm:text-lg font-display font-bold text-foreground">
+                  <h3 className="text-base sm:text-lg font-display font-bold text-stone-900 dark:text-foreground">
                     Zero-Retention PII Masking
                   </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-sans">
+                  <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground leading-relaxed font-sans">
                     Client-first compliance pipeline. Automatic regex detection and SHA-256 masking for emails, tax IDs, and credit cards before reporting.
                   </p>
                 </div>
 
                 {/* Visual PII Masking Mock */}
-                <div className="p-3 bg-muted/20 rounded-xl border border-border/60 font-mono text-[11px] space-y-2">
+                <div className="p-3 bg-stone-100/90 dark:bg-muted/20 rounded-xl border border-stone-200 dark:border-border/60 font-mono text-[11px] space-y-2">
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-muted-foreground">email:</span>
-                    <span className="text-rose-300">j***@acme.com (SHA-256)</span>
+                    <span className="text-stone-600 dark:text-muted-foreground">email:</span>
+                    <span className="text-rose-800 dark:text-rose-300 font-semibold">j***@acme.com (SHA-256)</span>
                   </div>
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-muted-foreground">ssn_id:</span>
-                    <span className="text-rose-300">***-**-4921 (Redacted)</span>
+                    <span className="text-stone-600 dark:text-muted-foreground">ssn_id:</span>
+                    <span className="text-rose-800 dark:text-rose-300 font-semibold">***-**-4921 (Redacted)</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border/40 font-mono text-[11px] text-muted-foreground">
-                <span className="text-foreground font-semibold">Compliance:</span> SOC 2 Type II, HIPAA, GDPR Ready
+              <div className="pt-3 border-t border-stone-200 dark:border-border/40 font-mono text-[11px] text-stone-600 dark:text-muted-foreground">
+                <span className="text-stone-900 dark:text-foreground font-semibold">Compliance:</span> SOC 2 Type II, HIPAA, GDPR Ready
               </div>
             </Card>
 
@@ -691,80 +691,80 @@ export const Features = () => {
             </p>
           </div>
 
-          <div className="border border-border/80 bg-card rounded-2xl overflow-hidden shadow-premium">
+          <div className="border border-stone-300 bg-[#FAF8F5] rounded-2xl overflow-hidden shadow-sm dark:border-border/80 dark:bg-card dark:shadow-premium">
             <div className="overflow-x-auto">
               <table className="w-full text-left font-sans text-xs sm:text-sm border-collapse min-w-[620px]">
                 <thead>
-                  <tr className="border-b border-border/60 bg-muted/30 font-mono text-[11px] sm:text-xs text-muted-foreground">
-                    <th className="p-4 sm:p-5 font-semibold text-foreground">Capability / Standard</th>
-                    <th className="p-4 sm:p-5 font-semibold text-primary bg-primary/5 border-x border-border/60">GetReport Stack</th>
-                    <th className="p-4 sm:p-5 font-semibold">Custom Python / Pandas</th>
-                    <th className="p-4 sm:p-5 font-semibold">Manual Excel Sheets</th>
+                  <tr className="border-b border-stone-300 bg-stone-100/90 font-mono text-[11px] sm:text-xs text-stone-600 dark:border-border/60 dark:bg-muted/30 dark:text-muted-foreground">
+                    <th className="p-4 sm:p-5 font-semibold text-stone-900 dark:text-foreground">Capability / Standard</th>
+                    <th className="p-4 sm:p-5 font-bold text-[#800000] bg-[#800000]/5 border-x border-stone-200 dark:text-primary dark:bg-primary/5 dark:border-border/60">GetReport Stack</th>
+                    <th className="p-4 sm:p-5 font-semibold text-stone-900 dark:text-foreground">Custom Python / Pandas</th>
+                    <th className="p-4 sm:p-5 font-semibold text-stone-900 dark:text-foreground">Manual Excel Sheets</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/40 font-sans text-xs sm:text-sm">
+                <tbody className="divide-y divide-stone-200 dark:divide-border/40 font-sans text-xs sm:text-sm">
                   
                   <tr>
-                    <td className="p-4 sm:p-5 font-medium text-foreground">
+                    <td className="p-4 sm:p-5 font-medium text-stone-900 dark:text-foreground">
                       <div>Execution Engine</div>
-                      <span className="text-[11px] text-muted-foreground font-normal">Throughput and parallelism</span>
+                      <span className="text-[11px] text-stone-600 dark:text-muted-foreground font-normal">Throughput and parallelism</span>
                     </td>
-                    <td className="p-4 sm:p-5 bg-primary/5 border-x border-border/60 font-semibold text-emerald-400">
+                    <td className="p-4 sm:p-5 bg-[#800000]/5 border-x border-stone-200 dark:bg-primary/5 dark:border-border/60 font-semibold text-emerald-800 dark:text-emerald-400">
                       Polars Rust Core (&lt;50ms)
                     </td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Single-Thread GIL Pandas</td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Formula calculation freeze</td>
+                    <td className="p-4 sm:p-5 text-stone-600 dark:text-muted-foreground">Single-Thread GIL Pandas</td>
+                    <td className="p-4 sm:p-5 text-stone-600 dark:text-muted-foreground">Formula calculation freeze</td>
                   </tr>
 
                   <tr>
-                    <td className="p-4 sm:p-5 font-medium text-foreground">
+                    <td className="p-4 sm:p-5 font-medium text-stone-900 dark:text-foreground">
                       <div>Human-in-the-Loop DAG</div>
-                      <span className="text-[11px] text-muted-foreground font-normal">Interactive approval receipts</span>
+                      <span className="text-[11px] text-stone-600 dark:text-muted-foreground font-normal">Interactive approval receipts</span>
                     </td>
-                    <td className="p-4 sm:p-5 bg-primary/5 border-x border-border/60 font-semibold text-emerald-400 flex items-center gap-1.5 pt-5">
-                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <td className="p-4 sm:p-5 bg-[#800000]/5 border-x border-stone-200 dark:bg-primary/5 dark:border-border/60 font-semibold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5 pt-5">
+                      <Check className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                       <span>Interactive Issue Ledger</span>
                     </td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Hardcoded script edits</td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Manual destructive overwrite</td>
+                    <td className="p-4 sm:p-5 text-stone-600 dark:text-muted-foreground">Hardcoded script edits</td>
+                    <td className="p-4 sm:p-5 text-stone-600 dark:text-muted-foreground">Manual destructive overwrite</td>
                   </tr>
 
                   <tr>
-                    <td className="p-4 sm:p-5 font-medium text-foreground">
+                    <td className="p-4 sm:p-5 font-medium text-stone-900 dark:text-foreground">
                       <div>Zero-Retention Privacy</div>
-                      <span className="text-[11px] text-muted-foreground font-normal">RAM buffer memory management</span>
+                      <span className="text-[11px] text-stone-600 dark:text-muted-foreground font-normal">RAM buffer memory management</span>
                     </td>
-                    <td className="p-4 sm:p-5 bg-primary/5 border-x border-border/60 font-semibold text-emerald-400">
+                    <td className="p-4 sm:p-5 bg-[#800000]/5 border-x border-stone-200 dark:bg-primary/5 dark:border-border/60 font-semibold text-emerald-800 dark:text-emerald-400">
                       0 bytes written to disk
                     </td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Cached in /tmp or Jupyter</td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Unencrypted desktop files</td>
+                    <td className="p-4 sm:p-5 text-stone-600 dark:text-muted-foreground">Cached in /tmp or Jupyter</td>
+                    <td className="p-4 sm:p-5 text-stone-600 dark:text-muted-foreground">Unencrypted desktop files</td>
                   </tr>
 
                   <tr>
-                    <td className="p-4 sm:p-5 font-medium text-foreground">
+                    <td className="p-4 sm:p-5 font-medium text-stone-900 dark:text-foreground">
                       <div>Statistical Drift Auditing</div>
-                      <span className="text-[11px] text-muted-foreground font-normal">VIF, KS test, and Kurtosis</span>
+                      <span className="text-[11px] text-stone-600 dark:text-muted-foreground font-normal">VIF, KS test, and Kurtosis</span>
                     </td>
-                    <td className="p-4 sm:p-5 bg-primary/5 border-x border-border/60 font-semibold text-emerald-400 flex items-center gap-1.5 pt-5">
-                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <td className="p-4 sm:p-5 bg-[#800000]/5 border-x border-stone-200 dark:bg-primary/5 dark:border-border/60 font-semibold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5 pt-5">
+                      <Check className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                       <span>Automated 9-Metric Scan</span>
                     </td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Requires SciPy custom code</td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Not supported</td>
+                    <td className="p-4 sm:p-5 text-stone-600 dark:text-muted-foreground">Requires SciPy custom code</td>
+                    <td className="p-4 sm:p-5 text-stone-600 dark:text-muted-foreground">Not supported</td>
                   </tr>
 
                   <tr>
-                    <td className="p-4 sm:p-5 font-medium text-foreground">
+                    <td className="p-4 sm:p-5 font-medium text-stone-900 dark:text-foreground">
                       <div>Board-Ready PDF Report</div>
-                      <span className="text-[11px] text-muted-foreground font-normal">Executive audit documentation</span>
+                      <span className="text-[11px] text-stone-600 dark:text-muted-foreground font-normal">Executive audit documentation</span>
                     </td>
-                    <td className="p-4 sm:p-5 bg-primary/5 border-x border-border/60 font-semibold text-emerald-400 flex items-center gap-1.5 pt-5">
-                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <td className="p-4 sm:p-5 bg-[#800000]/5 border-x border-stone-200 dark:bg-primary/5 dark:border-border/60 font-semibold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5 pt-5">
+                      <Check className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
                       <span>High-DPI WeasyPrint PDF</span>
                     </td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Jupyter notebook printouts</td>
-                    <td className="p-4 sm:p-5 text-muted-foreground">Screenshots into slide decks</td>
+                    <td className="p-4 sm:p-5 text-stone-600 dark:text-muted-foreground">Jupyter notebook printouts</td>
+                    <td className="p-4 sm:p-5 text-stone-600 dark:text-muted-foreground">Screenshots into slide decks</td>
                   </tr>
 
                 </tbody>
@@ -819,44 +819,44 @@ export const Features = () => {
         </section>
 
         {/* Section 6: High-Converting Obsidian Conversion Banner */}
-        <section className="border-t border-border/60 bg-gradient-to-b from-card/30 via-background to-background py-14 sm:py-20">
+        <section className="border-t border-stone-300 bg-gradient-to-b from-[#FAF8F5]/80 via-[#F5F2EB] to-[#F5F2EB] dark:border-border/60 dark:bg-gradient-to-b dark:from-card/30 dark:via-background dark:to-background py-14 sm:py-20">
           <div className="container mx-auto px-4 max-w-4xl">
-            <div className="relative rounded-3xl border border-primary/30 bg-card/80 p-8 sm:p-12 text-center space-y-5 shadow-premium overflow-hidden">
+            <div className="relative rounded-3xl border border-stone-300 bg-[#FAF8F5] p-8 sm:p-12 text-center space-y-5 shadow-sm dark:border-primary/30 dark:bg-card/80 dark:shadow-premium overflow-hidden">
               <div className="space-y-2">
-                <Badge variant="outline" className="text-[10px] font-mono uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                <Badge variant="outline" className="text-[10px] font-mono uppercase tracking-wider bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30">
                   Instant Access • Zero Setup
                 </Badge>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-extrabold text-foreground tracking-[-0.02em]">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-extrabold text-stone-900 dark:text-foreground tracking-[-0.02em]">
                   Ready to audit your first dataset?
                 </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground font-sans max-w-lg mx-auto leading-relaxed">
+                <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground font-sans max-w-lg mx-auto leading-relaxed">
                   No sign-up, no credit card, and zero permanent data retention. Upload your CSV, Excel, or Parquet ledger to begin.
                 </p>
               </div>
 
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link to="/workspace" className="w-full sm:w-auto">
-                  <Button size="lg" className="w-full sm:w-auto h-11 px-8 rounded-xl shadow-premium t-card-lift t-spring-press font-display font-semibold text-sm">
+                  <Button size="lg" className="w-full sm:w-auto h-11 px-8 rounded-xl shadow-sm dark:shadow-premium t-card-lift t-spring-press font-display font-semibold text-sm">
                     <span>Launch Workspace</span>
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link to="/how-it-works" className="w-full sm:w-auto">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-6 rounded-xl border-border bg-card hover:bg-muted/20 font-display text-sm">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto h-11 px-6 rounded-xl border border-stone-300 bg-[#FAF8F5] text-stone-800 hover:bg-stone-200 hover:text-stone-900 dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-muted/20 font-display text-sm">
                     <span>Inspect Pipeline</span>
                   </Button>
                 </Link>
               </div>
 
-              <div className="pt-4 border-t border-border/40 flex flex-wrap items-center justify-center gap-6 font-mono text-[11px] text-muted-foreground">
+              <div className="pt-4 border-t border-stone-200 dark:border-border/40 flex flex-wrap items-center justify-center gap-6 font-mono text-[11px] text-stone-600 dark:text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> 100% In-Memory RAM
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" /> 100% In-Memory RAM
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Activity className="h-3.5 w-3.5 text-primary" /> Sub-50ms Execution
+                  <Activity className="h-3.5 w-3.5 text-[#800000] dark:text-primary" /> Sub-50ms Execution
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Lock className="h-3.5 w-3.5 text-emerald-400" /> Zero Disk Writes
+                  <Lock className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" /> Zero Disk Writes
                 </span>
               </div>
             </div>

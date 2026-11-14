@@ -27,7 +27,7 @@ function isApiResponse(res: JobTaskResult | null | undefined): res is ApiRespons
 }
 
 const VALID_EXTENSIONS = [
-  ".csv", ".xlsx", ".xls", ".parquet", ".json", 
+  ".csv", ".xlsx", ".xls", ".parquet", ".json",
   ".jsonl", ".ndjson", ".tsv", ".feather", ".arrow", ".gz"
 ] as const;
 
@@ -98,7 +98,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
-  
+
   // Join options for multi-dataset upload
   const [joinKey, setJoinKey] = useState<string>("id");
   const [joinType, setJoinType] = useState<"inner" | "left" | "outer">("inner");
@@ -429,7 +429,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
           setTaskId(task_id);
         }
       }
-      
+
       setExpectedPhase('INSPECTION');
       success = true;
 
@@ -538,14 +538,14 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
         )}
       </AnimatePresence>
 
-      <Card className="border border-white/10 bg-[#0c0d12]/95 shadow-tactile rounded-3xl overflow-hidden transition-all duration-300 backdrop-blur-xl">
+      <Card className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12]/95 shadow-sm dark:shadow-tactile rounded-3xl overflow-hidden transition-all duration-300 backdrop-blur-xl">
         <CardContent className="p-4 sm:p-6 space-y-6">
           {/* Dropzone Container */}
           <div
             className={`
               relative p-6 sm:p-8 md:p-10 text-center transition-all duration-200 min-h-[270px] flex flex-col items-center justify-center
               border-2 border-dashed rounded-2xl
-              ${isDragging ? "bg-white/[0.06] border-white/40 shadow-inner" : "bg-[#08090d]/80 border-white/10 hover:border-white/20"}
+              ${isDragging ? "bg-[#EDE8DE] border-stone-400 dark:bg-white/[0.06] dark:border-white/40 shadow-inner" : "bg-stone-100/90 border-stone-300 hover:border-stone-400 dark:bg-[#08090d]/80 dark:border-white/10 dark:hover:border-white/20"}
               ${isProcessing ? "opacity-75 pointer-events-none" : ""}
             `}
             onDragOver={(e) => {
@@ -680,7 +680,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
           {/* Staged Files Queue Manager */}
           {stagedFiles.length > 0 && (
-            <motion.div 
+            <motion.div
               className="space-y-4 pt-2"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -761,36 +761,36 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                 const cols2 = fileHeaders[f2?.name] || [];
                 const commonCols = stagedFiles.length > 1 && stagedFiles.every(f => (fileHeaders[f.name]?.length || 0) > 0)
                   ? (fileHeaders[stagedFiles[0].name] || []).filter(c =>
-                      stagedFiles.every(f => (fileHeaders[f.name] || []).includes(c))
-                    )
+                    stagedFiles.every(f => (fileHeaders[f.name] || []).includes(c))
+                  )
                   : [];
 
                 const missingInFiles = joinMode === "common" && joinKey.trim()
                   ? stagedFiles
-                      .filter(f => {
-                        const headers = fileHeaders[f.name];
-                        return headers && headers.length > 0 && !headers.includes(joinKey.trim());
-                      })
-                      .map(f => f.name)
+                    .filter(f => {
+                      const headers = fileHeaders[f.name];
+                      return headers && headers.length > 0 && !headers.includes(joinKey.trim());
+                    })
+                    .map(f => f.name)
                   : [];
 
                 return (
                   <div className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 shadow-premium space-y-3.5">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
                       <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-white/[0.06] text-zinc-300 border border-white/10">
+                        <div className="p-1.5 rounded-lg bg-stone-200 text-stone-800 border border-stone-300 dark:bg-white/[0.06] dark:text-zinc-300 dark:border-white/10">
                           <ArrowRightLeft className="h-4 w-4" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-display font-bold text-white tracking-wide">
+                            <span className="text-xs font-display font-bold text-stone-900 dark:text-white tracking-wide">
                               Multi-Dataset Join Configuration
                             </span>
-                            <span className="px-1.5 py-0.5 rounded-md bg-white/[0.06] text-zinc-300 text-[10px] font-mono border border-white/10">
+                            <span className="px-1.5 py-0.5 rounded-md bg-stone-200 text-stone-800 text-[10px] font-mono border border-stone-300 dark:bg-white/[0.06] dark:text-zinc-300 dark:border-white/10">
                               Polars Engine
                             </span>
                           </div>
-                          <p className="text-[11px] text-zinc-400">
+                          <p className="text-[11px] text-stone-600 dark:text-zinc-400">
                             {stagedFiles.length === 2 && joinMode === "asymmetric"
                               ? "Relational cross-dataset key mapping"
                               : `Matching rows across ${stagedFiles.length} staged datasets`}
@@ -799,28 +799,26 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       </div>
 
                       {stagedFiles.length === 2 && (
-                        <div className="inline-flex rounded-lg p-0.5 bg-black/40 border border-white/10">
+                        <div className="inline-flex rounded-lg p-0.5 bg-stone-200/80 border border-stone-300 dark:bg-black/40 dark:border-white/10">
                           <button
                             type="button"
                             onClick={() => setJoinMode("common")}
-                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
-                              joinMode === "common"
-                                ? "bg-white/10 text-white shadow-sm"
-                                : "text-zinc-400 hover:text-zinc-200"
-                            }`}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${joinMode === "common"
+                                ? "bg-[#800000] text-white shadow-sm dark:bg-white/10 dark:text-white"
+                                : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                              }`}
                           >
                             Single Key
                           </button>
                           <button
                             type="button"
                             onClick={() => setJoinMode("asymmetric")}
-                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all flex items-center gap-1 cursor-pointer ${
-                              joinMode === "asymmetric"
-                                ? "bg-white/[0.12] text-white border border-white/20 shadow-sm"
-                                : "text-zinc-400 hover:text-zinc-200"
-                            }`}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all flex items-center gap-1 cursor-pointer ${joinMode === "asymmetric"
+                                ? "bg-[#800000] text-white shadow-sm dark:bg-white/[0.12] dark:text-white dark:border dark:border-white/20"
+                                : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                              }`}
                           >
-                            <Link2 className="h-3 w-3 text-zinc-300" />
+                            <Link2 className="h-3 w-3 text-stone-600 dark:text-zinc-300" />
                             Key Mapping
                           </button>
                         </div>
@@ -832,14 +830,14 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 md:grid-cols-11 gap-2.5 items-center">
                           {/* Left Dataset Key */}
-                          <div className="md:col-span-5 p-3 rounded-xl bg-black/30 border border-white/10 space-y-1.5">
+                          <div className="md:col-span-5 p-3 rounded-xl bg-stone-100/90 border border-stone-200 dark:bg-black/30 dark:border-white/10 space-y-1.5">
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-zinc-200 font-semibold truncate max-w-[170px]" title={f1.name}>
+                              <span className="text-stone-900 dark:text-zinc-200 font-semibold truncate max-w-[170px]" title={f1.name}>
                                 {f1.name}
                               </span>
-                              <span className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider font-semibold">Left Dataset</span>
+                              <span className="text-[10px] text-stone-500 dark:text-muted-foreground font-sans uppercase tracking-wider font-semibold">Left Dataset</span>
                             </div>
-                            <label htmlFor="left-join-select" className="text-[10px] text-zinc-400 font-medium font-sans block">
+                            <label htmlFor="left-join-select" className="text-[10px] text-stone-600 dark:text-zinc-400 font-medium font-sans block">
                               Join Key Column
                             </label>
                             {cols1.length > 0 ? (
@@ -849,7 +847,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                 onChange={(e) =>
                                   setKeyMapping(prev => ({ ...prev, [f1.name]: e.target.value }))
                                 }
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs cursor-pointer"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 bg-[#FAF8F5] text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:border-white/10 dark:bg-[#0d0f17] dark:text-white dark:focus:border-white/40 font-mono text-xs cursor-pointer"
                               >
                                 {cols1.map(col => (
                                   <option key={col} value={col}>
@@ -866,27 +864,27 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                   setKeyMapping(prev => ({ ...prev, [f1.name]: e.target.value }))
                                 }
                                 placeholder="e.g. match_id"
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 bg-[#FAF8F5] text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:border-white/10 dark:bg-[#0d0f17] dark:text-white dark:focus:border-white/40 font-mono text-xs"
                               />
                             )}
                           </div>
 
                           {/* Linking Center Indicator */}
                           <div className="md:col-span-1 flex flex-col items-center justify-center py-1">
-                            <div className="h-7 w-7 rounded-full bg-white/[0.06] border border-white/10 text-zinc-300 flex items-center justify-center">
+                            <div className="h-7 w-7 rounded-full bg-stone-200 border border-stone-300 text-stone-700 dark:bg-white/[0.06] dark:border-white/10 dark:text-zinc-300 flex items-center justify-center">
                               <Link2 className="h-3.5 w-3.5" />
                             </div>
                           </div>
 
                           {/* Right Dataset Key */}
-                          <div className="md:col-span-5 p-3 rounded-xl bg-black/30 border border-white/10 space-y-1.5">
+                          <div className="md:col-span-5 p-3 rounded-xl bg-stone-100/90 border border-stone-200 dark:bg-black/30 dark:border-white/10 space-y-1.5">
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-zinc-200 font-semibold truncate max-w-[170px]" title={f2.name}>
+                              <span className="text-stone-900 dark:text-zinc-200 font-semibold truncate max-w-[170px]" title={f2.name}>
                                 {f2.name}
                               </span>
-                              <span className="text-[10px] text-zinc-500 font-mono">Right Dataset</span>
+                              <span className="text-[10px] text-stone-500 font-mono">Right Dataset</span>
                             </div>
-                            <label htmlFor="right-join-select" className="text-[10px] text-zinc-400 font-medium block">
+                            <label htmlFor="right-join-select" className="text-[10px] text-stone-600 dark:text-zinc-400 font-medium block">
                               Matching Key Column
                             </label>
                             {cols2.length > 0 ? (
@@ -896,7 +894,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                 onChange={(e) =>
                                   setKeyMapping(prev => ({ ...prev, [f2.name]: e.target.value }))
                                 }
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs cursor-pointer"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 bg-[#FAF8F5] text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:border-white/10 dark:bg-[#0d0f17] dark:text-white dark:focus:border-white/40 font-mono text-xs cursor-pointer"
                               >
                                 {cols2.map(col => (
                                   <option key={col} value={col}>
@@ -913,7 +911,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                   setKeyMapping(prev => ({ ...prev, [f2.name]: e.target.value }))
                                 }
                                 placeholder="e.g. id"
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 bg-[#FAF8F5] text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:border-white/10 dark:bg-[#0d0f17] dark:text-white dark:focus:border-white/40 font-mono text-xs"
                               />
                             )}
                           </div>
@@ -922,7 +920,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                         {/* Join Strategy & Summary Banner */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                           <div>
-                            <label htmlFor="join-strategy-select" className="block text-zinc-400 font-medium mb-1 text-xs">
+                            <label htmlFor="join-strategy-select" className="block text-stone-700 dark:text-zinc-400 font-medium mb-1 text-xs">
                               Join Strategy
                             </label>
                             <select
@@ -930,7 +928,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                               aria-label="Join Strategy"
                               value={joinType}
                               onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
-                              className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-sans text-xs cursor-pointer"
+                              className="w-full px-3 py-1.5 rounded-lg border border-stone-300 bg-[#FAF8F5] text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:border-white/10 dark:bg-[#0d0f17] dark:text-white dark:focus:border-white/40 font-sans text-xs cursor-pointer"
                             >
                               <option value="inner">Inner Join (Matched Rows Only)</option>
                               <option value="left">Left Join (Keep All in {f1.name})</option>
@@ -938,10 +936,10 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                             </select>
                           </div>
                           <div className="flex items-end">
-                            <div className="w-full p-2 rounded-lg bg-white/[0.04] border border-white/10 text-[11px] text-zinc-300 flex items-center gap-1.5">
-                              <Link2 className="h-3.5 w-3.5 text-zinc-300 shrink-0" />
+                            <div className="w-full p-2 rounded-lg bg-stone-100 border border-stone-200 text-[11px] text-stone-700 dark:bg-white/[0.04] dark:border-white/10 dark:text-zinc-300 flex items-center gap-1.5">
+                              <Link2 className="h-3.5 w-3.5 text-stone-600 dark:text-zinc-300 shrink-0" />
                               <span className="truncate">
-                                Linking <strong className="text-white font-mono">{f1.name}.{keyMapping[f1.name] || '?'}</strong> = <strong className="text-white font-mono">{f2.name}.{keyMapping[f2.name] || '?'}</strong>
+                                Linking <strong className="text-stone-900 dark:text-white font-mono">{f1.name}.{keyMapping[f1.name] || '?'}</strong> = <strong className="text-stone-900 dark:text-white font-mono">{f2.name}.{keyMapping[f2.name] || '?'}</strong>
                               </span>
                             </div>
                           </div>
@@ -952,7 +950,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       <div className="space-y-2">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                           <div>
-                            <label htmlFor="primary-join-key" className="block text-zinc-400 font-medium mb-1">
+                            <label htmlFor="primary-join-key" className="block text-stone-700 dark:text-zinc-400 font-medium mb-1">
                               Primary Join Key Column
                             </label>
                             {commonCols.length > 0 ? (
@@ -960,7 +958,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                 id="primary-join-key"
                                 value={joinKey}
                                 onChange={(e) => setJoinKey(e.target.value)}
-                                className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs cursor-pointer"
+                                className="w-full px-3 py-1.5 rounded-lg border border-stone-300 bg-[#FAF8F5] text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:border-white/10 dark:bg-[#0d0f17] dark:text-white dark:focus:border-white/40 font-mono text-xs cursor-pointer"
                               >
                                 {commonCols.map(col => (
                                   <option key={col} value={col}>
@@ -975,12 +973,12 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                                 value={joinKey}
                                 onChange={(e) => setJoinKey(e.target.value)}
                                 placeholder="e.g. id, match_id, user_id"
-                                className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-mono text-xs"
+                                className="w-full px-3 py-1.5 rounded-lg border border-stone-300 bg-[#FAF8F5] text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:border-white/10 dark:bg-[#0d0f17] dark:text-white dark:focus:border-white/40 font-mono text-xs"
                               />
                             )}
                           </div>
                           <div>
-                            <label htmlFor="join-strategy-select-common" className="block text-zinc-400 font-medium mb-1">
+                            <label htmlFor="join-strategy-select-common" className="block text-stone-700 dark:text-zinc-400 font-medium mb-1">
                               Join Strategy
                             </label>
                             <select
@@ -988,7 +986,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                               aria-label="Join Strategy"
                               value={joinType}
                               onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
-                              className="w-full px-3 py-1.5 rounded-lg border border-white/10 bg-[#0d0f17] text-white focus:outline-none focus:border-white/40 font-sans text-xs cursor-pointer"
+                              className="w-full px-3 py-1.5 rounded-lg border border-stone-300 bg-[#FAF8F5] text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:border-white/10 dark:bg-[#0d0f17] dark:text-white dark:focus:border-white/40 font-sans text-xs cursor-pointer"
                             >
                               <option value="inner">Inner Join (Matched Rows)</option>
                               <option value="left">Left Join (Keep Base Dataset)</option>
@@ -1030,11 +1028,11 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                 const isAsym = joinMode === "asymmetric" && stagedFiles.length === 2;
                 const missingInFiles = joinMode === "common" && joinKey.trim()
                   ? stagedFiles
-                      .filter(f => {
-                        const headers = fileHeaders[f.name];
-                        return headers && headers.length > 0 && !headers.includes(joinKey.trim());
-                      })
-                      .map(f => f.name)
+                    .filter(f => {
+                      const headers = fileHeaders[f.name];
+                      return headers && headers.length > 0 && !headers.includes(joinKey.trim());
+                    })
+                    .map(f => f.name)
                   : [];
 
                 const isDisabled = stagedFiles.length > 1 && (
@@ -1073,21 +1071,21 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
       {/* Privacy & Data Handling Disclosure */}
       <motion.div
-        className="p-6 rounded-3xl border border-white/10 bg-[#0c0d12]/95 shadow-tactile space-y-4 backdrop-blur-xl"
+        className="p-6 rounded-3xl border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12]/95 shadow-sm dark:shadow-tactile space-y-4 backdrop-blur-xl"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-3.5">
+        <div className="flex items-center justify-between gap-3 border-b border-stone-200 dark:border-white/[0.08] pb-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.06] border border-white/10 text-emerald-400 shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-stone-200 border border-stone-300 text-emerald-800 dark:bg-white/[0.06] dark:border-white/10 dark:text-emerald-400 shrink-0">
               <Shield className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-sm font-display font-bold text-white leading-none">
+              <h3 className="text-sm font-display font-bold text-stone-900 dark:text-white leading-none">
                 Zero-Persistence Privacy Architecture
               </h3>
-              <p className="text-[11px] font-mono text-zinc-400 mt-1">
+              <p className="text-[11px] font-mono text-stone-600 dark:text-zinc-400 mt-1">
                 Polars ephemeral RAM execution • 100% locally isolated
               </p>
             </div>

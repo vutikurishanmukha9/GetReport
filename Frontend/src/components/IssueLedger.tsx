@@ -65,24 +65,24 @@ export interface IssueLedgerProps {
 // Severity badge styles with refined luminous dots
 const severityConfig = {
     critical: {
-        badge: 'bg-rose-500/10 text-rose-300 border-rose-500/30 shadow-[0_0_12px_-3px_rgba(244,63,94,0.3)]',
-        dot: 'bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]',
-        iconBg: 'bg-rose-500/15 border-rose-500/30 text-rose-400',
+        badge: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30 shadow-[0_0_12px_-3px_rgba(244,63,94,0.3)]',
+        dot: 'bg-rose-500 dark:bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]',
+        iconBg: 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400',
     },
     high: {
-        badge: 'bg-orange-500/10 text-orange-300 border-orange-500/30 shadow-[0_0_12px_-3px_rgba(249,115,22,0.3)]',
-        dot: 'bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.8)]',
-        iconBg: 'bg-orange-500/15 border-orange-500/30 text-orange-400',
+        badge: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30 shadow-[0_0_12px_-3px_rgba(249,115,22,0.3)]',
+        dot: 'bg-orange-500 dark:bg-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.8)]',
+        iconBg: 'bg-orange-500/15 border-orange-500/30 text-orange-600 dark:text-orange-400',
     },
     medium: {
-        badge: 'bg-amber-500/10 text-amber-300 border-amber-500/30 shadow-[0_0_12px_-3px_rgba(245,158,11,0.25)]',
-        dot: 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]',
-        iconBg: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
+        badge: 'bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 shadow-[0_0_12px_-3px_rgba(245,158,11,0.25)]',
+        dot: 'bg-amber-500 dark:bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]',
+        iconBg: 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400',
     },
     low: {
-        badge: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 shadow-[0_0_12px_-3px_rgba(16,185,129,0.25)]',
-        dot: 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]',
-        iconBg: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400',
+        badge: 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 shadow-[0_0_12px_-3px_rgba(16,185,129,0.25)]',
+        dot: 'bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]',
+        iconBg: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400',
     },
 };
 
@@ -170,7 +170,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         const previous = issuesList;
         setOptimisticIssues(prev =>
-            (prev || data.issues).map(i => (i.id === issueId ? { ...i, status: 'approved' as const } : i))
+            (prev || data.issues).map(i => (i.id === issueId ? { ...i, status: /* // SAFETY: literal status narrow */ 'approved' as const } : i))
         );
 
         try {
@@ -191,7 +191,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         const previous = issuesList;
         setOptimisticIssues(prev =>
-            (prev || data.issues).map(i => (i.id === issueId ? { ...i, status: 'rejected' as const } : i))
+            (prev || data.issues).map(i => (i.id === issueId ? { ...i, status: /* // SAFETY: literal status narrow */ 'rejected' as const } : i))
         );
 
         try {
@@ -212,7 +212,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         const previous = issuesList;
         setOptimisticIssues(prev =>
-            (prev || data.issues).map(i => (i.status === 'pending' ? { ...i, status: 'approved' as const } : i))
+            (prev || data.issues).map(i => (i.status === 'pending' ? { ...i, status: /* // SAFETY: literal status narrow */ 'approved' as const } : i))
         );
 
         try {
@@ -233,7 +233,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         const previous = issuesList;
         setOptimisticIssues(prev =>
-            (prev || data.issues).map(i => (i.status === 'pending' ? { ...i, status: 'rejected' as const } : i))
+            (prev || data.issues).map(i => (i.status === 'pending' ? { ...i, status: /* // SAFETY: literal status narrow */ 'rejected' as const } : i))
         );
 
         try {
@@ -271,22 +271,22 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     // Empty state: pristine clean dataset
     if (issuesList.length === 0) {
         return (
-            <div className="relative rounded-[2rem] p-1.5 sm:p-2 bg-gradient-to-b from-white/[0.12] via-white/[0.04] to-white/[0.01] border border-white/10 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)] backdrop-blur-2xl max-w-2xl mx-auto overflow-hidden animate-in fade-in duration-300">
-                <div className="relative rounded-[calc(2rem-0.5rem)] bg-[#090a10]/95 border border-white/[0.06] p-8 text-center overflow-hidden">
+            <div className="relative rounded-[2rem] p-1.5 sm:p-2 bg-gradient-to-b from-stone-200/50 via-stone-200/20 to-transparent dark:from-white/[0.12] dark:via-white/[0.04] dark:to-white/[0.01] border border-stone-300 dark:border-white/10 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)] backdrop-blur-2xl max-w-2xl mx-auto overflow-hidden animate-in fade-in duration-300">
+                <div className="relative rounded-[calc(2rem-0.5rem)] bg-[#FAF8F5] dark:bg-[#090a10]/95 border border-[#DCD6C9] dark:border-white/[0.06] p-8 text-center overflow-hidden">
                     {/* Ambient Glow */}
                     <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-32 bg-emerald-500/20 blur-3xl pointer-events-none rounded-full" />
                     
                     <div className="relative z-10 flex flex-col items-center">
                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-b from-emerald-500/25 to-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-5 shadow-[0_0_30px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.2)]">
-                            <ShieldCheck className="w-8 h-8 text-emerald-300" />
+                            <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-300" />
                         </div>
-                        <span className="px-3 py-1 rounded-full text-[10px] font-sans uppercase tracking-[0.2em] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 mb-3">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-sans uppercase tracking-[0.2em] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 mb-3">
                             Dataset Health 100%
                         </span>
-                        <h3 className="text-2xl font-sans font-bold text-white tracking-[-0.025em]">
+                        <h3 className="text-2xl font-sans font-bold text-stone-900 dark:text-white tracking-[-0.025em]">
                             Data Quality: Pristine
                         </h3>
-                        <p className="text-zinc-400 text-sm mt-2 max-w-md mx-auto leading-relaxed font-sans">
+                        <p className="text-stone-600 dark:text-zinc-400 text-sm mt-2 max-w-md mx-auto leading-relaxed font-sans">
                             Every column passed automated verification across completeness, type consistency, and validity. No data fixes are required.
                         </p>
                     </div>
@@ -298,13 +298,13 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                             { title: 'Uniqueness', desc: 'No duplicate records or redundant keys.' },
                             { title: 'Validity', desc: 'No extreme distribution outliers or anomalies.' }
                         ].map((dim, idx) => (
-                            <div key={idx} className="bg-white/[0.03] border border-white/5 rounded-xl p-3.5 flex items-start gap-3">
+                            <div key={idx} className="bg-stone-100/80 dark:bg-white/[0.03] border border-stone-200 dark:border-white/5 rounded-xl p-3.5 flex items-start gap-3">
                                 <div className="w-6 h-6 rounded-md bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0 mt-0.5">
-                                    <Check className="w-3.5 h-3.5 text-emerald-300" />
+                                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
                                 </div>
                                 <div>
-                                    <h4 className="text-xs font-semibold text-white tracking-tight">{dim.title}</h4>
-                                    <p className="text-[11px] text-zinc-400 mt-0.5 leading-snug">{dim.desc}</p>
+                                    <h4 className="text-xs font-semibold text-stone-900 dark:text-white tracking-tight">{dim.title}</h4>
+                                    <p className="text-[11px] text-stone-600 dark:text-zinc-400 mt-0.5 leading-snug">{dim.desc}</p>
                                 </div>
                             </div>
                         ))}
@@ -328,34 +328,34 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     }
 
     return (
-        <div className="relative rounded-[2rem] p-1.5 sm:p-2 bg-gradient-to-b from-white/[0.12] via-white/[0.04] to-white/[0.01] border border-white/10 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)] backdrop-blur-2xl overflow-hidden animate-in fade-in duration-300 font-sans">
+        <div className="relative rounded-[2rem] p-1.5 sm:p-2 bg-gradient-to-b from-stone-200/50 via-stone-200/20 to-transparent dark:from-white/[0.12] dark:via-white/[0.04] dark:to-white/[0.01] border border-stone-300 dark:border-white/10 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)] backdrop-blur-2xl overflow-hidden animate-in fade-in duration-300 font-sans">
             {/* Top Ambient Glow Sheen */}
             <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[32rem] h-48 bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-teal-500/10 blur-3xl pointer-events-none rounded-full" />
 
-            <div className="relative rounded-[calc(2rem-0.5rem)] bg-[#090a10]/95 border border-white/[0.06] overflow-hidden">
+            <div className="relative rounded-[calc(2rem-0.5rem)] bg-[#FAF8F5] dark:bg-[#090a10]/95 border border-[#DCD6C9] dark:border-white/[0.06] overflow-hidden">
                 {/* ─── 1. COMPONENT HEADER ────────────────────────────────────────── */}
-                <div className="border-b border-white/[0.06] px-5 sm:px-7 py-5 bg-gradient-to-b from-white/[0.03] to-transparent">
+                <div className="border-b border-stone-200 dark:border-white/[0.06] px-5 sm:px-7 py-5 bg-gradient-to-b from-stone-100/50 dark:from-white/[0.03] to-transparent">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         {/* Title & Metadata */}
                         <div className="flex items-start gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/30 flex items-center justify-center shrink-0 shadow-[0_0_25px_-5px_rgba(245,158,11,0.3),inset_0_1px_0_rgba(255,255,255,0.2)]">
-                                <AlertTriangle className="w-6 h-6 text-amber-400 stroke-[2.2]" />
+                                <AlertTriangle className="w-6 h-6 text-amber-500 dark:text-amber-400 stroke-[2.2]" />
                             </div>
                             <div>
                                 <div className="flex flex-wrap items-center gap-2.5">
-                                    <h3 className="text-xl sm:text-2xl font-sans font-bold text-white tracking-[-0.025em]">
+                                    <h3 className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white tracking-[-0.025em]">
                                         Issue Ledger
                                     </h3>
-                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-sans uppercase tracking-[0.15em] font-semibold bg-white/[0.05] border border-white/10 text-zinc-300">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-sans uppercase tracking-[0.15em] font-semibold bg-stone-200/60 dark:bg-white/[0.05] border border-stone-300 dark:border-white/10 text-stone-700 dark:text-zinc-300">
                                         Data Hygiene Gate
                                     </span>
                                     {locked && (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-center gap-1 font-sans">
-                                            <Lock className="w-3 h-3 text-emerald-400" /> Locked
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 font-sans">
+                                            <Lock className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Locked
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-zinc-400 text-xs sm:text-sm mt-1 font-sans">
+                                <p className="text-stone-600 dark:text-zinc-400 text-xs sm:text-sm mt-1 font-sans">
                                     Review data fixes, approve automated cleaning operations, and lock dataset before compiling analysis.
                                 </p>
                             </div>
@@ -391,10 +391,10 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                 </div>
 
                 {/* ─── 2. TOOLBAR: TABS, SEARCH, AND PROGRESS ─────────────────────────── */}
-                <div className="bg-white/[0.02] border-b border-white/[0.06] px-5 sm:px-7 py-3.5">
+                <div className="bg-stone-50/60 dark:bg-white/[0.02] border-b border-stone-200 dark:border-white/[0.06] px-5 sm:px-7 py-3.5">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
                         {/* Segmented Filter Tabs */}
-                        <div className="inline-flex p-1 rounded-xl bg-zinc-950/80 border border-white/[0.07] shadow-inner text-xs font-medium self-start">
+                        <div className="inline-flex p-1 rounded-xl bg-stone-200/60 dark:bg-zinc-950/80 border border-stone-300 dark:border-white/[0.07] shadow-inner text-xs font-medium self-start">
                             {[
                                 { key: 'all', label: 'All Issues', count: summary.total },
                                 { key: 'pending', label: 'Pending', count: summary.pending, alert: summary.pending > 0 },
@@ -406,12 +406,12 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     <button
                                         key={tab.key}
                                         type="button"
-                                        onClick={() => setFilterStatus(tab.key as typeof filterStatus)}
+                                        onClick={() => setFilterStatus(/* // SAFETY: tab.key matches 'all' | 'pending' | 'approved' | 'rejected' */ tab.key as typeof filterStatus)}
                                         className={cn(
                                             "relative px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
                                             isActive
-                                                ? "bg-white/[0.12] text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.15)] border border-white/10"
-                                                : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]"
+                                                ? "bg-white text-stone-900 font-semibold shadow-sm border border-stone-200 dark:bg-white/[0.12] dark:text-white dark:border-white/10"
+                                                : "text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-white/[0.04]"
                                         )}
                                     >
                                         {tab.alert && tab.key === 'pending' && (
@@ -421,8 +421,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                         <span className={cn(
                                             "px-1.5 py-0.2 rounded-md font-sans font-semibold tabular-nums text-[10px]",
                                             isActive 
-                                                ? "bg-white/20 text-white" 
-                                                : "bg-white/[0.04] text-zinc-400"
+                                                ? "bg-stone-100 text-stone-900 dark:bg-white/20 dark:text-white" 
+                                                : "bg-stone-200/50 text-stone-600 dark:bg-white/[0.04] dark:text-zinc-400"
                                         )}>
                                             {tab.count}
                                         </span>
@@ -435,19 +435,19 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         <div className="flex flex-wrap items-center gap-4">
                             {/* Quick Search */}
                             <div className="relative min-w-[200px] sm:min-w-[240px]">
-                                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 dark:text-zinc-400 pointer-events-none" />
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Filter by column or type..."
-                                    className="w-full h-8 pl-8 pr-3 text-xs rounded-lg bg-zinc-950/70 border border-white/[0.08] text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 transition-all font-sans"
+                                    className="w-full h-8 pl-8 pr-3 text-xs rounded-lg bg-white dark:bg-zinc-950/70 border border-stone-300 dark:border-white/[0.08] text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 transition-all font-sans"
                                 />
                                 {searchQuery && (
                                     <button
                                         type="button"
                                         onClick={() => setSearchQuery('')}
-                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:text-zinc-500 dark:hover:text-zinc-300"
                                     >
                                         <X className="w-3 h-3" />
                                     </button>
@@ -456,10 +456,10 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
                             {/* Progress Metric */}
                             <div className="hidden sm:flex items-center gap-2.5 text-xs">
-                                <span className="text-zinc-400 font-sans font-medium text-xs">
-                                    Reviewed <strong className="text-white font-semibold tabular-nums">{reviewedCount}</strong>/<span className="tabular-nums">{summary.total}</span>
+                                <span className="text-stone-600 dark:text-zinc-400 font-sans font-medium text-xs">
+                                    Reviewed <strong className="text-stone-900 dark:text-white font-semibold tabular-nums">{reviewedCount}</strong>/<span className="tabular-nums">{summary.total}</span>
                                 </span>
-                                <div className="w-24 h-1.5 rounded-full bg-zinc-900 border border-white/5 overflow-hidden">
+                                <div className="w-24 h-1.5 rounded-full bg-stone-200 dark:bg-zinc-900 border border-stone-300 dark:border-white/5 overflow-hidden">
                                     <motion.div
                                         className={cn(
                                             "h-full rounded-full transition-all duration-300",
@@ -484,9 +484,9 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                 )}
 
                 {/* ─── 4. ISSUES LIST (RESPONSIVE NON-SCROLLING GRID) ─────────────── */}
-                <div className="max-h-[500px] overflow-y-auto custom-scrollbar divide-y divide-white/[0.04]">
+                <div className="max-h-[500px] overflow-y-auto custom-scrollbar divide-y divide-stone-200/60 dark:divide-white/[0.04]">
                     {/* Header Columns for Desktop */}
-                    <div className="hidden md:grid grid-cols-12 items-center gap-4 px-6 py-3 bg-white/[0.015] border-b border-white/[0.06] text-[11px] font-sans font-bold text-zinc-400 uppercase tracking-wider sticky top-0 backdrop-blur-md z-10">
+                    <div className="hidden md:grid grid-cols-12 items-center gap-4 px-6 py-3 bg-stone-100/50 dark:bg-white/[0.015] border-b border-stone-200 dark:border-white/[0.06] text-[11px] font-sans font-bold text-stone-600 dark:text-zinc-400 uppercase tracking-wider sticky top-0 backdrop-blur-md z-10">
                         <div className="col-span-5">Issue & Affected Column</div>
                         <div className="col-span-2">Severity & Impact</div>
                         <div className="col-span-3">Suggested Remediation</div>
@@ -494,7 +494,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                     </div>
 
                     {filteredIssues.length === 0 ? (
-                        <div className="py-12 text-center text-zinc-500 text-xs font-sans">
+                        <div className="py-12 text-center text-stone-500 dark:text-zinc-500 text-xs font-sans">
                             No issues matching current filter.
                         </div>
                     ) : (
@@ -510,8 +510,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                 <div
                                     key={issue.id}
                                     className={cn(
-                                        "px-5 sm:px-6 py-4 hover:bg-white/[0.02] transition-colors duration-150 group",
-                                        isRejected && "opacity-55 bg-white/[0.01]"
+                                        "px-5 sm:px-6 py-4 hover:bg-stone-100/60 dark:hover:bg-white/[0.02] transition-colors duration-150 group",
+                                        isRejected && "opacity-55 bg-stone-50/50 dark:bg-white/[0.01]"
                                     )}
                                 >
                                     {/* Desktop Grid Layout */}
@@ -531,16 +531,16 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="font-sans font-semibold text-sm text-white tracking-tight">
+                                                    <span className="font-sans font-semibold text-sm text-stone-900 dark:text-white tracking-tight">
                                                         {formatIssueType(issue.issue_type)}
                                                     </span>
                                                     {/* Target Column Pill */}
-                                                    <code className="text-[11px] font-mono bg-white/[0.05] text-emerald-300/90 border border-white/10 px-2 py-0.5 rounded-md shadow-2xs font-semibold">
+                                                    <code className="text-[11px] font-mono bg-stone-100 dark:bg-white/[0.05] text-emerald-700 dark:text-emerald-300/90 border border-stone-200 dark:border-white/10 px-2 py-0.5 rounded-md shadow-2xs font-semibold">
                                                         {issue.column || 'all_rows'}
                                                     </code>
                                                 </div>
 
-                                                <p className="text-xs text-zinc-400 mt-1 leading-relaxed font-sans line-clamp-2">
+                                                <p className="text-xs text-stone-600 dark:text-zinc-400 mt-1 leading-relaxed font-sans line-clamp-2">
                                                     {issue.description}
                                                 </p>
 
@@ -549,7 +549,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                     <button
                                                         type="button"
                                                         onClick={() => setExpandedCodeId(isExpanded ? null : issue.id)}
-                                                        className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-sans font-medium text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
+                                                        className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-sans font-medium text-stone-500 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-400 transition-colors cursor-pointer"
                                                     >
                                                         <Code2 className="w-3 h-3" />
                                                         <span>{isExpanded ? 'Hide Code' : 'View Polars Code'}</span>
@@ -571,15 +571,15 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                             </span>
 
                                             {/* Impact rows */}
-                                            <div className="text-xs text-zinc-400 font-sans">
-                                                <strong className="text-white font-semibold tabular-nums">{issue.affected_rows.toLocaleString()}</strong> rows
-                                                <span className="text-zinc-500 font-mono text-[11px] ml-1">({issue.affected_pct}%)</span>
+                                            <div className="text-xs text-stone-600 dark:text-zinc-400 font-sans">
+                                                <strong className="text-stone-900 dark:text-white font-semibold tabular-nums">{issue.affected_rows.toLocaleString()}</strong> rows
+                                                <span className="text-stone-500 dark:text-zinc-500 font-mono text-[11px] ml-1">({issue.affected_pct}%)</span>
                                             </div>
                                         </div>
 
                                         {/* Column 3: Suggested Fix (3 cols) */}
-                                        <div className="md:col-span-3 text-xs text-zinc-300 font-sans leading-relaxed">
-                                            <span className="text-zinc-400 block text-[11px] uppercase font-mono font-semibold tracking-wider md:hidden mb-1">
+                                        <div className="md:col-span-3 text-xs text-stone-700 dark:text-zinc-300 font-sans leading-relaxed">
+                                            <span className="text-stone-500 dark:text-zinc-400 block text-[11px] uppercase font-mono font-semibold tracking-wider md:hidden mb-1">
                                                 Suggested Fix:
                                             </span>
                                             {issue.suggested_fix}
@@ -611,7 +611,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                             {/* ─── APPROVED STATE BADGE ─── */}
                                             {isApproved && (
                                                 <div className="flex items-center gap-2">
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 text-xs font-semibold shadow-[0_0_12px_-3px_rgba(16,185,129,0.3)]">
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-700 dark:text-emerald-300 text-xs font-semibold shadow-[0_0_12px_-3px_rgba(16,185,129,0.3)]">
                                                         <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                                                         <span>Approved</span>
                                                     </span>
@@ -620,7 +620,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                             type="button"
                                                             onClick={() => handleReject(issue.id)}
                                                             disabled={loading !== null}
-                                                            className="text-[11px] text-zinc-500 hover:text-zinc-300 underline transition-colors cursor-pointer"
+                                                            className="text-[11px] text-stone-500 hover:text-stone-800 dark:text-zinc-500 dark:hover:text-zinc-300 underline transition-colors cursor-pointer"
                                                             title="Change decision to Reject"
                                                         >
                                                             Change
@@ -632,7 +632,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                             {/* ─── REJECTED STATE BADGE ─── */}
                                             {isRejected && (
                                                 <div className="flex items-center gap-2">
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900/80 border border-white/10 text-zinc-400 text-xs font-medium">
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-stone-200/80 dark:bg-zinc-900/80 border border-stone-300 dark:border-white/10 text-stone-600 dark:text-zinc-400 text-xs font-medium">
                                                         <X className="w-3.5 h-3.5 stroke-[2.5]" />
                                                         <span>Rejected</span>
                                                     </span>
@@ -641,7 +641,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                             type="button"
                                                             onClick={() => handleApprove(issue.id)}
                                                             disabled={loading !== null}
-                                                            className="text-[11px] text-zinc-500 hover:text-emerald-400 underline transition-colors cursor-pointer"
+                                                            className="text-[11px] text-stone-500 hover:text-emerald-600 dark:text-zinc-500 dark:hover:text-emerald-400 underline transition-colors cursor-pointer"
                                                             title="Change decision to Approve"
                                                         >
                                                             Approve
@@ -652,7 +652,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
                                             {/* Locked Non-Pending Status */}
                                             {locked && isPending && (
-                                                <span className="text-xs text-zinc-500 font-mono">Pending (Locked)</span>
+                                                <span className="text-xs text-stone-500 dark:text-zinc-500 font-mono">Pending (Locked)</span>
                                             )}
                                         </div>
                                     </div>
@@ -667,20 +667,20 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                 transition={{ duration: 0.2 }}
                                                 className="overflow-hidden mt-3"
                                             >
-                                                <div className="p-3 rounded-xl bg-zinc-950 border border-white/[0.08] shadow-inner flex items-center justify-between gap-3">
-                                                    <div className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar flex-1 font-mono text-xs text-emerald-300">
-                                                        <span className="text-zinc-500 select-none"># Polars Transformation</span>
-                                                        <code className="text-zinc-200">{issue.fix_code}</code>
+                                                <div className="p-3 rounded-xl bg-stone-100 dark:bg-zinc-950 border border-stone-200 dark:border-white/[0.08] shadow-inner flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar flex-1 font-mono text-xs text-emerald-700 dark:text-emerald-300">
+                                                        <span className="text-stone-500 dark:text-zinc-500 select-none"># Polars Transformation</span>
+                                                        <code className="text-stone-800 dark:text-zinc-200">{issue.fix_code}</code>
                                                     </div>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleCopyCode(issue.id, issue.fix_code)}
-                                                        className="px-2.5 py-1 rounded-lg text-[11px] font-sans font-medium bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 border border-white/10 flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
+                                                        className="px-2.5 py-1 rounded-lg text-[11px] font-sans font-medium bg-stone-200/70 hover:bg-stone-200 dark:bg-white/[0.05] dark:hover:bg-white/[0.1] text-stone-700 dark:text-zinc-300 border border-stone-300 dark:border-white/10 flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
                                                     >
                                                         {copiedId === issue.id ? (
                                                             <>
-                                                                <CheckIcon className="w-3 h-3 text-emerald-400" />
-                                                                <span className="text-emerald-300">Copied</span>
+                                                                <CheckIcon className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                                                <span className="text-emerald-700 dark:text-emerald-300">Copied</span>
                                                             </>
                                                         ) : (
                                                             <>
@@ -700,20 +700,20 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                 </div>
 
                 {/* ─── 5. FOOTER & PRIMARY PROCEED ACTION ───────────────────────────── */}
-                <div className="bg-white/[0.02] border-t border-white/[0.06] px-5 sm:px-7 py-4">
+                <div className="bg-stone-50/60 dark:bg-white/[0.02] border-t border-stone-200 dark:border-white/[0.06] px-5 sm:px-7 py-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         {/* Status Alert Indicator */}
                         <div className="flex items-center gap-3">
                             {hasPending ? (
-                                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs sm:text-sm font-medium shadow-[0_0_15px_-4px_rgba(245,158,11,0.2)]">
-                                    <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)] animate-pulse" />
+                                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-medium shadow-[0_0_15px_-4px_rgba(245,158,11,0.2)]">
+                                    <div className="w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)] animate-pulse" />
                                     <span>
-                                        <strong className="text-white font-semibold">{summary.pending}</strong> issue(s) pending review before locking dataset.
+                                        <strong className="text-stone-900 dark:text-white font-semibold">{summary.pending}</strong> issue(s) pending review before locking dataset.
                                     </span>
                                 </div>
                             ) : (
-                                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs sm:text-sm font-medium shadow-[0_0_15px_-4px_rgba(16,185,129,0.2)]">
-                                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 text-xs sm:text-sm font-medium shadow-[0_0_15px_-4px_rgba(16,185,129,0.2)]">
+                                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                                     <span>All issues reviewed! Dataset is ready to be locked and analyzed.</span>
                                 </div>
                             )}
@@ -723,14 +723,14 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         <div>
                             {hasPending || locked ? (
                                 <div
-                                    className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-zinc-900/80 text-zinc-500 border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] cursor-not-allowed select-none"
+                                    className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-stone-200/80 dark:bg-zinc-900/80 text-stone-500 dark:text-zinc-500 border border-stone-300 dark:border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] cursor-not-allowed select-none"
                                     title="All pending issues must be approved or rejected before proceeding"
                                 >
-                                    <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center text-zinc-500">
+                                    <div className="w-5 h-5 rounded-md bg-stone-300/50 dark:bg-white/5 flex items-center justify-center text-stone-500 dark:text-zinc-500">
                                         <Lock className="w-3.5 h-3.5" />
                                     </div>
                                     <span>Lock & Proceed</span>
-                                    <span className="font-mono text-[11px] text-zinc-600">
+                                    <span className="font-mono text-[11px] text-stone-500 dark:text-zinc-600">
                                         ({summary.pending} pending)
                                     </span>
                                 </div>

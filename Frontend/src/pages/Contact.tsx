@@ -58,9 +58,9 @@ export const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#07080a] text-zinc-100 animate-in fade-in duration-500 relative">
+    <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-zinc-100 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
       <div className="hero-grain-overlay" />
       <Header onReset={() => { }} showReset={false} />
 
@@ -87,20 +87,20 @@ export const Contact = () => {
             <div className="lg:col-span-5 space-y-4">
 
               {/* Direct Email Card with Copy Button */}
-              <Card className="border border-border bg-card shadow-premium p-4 sm:p-5 rounded-2xl space-y-3 t-card-lift">
+              <Card className="border border-stone-300 bg-[#FAF8F5] shadow-sm dark:border-border dark:bg-card dark:shadow-premium p-4 sm:p-5 rounded-2xl space-y-3 t-card-lift">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                    <div className="p-2 rounded-xl bg-[#800000]/10 text-[#800000] dark:bg-primary/10 dark:text-primary">
                       <Mail className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className="font-display font-bold text-sm sm:text-base text-foreground">Direct Engineering Inbox</h3>
-                      <p className="text-xs text-muted-foreground font-sans">Fast-response developer inbox</p>
+                      <h3 className="font-display font-bold text-sm sm:text-base text-stone-900 dark:text-foreground">Direct Engineering Inbox</h3>
+                      <p className="text-xs text-stone-600 dark:text-muted-foreground font-sans">Fast-response developer inbox</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 p-2.5 bg-muted/40 rounded-xl border border-border/60 font-mono text-xs text-foreground select-all">
+                <div className="flex items-center justify-between gap-2 p-2.5 bg-stone-100/90 dark:bg-muted/40 rounded-xl border border-stone-200 dark:border-border/60 font-mono text-xs text-stone-900 dark:text-foreground select-all">
                   <span className="truncate">vutikurishanmukha@gmail.com</span>
                   <Button
                     type="button"
@@ -109,37 +109,37 @@ export const Contact = () => {
                     onClick={handleCopyEmail}
                     className="h-7 px-2 font-mono text-[11px] gap-1 shrink-0"
                   >
-                    {copiedEmail ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                    {copiedEmail ? <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3 w-3" />}
                     <span>{copiedEmail ? "Copied" : "Copy"}</span>
                   </Button>
                 </div>
               </Card>
 
               {/* Response SLA Card */}
-              <Card className="border border-border bg-card shadow-premium p-4 sm:p-5 rounded-2xl space-y-2 t-card-lift">
+              <Card className="border border-stone-300 bg-[#FAF8F5] shadow-sm dark:border-border dark:bg-card dark:shadow-premium p-4 sm:p-5 rounded-2xl space-y-2 t-card-lift">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                  <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-transparent">
                     <Clock className="h-4 w-4" />
                   </div>
                   <div>
-                    <h3 className="font-display font-bold text-sm sm:text-base text-foreground">Response SLA</h3>
-                    <p className="text-xs text-muted-foreground font-sans">Guaranteed turnaround timeline</p>
+                    <h3 className="font-display font-bold text-sm sm:text-base text-stone-900 dark:text-foreground">Response SLA</h3>
+                    <p className="text-xs text-stone-600 dark:text-muted-foreground font-sans">Guaranteed turnaround timeline</p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground font-sans leading-relaxed">
-                  We reply to all inquiries within <strong className="text-foreground">24 business hours</strong>. For urgent processing or security issues, include &quot;URGENT&quot; in the subject line.
+                <p className="text-xs text-stone-600 dark:text-muted-foreground font-sans leading-relaxed">
+                  We reply to all inquiries within <strong className="text-stone-900 dark:text-foreground">24 business hours</strong>. For urgent processing or security issues, include &quot;URGENT&quot; in the subject line.
                 </p>
               </Card>
 
               {/* Open Source Community Card */}
-              <Card className="border border-border bg-card shadow-premium p-4 sm:p-5 rounded-2xl space-y-3 t-card-lift">
+              <Card className="border border-stone-300 bg-[#FAF8F5] shadow-sm dark:border-border dark:bg-card dark:shadow-premium p-4 sm:p-5 rounded-2xl space-y-3 t-card-lift">
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-white/[0.05] text-zinc-300">
+                  <div className="p-2 rounded-xl bg-stone-200 text-stone-800 border border-stone-300 dark:bg-white/[0.05] dark:text-zinc-300 dark:border-transparent">
                     <MessageSquare className="h-4 w-4" />
                   </div>
                   <div>
-                    <h3 className="font-display font-bold text-sm sm:text-base text-foreground">Open Source & Community</h3>
-                    <p className="text-xs text-muted-foreground font-sans">Contribute, file issues, or fork on GitHub</p>
+                    <h3 className="font-display font-bold text-sm sm:text-base text-stone-900 dark:text-foreground">Open Source &amp; Community</h3>
+                    <p className="text-xs text-stone-600 dark:text-muted-foreground font-sans">Contribute, file issues, or fork on GitHub</p>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 font-mono text-xs">
@@ -147,19 +147,19 @@ export const Contact = () => {
                     href="https://github.com/vutikurishanmukha9/GetReport"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-stone-100/90 border border-stone-200 text-stone-800 hover:bg-stone-200 dark:bg-muted/20 dark:border-border/40 dark:text-foreground dark:hover:bg-muted/40 transition-colors"
                   >
                     <span className="truncate pr-2">github.com/vutikurishanmukha9/GetReport</span>
-                    <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <ArrowRight className="h-3.5 w-3.5 text-[#800000] dark:text-primary shrink-0" />
                   </a>
                   <a
                     href="https://www.linkedin.com/in/vutikuri-shanmukha-sai-19946824a"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-stone-100/90 border border-stone-200 text-stone-800 hover:bg-stone-200 dark:bg-muted/20 dark:border-border/40 dark:text-foreground dark:hover:bg-muted/40 transition-colors"
                   >
                     <span>LinkedIn Profile</span>
-                    <Linkedin className="h-3.5 w-3.5 text-zinc-300" />
+                    <Linkedin className="h-3.5 w-3.5 text-stone-600 dark:text-zinc-300" />
                   </a>
                 </div>
               </Card>
@@ -168,12 +168,12 @@ export const Contact = () => {
 
             {/* Right Column: Contact Form (Col 6-12) */}
             <div className="lg:col-span-7">
-              <Card className="border border-white/10 bg-[#0c0d12]/95 shadow-tactile rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-xl">
-                <div className="space-y-1 border-b border-border/60 pb-3">
-                  <h2 className="text-lg sm:text-xl font-display font-bold text-foreground tracking-[-0.015em]">
+              <Card className="border border-stone-300 bg-[#FAF8F5] shadow-sm dark:border-white/10 dark:bg-[#0c0d12]/95 dark:shadow-tactile rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-xl">
+                <div className="space-y-1 border-b border-stone-200/90 dark:border-border/60 pb-3">
+                  <h2 className="text-lg sm:text-xl font-display font-bold text-stone-900 dark:text-foreground tracking-[-0.015em]">
                     Send a message
                   </h2>
-                  <p className="text-xs text-muted-foreground font-sans">
+                  <p className="text-xs text-stone-600 dark:text-muted-foreground font-sans">
                     Fill out the form below and we will route your inquiry to the appropriate engineering team.
                   </p>
                 </div>

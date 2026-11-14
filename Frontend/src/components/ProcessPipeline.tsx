@@ -159,10 +159,10 @@ export const ProcessPipeline = ({
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
         >
-            <div className="bg-[#0c0d12]/95 border border-white/10 shadow-tactile rounded-3xl overflow-hidden flex flex-col backdrop-blur-xl">
+            <div className="bg-[#FAF8F5] border border-stone-300 dark:bg-[#0c0d12]/95 dark:border-white/10 shadow-sm dark:shadow-tactile rounded-3xl overflow-hidden flex flex-col backdrop-blur-xl">
                 
                 {/* Header Section */}
-                <div className="px-6 pt-5 pb-4 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
+                <div className="px-6 pt-5 pb-4 border-b border-stone-200 dark:border-white/[0.08] flex items-center justify-between bg-stone-100/70 dark:bg-white/[0.02]">
                     <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 shadow-premium">
                             {isComplete ? (
@@ -197,7 +197,7 @@ export const ProcessPipeline = ({
                 </div>
  
                 {/* Live Status Subtext Line */}
-                <div className="border-t border-white/[0.08] bg-[#08090d] px-6 py-3.5 flex items-center gap-3 font-sans">
+                <div className="border-t border-stone-200 bg-stone-100/90 dark:border-white/[0.08] dark:bg-[#08090d] px-6 py-3.5 flex items-center gap-3 font-sans">
                     {/* Live indicator */}
                     {!isComplete && (
                         <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />

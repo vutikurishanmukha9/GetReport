@@ -4,18 +4,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#07080a" />
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem('theme');
+        var theme = (stored === 'light' || stored === 'dark') ? stored : 'dark';
+        var root = document.documentElement;
+        root.classList.remove('light', 'dark');
+        root.classList.add(theme);
+        root.style.colorScheme = theme;
+        var metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        if (metaThemeColor) {
+          metaThemeColor.setAttribute('content', theme === 'light' ? '#F5F2EB' : '#07080a');
+        }
+        var metaColorScheme = document.querySelector('meta[name="color-scheme"]');
+        if (metaColorScheme) {
+          metaColorScheme.setAttribute('content', theme);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="icon" href="/favicon.png" type="image/png" />
   <title>GetReport | Data quality reports you can trust</title>
   <meta name="description" content="Turn raw CSV/Excel data into professional PDF reports in seconds. Free data analysis tool with AI insights." />
   <meta name="author" content="GetReport" />
-  <meta name="theme-color" content="#07080a" />
   <meta property="og:title" content="GetReport | Data quality reports you can trust" />
   <meta property="og:description" content="Turn CSV and Excel data into transparent quality audits, statistical insights, and publication-ready reports." />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Dancing+Script:wght@400..700&family=Great+Vibes&family=Satisfy&family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="preload" href="/fonts/Mont-Heavy.otf" as="font" type="font/otf" crossorigin>
   <link rel="preload" href="/fonts/Mont-Bold.otf" as="font" type="font/otf" crossorigin>
   <link rel="preload" href="/fonts/Mont-SemiBold.otf" as="font" type="font/otf" crossorigin>
