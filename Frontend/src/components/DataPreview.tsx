@@ -158,7 +158,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
             <FileText className="h-4 w-4 text-white dark:text-zinc-950" />
             <span>Generate Full Report</span>
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[#800000] dark:bg-black dark:text-white transition-transform duration-200 group-hover:translate-x-0.5 shrink-0 shadow-xs">
-              <ArrowRight className="h-3 w-3 stroke-[3]" />
+              <ArrowRight className="!h-3 !w-3 stroke-[3] text-[#800000] dark:text-white" />
             </span>
           </Button>
         </div>

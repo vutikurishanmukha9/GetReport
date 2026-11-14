@@ -737,10 +737,28 @@ Strictly dark theme only across all surfaces. All colors HSL.
   border-color: #800000 !important;
 }
 
-:root:not(.dark) button[class*="bg-[#800000]"] *,
-:root:not(.dark) a[class*="bg-[#800000]"] *,
-:root:not(.dark) .btn-maroon * {
+:root:not(.dark) button[class*="bg-[#800000]"] *:not([class*="bg-white"]):not([class*="bg-white"] *),
+:root:not(.dark) a[class*="bg-[#800000]"] *:not([class*="bg-white"]):not([class*="bg-white"] *),
+:root:not(.dark) .btn-maroon *:not([class*="bg-white"]):not([class*="bg-white"] *) {
   color: #ffffff !important;
+}
+
+:root:not(.dark) button[class*="bg-[#800000]"] [class*="bg-white"],
+:root:not(.dark) button[class*="bg-[#800000]"] [class*="bg-white"] *,
+:root:not(.dark) a[class*="bg-[#800000]"] [class*="bg-white"],
+:root:not(.dark) a[class*="bg-[#800000]"] [class*="bg-white"] *,
+:root:not(.dark) .btn-maroon [class*="bg-white"],
+:root:not(.dark) .btn-maroon [class*="bg-white"] * {
+  color: #800000 !important;
+  stroke: #800000 !important;
+}
+
+.dark button [class*="bg-black"],
+.dark button [class*="bg-black"] *,
+.dark a [class*="bg-black"],
+.dark a [class*="bg-black"] * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 :root:not(.dark) button[class*="bg-white"][class*="text-zinc-950"]:hover,
