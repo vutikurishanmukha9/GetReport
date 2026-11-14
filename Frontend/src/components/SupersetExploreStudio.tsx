@@ -643,31 +643,31 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const isTemporalDimension = selectedColMeta?.is_temporal || (Array.isArray(temporalCols) && temporalCols.includes(dimension));
 
   return (
-    <div className={`w-full rounded-2xl border border-slate-800 bg-[#07080a] text-slate-100 overflow-hidden ${
-      isFullscreen ? "fixed inset-0 z-50 rounded-none p-4 bg-[#07080a] overflow-y-auto" : ""
+    <div className={`w-full rounded-2xl border border-stone-300 bg-[#FAF8F5] text-stone-900 dark:border-slate-800 dark:bg-[#07080a] dark:text-slate-100 overflow-hidden shadow-sm dark:shadow-none ${
+      isFullscreen ? "fixed inset-0 z-50 rounded-none p-4 bg-[#FAF8F5] dark:bg-[#07080a] overflow-y-auto" : ""
     }`}>
       
       {/* ─── Top Studio Header Bar ─── */}
-      <div className="px-3.5 sm:px-5 py-3 border-b border-slate-800 bg-[#0c0d12] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="px-3.5 sm:px-5 py-3 border-b border-stone-200 bg-[#FAF8F5] dark:border-slate-800 dark:bg-[#0c0d12] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         
         {/* Left: Branding & Dataset Identity */}
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 w-full sm:w-auto">
-          <div className="h-9 w-9 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center text-zinc-300 shrink-0">
+          <div className="h-9 w-9 rounded-xl bg-stone-200 border border-stone-300 dark:bg-slate-800 dark:border-slate-700/80 flex items-center justify-center text-stone-700 dark:text-zinc-300 shrink-0">
             <Sliders className="h-4 w-4" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold tracking-tight text-white truncate">
+              <span className="text-sm font-semibold tracking-tight text-stone-900 dark:text-white truncate">
                 Interactive Visual Analytics
               </span>
 
             </div>
             
             {/* Dataset selector dropdown or name badge */}
-            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
+            <div className="flex items-center gap-2 mt-0.5 text-xs text-stone-600 dark:text-slate-400">
               {allowDatasetSwitching && availableDatasets.length > 1 ? (
                 <div className="flex items-center gap-1.5">
-                  <Database className="h-3.5 w-3.5 text-slate-400" />
+                  <Database className="h-3.5 w-3.5 text-stone-500 dark:text-slate-400" />
                   <select
                     id="dataset-select"
                     aria-label="Select dataset to explore"
@@ -678,7 +678,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                       const match = availableDatasets.find(d => d.task_id === newId);
                       if (match) setActiveDatasetMeta(match);
                     }}
-                    className="bg-[#121215] border border-slate-700 text-xs rounded px-2 py-0.5 text-slate-200 focus:outline-none focus:border-white/40 font-mono max-w-[180px] xs:max-w-[240px] sm:max-w-xs truncate"
+                    className="bg-white border border-stone-300 text-xs rounded px-2 py-0.5 text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200 dark:focus:border-white/40 font-mono max-w-[180px] xs:max-w-[240px] sm:max-w-xs truncate shadow-2xs"
                   >
                     {availableDatasets.map((d) => (
                       <option key={d.task_id} value={d.task_id}>
@@ -689,8 +689,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 </div>
               ) : (
                 <div className="flex items-center gap-2 font-mono">
-                  <Database className="h-3.5 w-3.5 text-slate-400" />
-                  <span className="text-slate-200 font-medium">{displayName}</span>
+                  <Database className="h-3.5 w-3.5 text-stone-500 dark:text-slate-400" />
+                  <span className="text-stone-800 dark:text-slate-200 font-medium">{displayName}</span>
                   {activeDatasetMeta?.rows !== undefined && activeDatasetMeta?.rows !== null && (
                     <span>• {typeof activeDatasetMeta.rows === "number" ? activeDatasetMeta.rows.toLocaleString() : activeDatasetMeta.rows} rows</span>
                   )}
@@ -706,7 +706,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               {filters.length > 0 && (
                 <Badge
                   variant="outline"
-                  className="bg-sky-500/10 text-sky-400 border-sky-500/30 text-xs px-2 py-0.5 rounded-lg font-mono"
+                  className="bg-sky-500/10 text-sky-700 border-sky-300 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/30 text-xs px-2 py-0.5 rounded-lg font-mono"
                 >
                   {filters.length} Filter{filters.length > 1 ? "s" : ""}
                 </Badge>
@@ -718,7 +718,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 variant="outline"
                 onClick={executeQuery}
                 disabled={executing || loadingSchema}
-                className="h-8 rounded-lg border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-200 gap-1.5"
+                className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${executing ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">Refresh</span>
@@ -730,10 +730,10 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 variant="outline"
                 onClick={handleCopyChartImage}
                 disabled={!queryResult}
-                className="h-8 rounded-lg border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-200 gap-1.5"
+                className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
                 title="Copy chart image to clipboard"
               >
-                {copiedChart ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedChart ? <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                 <span className="hidden sm:inline">{copiedChart ? "Copied" : "Copy"}</span>
               </Button>
 
@@ -743,7 +743,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 variant="outline"
                 onClick={handleExportChart}
                 disabled={!queryResult}
-                className="h-8 rounded-lg border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-200 gap-1.5"
+                className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
                 title="Export chart as PNG"
               >
                 <Download className="h-3.5 w-3.5" />
@@ -755,10 +755,10 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 variant="outline"
                 onClick={handleExportCsv}
                 disabled={!queryResult}
-                className="h-8 rounded-lg border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-200 gap-1.5"
+                className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
                 title="Export grouped data to CSV"
               >
-                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-400" />
+                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span className="hidden sm:inline">CSV</span>
               </Button>
 
@@ -767,7 +767,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
             size="sm"
             variant="ghost"
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="h-8 w-8 p-0 rounded-lg text-slate-400 hover:text-white"
+            className="h-8 w-8 p-0 rounded-lg text-stone-600 hover:text-stone-950 dark:text-slate-400 dark:hover:text-white cursor-pointer"
             title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
           >
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -778,18 +778,18 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
       {/* ─── Visual Analytics Studio Canvas ─── */}
       <>
           {/* Mobile View Switcher Tab (Mobile Only) */}
-          <div className="lg:hidden px-3.5 py-2.5 bg-[#0a0b10] border-b border-slate-800/80 flex items-center justify-center">
-            <div className="grid grid-cols-2 p-1 rounded-xl bg-black/50 border border-white/10 w-full max-w-sm">
+          <div className="lg:hidden px-3.5 py-2.5 bg-[#FAF8F5] border-b border-stone-200 dark:bg-[#0a0b10] dark:border-slate-800/80 flex items-center justify-center">
+            <div className="grid grid-cols-2 p-1 rounded-xl bg-stone-200/80 border border-stone-300 dark:bg-black/50 dark:border-white/10 w-full max-w-sm">
               <button
                 type="button"
                 onClick={() => setMobileTab("chart")}
                 className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium transition cursor-pointer ${
                   mobileTab === "chart"
-                    ? "bg-white/10 text-white border border-white/20 shadow-xs font-semibold"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-[#800000] text-white border border-[#800000] shadow-xs font-semibold dark:bg-white dark:text-zinc-950 dark:border-white"
+                    : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
                 }`}
               >
-                <BarChart3 className="h-3.5 w-3.5 text-emerald-400" />
+                <BarChart3 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Chart & Visuals</span>
               </button>
               <button
@@ -797,11 +797,11 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 onClick={() => setMobileTab("controls")}
                 className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium transition cursor-pointer ${
                   mobileTab === "controls"
-                    ? "bg-white/10 text-white border border-white/20 shadow-xs font-semibold"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-[#800000] text-white border border-[#800000] shadow-xs font-semibold dark:bg-white dark:text-zinc-950 dark:border-white"
+                    : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
                 }`}
               >
-                <Sliders className="h-3.5 w-3.5 text-amber-400" />
+                <Sliders className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                 <span>Query Controls</span>
               </button>
             </div>
@@ -811,15 +811,15 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
             
             {/* ──── LEFT PANEL: Superset Explore Controls (4 cols) ──── */}
-            <div className={`lg:col-span-4 p-4 sm:p-5 border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#0c0d12] space-y-4 sm:space-y-5 ${
+            <div className={`lg:col-span-4 p-4 sm:p-5 border-b lg:border-b-0 lg:border-r border-stone-200 bg-[#F4F0EA]/70 dark:border-slate-800 dark:bg-[#0c0d12] space-y-4 sm:space-y-5 ${
               mobileTab === "controls" ? "block" : "hidden lg:block"
             }`}>
               
               {/* Section: Suggested Visual Explorations */}
               {recommendations.length > 0 && (
-                <div className="space-y-2 pb-2 border-b border-slate-800/80">
-                  <div className="flex items-center gap-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400">
-                    <TrendingUp className="h-3 w-3 text-emerald-400" />
+                <div className="space-y-2 pb-2 border-b border-stone-200 dark:border-slate-800/80">
+                  <div className="flex items-center gap-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400">
+                    <TrendingUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                     <span>Suggested Explorations</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -828,10 +828,10 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                         key={rec.id}
                         type="button"
                         onClick={() => applyRecommendation(rec)}
-                        className="text-left text-[11px] px-2 py-1 rounded-lg border border-white/10 bg-[#0e1017] hover:bg-white/[0.08] hover:border-emerald-500/40 text-zinc-300 hover:text-white transition group flex items-center gap-1.5 cursor-pointer max-w-full font-sans"
+                        className="text-left text-[11px] px-2 py-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-100 hover:border-[#800000]/40 text-stone-700 hover:text-stone-950 dark:border-white/10 dark:bg-[#0e1017] dark:hover:bg-white/[0.08] dark:hover:border-emerald-500/40 dark:text-zinc-300 dark:hover:text-white transition group flex items-center gap-1.5 cursor-pointer max-w-full font-sans shadow-2xs"
                         title={rec.description}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
                         <span className="truncate max-w-[130px] font-medium">{rec.title}</span>
                       </button>
                     ))}
@@ -841,7 +841,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Section: Chart Type Picker */}
               <div className="space-y-1.5">
-                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
+                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
                   Visualization Type
                 </span>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -851,11 +851,12 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                     return (
                       <button
                         key={ct.id}
+                        type="button"
                         onClick={() => setChartType(ct.id)}
-                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition font-sans ${
+                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition font-sans cursor-pointer ${
                           isActive
-                            ? "bg-white/10 border-white/20 text-white"
-                            : "bg-[#0e1017] border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                            ? "bg-[#800000] border-[#800000] text-white shadow-sm font-semibold dark:bg-white dark:border-white dark:text-zinc-950 dark:shadow-sm"
+                            : "bg-white border-stone-200 text-stone-700 hover:bg-stone-100 hover:text-stone-950 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
                         }`}
                         title={ct.desc}
                       >
@@ -869,7 +870,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Section: Dimension (X-Axis / Group By) */}
               <div className="space-y-1.5">
-                <label htmlFor="dimension-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
+                <label htmlFor="dimension-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
                   Dimension (Group By / X-Axis)
                 </label>
                 <select
@@ -877,7 +878,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                   aria-label="Dimension (Group By / X-Axis)"
                   value={dimension}
                   onChange={(e) => setDimension(e.target.value)}
-                  className="w-full bg-[#0e1017] border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-white/40 font-mono"
+                  className="w-full bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 dark:focus:border-white/40 font-mono shadow-2xs"
                 >
                   {schemaColumns.map((col) => (
                     <option key={col.name} value={col.name}>
@@ -889,8 +890,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Section: Temporal Bucketing (Time Grain) */}
               {isTemporalDimension && (
-                <div className="space-y-1.5 p-2.5 rounded-xl bg-sky-950/20 border border-sky-800/40">
-                  <div className="flex items-center gap-1.5 text-sky-400 text-xs font-semibold">
+                <div className="space-y-1.5 p-2.5 rounded-xl bg-sky-50 border border-sky-200 dark:bg-sky-950/20 dark:border-sky-800/40">
+                  <div className="flex items-center gap-1.5 text-sky-700 dark:text-sky-400 text-xs font-semibold">
                     <Calendar className="h-3.5 w-3.5" />
                     <span>Time Grain (Date Truncation)</span>
                   </div>
@@ -899,7 +900,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                     aria-label="Time Grain"
                     value={timeGrain}
                     onChange={(e) => setTimeGrain(e.target.value)}
-                    className="w-full bg-[#0e1017] border border-sky-800/60 text-xs rounded-lg px-2.5 py-1.5 text-sky-200 focus:outline-none font-mono"
+                    className="w-full bg-white border border-sky-300 text-stone-900 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none font-mono dark:bg-[#0e1017] dark:border-sky-800/60 dark:text-sky-200 shadow-2xs"
                   >
                     {TIME_GRAINS.map((tg) => (
                       <option key={tg.id} value={tg.id}>
@@ -912,8 +913,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Section: Secondary Metric for Combo Chart */}
               {chartType === "echarts_combo" && (
-                <div className="space-y-2 p-3 rounded-xl bg-purple-950/20 border border-purple-800/40">
-                  <div className="flex items-center gap-1.5 text-purple-400 text-xs font-semibold">
+                <div className="space-y-2 p-3 rounded-xl bg-purple-50 border border-purple-200 dark:bg-purple-950/20 dark:border-purple-800/40">
+                  <div className="flex items-center gap-1.5 text-purple-700 dark:text-purple-400 text-xs font-semibold">
                     <TrendingUp className="h-3.5 w-3.5" />
                     <span>Secondary Metric (Line on Right Axis)</span>
                   </div>
@@ -923,7 +924,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                       aria-label="Secondary Metric"
                       value={secondaryMetric}
                       onChange={(e) => setSecondaryMetric(e.target.value)}
-                      className="bg-[#0e1017] border border-purple-800/60 text-xs rounded-lg px-2.5 py-1.5 text-purple-200 font-mono"
+                      className="bg-white border border-purple-300 text-stone-900 text-xs rounded-lg px-2.5 py-1.5 font-mono dark:bg-[#0e1017] dark:border-purple-800/60 dark:text-purple-200 shadow-2xs"
                     >
                       <option value="">None</option>
                       {numericCols.map((c) => (
@@ -935,7 +936,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                       aria-label="Secondary Aggregate"
                       value={secondaryAggregate}
                       onChange={(e) => setSecondaryAggregate(e.target.value)}
-                      className="bg-[#0e1017] border border-purple-800/60 text-xs rounded-lg px-2.5 py-1.5 text-purple-200 font-mono"
+                      className="bg-white border border-purple-300 text-stone-900 text-xs rounded-lg px-2.5 py-1.5 font-mono dark:bg-[#0e1017] dark:border-purple-800/60 dark:text-purple-200 shadow-2xs"
                     >
                       {AGGREGATIONS.map((a) => (
                         <option key={a.id} value={a.id}>{a.label}</option>
@@ -947,7 +948,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* Section: Metric (Y-Axis / Measure) */}
               <div className="space-y-1.5">
-                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
+                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
                   Metric & Aggregation (Y-Axis)
                 </span>
                 <div className="grid grid-cols-2 gap-2">
@@ -956,7 +957,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                     aria-label="Aggregation Function"
                     value={aggregate}
                     onChange={(e) => setAggregate(e.target.value)}
-                    className="bg-[#0e1017] border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-white/40 font-mono"
+                    className="bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 dark:focus:border-white/40 font-mono shadow-2xs"
                   >
                     {AGGREGATIONS.map((agg) => (
                       <option key={agg.id} value={agg.id}>
@@ -971,7 +972,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                     value={metric}
                     onChange={(e) => setMetric(e.target.value)}
                     disabled={aggregate === "COUNT" && !metric}
-                    className="bg-[#0e1017] border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-white/40 font-mono disabled:opacity-50"
+                    className="bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 dark:focus:border-white/40 font-mono disabled:opacity-50 disabled:bg-stone-100 dark:disabled:bg-slate-900 shadow-2xs"
                   >
                     <option value="">(Row Count)</option>
                     {numericCols.map((col) => (
@@ -986,10 +987,10 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               {/* Section: Secondary Breakdown (Series) */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="secondary-dimension-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
+                  <label htmlFor="secondary-dimension-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
                     Secondary Breakdown
                   </label>
-                  <span className="text-[10px] text-zinc-400 font-sans font-medium">
+                  <span className="text-[10px] text-stone-500 dark:text-zinc-400 font-sans font-medium">
                     {chartType === "echarts_heatmap" ? "Required for Heatmap" : "Optional"}
                   </span>
                 </div>
@@ -998,10 +999,10 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                   aria-label="Secondary Breakdown"
                   value={secondaryDimension}
                   onChange={(e) => setSecondaryDimension(e.target.value)}
-                  className={`w-full bg-[#0e1017] border text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none font-mono ${
+                  className={`w-full bg-white border text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none font-mono dark:bg-[#0e1017] dark:text-slate-200 shadow-2xs ${
                     chartType === "echarts_heatmap" && !secondaryDimension
-                      ? "border-amber-500/50"
-                      : "border-slate-800"
+                      ? "border-amber-500/70"
+                      : "border-stone-300 dark:border-slate-800"
                   }`}
                 >
                   <option value="">None (Single Series)</option>
@@ -1015,17 +1016,17 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 </select>
                 {secondaryDimension && chartType === "echarts_bar" && (
                   <div className="flex items-center justify-between pt-1.5 px-0.5">
-                    <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400">
+                    <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400">
                       Bar Mode
                     </span>
-                    <div className="flex items-center gap-1 bg-[#090b10] p-0.5 rounded-lg border border-slate-800">
+                    <div className="flex items-center gap-1 bg-stone-200/80 dark:bg-[#090b10] p-0.5 rounded-lg border border-stone-300 dark:border-slate-800">
                       <button
                         type="button"
                         onClick={() => setBarMode("grouped")}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${
                           barMode === "grouped"
-                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                            : "text-slate-400 hover:text-white"
+                            ? "bg-[#800000] text-white font-bold shadow-xs dark:bg-white dark:text-zinc-950"
+                            : "text-stone-700 hover:text-stone-950 dark:text-slate-400 dark:hover:text-white"
                         }`}
                       >
                         Grouped
@@ -1033,10 +1034,10 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                       <button
                         type="button"
                         onClick={() => setBarMode("stacked")}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${
                           barMode === "stacked"
-                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                            : "text-slate-400 hover:text-white"
+                            ? "bg-[#800000] text-white font-bold shadow-xs dark:bg-white dark:text-zinc-950"
+                            : "text-stone-700 hover:text-stone-950 dark:text-slate-400 dark:hover:text-white"
                         }`}
                       >
                         Stacked
@@ -1047,17 +1048,17 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               </div>
 
               {/* Section: Ad-Hoc Filters */}
-              <div className="space-y-2 pt-2 border-t border-slate-800/80">
+              <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-slate-800/80">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400">
-                    <Filter className="h-3 w-3 text-sky-400" />
+                  <div className="flex items-center gap-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400">
+                    <Filter className="h-3 w-3 text-sky-600 dark:text-sky-400" />
                     <span>Ad-Hoc Filters ({filters.length})</span>
                   </div>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={addFilter}
-                    className="h-6 px-2 text-[10px] font-medium text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 rounded-md gap-1"
+                    className="h-6 px-2 text-[10px] font-medium text-sky-600 hover:text-sky-700 hover:bg-sky-50 dark:text-sky-400 dark:hover:text-sky-300 dark:hover:bg-sky-500/10 rounded-md gap-1 cursor-pointer"
                   >
                     <Plus className="h-3 w-3" />
                     <span>Add</span>
@@ -1069,14 +1070,14 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                     {filters.map((f) => (
                       <div
                         key={f.id}
-                        className="p-2 rounded-xl bg-[#0e1017] border border-slate-800 space-y-1.5 text-xs"
+                        className="p-2 rounded-xl bg-white border border-stone-200 dark:bg-[#0e1017] dark:border-slate-800 space-y-1.5 text-xs shadow-2xs"
                       >
                         <div className="flex items-center gap-1.5">
                           {/* Filter Column */}
                           <select
                             value={f.column}
                             onChange={(e) => updateFilter(f.id, "column", e.target.value)}
-                            className="bg-[#121215] border border-slate-700 rounded-md px-1.5 py-1 text-slate-200 text-[11px] font-mono flex-1 truncate"
+                            className="bg-stone-50 border border-stone-300 rounded-md px-1.5 py-1 text-stone-900 text-[11px] font-mono flex-1 truncate dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200"
                           >
                             {schemaColumns.map((col) => (
                               <option key={col.name} value={col.name}>
@@ -1089,7 +1090,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                           <select
                             value={f.operator}
                             onChange={(e) => updateFilter(f.id, "operator", e.target.value)}
-                            className="bg-[#121215] border border-slate-700 rounded-md px-1.5 py-1 text-slate-200 text-[11px] font-mono"
+                            className="bg-stone-50 border border-stone-300 rounded-md px-1.5 py-1 text-stone-900 text-[11px] font-mono dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200"
                           >
                             {FILTER_OPERATORS.map((op) => (
                               <option key={op.id} value={op.id}>
@@ -1102,7 +1103,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                           <AnimatedDeleteButton
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 rounded-lg text-slate-400 hover:text-rose-400 shrink-0"
+                            className="h-7 w-7 rounded-lg text-stone-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 shrink-0 cursor-pointer"
                             onDelete={() => removeFilter(f.id)}
                             title="Remove filter"
                           />
@@ -1115,7 +1116,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                             placeholder="Comparison value..."
                             value={f.value}
                             onChange={(e) => updateFilter(f.id, "value", e.target.value)}
-                            className="w-full bg-[#121215] border border-slate-700 rounded-md px-2 py-1 text-slate-200 text-[11px] font-mono focus:outline-none focus:border-white/30"
+                            className="w-full bg-stone-50 border border-stone-300 rounded-md px-2 py-1 text-stone-900 text-[11px] font-mono focus:outline-none focus:border-[#800000]/50 dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200 dark:focus:border-white/30"
                           />
                         )}
                       </div>
@@ -1127,7 +1128,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               {/* Section: Limits & Sorting */}
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div className="space-y-1">
-                  <label htmlFor="row-limit-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
+                  <label htmlFor="row-limit-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
                     Row Limit
                   </label>
                   <select
@@ -1135,7 +1136,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                     aria-label="Row Limit"
                     value={rowLimit}
                     onChange={(e) => setRowLimit(Number(e.target.value))}
-                    className="w-full bg-[#0e1017] border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none font-mono"
+                    className="w-full bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 font-mono shadow-2xs"
                   >
                     <option value={5}>Top 5</option>
                     <option value={10}>Top 10</option>
@@ -1149,7 +1150,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="sort-order-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
+                  <label htmlFor="sort-order-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
                     Sort Order
                   </label>
                   <select
@@ -1157,7 +1158,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                     aria-label="Sort Order"
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value)}
-                    className="w-full bg-[#0e1017] border border-slate-800 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none font-mono"
+                    className="w-full bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 font-mono shadow-2xs"
                   >
                     <option value="desc">High to Low (Desc)</option>
                     <option value="asc">Low to High (Asc)</option>
@@ -1166,25 +1167,26 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               </div>
 
               {/* Section: Color Palette */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
-                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
+              <div className="space-y-1.5 pt-2 border-t border-stone-200 dark:border-slate-800/80">
+                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
                   Color Palette
                 </span>
                 <div className="space-y-1">
                   {COLOR_PALETTES.map((pal) => (
                     <button
                       key={pal.id}
+                      type="button"
                       onClick={() => setColorPalette(pal.id)}
-                      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg border text-xs transition ${
+                      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg border text-xs transition cursor-pointer ${
                         colorPalette === pal.id
-                          ? "bg-slate-800 border-white/30 text-white"
-                          : "bg-[#0e1017] border-slate-800 text-slate-400 hover:text-slate-200"
+                          ? "bg-[#800000] border-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:border-white dark:text-zinc-950"
+                          : "bg-white border-stone-200 text-stone-700 hover:bg-stone-100 hover:text-stone-950 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                       }`}
                     >
                       <span>{pal.label}</span>
                       <div className="flex items-center gap-1">
                         {pal.preview.map((c, i) => (
-                          <span key={i} className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: c }} />
+                          <span key={i} className="h-2.5 w-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/20" style={{ backgroundColor: c }} />
                         ))}
                       </div>
                     </button>
@@ -1205,27 +1207,27 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
             </div>
 
             {/* ──── RIGHT CANVAS: Live Visualization & KPIs (8 cols) ──── */}
-            <div className={`lg:col-span-8 p-3.5 sm:p-6 flex flex-col justify-between space-y-4 sm:space-y-6 bg-[#07080a] ${
+            <div className={`lg:col-span-8 p-3.5 sm:p-6 flex flex-col justify-between space-y-4 sm:space-y-6 bg-[#FAF8F5] dark:bg-[#07080a] ${
               mobileTab === "chart" ? "flex" : "hidden lg:flex"
             }`}>
               
               {/* Top: Superset BigNumber KPI Cards with Compact Number Formatting */}
               {queryResult?.kpis && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
-                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
+                  <div className="rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#121215] p-3.5 shadow-2xs dark:shadow-none">
+                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-500 dark:text-zinc-400 block">
                       Total Records
                     </span>
-                    <span className="text-xl sm:text-2xl font-sans font-bold text-white mt-1 block tabular-nums">
+                    <span className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white mt-1 block tabular-nums">
                       {formatCompactNumber(queryResult.kpis.total_rows)}
                     </span>
                   </div>
 
-                  <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
-                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block truncate">
+                  <div className="rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#121215] p-3.5 shadow-2xs dark:shadow-none">
+                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-500 dark:text-zinc-400 block truncate">
                       {queryResult.kpis.metric_label || "Metric Value"}
                     </span>
-                    <span className="text-xl sm:text-2xl font-sans font-bold text-emerald-400 mt-1 block tabular-nums">
+                    <span className="text-xl sm:text-2xl font-sans font-bold text-emerald-700 dark:text-emerald-400 mt-1 block tabular-nums">
                       {queryResult.kpis.mean !== null && queryResult.kpis.mean !== undefined
                         ? formatCompactNumber(queryResult.kpis.mean)
                         : queryResult.kpis.sum !== null && queryResult.kpis.sum !== undefined
@@ -1234,20 +1236,20 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                     </span>
                   </div>
 
-                  <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
-                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
+                  <div className="rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#121215] p-3.5 shadow-2xs dark:shadow-none">
+                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-500 dark:text-zinc-400 block">
                       Peak Group
                     </span>
-                    <span className="text-xl sm:text-2xl font-sans font-bold text-emerald-400 mt-1 block truncate">
+                    <span className="text-xl sm:text-2xl font-sans font-bold text-emerald-700 dark:text-emerald-400 mt-1 block truncate">
                       {queryResult.records?.[0]?.[dimension] ?? "—"}
                     </span>
                   </div>
 
-                  <div className="rounded-xl border border-slate-800 bg-[#121215] p-3.5">
-                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-zinc-400 block">
+                  <div className="rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#121215] p-3.5 shadow-2xs dark:shadow-none">
+                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-500 dark:text-zinc-400 block">
                       Total Groups
                     </span>
-                    <span className="text-xl sm:text-2xl font-sans font-bold text-slate-200 mt-1 block tabular-nums">
+                    <span className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-slate-200 mt-1 block tabular-nums">
                       {formatCompactNumber(queryResult.total_groups)}
                     </span>
                   </div>
@@ -1256,26 +1258,26 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* AI/Statistical Smart Insights Strip */}
               {queryResult?.smart_insights && queryResult.smart_insights.length > 0 && (
-                <div className="rounded-xl bg-gradient-to-r from-emerald-500/[0.08] via-sky-500/[0.05] to-purple-500/[0.05] border border-white/10 p-3 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-semibold text-zinc-200">
+                <div className="rounded-xl bg-gradient-to-r from-emerald-500/[0.08] via-sky-500/[0.05] to-purple-500/[0.05] border border-stone-200 dark:border-white/10 p-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-stone-800 dark:text-zinc-200">
                     <div className="flex items-center gap-1.5">
-                      <Activity className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <Activity className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span>Automated Data Insights</span>
                     </div>
-                    <span className="text-[10px] font-mono text-zinc-400">Polars Vector Engine</span>
+                    <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400">Polars Vector Engine</span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {queryResult.smart_insights.map((ins: any) => (
-                      <div key={ins.id} className="flex items-start gap-2 p-2 rounded-lg bg-black/40 border border-white/5 text-xs">
+                      <div key={ins.id} className="flex items-start gap-2 p-2 rounded-lg bg-white/80 border border-stone-200/80 text-xs dark:bg-black/40 dark:border-white/5 shadow-2xs">
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold shrink-0 ${
-                          ins.severity === 'positive' ? 'bg-emerald-500/20 text-emerald-300' :
-                          ins.severity === 'warning' ? 'bg-amber-500/20 text-amber-300' :
-                          'bg-sky-500/20 text-sky-300'
+                          ins.severity === 'positive' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' :
+                          ins.severity === 'warning' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300' :
+                          'bg-sky-500/20 text-sky-700 dark:text-sky-300'
                         }`}>
                           {ins.badge || 'Insight'}
                         </span>
-                        <p className="text-zinc-300 text-[11px] leading-relaxed">
-                          <strong className="text-white mr-1">{ins.title}:</strong>
+                        <p className="text-stone-700 dark:text-zinc-300 text-[11px] leading-relaxed">
+                          <strong className="text-stone-900 dark:text-white mr-1">{ins.title}:</strong>
                           {ins.description}
                         </p>
                       </div>
@@ -1285,44 +1287,46 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               )}
 
               {/* Main Chart or Table Canvas */}
-              <div className="flex-1 min-h-[380px] sm:min-h-[460px] rounded-xl border border-slate-800 bg-[#0c0d12] p-3 sm:p-4 flex flex-col relative">
+              <div className="flex-1 min-h-[380px] sm:min-h-[460px] rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#0c0d12] p-3 sm:p-4 flex flex-col relative shadow-2xs dark:shadow-none">
                 
                 {/* View Switcher: Chart vs Raw Data */}
-                <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 pb-3 border-b border-slate-800/80 mb-2">
-                  <div className="flex items-center gap-1.5 bg-[#0e1017] p-1 rounded-lg border border-slate-800">
+                <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 pb-3 border-b border-stone-200 dark:border-slate-800/80 mb-2">
+                  <div className="flex items-center gap-1.5 bg-stone-200/80 dark:bg-[#0e1017] p-1 rounded-lg border border-stone-300 dark:border-slate-800">
                     <button
+                      type="button"
                       onClick={() => setViewMode("chart")}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
                         viewMode === "chart"
-                          ? "bg-slate-800 text-white shadow-xs"
-                          : "text-slate-400 hover:text-slate-200"
+                          ? "bg-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:text-zinc-950"
+                          : "text-stone-700 hover:text-stone-950 dark:text-slate-400 dark:hover:text-slate-200"
                       }`}
                     >
                       Visual Chart
                     </button>
                     <button
+                      type="button"
                       onClick={() => setViewMode("data")}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
                         viewMode === "data"
-                          ? "bg-slate-800 text-white shadow-xs"
-                          : "text-slate-400 hover:text-slate-200"
+                          ? "bg-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:text-zinc-950"
+                          : "text-stone-700 hover:text-stone-950 dark:text-slate-400 dark:hover:text-slate-200"
                       }`}
                     >
                       Aggregated Data ({queryResult?.records?.length ?? 0})
                     </button>
                   </div>
 
-                  <div className="text-xs text-slate-400 font-mono truncate">
+                  <div className="text-xs text-stone-600 dark:text-slate-400 font-mono truncate">
                     {queryResult?.metric_label} by {dimension}
-                    {timeGrain && <span className="text-sky-400 ml-1">({timeGrain})</span>}
+                    {timeGrain && <span className="text-sky-600 dark:text-sky-400 ml-1">({timeGrain})</span>}
                   </div>
                 </div>
 
                 {/* Loading Overlay */}
                 {executing && (
-                  <div className="absolute inset-0 bg-[#07080a]/80 backdrop-blur-xs flex flex-col items-center justify-center z-20 gap-2">
-                    <Loader2 className="h-6 w-6 animate-spin text-zinc-300" />
-                    <span className="text-xs font-mono text-slate-400">Computing visual analytics...</span>
+                  <div className="absolute inset-0 bg-white/80 dark:bg-[#07080a]/80 backdrop-blur-xs flex flex-col items-center justify-center z-20 gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-stone-700 dark:text-zinc-300" />
+                    <span className="text-xs font-mono text-stone-600 dark:text-slate-400">Computing visual analytics...</span>
                   </div>
                 )}
 
@@ -1340,12 +1344,12 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
                 {/* Empty State when no data records or query resulted in 0 rows */}
                 {viewMode === "chart" && chartType !== "table" && (!queryResult || !queryResult.echarts_option || queryResult.records?.length === 0) && !executing && (
-                  <div className="flex-1 w-full min-h-[420px] flex flex-col items-center justify-center p-8 text-center border border-dashed border-slate-800 rounded-xl bg-black/20">
-                    <div className="h-12 w-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mb-3">
-                      <BarChart3 className="h-6 w-6 text-slate-500" />
+                  <div className="flex-1 w-full min-h-[420px] flex flex-col items-center justify-center p-8 text-center border border-dashed border-stone-300 dark:border-slate-800 rounded-xl bg-stone-100/50 dark:bg-black/20">
+                    <div className="h-12 w-12 rounded-2xl bg-stone-200 dark:bg-slate-900 border border-stone-300 dark:border-slate-800 flex items-center justify-center text-stone-500 dark:text-slate-400 mb-3">
+                      <BarChart3 className="h-6 w-6 text-stone-500 dark:text-slate-500" />
                     </div>
-                    <h3 className="text-sm font-semibold text-white">No Visual Data Available</h3>
-                    <p className="text-xs text-slate-400 max-w-sm mt-1">
+                    <h3 className="text-sm font-semibold text-stone-900 dark:text-white">No Visual Data Available</h3>
+                    <p className="text-xs text-stone-600 dark:text-slate-400 max-w-sm mt-1">
                       No data records matched the selected dimension and metric filters. Try adjusting your dimension, metric, or filters on the left panel.
                     </p>
                   </div>
@@ -1355,7 +1359,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                 {(viewMode === "data" || chartType === "table") && queryResult?.records && (
                   <div className="flex-1 overflow-x-auto min-h-[320px] sm:min-h-[400px] -mx-1 px-1 sm:mx-0 sm:px-0 scrollbar-thin">
                     <table className="w-full text-left text-xs font-mono">
-                      <thead className="bg-[#0e1017] text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                      <thead className="bg-stone-100 text-stone-700 dark:bg-[#0e1017] dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-stone-200 dark:border-slate-800">
                         <tr>
                           <th className="py-2.5 px-3">#</th>
                           <th className="py-2.5 px-3">{dimension}</th>
@@ -1364,18 +1368,18 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                           <th className="py-2.5 px-3">Records</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/60 text-slate-200">
+                      <tbody className="divide-y divide-stone-200 text-stone-800 dark:divide-slate-800/60 dark:text-slate-200">
                         {queryResult.records.map((row: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-slate-800/30 transition">
-                            <td className="py-2 px-3 text-slate-400">{idx + 1}</td>
-                            <td className="py-2 px-3 font-medium text-white">{row[dimension] ?? "—"}</td>
+                          <tr key={idx} className="hover:bg-stone-100/80 dark:hover:bg-slate-800/30 transition">
+                            <td className="py-2 px-3 text-stone-500 dark:text-slate-400">{idx + 1}</td>
+                            <td className="py-2 px-3 font-medium text-stone-900 dark:text-white">{row[dimension] ?? "—"}</td>
                             {secondaryDimension && (
-                              <td className="py-2 px-3 text-slate-300">{row[secondaryDimension] ?? "—"}</td>
+                              <td className="py-2 px-3 text-stone-700 dark:text-slate-300">{row[secondaryDimension] ?? "—"}</td>
                             )}
-                            <td className="py-2 px-3 text-zinc-200 font-bold">
+                            <td className="py-2 px-3 text-stone-900 dark:text-zinc-200 font-bold">
                               {typeof row.value === "number" ? row.value.toLocaleString() : row.value ?? "—"}
                             </td>
-                            <td className="py-2 px-3 text-slate-400">{row.count?.toLocaleString() ?? "—"}</td>
+                            <td className="py-2 px-3 text-stone-600 dark:text-slate-400">{row.count?.toLocaleString() ?? "—"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1386,7 +1390,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               </div>
 
               {/* Footer Metadata */}
-              <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800/80 font-mono">
+              <div className="flex items-center justify-between text-xs text-stone-600 dark:text-slate-400 pt-2 border-t border-stone-200 dark:border-slate-800/80 font-mono">
                 <span>
                   {queryResult?.total_groups !== undefined ? `${queryResult.total_groups.toLocaleString()} groups computed` : "Ready"}
                 </span>

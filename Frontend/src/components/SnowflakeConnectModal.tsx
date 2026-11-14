@@ -913,8 +913,8 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer text-center",
                     queryMode === "builder"
-                      ? "bg-white/10 border border-white/20 text-white font-semibold"
-                      : "text-zinc-400 hover:text-white"
+                      ? "bg-white text-stone-900 border border-stone-300 shadow-xs font-semibold dark:bg-white/10 dark:border-white/20 dark:text-white"
+                      : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-white"
                   )}
                 >
                   Tree Explorer
@@ -925,8 +925,8 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer text-center",
                     queryMode === "sql"
-                      ? "bg-white/10 border border-white/20 text-white font-semibold"
-                      : "text-zinc-400 hover:text-white"
+                      ? "bg-white text-stone-900 border border-stone-300 shadow-xs font-semibold dark:bg-white/10 dark:border-white/20 dark:text-white"
+                      : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-white"
                   )}
                 >
                   SQL Editor
@@ -1006,8 +1006,8 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                                               className={cn(
                                                 "w-full flex items-center justify-between p-1 rounded text-left text-[11px] font-mono transition-colors",
                                                 isSelected
-                                                  ? "bg-white/10 text-white font-semibold"
-                                                  : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+                                                  ? "bg-stone-200 text-stone-900 font-semibold dark:bg-white/10 dark:text-white"
+                                                  : "text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-zinc-200"
                                               )}
                                             >
                                               <span className="flex items-center gap-1.5 truncate">
