@@ -492,7 +492,6 @@ export const Documentation = () => {
             
             {/* Eyebrow Pill */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF8F5] border border-stone-300 shadow-xs dark:bg-white/[0.05] dark:border-white/10 backdrop-blur-md">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
               <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-stone-800 dark:text-slate-300">
                 GetReport Technical Hub • Core v2.4.0
               </span>
