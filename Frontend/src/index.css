@@ -750,19 +750,94 @@ Strictly dark theme only across all surfaces. All colors HSL.
   color: #ffffff !important;
 }
 
-/* Explicit Arrow Badge on Primary CTAs */
-:root:not(.dark) .cta-arrow-badge,
-:root:not(.dark) .cta-arrow-badge * {
+/* Explicit Arrow Badge on Primary CTAs (Ensures arrow icon is never painted over by background) */
+:root:not(.dark) .cta-arrow-badge {
   background-color: #ffffff !important;
+  color: #800000 !important;
+}
+
+:root:not(.dark) .cta-arrow-badge svg {
+  background-color: transparent !important;
   color: #800000 !important;
   stroke: #800000 !important;
 }
 
-.dark .cta-arrow-badge,
-.dark .cta-arrow-badge * {
+:root:not(.dark) .cta-arrow-badge svg * {
+  background-color: transparent !important;
+  stroke: #800000 !important;
+}
+
+.dark .cta-arrow-badge {
   background-color: #000000 !important;
   color: #ffffff !important;
+}
+
+.dark .cta-arrow-badge svg {
+  background-color: transparent !important;
+  color: #ffffff !important;
   stroke: #ffffff !important;
+}
+
+.dark .cta-arrow-badge svg * {
+  background-color: transparent !important;
+  stroke: #ffffff !important;
+}
+
+/* Save All / Approve All Action Button & High-Contrast Counter Badge */
+:root:not(.dark) .save-all-btn {
+  background-color: #800000 !important;
+  border-color: #800000 !important;
+  color: #ffffff !important;
+}
+
+:root:not(.dark) .save-all-btn:hover {
+  background-color: #6b0000 !important;
+  border-color: #6b0000 !important;
+  color: #ffffff !important;
+}
+
+:root:not(.dark) .save-all-btn:active {
+  background-color: #570000 !important;
+  border-color: #570000 !important;
+  color: #ffffff !important;
+}
+
+:root:not(.dark) .save-all-btn .save-all-label {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) .save-all-btn .save-all-icon-pod {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+:root:not(.dark) .save-all-btn:hover .save-all-icon-pod {
+  background-color: #ffffff !important;
+  color: #800000 !important;
+}
+
+:root:not(.dark) .save-all-btn .save-all-icon-pod svg {
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+
+:root:not(.dark) .save-all-badge {
+  background-color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.85) !important;
+  color: #800000 !important;
+}
+
+:root:not(.dark) .save-all-badge * {
+  color: #800000 !important;
+}
+
+:root:not(.dark) .save-all-badge .save-all-dot {
+  background-color: #800000 !important;
+}
+
+:root:not(.dark) .save-all-badge .save-all-count {
+  color: #800000 !important;
+  font-weight: 700 !important;
 }
 
 /* High-Contrast Tab Triggers & Numeric Badges */
