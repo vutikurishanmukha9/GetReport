@@ -377,8 +377,8 @@ const renderPieDonutChart = (
 
   return (
     <>
-      {data.map((d, i) => {
-        const color = d.color ?? palette[i % palette.length];
+      {data.map((d, sliceOrder) => {
+        const color = d.color ?? palette[sliceOrder % palette.length];
         const sweep = (d.value / total) * 360;
         const midAngle = currentAngle + sweep / 2;
         const path = arcPath(
@@ -396,8 +396,7 @@ const renderPieDonutChart = (
         const anchor = lp.x > cx ? "start" : "end";
 
         return (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static PDF chart data — index is the stable identity
-          <G key={`slice-${i}`}>
+          <G key={`slice-${d.label}-${sliceOrder}`}>
             <Path d={path} fill={color} stroke="white" strokeWidth={1} />
             {/* Show label only if slice is large enough to label */}
             {sweep > 15 && (
@@ -600,7 +599,7 @@ const renderTextFallback = (
           width: layout.svgW,
         }}
       >
-        {data.map((point, index) => {
+        {data.map((point, fallbackOrder) => {
           const sweep = (point.value / total) * 360;
           const midAngle = currentAngle + sweep / 2;
           currentAngle += sweep;
@@ -611,7 +610,7 @@ const renderTextFallback = (
           const onRight = labelPoint.x > cx;
           return (
             <PDFText
-              key={`fallback-pie-${point.label}-${index}`}
+              key={`fallback-pie-${point.label}-${fallbackOrder}`}
               style={{
                 color: textColor,
                 fontSize: 7,
@@ -815,13 +814,15 @@ const renderGraphContent = (
         {textFallback}
       </View>
       {showLegend &&
-        legend === "right" &&
-        Legend({ palette, position: "right", series, styles })}
+        legend === "right" && (
+          <Legend palette={palette} position="right" series={series} styles={styles} />
+        )}
     </View>
     {chartLabels}
     {showLegend &&
-      legend === "bottom" &&
-      Legend({ palette, position: "bottom", series, styles })}
+      legend === "bottom" && (
+        <Legend palette={palette} position="bottom" series={series} styles={styles} />
+      )}
   </>
 );
 

@@ -75,14 +75,14 @@ let renderMultiLevelItem: (
 
 const renderNumberedItem = (
   item: ListItem,
-  index: number,
+  pos: number,
   total: number,
   gap: GapProp,
   styles: Styles
 ): React.ReactElement => (
-  <View key={index} style={buildRowStyles(index, total, gap, styles, "center")}>
+  <View key={item.id ?? `${item.text}-${pos}`} style={buildRowStyles(pos, total, gap, styles, "center")}>
     <View style={styles.markerNumberBadge}>
-      <PDFText style={styles.markerNumberText}>{`${index + 1}`}</PDFText>
+      <PDFText style={styles.markerNumberText}>{`${pos + 1}`}</PDFText>
     </View>
     <View style={styles.itemTextWrap}>
       <PDFText style={styles.itemText}>{item.text}</PDFText>
@@ -92,7 +92,7 @@ const renderNumberedItem = (
 
 const renderChecklistItem = (
   item: ListItem,
-  index: number,
+  pos: number,
   total: number,
   gap: GapProp,
   styles: Styles
@@ -100,8 +100,8 @@ const renderChecklistItem = (
   const isChecked = item.checked ?? true;
   return (
     <View
-      key={index}
-      style={buildRowStyles(index, total, gap, styles, "center")}
+      key={item.id ?? `${item.text}-${pos}`}
+      style={buildRowStyles(pos, total, gap, styles, "center")}
     >
       <View
         style={[styles.checkBox, isChecked ? styles.checkBoxChecked : {}]}
@@ -115,12 +115,12 @@ const renderChecklistItem = (
 
 const renderIconItem = (
   item: ListItem,
-  index: number,
+  pos: number,
   total: number,
   gap: GapProp,
   styles: Styles
 ): React.ReactElement => (
-  <View key={index} style={buildRowStyles(index, total, gap, styles, "center")}>
+  <View key={item.id ?? `${item.text}-${pos}`} style={buildRowStyles(pos, total, gap, styles, "center")}>
     <View style={styles.iconBox}>
       <PDFText style={styles.iconMark}>★</PDFText>
     </View>
@@ -132,12 +132,12 @@ const renderIconItem = (
 
 const renderDescriptiveItem = (
   item: ListItem,
-  index: number,
+  pos: number,
   total: number,
   gap: GapProp,
   styles: Styles
 ): React.ReactElement => (
-  <View key={index} style={buildRowStyles(index, total, gap, styles)}>
+  <View key={item.id ?? `${item.text}-${pos}`} style={buildRowStyles(pos, total, gap, styles)}>
     <View style={styles.descriptiveAccent} />
     <View style={styles.descriptiveContent}>
       <PDFText style={styles.descriptiveTitle}>{item.text}</PDFText>
@@ -191,15 +191,15 @@ const renderItemList = (
   level: number
 ): React.ReactElement => (
   <View style={level > 0 ? styles.childrenContainer : undefined}>
-    {items.map((item, index) =>
-      renderItem(item, index, items.length, variant, gap, styles, level)
+    {items.map((item, itemOrder) =>
+      renderItem(item, itemOrder, items.length, variant, gap, styles, level)
     )}
   </View>
 );
 
-renderBulletItem = (item, index, total, gap, styles, level) => (
-  <View key={index}>
-    <View style={buildRowStyles(index, total, gap, styles)}>
+renderBulletItem = (item, pos, total, gap, styles, level) => (
+  <View key={item.id ?? `${item.text}-${level}-${pos}`}>
+    <View style={buildRowStyles(pos, total, gap, styles)}>
       {dotMarker(level, styles)}
       <View style={styles.itemTextWrap}>
         <PDFText style={styles.itemText}>{item.text}</PDFText>
@@ -211,9 +211,9 @@ renderBulletItem = (item, index, total, gap, styles, level) => (
   </View>
 );
 
-renderMultiLevelItem = (item, index, total, gap, styles, level) => (
-  <View key={index}>
-    <View style={buildRowStyles(index, total, gap, styles)}>
+renderMultiLevelItem = (item, pos, total, gap, styles, level) => (
+  <View key={item.id ?? `${item.text}-${level}-${pos}`}>
+    <View style={buildRowStyles(pos, total, gap, styles)}>
       {dotMarker(level, styles)}
       <View style={styles.itemTextWrap}>
         <PDFText

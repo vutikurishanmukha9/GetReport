@@ -295,8 +295,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                             { title: 'Consistency', desc: 'Uniform data types and aligned formatting.' },
                             { title: 'Uniqueness', desc: 'No duplicate records or redundant keys.' },
                             { title: 'Validity', desc: 'No extreme distribution outliers or anomalies.' }
-                        ].map((dim, idx) => (
-                            <div key={idx} className="bg-stone-100/80 dark:bg-white/[0.03] border border-stone-200 dark:border-white/5 rounded-xl p-3.5 flex items-start gap-3">
+                        ].map((dim) => (
+                            <div key={dim.title} className="bg-stone-100/80 dark:bg-white/[0.03] border border-stone-200 dark:border-white/5 rounded-xl p-3.5 flex items-start gap-3">
                                 <div className="w-6 h-6 rounded-md bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0 mt-0.5">
                                     <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300" />
                                 </div>
@@ -437,12 +437,14 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Filter by column or type..."
+                                    aria-label="Filter issues by column or quality rule type"
                                     className="w-full h-8 pl-8 pr-3 text-xs rounded-lg bg-white dark:bg-zinc-950/70 border border-stone-300 dark:border-white/[0.08] text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#800000]/60 focus:ring-1 focus:ring-[#800000]/30 dark:focus:border-white/40 dark:focus:ring-white/20 transition-all font-sans"
                                 />
                                 {searchQuery && (
                                     <button
                                         type="button"
                                         onClick={() => setSearchQuery('')}
+                                        aria-label="Clear filter search"
                                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:text-zinc-500 dark:hover:text-zinc-300"
                                     >
                                         <X className="w-3 h-3" />
@@ -657,9 +659,10 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     <AnimatePresence>
                                         {isExpanded && issue.fix_code && (
                                             <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                                exit={{ opacity: 0, height: 0 }}
+                                                initial={{ opacity: 0, scaleY: 0.95 }}
+                                                animate={{ opacity: 1, scaleY: 1 }}
+                                                exit={{ opacity: 0, scaleY: 0.95 }}
+                                                style={{ transformOrigin: "top" }}
                                                 transition={{ duration: 0.2 }}
                                                 className="overflow-hidden mt-3"
                                             >

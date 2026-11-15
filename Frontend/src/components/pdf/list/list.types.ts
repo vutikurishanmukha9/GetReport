@@ -15,6 +15,7 @@ export type ListVariant =
  * @see {@link ListItem}
  */
 export interface ListItem {
+  id?: string;
   text: string;
   description?: string;
   checked?: boolean;

@@ -93,6 +93,14 @@ export const ReportGeneration = ({
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      if (downloadUrl) {
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+    };
+  }, [downloadUrl]);
+
   // Top-level Command Center tab
   const [activeMainTab, setActiveMainTab] = useState<string>("overview");
 
@@ -256,7 +264,12 @@ export const ReportGeneration = ({
       }
     }
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+      if (downloadUrl) {
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+    };
   }, [step, taskId, taskStatus, taskProgress, taskMessage, isGenerating, downloadUrl, onComplete, toast]);
 
   const downloadFile = () => {
