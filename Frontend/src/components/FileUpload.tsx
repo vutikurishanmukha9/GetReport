@@ -648,29 +648,32 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             {/* Quick-Load Sample Datasets */}
             {!isProcessing && stagedFiles.length === 0 && (
               <div className="pt-4 mt-4 border-t border-stone-200 dark:border-white/5 flex flex-col items-center gap-2">
-                <span className="text-xs font-sans font-medium text-stone-600 dark:text-muted-foreground">
+                <span className="text-xs font-sans font-semibold text-stone-700 dark:text-zinc-400">
                   Or load an instant sample ledger:
                 </span>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleLoadSample("sales_retail")}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-800 hover:text-stone-950 bg-stone-200/90 hover:bg-stone-300 border border-stone-300 dark:text-zinc-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:hover:text-white dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-900 hover:text-stone-950 bg-[#EDE8DE] hover:bg-[#E2DDD2] border border-[#DCD6C9] dark:text-zinc-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:hover:text-white dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
                   >
+                    <FileSpreadsheet className="h-3 w-3 text-[#800000] dark:text-zinc-400 shrink-0" />
                     <span>E-Commerce Sales (CSV)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleLoadSample("clinical_vitals")}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-800 hover:text-stone-950 bg-stone-200/90 hover:bg-stone-300 border border-stone-300 dark:text-zinc-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:hover:text-white dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-900 hover:text-stone-950 bg-[#EDE8DE] hover:bg-[#E2DDD2] border border-[#DCD6C9] dark:text-zinc-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:hover:text-white dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
                   >
+                    <FileSpreadsheet className="h-3 w-3 text-[#800000] dark:text-zinc-400 shrink-0" />
                     <span>Clinical Vitals (CSV)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleLoadSample("finance_budget")}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-800 hover:text-stone-950 bg-stone-200/90 hover:bg-stone-300 border border-stone-300 dark:text-zinc-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:hover:text-white dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-stone-900 hover:text-stone-950 bg-[#EDE8DE] hover:bg-[#E2DDD2] border border-[#DCD6C9] dark:text-zinc-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:hover:text-white dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
                   >
+                    <FileSpreadsheet className="h-3 w-3 text-[#800000] dark:text-zinc-400 shrink-0" />
                     <span>Department Budget (CSV)</span>
                   </button>
                 </div>
@@ -1058,7 +1061,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       )}
                       icon={<FileSpreadsheet className={`h-4 w-4 shrink-0 ${isDisabled ? "text-stone-400 dark:text-zinc-500" : "text-white dark:text-zinc-950"}`} />}
                       trailingIcon={
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[#800000] dark:bg-black dark:text-white transition-transform duration-200 group-hover:translate-x-0.5 shrink-0 shadow-xs">
+                        <span className="cta-arrow-badge flex h-5 w-5 items-center justify-center rounded-full bg-white text-[#800000] dark:bg-black dark:text-white transition-transform duration-200 group-hover:translate-x-0.5 shrink-0 shadow-xs">
                           <ArrowRight className="!h-3 !w-3 stroke-[3] text-[#800000] dark:text-white" />
                         </span>
                       }

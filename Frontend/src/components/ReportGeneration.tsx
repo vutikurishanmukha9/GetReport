@@ -1637,12 +1637,12 @@ export const ReportGeneration = ({
                                 >
                                   <span
                                     className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${isNum
-                                        ? "bg-white/10 text-zinc-300 border border-white/20"
+                                        ? "bg-sky-500/15 text-sky-800 border border-sky-500/30 dark:bg-white/10 dark:text-zinc-300 dark:border-white/20"
                                         : isTxt
-                                          ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                          ? "bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
                                           : isDate
-                                            ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                                            : "bg-muted text-muted-foreground"
+                                            ? "bg-amber-500/15 text-amber-800 border border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20"
+                                            : "bg-stone-200 text-stone-700 border border-stone-300 dark:bg-muted dark:text-muted-foreground"
                                       }`}
                                   >
                                     {isNum ? "NUM" : isTxt ? "TXT" : isDate ? "DATE" : "DATA"}

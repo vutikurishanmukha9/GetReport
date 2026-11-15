@@ -737,7 +737,11 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     onClick={handleLockAndProceed}
                                     disabled={loading !== null}
                                     loading={loading === 'lock'}
-                                    trailingIcon={<ArrowRight className="w-4 h-4 text-white dark:text-zinc-950 stroke-[2.5]" />}
+                                    trailingIcon={
+                                        <span className="cta-arrow-badge flex h-5 w-5 items-center justify-center rounded-full bg-white text-[#800000] dark:bg-black dark:text-white transition-transform duration-200 group-hover:translate-x-0.5 shrink-0 shadow-xs">
+                                            <ArrowRight className="!h-3 !w-3 stroke-[3] text-[#800000] dark:text-white" />
+                                        </span>
+                                    }
                                 >
                                     <span>Lock & Proceed to Analysis</span>
                                 </ShimmerActionButton>

@@ -747,26 +747,41 @@ Strictly dark theme only across all surfaces. All colors HSL.
   border-color: #800000 !important;
 }
 
-:root:not(.dark) button[class*="bg-[#800000]"] *:not([class*="bg-white"]):not([class*="bg-white"] *),
-:root:not(.dark) a[class*="bg-[#800000]"] *:not([class*="bg-white"]):not([class*="bg-white"] *),
-:root:not(.dark) .btn-maroon *:not([class*="bg-white"]):not([class*="bg-white"] *) {
-  color: #ffffff !important;
-}
-
-:root:not(.dark) button[class*="bg-[#800000]"] [class*="bg-white"],
-:root:not(.dark) button[class*="bg-[#800000]"] [class*="bg-white"] *,
-:root:not(.dark) a[class*="bg-[#800000]"] [class*="bg-white"],
-:root:not(.dark) a[class*="bg-[#800000]"] [class*="bg-white"] *,
-:root:not(.dark) .btn-maroon [class*="bg-white"],
-:root:not(.dark) .btn-maroon [class*="bg-white"] * {
+/* Explicit Badge & Arrow Icon Styling for Primary Action Buttons */
+:root:not(.dark) .cta-arrow-badge,
+:root:not(.dark) .cta-arrow-badge * {
+  background-color: #ffffff !important;
   color: #800000 !important;
   stroke: #800000 !important;
 }
 
-.dark button [class*="bg-black"],
-.dark button [class*="bg-black"] *,
-.dark a [class*="bg-black"],
-.dark a [class*="bg-black"] * {
+.dark .cta-arrow-badge,
+.dark .cta-arrow-badge * {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+:root:not(.dark) button[class*="bg-[#800000]"] *:not(.cta-arrow-badge):not(.cta-arrow-badge *):not(.bg-white):not(.bg-white *),
+:root:not(.dark) a[class*="bg-[#800000]"] *:not(.cta-arrow-badge):not(.cta-arrow-badge *):not(.bg-white):not(.bg-white *),
+:root:not(.dark) .btn-maroon *:not(.cta-arrow-badge):not(.cta-arrow-badge *):not(.bg-white):not(.bg-white *) {
+  color: #ffffff !important;
+}
+
+:root:not(.dark) button[class*="bg-[#800000]"] .bg-white,
+:root:not(.dark) button[class*="bg-[#800000]"] .bg-white *,
+:root:not(.dark) a[class*="bg-[#800000]"] .bg-white,
+:root:not(.dark) a[class*="bg-[#800000]"] .bg-white *,
+:root:not(.dark) .btn-maroon .bg-white,
+:root:not(.dark) .btn-maroon .bg-white * {
+  color: #800000 !important;
+  stroke: #800000 !important;
+}
+
+.dark button .bg-black,
+.dark button .bg-black *,
+.dark a .bg-black,
+.dark a .bg-black * {
   color: #ffffff !important;
   stroke: #ffffff !important;
 }
