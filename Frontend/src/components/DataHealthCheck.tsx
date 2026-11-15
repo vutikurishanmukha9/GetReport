@@ -15,14 +15,18 @@ import {
     Layers,
     RotateCcw,
     ArrowRight,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Sparkles
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
+    SelectSeparator,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
@@ -38,6 +42,7 @@ const KNOWN_ACTIONS = new Set([
     "default",
     "cap_outliers",
     "replace_outliers_median",
+    "winsorize",
     "flag_outliers",
     "drop_rows",
     "coerce_numeric",
@@ -52,6 +57,11 @@ const KNOWN_ACTIONS = new Set([
     "nullify_out_of_range",
     "nullify_invalid_regex",
     "drop_column",
+    "drop_duplicate_keys",
+    "drop_duplicate_rows",
+    "drop_empty_rows",
+    "keep_first",
+    "keep_last",
     "fill_median",
     "fill_mean",
     "fill_mode",
@@ -96,6 +106,15 @@ const getActionDisplayLabel = (action: string, issue?: QualityIssue | null): str
             return "Nullify Invalid Format";
         case "drop_column":
             return "Drop Column";
+        case "drop_duplicate_keys":
+        case "keep_first":
+            return issue?.label || "Keep First Row per Key";
+        case "keep_last":
+            return "Keep Last Row per Key";
+        case "drop_duplicate_rows":
+            return "Drop Duplicate Rows";
+        case "drop_empty_rows":
+            return "Drop Empty Rows";
         case "fill_median":
             return "Fill with Median";
         case "fill_mean":
@@ -116,6 +135,63 @@ const getActionDisplayLabel = (action: string, issue?: QualityIssue | null): str
             return "Ignore (Leave raw as is)";
         default:
             return issue?.label || issue?.suggestion || action || "Ignore (Leave raw as is)";
+    }
+};
+
+const getActionIcon = (action: string) => {
+    switch (action) {
+        case "cap_outliers":
+        case "replace_outliers_median":
+        case "winsorize":
+            return <Wrench className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 shrink-0" />;
+        case "flag_outliers":
+            return <CheckCircle2 className="w-3.5 h-3.5 text-sky-700 dark:text-sky-400 shrink-0" />;
+        case "log1p_transform":
+            return <BarChart2 className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400 shrink-0" />;
+        case "drop_rows":
+        case "drop_column":
+        case "drop_duplicate_rows":
+        case "drop_empty_rows":
+            return <Trash2 className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400 shrink-0" />;
+        case "drop_duplicate_keys":
+        case "keep_first":
+        case "keep_last":
+            return <Wrench className="w-3.5 h-3.5 text-stone-700 dark:text-zinc-300 shrink-0" />;
+        case "coerce_numeric":
+            return <Hash className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400 shrink-0" />;
+        case "parse_date":
+            return <Calendar className="w-3.5 h-3.5 text-teal-700 dark:text-teal-400 shrink-0" />;
+        case "clean_masked_nulls":
+        case "nullify_sentinel":
+            return <Wrench className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 shrink-0" />;
+        case "nullify_out_of_range":
+        case "nullify_invalid_regex":
+            return <AlertTriangle className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400 shrink-0" />;
+        case "clean_text":
+            return <Type className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400 shrink-0" />;
+        case "fix_mojibake":
+            return <Wrench className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />;
+        case "standardize_categories":
+            return <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-700 dark:text-indigo-400 shrink-0" />;
+        case "cast_boolean":
+            return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />;
+        case "keep_as_text":
+            return <Type className="w-3.5 h-3.5 text-stone-600 dark:text-zinc-400 shrink-0" />;
+        case "fill_median":
+        case "fill_mean":
+        case "fill_mode":
+        case "fill_value":
+            return <Wrench className="w-3.5 h-3.5 text-stone-600 dark:text-zinc-400 shrink-0" />;
+        case "fill_group_median":
+            return <Layers className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400 shrink-0" />;
+        case "add_missing_indicator":
+            return <CheckCircle2 className="w-3.5 h-3.5 text-sky-700 dark:text-sky-400 shrink-0" />;
+        case "hash_pii":
+            return <ShieldAlert className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />;
+        case "default":
+            return <RotateCcw className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
+        default:
+            return <Wrench className="w-3.5 h-3.5 text-stone-700 dark:text-zinc-300 shrink-0" />;
     }
 };
 
@@ -524,350 +600,282 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             <CardFooter className="pt-0 pb-4 px-4">
                                 {(() => {
                                     const currentAction = getActionForColumn(col.name);
+                                    const recommendedAction = issue?.action && issue.action !== "default"
+                                        ? (issue.action === "replace_outliers_median" || issue.action === "winsorize" ? "cap_outliers" : issue.action)
+                                        : null;
+
                                     return (
                                         <Select
                                             value={currentAction}
                                             onValueChange={(val) => handleActionChange(col.name, val)}
                                         >
                                             <SelectTrigger className="w-full bg-white hover:bg-stone-50 border-stone-300 text-stone-900 dark:bg-[#131620] dark:hover:bg-[#1a1f2c] dark:border-white/10 dark:text-foreground rounded-xl text-xs h-10 font-medium focus:border-stone-400 dark:hover:border-primary/40 focus:ring-1 focus:ring-stone-400/20 shadow-2xs transition-colors cursor-pointer">
-                                                <SelectValue placeholder="Select action…">
-                                                    {getActionDisplayLabel(currentAction, issue)}
-                                                </SelectValue>
+                                                <div className="flex items-center gap-2 truncate">
+                                                    {getActionIcon(currentAction)}
+                                                    <SelectValue placeholder="Select action…">
+                                                        {getActionDisplayLabel(currentAction, issue)}
+                                                    </SelectValue>
+                                                </div>
                                             </SelectTrigger>
-                                            <SelectContent className="rounded-xl border border-stone-300 bg-white text-stone-900 dark:border-white/10 dark:bg-[#0e1017] dark:text-popover-foreground shadow-xl backdrop-blur-xl max-h-72">
-                                                <SelectItem value="default" className="text-xs font-medium text-foreground cursor-pointer focus:bg-accent focus:text-foreground">
-                                                    <span className="text-muted-foreground hover:text-foreground flex items-center gap-2">
-                                                        <RotateCcw className="w-3.5 h-3.5 text-muted-foreground" /> Ignore (Leave raw as is)
-                                                    </span>
-                                                </SelectItem>
+                                            <SelectContent className="w-[320px] sm:w-[360px] max-h-[380px] rounded-xl border border-stone-300 bg-white text-stone-900 dark:border-white/10 dark:bg-[#0c0d12] dark:text-zinc-100 shadow-2xl backdrop-blur-xl p-1.5 custom-scrollbar">
+                                                {/* ── 1. RECOMMENDED AUTO-SUGGESTION (ALWAYS AT THE VERY TOP) ── */}
+                                                {recommendedAction && (
+                                                    <>
+                                                        <SelectGroup>
+                                                            <SelectLabel className="flex items-center gap-1.5 text-[10px] font-sans font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 px-2.5 py-1">
+                                                                <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                                Recommended Fix
+                                                            </SelectLabel>
+                                                            <SelectItem
+                                                                value={recommendedAction}
+                                                                className="bg-emerald-50/90 hover:bg-emerald-100/90 border border-emerald-300/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 dark:border-emerald-500/30 my-1"
+                                                            >
+                                                                <span className="flex items-center justify-between w-full gap-2">
+                                                                    <span className="flex items-center gap-2 font-semibold text-emerald-950 dark:text-emerald-200 truncate">
+                                                                        {getActionIcon(recommendedAction)}
+                                                                        <span className="truncate">{getActionDisplayLabel(recommendedAction, issue)}</span>
+                                                                    </span>
+                                                                    <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 shrink-0 shadow-2xs">
+                                                                        Recommended
+                                                                    </span>
+                                                                </span>
+                                                            </SelectItem>
+                                                        </SelectGroup>
+                                                        <SelectSeparator className="my-1.5" />
+                                                    </>
+                                                )}
 
-                                                {/* Cap Outliers (Tukey IQR) */}
-                                                <SelectItem value="cap_outliers" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-amber-400" /> Cap Outliers (Tukey IQR Fences)
-                                                        </span>
-                                                        {(issue?.action === "cap_outliers" || issue?.action === "replace_outliers_median" || issue?.action === "winsorize") && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Flag Outliers */}
-                                                <SelectItem value="flag_outliers" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" /> Flag Outliers (Indicator Column)
-                                                        </span>
-                                                        {issue?.action === "flag_outliers" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Drop Missing Rows */}
-                                                <SelectItem value="drop_rows" className="text-xs font-medium text-rose-400 focus:text-rose-300 focus:bg-rose-500/15 cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Drop Missing Rows
-                                                        </span>
-                                                        {issue?.action === "drop_rows" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Coerce Numeric */}
-                                                <SelectItem value="coerce_numeric" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Hash className="w-3.5 h-3.5 text-sky-400" /> Coerce to Numeric (Strip Currency/%)
-                                                        </span>
-                                                        {issue?.action === "coerce_numeric" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Clean Masked Nulls */}
-                                                <SelectItem value="clean_masked_nulls" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-amber-400" /> Clean Masked Nulls (to null)
-                                                        </span>
-                                                        {issue?.action === "clean_masked_nulls" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Clean Text Whitespace */}
-                                                <SelectItem value="clean_text" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Type className="w-3.5 h-3.5 text-violet-400" /> Clean Text (Trim Whitespace)
-                                                        </span>
-                                                        {issue?.action === "clean_text" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Fix Mojibake */}
-                                                <SelectItem value="fix_mojibake" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-emerald-400" /> Fix Mojibake Encoding
-                                                        </span>
-                                                        {issue?.action === "fix_mojibake" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Standardize Categories */}
-                                                <SelectItem value="standardize_categories" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" /> Standardize Categories
-                                                        </span>
-                                                        {issue?.action === "standardize_categories" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Cast to Boolean */}
-                                                <SelectItem value="cast_boolean" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Cast to Boolean
-                                                        </span>
-                                                        {issue?.action === "cast_boolean" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Preserve as Text */}
-                                                <SelectItem value="keep_as_text" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Type className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" /> Preserve as String / Text
-                                                        </span>
-                                                        {issue?.action === "keep_as_text" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Parse Date */}
-                                                <SelectItem value="parse_date" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Calendar className="w-3.5 h-3.5 text-cyan-400" /> Parse Date (ISO 8601)
-                                                        </span>
-                                                        {issue?.action === "parse_date" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Nullify Sentinels */}
-                                                <SelectItem value="nullify_sentinel" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-amber-400" /> Nullify Sentinels (-999, 9999)
-                                                        </span>
-                                                        {issue?.action === "nullify_sentinel" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Nullify Out-of-Range */}
-                                                <SelectItem value="nullify_out_of_range" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> Nullify Out-of-Range
-                                                        </span>
-                                                        {issue?.action === "nullify_out_of_range" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Nullify Invalid Format */}
-                                                <SelectItem value="nullify_invalid_regex" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> Nullify Invalid Format
-                                                        </span>
-                                                        {issue?.action === "nullify_invalid_regex" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Drop Column */}
-                                                <SelectItem value="drop_column" className="text-xs font-medium text-rose-400 focus:text-rose-300 focus:bg-rose-500/15 cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Drop Column
-                                                        </span>
-                                                        {issue?.action === "drop_column" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Imputations */}
-                                                <SelectItem value="fill_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" /> Fill with Median
-                                                        </span>
-                                                        {issue?.action === "fill_median" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                <SelectItem value="fill_mean" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" /> Fill with Average
-                                                        </span>
-                                                        {issue?.action === "fill_mean" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                <SelectItem value="fill_mode" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" /> Fill with Most Frequent
-                                                        </span>
-                                                        {issue?.action === "fill_mode" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                <SelectItem value="fill_value" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Wrench className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" /> Fill with &ldquo;Unknown&rdquo;
-                                                        </span>
-                                                        {issue?.action === "fill_value" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                <SelectItem value="fill_group_median" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <Layers className="w-3.5 h-3.5 text-purple-400" /> Fill with Group Median
-                                                        </span>
-                                                        {issue?.action === "fill_group_median" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                <SelectItem value="add_missing_indicator" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <CheckCircle2 className="w-3.5 h-3.5 text-sky-400" /> Add Missing Indicator Column
-                                                        </span>
-                                                        {issue?.action === "add_missing_indicator" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                <SelectItem value="log1p_transform" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <BarChart2 className="w-3.5 h-3.5 text-blue-400" /> Log1p Transform (Reduce Skew)
-                                                        </span>
-                                                        {issue?.action === "log1p_transform" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                <SelectItem value="hash_pii" className="text-xs font-medium text-foreground focus:bg-accent focus:text-foreground cursor-pointer">
-                                                    <span className="flex items-center justify-between w-full gap-2">
-                                                        <span className="flex items-center gap-2">
-                                                            <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" /> Hash / Mask PII Column
-                                                        </span>
-                                                        {issue?.action === "hash_pii" && (
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </SelectItem>
-
-                                                {/* Dynamic Fallback if custom action */}
-                                                {!KNOWN_ACTIONS.has(currentAction) && currentAction !== "default" && (
-                                                    <SelectItem value={currentAction} className="text-xs font-medium text-foreground cursor-pointer">
-                                                        <span className="flex items-center justify-between w-full gap-2">
+                                                {/* ── 2. MISSING VALUES & IMPUTATION ── */}
+                                                <SelectGroup>
+                                                    <SelectLabel>Missing Values & Imputation</SelectLabel>
+                                                    {recommendedAction !== "fill_median" && (
+                                                        <SelectItem value="fill_median">
                                                             <span className="flex items-center gap-2">
-                                                                <Wrench className="w-3.5 h-3.5 text-amber-400" /> {getActionDisplayLabel(currentAction, issue)}
+                                                                {getActionIcon("fill_median")} Fill with Median
                                                             </span>
-                                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                                                                Recommended
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "fill_mean" && (
+                                                        <SelectItem value="fill_mean">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("fill_mean")} Fill with Average
                                                             </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "fill_mode" && (
+                                                        <SelectItem value="fill_mode">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("fill_mode")} Fill with Most Frequent
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "fill_value" && (
+                                                        <SelectItem value="fill_value">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("fill_value")} Fill with &ldquo;Unknown&rdquo;
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "fill_group_median" && (
+                                                        <SelectItem value="fill_group_median">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("fill_group_median")} Fill with Group Median
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "add_missing_indicator" && (
+                                                        <SelectItem value="add_missing_indicator">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("add_missing_indicator")} Add Missing Indicator Column
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "drop_rows" && (
+                                                        <SelectItem value="drop_rows" className="text-rose-700 dark:text-rose-400">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("drop_rows")} Drop Missing Rows
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                </SelectGroup>
+
+                                                <SelectSeparator className="my-1.5" />
+
+                                                {/* ── 3. OUTLIERS & DATA QUALITY ── */}
+                                                <SelectGroup>
+                                                    <SelectLabel>Outliers & Data Quality</SelectLabel>
+                                                    {recommendedAction !== "cap_outliers" && (
+                                                        <SelectItem value="cap_outliers">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("cap_outliers")} Cap Outliers (Tukey IQR Fences)
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "flag_outliers" && (
+                                                        <SelectItem value="flag_outliers">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("flag_outliers")} Flag Outliers (Indicator Column)
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "log1p_transform" && (
+                                                        <SelectItem value="log1p_transform">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("log1p_transform")} Log1p Transform (Reduce Skew)
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "nullify_out_of_range" && (
+                                                        <SelectItem value="nullify_out_of_range">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("nullify_out_of_range")} Nullify Out-of-Range Values
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "nullify_sentinel" && (
+                                                        <SelectItem value="nullify_sentinel">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("nullify_sentinel")} Nullify Sentinels (-999, 9999)
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "clean_masked_nulls" && (
+                                                        <SelectItem value="clean_masked_nulls">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("clean_masked_nulls")} Clean Masked Nulls (to null)
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                </SelectGroup>
+
+                                                <SelectSeparator className="my-1.5" />
+
+                                                {/* ── 4. FORMATTING, TYPES & TEXT ── */}
+                                                <SelectGroup>
+                                                    <SelectLabel>Formatting, Types & Text</SelectLabel>
+                                                    {recommendedAction !== "coerce_numeric" && (
+                                                        <SelectItem value="coerce_numeric">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("coerce_numeric")} Coerce to Numeric (Strip Currency/%)
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "parse_date" && (
+                                                        <SelectItem value="parse_date">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("parse_date")} Parse Date (ISO 8601)
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "clean_text" && (
+                                                        <SelectItem value="clean_text">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("clean_text")} Clean Text (Trim Whitespace)
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "fix_mojibake" && (
+                                                        <SelectItem value="fix_mojibake">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("fix_mojibake")} Fix Mojibake Encoding
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "standardize_categories" && (
+                                                        <SelectItem value="standardize_categories">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("standardize_categories")} Standardize Categories
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "cast_boolean" && (
+                                                        <SelectItem value="cast_boolean">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("cast_boolean")} Cast to Boolean
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "keep_as_text" && (
+                                                        <SelectItem value="keep_as_text">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("keep_as_text")} Preserve as String / Text
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "nullify_invalid_regex" && (
+                                                        <SelectItem value="nullify_invalid_regex">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("nullify_invalid_regex")} Nullify Invalid Format
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                </SelectGroup>
+
+                                                <SelectSeparator className="my-1.5" />
+
+                                                {/* ── 5. KEY DEDUPLICATION & COLUMNS ── */}
+                                                <SelectGroup>
+                                                    <SelectLabel>Key Deduplication & Columns</SelectLabel>
+                                                    {recommendedAction !== "drop_duplicate_keys" && recommendedAction !== "keep_first" && (
+                                                        <SelectItem value="drop_duplicate_keys">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("drop_duplicate_keys")} Keep First Row per Key (Deduplicate)
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "drop_duplicate_rows" && (
+                                                        <SelectItem value="drop_duplicate_rows">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("drop_duplicate_rows")} Drop Duplicate Rows
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "hash_pii" && (
+                                                        <SelectItem value="hash_pii">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("hash_pii")} Hash / Mask PII Column
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                    {recommendedAction !== "drop_column" && (
+                                                        <SelectItem value="drop_column" className="text-rose-700 dark:text-rose-400">
+                                                            <span className="flex items-center gap-2">
+                                                                {getActionIcon("drop_column")} Drop Column
+                                                            </span>
+                                                        </SelectItem>
+                                                    )}
+                                                </SelectGroup>
+
+                                                <SelectSeparator className="my-1.5" />
+
+                                                {/* ── 6. DEFAULT (RAW AS IS) ── */}
+                                                <SelectGroup>
+                                                    <SelectLabel>No Action</SelectLabel>
+                                                    <SelectItem value="default" className="text-stone-600 dark:text-zinc-400">
+                                                        <span className="flex items-center gap-2">
+                                                            {getActionIcon("default")} Ignore (Leave raw as is)
                                                         </span>
                                                     </SelectItem>
+                                                </SelectGroup>
+
+                                                {/* ── 7. DYNAMIC FALLBACK (FOR CUSTOM ACTIONS) ── */}
+                                                {!KNOWN_ACTIONS.has(currentAction) && currentAction !== "default" && currentAction !== recommendedAction && (
+                                                    <>
+                                                        <SelectSeparator className="my-1.5" />
+                                                        <SelectGroup>
+                                                            <SelectLabel>Custom Selected Action</SelectLabel>
+                                                            <SelectItem value={currentAction}>
+                                                                <span className="flex items-center justify-between w-full gap-2">
+                                                                    <span className="flex items-center gap-2">
+                                                                        {getActionIcon(currentAction)} {getActionDisplayLabel(currentAction, issue)}
+                                                                    </span>
+                                                                    <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-stone-200 text-stone-800 border border-stone-300 dark:bg-white/10 dark:text-zinc-300">
+                                                                        Active
+                                                                    </span>
+                                                                </span>
+                                                            </SelectItem>
+                                                        </SelectGroup>
+                                                    </>
                                                 )}
                                             </SelectContent>
                                         </Select>
