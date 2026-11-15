@@ -186,8 +186,7 @@ export const Header = ({ onReset, showReset }: HeaderProps) => {
                             <SheetTitle className="text-base font-display font-black text-stone-900 dark:text-white leading-none">
                               GetReport
                             </SheetTitle>
-                            <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-1">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
+                            <span className="text-[10px] font-mono text-stone-600 dark:text-zinc-400 font-semibold flex items-center gap-1 mt-1">
                               100% Private & Secure
                             </span>
                           </div>

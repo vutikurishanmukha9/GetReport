@@ -27,7 +27,6 @@ export const Footer = () => {
             </p>
 
             <div className="flex items-center gap-2 text-[11px] font-mono text-stone-600 dark:text-zinc-400 pt-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
               <span>All Systems Operational</span>
             </div>
           </div>

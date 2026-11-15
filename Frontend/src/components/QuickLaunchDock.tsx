@@ -45,15 +45,14 @@ export const QuickLaunchDock = () => {
           {/* Technical indicators */}
           <div className="pt-5 sm:pt-6 border-t border-stone-300/80 dark:border-white/10 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-[10px] sm:text-[11px] font-mono text-stone-600 dark:text-zinc-400 relative z-10">
             <div className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
               <span>Zero-Copy In-Memory Polars Core</span>
             </div>
+            <span className="hidden sm:inline text-stone-400 dark:text-zinc-600">•</span>
             <div className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
               <span>100% Ephemeral (Zero persistent storage)</span>
             </div>
+            <span className="hidden sm:inline text-stone-400 dark:text-zinc-600">•</span>
             <div className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
               <span>Cryptographic DAG Audit Trail</span>
             </div>
           </div>

@@ -49,8 +49,7 @@ export const MobileFloatingBar = () => {
               <span className="text-xs font-display font-black text-stone-900 dark:text-white tracking-tight block truncate">
                 GetReport
               </span>
-              <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-mono text-stone-600 dark:text-zinc-400 font-semibold flex items-center gap-1 mt-0.5">
                 100% Private
               </span>
             </div>

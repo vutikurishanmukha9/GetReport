@@ -175,7 +175,6 @@ export const EngineTrustBar = () => {
         {/* Section Header with Clear Both-Support Mention */}
         <div className="text-center max-w-3xl mx-auto mb-4 sm:mb-8 space-y-2 sm:space-y-2.5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-200/80 border border-stone-300 text-stone-700 dark:bg-white/[0.05] dark:border-white/10 dark:text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
             <span>Universal Ingestion & Export Engine</span>
           </div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-stone-900 dark:text-white tracking-[-0.02em]">
