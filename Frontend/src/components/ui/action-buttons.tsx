@@ -75,10 +75,10 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
         whileTap={!isDisabled && !reduceMotion ? { scale: 0.97 } : undefined}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
         className={cn(
-          "group relative inline-flex items-center justify-center font-medium select-none cursor-pointer overflow-hidden isolate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#800000] dark:focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-all duration-200",
+          "save-all-btn group relative inline-flex items-center justify-center font-medium select-none cursor-pointer overflow-hidden isolate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#800000] dark:focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-all duration-200",
           sizeClasses[size],
           !isDisabled
-            ? "bg-[#800000] hover:bg-[#6b0000] text-white border border-[#800000] shadow-sm dark:bg-[#042824]/90 dark:hover:bg-[#063832] dark:text-emerald-100 dark:hover:text-white dark:border-emerald-500/50 dark:hover:border-emerald-400/80 dark:shadow-[0_1px_3px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.18),0_0_16px_rgba(16,185,129,0.25)]"
+            ? "bg-[#800000] hover:bg-[#6b0000] text-white border border-[#800000] shadow-sm dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:text-white dark:border-emerald-500/80"
             : "bg-stone-200 text-stone-400 border border-stone-300 dark:bg-white/[0.03] dark:text-zinc-500 dark:border-white/5 cursor-not-allowed opacity-50 shadow-none",
           className
         )}
@@ -87,21 +87,21 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
       >
         {/* Magic UI Shimmer Sweep Ray */}
         {!isDisabled && !reduceMotion && (
-          <span className="pointer-events-none absolute -inset-full w-[200%] h-[200%] -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.12] to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
+          <span className="pointer-events-none absolute -inset-full w-[200%] h-[200%] -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.15] to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
         )}
 
-        {/* Ambient Aura */}
+        {/* Ambient Subtle Highlight */}
         {!isDisabled && (
-          <span className="pointer-events-none absolute inset-0 bg-white/5 dark:bg-emerald-500/10 blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <span className="pointer-events-none absolute inset-0 bg-white/[0.08] dark:bg-white/[0.12] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         )}
 
         {/* Integrated Icon Pod */}
         <span
           className={cn(
-            "relative z-10 flex items-center justify-center shrink-0 transition-all duration-200",
+            "save-all-icon-pod relative z-10 flex items-center justify-center shrink-0 transition-all duration-200",
             podSizes[size],
             !isDisabled
-              ? "bg-white/20 text-white group-hover:bg-white group-hover:text-[#800000] dark:bg-emerald-400/20 dark:text-emerald-300 dark:group-hover:bg-emerald-400 dark:group-hover:text-zinc-950"
+              ? "bg-white/20 text-white group-hover:bg-white group-hover:text-[#800000] dark:bg-black/25 dark:text-white dark:group-hover:bg-white dark:group-hover:text-emerald-700"
               : "bg-stone-300/60 text-stone-500 dark:bg-white/5 dark:text-zinc-600"
           )}
         >
@@ -115,15 +115,15 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
         </span>
 
         {/* Label */}
-        <span className="relative z-10 font-sans tracking-tight font-semibold">
+        <span className="save-all-label relative z-10 font-sans tracking-tight font-semibold text-white">
           {loading ? "Processing..." : completed ? "All Approved" : label}
         </span>
 
-        {/* Segmented Pill Counter Badge with Glowing Dot */}
+        {/* Segmented Pill Counter Badge with High-Contrast Number */}
         {!isDisabled && count !== undefined && count > 0 && (
-          <span className="relative z-10 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-white/20 text-white border border-white/30 dark:bg-emerald-950/80 dark:text-emerald-200 dark:border-emerald-500/40 shadow-inner">
-            <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-emerald-400 dark:shadow-[0_0_6px_#34d399]" />
-            +{count}
+          <span className="save-all-badge relative z-10 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-white text-[#800000] border border-white/80 dark:bg-black/40 dark:text-emerald-200 dark:border-emerald-400/40 shadow-xs">
+            <span className="save-all-dot w-1.5 h-1.5 rounded-full bg-[#800000] dark:bg-emerald-400 shrink-0" />
+            <span className="save-all-count tabular-nums font-bold">+{count}</span>
           </span>
         )}
       </motion.button>
