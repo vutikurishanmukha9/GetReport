@@ -23,8 +23,35 @@ export const HeroSection = () => {
 
   return (
     <section className="relative pt-28 lg:pt-30 pb-6 sm:pb-12 bg-hero-custom-gradient border-b border-stone-300/80 dark:border-white/10 overflow-hidden text-center text-stone-900 dark:text-zinc-100">
-      {/* 1. Subtle Micro-Dot Technical Grid */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.06)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_30%,#000_65%,transparent_100%)] opacity-30 pointer-events-none" />
+      {/* 1. Precision Technical Grid Lines with Center Alignment and Broad Horizon Mask */}
+      <div 
+        className="absolute inset-0 pointer-events-none select-none overflow-hidden [mask-image:radial-gradient(ellipse_120%_80%_at_50%_38%,#000_55%,transparent_100%)]"
+        aria-hidden="true"
+      >
+        {/* Ambient Subtle Radial Glow Underlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_28%,rgba(128,0,0,0.04),transparent_75%)] dark:bg-[radial-gradient(ellipse_70%_55%_at_50%_28%,rgba(255,255,255,0.045),transparent_75%)]" />
+
+        {/* Architectural Vector Grid Pattern (80px Cadence) */}
+        <svg
+          className="absolute inset-0 h-full w-full stroke-stone-900/[0.09] dark:stroke-white/[0.09]"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <pattern
+              id="hero-grid-pattern"
+              width="80"
+              height="80"
+              patternUnits="userSpaceOnUse"
+              x="50%"
+              y="-1"
+            >
+              {/* Primary 80x80 Grid Lines */}
+              <path d="M.5 80V.5H80" fill="none" strokeWidth="1" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" strokeWidth="0" fill="url(#hero-grid-pattern)" />
+        </svg>
+      </div>
 
       {/* 2. Tactile Film Grain Overlay */}
       <div className="hero-grain-overlay" />
