@@ -80,13 +80,8 @@ export function useTheme() {
       const customEvent = event as CustomEvent<Theme>;
       const nextTheme = customEvent.detail;
       if (nextTheme === "light" || nextTheme === "dark") {
-        setThemeState((current) => {
-          if (current !== nextTheme) {
-            applyTheme(nextTheme);
-            return nextTheme;
-          }
-          return current;
-        });
+        setThemeState(nextTheme);
+        applyTheme(nextTheme);
       }
     };
 
@@ -112,19 +107,9 @@ export function useTheme() {
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((current) => {
-      const nextTheme: Theme = current === "light" ? "dark" : "light";
-      transitionTheme(nextTheme);
-      try {
-        window.dispatchEvent(
-          new CustomEvent<Theme>(THEME_CHANGE_EVENT, { detail: nextTheme })
-        );
-      } catch {
-        // Ignore in headless environments
-      }
-      return nextTheme;
-    });
-  }, []);
+    const nextTheme: Theme = theme === "light" ? "dark" : "light";
+    setTheme(nextTheme);
+  }, [theme, setTheme]);
 
   return { theme, toggleTheme, setTheme };
 }

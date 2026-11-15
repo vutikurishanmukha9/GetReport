@@ -108,11 +108,11 @@ export const PageNumber = ({
   }
   return (
     <View style={[styles.container, justifyMap[align]]}>
-      {format.split(/({page}|{total})/).map((part, index) => {
+      {format.split(/({page}|{total})/).map((part, segmentOrder) => {
         if (part === "{page}") {
           return (
             <PageNumberPrimitive
-              key={`page-${index}`}
+              key={`page-token-${segmentOrder}`}
               style={flatten(textStyles)}
             />
           );
@@ -120,13 +120,13 @@ export const PageNumber = ({
         if (part === "{total}") {
           return (
             <TotalPagesPrimitive
-              key={`total-${index}`}
+              key={`total-token-${segmentOrder}`}
               style={flatten(textStyles)}
             />
           );
         }
         return (
-          <PDFText key={`text-${index}`} style={textStyles}>
+          <PDFText key={`text-token-${segmentOrder}`} style={textStyles}>
             {part}
           </PDFText>
         );

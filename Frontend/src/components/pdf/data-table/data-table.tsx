@@ -61,41 +61,46 @@ export const DataTable = <T extends Record<string, unknown>>({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {data.map((row, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: DataTable has no row id; order is stable for static data
-          <Fragment key={i}>
-            <TableRow>
-              {columns.map((col) => {
-                const value = row[col.key];
-                const rendered = col.render ? col.render(value, row) : null;
-                const text = rendered === null ? formatValue(value) : null;
-                return (
-                  <TableCell
-                    key={col.key}
-                    align={col.align ?? "left"}
-                    width={col.width}
-                    style={isCompact ? compact.cell : undefined}
-                  >
-                    {isCompact
-                      ? (rendered ?? (
-                          <PDFText
-                            style={[
-                              compact.text,
-                              col.align
-                                ? ({ textAlign: col.align } as Style)
-                                : {},
-                            ]}
-                          >
-                            {text}
-                          </PDFText>
-                        ))
-                      : (rendered ?? text)}
-                  </TableCell>
-                );
-              })}
-            </TableRow>
-          </Fragment>
-        ))}
+        {data.map((row, rowNum) => {
+          const rowKey =
+            (row.id as string | number | undefined) ??
+            (row.key as string | number | undefined) ??
+            `${columns[0]?.key ?? "row"}-${row[columns[0]?.key] ?? rowNum}-${rowNum}`;
+          return (
+            <Fragment key={rowKey}>
+              <TableRow>
+                {columns.map((col) => {
+                  const value = row[col.key];
+                  const rendered = col.render ? col.render(value, row) : null;
+                  const text = rendered === null ? formatValue(value) : null;
+                  return (
+                    <TableCell
+                      key={col.key}
+                      align={col.align ?? "left"}
+                      width={col.width}
+                      style={isCompact ? compact.cell : undefined}
+                    >
+                      {isCompact
+                        ? (rendered ?? (
+                            <PDFText
+                              style={[
+                                compact.text,
+                                col.align
+                                  ? ({ textAlign: col.align } as Style)
+                                  : {},
+                              ]}
+                            >
+                              {text}
+                            </PDFText>
+                          ))
+                        : (rendered ?? text)}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            </Fragment>
+          );
+        })}
       </TableBody>
       {footer && (
         <TableFooter>

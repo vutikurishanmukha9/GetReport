@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as echarts from "echarts";
 import {
   BarChart3,
@@ -202,16 +202,22 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
   const onChartClickRef = useRef(onChartClick);
-  onChartClickRef.current = onChartClick;
   const onInstanceReadyRef = useRef(onInstanceReady);
-  onInstanceReadyRef.current = onInstanceReady;
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    onChartClickRef.current = onChartClick;
+    onInstanceReadyRef.current = onInstanceReady;
+  });
 
-    let instance = echarts.getInstanceByDom(containerRef.current);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return () => {};
+    }
+
+    let instance = echarts.getInstanceByDom(container);
     if (!instance) {
-      instance = echarts.init(containerRef.current, undefined, {
+      instance = echarts.init(container, undefined, {
         renderer: "canvas",
       });
       chartInstanceRef.current = instance;
@@ -239,6 +245,9 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
       }
     };
 
+    let timer1: ReturnType<typeof setTimeout> | undefined;
+    let timer2: ReturnType<typeof setTimeout> | undefined;
+
     if (option && Object.keys(option).length > 0) {
       const cleanOption = sanitizeEChartsOption(option);
       try {
@@ -246,21 +255,20 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
         instance.clear();
         instance.setOption(cleanOption, { notMerge: true, lazyUpdate: false });
         resizeChart();
-        requestAnimationFrame(resizeChart);
-        setTimeout(resizeChart, 60);
-        setTimeout(resizeChart, 250);
+        timer1 = setTimeout(resizeChart, 60);
+        timer2 = setTimeout(resizeChart, 250);
       } catch (err) {
         console.error('ECharts setOption error, recreating instance:', err);
         try {
           instance.dispose();
-          const newInstance = echarts.init(containerRef.current, undefined, { renderer: 'canvas' });
-          chartInstanceRef.current = newInstance;
+          instance = echarts.init(container, undefined, { renderer: 'canvas' });
+          chartInstanceRef.current = instance;
           if (onInstanceReadyRef.current) {
-            onInstanceReadyRef.current(newInstance);
+            onInstanceReadyRef.current(instance);
           }
-          newInstance.on('click', clickHandler);
-          newInstance.setOption(cleanOption, { notMerge: true, lazyUpdate: false });
-          newInstance.resize();
+          instance.on('click', clickHandler);
+          instance.setOption(cleanOption, { notMerge: true, lazyUpdate: false });
+          instance.resize();
         } catch (recoverErr) {
           console.error('Failed to recover ECharts instance:', recoverErr);
         }
@@ -270,14 +278,16 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
     const resizeObserver = new ResizeObserver(() => {
       resizeChart();
     });
-    resizeObserver.observe(containerRef.current);
+    resizeObserver.observe(container);
 
     window.addEventListener("resize", resizeChart);
 
     return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
       resizeObserver.disconnect();
       window.removeEventListener("resize", resizeChart);
-      instance?.off("click", clickHandler);
+      instance.off("click", clickHandler);
     };
   }, [option]);
 
@@ -441,7 +451,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   }, [selectedTaskId, toast]);
 
   // 3. Execute Explore Query
-  const executeQuery = async () => {
+  const executeQuery = useCallback(async (signal?: AbortSignal) => {
     if (!selectedTaskId || !dimension) return;
 
     setExecuting(true);
@@ -471,8 +481,10 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         sort_order: sortOrder,
         color_palette: colorPalette,
       });
+      if (signal?.aborted) return;
       setQueryResult(res);
     } catch (err: any) {
+      if (signal?.aborted) return;
       console.error("Explore query execution failed:", err);
       toast({
         title: "Query Failed",
@@ -480,31 +492,41 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         variant: "destructive",
       });
     } finally {
-      setExecuting(false);
+      if (!signal?.aborted) {
+        setExecuting(false);
+      }
     }
-  };
-
-  useEffect(() => {
-    if (dimension && selectedTaskId) {
-      executeQuery();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedTaskId,
-    chartType,
-    barMode,
     dimension,
+    filters,
+    chartType,
     secondaryDimension,
+    barMode,
     metric,
     aggregate,
     secondaryMetric,
     secondaryAggregate,
     yAxisScale,
     timeGrain,
-    filters,
     rowLimit,
     sortOrder,
     colorPalette,
+    toast,
+  ]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    if (dimension && selectedTaskId) {
+      void executeQuery(controller.signal);
+    }
+    return () => {
+      controller.abort();
+    };
+  }, [
+    executeQuery,
+    dimension,
+    selectedTaskId,
   ]);
 
   // Filter actions
@@ -556,7 +578,9 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         backgroundColor: "#07080a",
       });
       if (dataUrl) {
-        const blob = await (await fetch(dataUrl)).blob();
+        const res = await fetch(dataUrl);
+        if (!res.ok) throw new Error(`Failed to fetch blob: ${res.status}`);
+        const blob = await res.blob();
         await navigator.clipboard.write([
           new ClipboardItem({ "image/png": blob })
         ]);
@@ -710,7 +734,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={executeQuery}
+                onClick={() => void executeQuery()}
                 disabled={executing || loadingSchema}
                 className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
               >
@@ -1071,6 +1095,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                           <select
                             value={f.column}
                             onChange={(e) => updateFilter(f.id, "column", e.target.value)}
+                            aria-label="Filter Column"
                             className="bg-stone-50 border border-stone-300 rounded-md px-1.5 py-1 text-stone-900 text-[11px] font-mono flex-1 truncate dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200"
                           >
                             {schemaColumns.map((col) => (
@@ -1084,6 +1109,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                           <select
                             value={f.operator}
                             onChange={(e) => updateFilter(f.id, "operator", e.target.value)}
+                            aria-label="Filter Operator"
                             className="bg-stone-50 border border-stone-300 rounded-md px-1.5 py-1 text-stone-900 text-[11px] font-mono dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200"
                           >
                             {FILTER_OPERATORS.map((op) => (
@@ -1108,6 +1134,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                           <input
                             type="text"
                             placeholder="Comparison value..."
+                            aria-label="Filter Comparison Value"
                             value={f.value}
                             onChange={(e) => updateFilter(f.id, "value", e.target.value)}
                             className="w-full bg-stone-50 border border-stone-300 rounded-md px-2 py-1 text-stone-900 text-[11px] font-mono focus:outline-none focus:border-[#800000]/50 dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200 dark:focus:border-white/30"

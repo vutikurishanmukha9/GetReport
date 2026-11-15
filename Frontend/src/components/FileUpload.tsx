@@ -317,7 +317,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     if (cols1.length === 0 || cols2.length === 0) return;
 
     // 1. Check for exact common column
-    const common = cols1.filter(c => cols2.includes(c));
+    const cols2Set = new Set(cols2);
+    const common = cols1.filter(c => cols2Set.has(c));
     if (common.length > 0) {
       const preferred = common.find(c => /(_id|^id|key|code)$/i.test(c)) || common[0];
       setJoinKey(preferred);
@@ -392,7 +393,6 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
     setIsProcessing(true);
     setInspectionData(null);
-    let success = false;
 
     try {
       if (stagedFiles.length === 1) {
@@ -431,38 +431,28 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
       }
 
       setExpectedPhase('INSPECTION');
-      success = true;
-
     } catch (error: unknown) {
+      setIsProcessing(false);
       console.error("Error initiating upload:", error);
       let errorMessage = "Could not start upload.";
       if (error instanceof Error) errorMessage = error.message;
       toast({ title: "Upload Failed", description: errorMessage, variant: "destructive" });
-    } finally {
-      if (!success) {
-        setIsProcessing(false);
-      }
     }
   };
 
   const handleCleaningRules = async (rules: CleaningRulesMap) => {
     if (!taskId) return;
     setIsProcessing(true);
-    let success = false;
 
     try {
       await api.startAnalysis(taskId, rules);
       setExpectedPhase('ANALYSIS'); // Start waiting for analysis
-      success = true;
     } catch (error: unknown) {
+      setIsProcessing(false);
       console.error("Failed to start analysis:", error);
       let errorMsg = "Failed to apply rules.";
       if (error instanceof Error) errorMsg = error.message;
       toast({ title: "Error", description: errorMsg, variant: "destructive" });
-    } finally {
-      if (!success) {
-        setIsProcessing(false);
-      }
     }
   };
 
@@ -762,9 +752,10 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                 const f2 = stagedFiles[1];
                 const cols1 = fileHeaders[f1?.name] || [];
                 const cols2 = fileHeaders[f2?.name] || [];
+                const headerSets = stagedFiles.map(f => new Set(fileHeaders[f.name] || []));
                 const commonCols = stagedFiles.length > 1 && stagedFiles.every(f => (fileHeaders[f.name]?.length || 0) > 0)
                   ? (fileHeaders[stagedFiles[0].name] || []).filter(c =>
-                    stagedFiles.every(f => (fileHeaders[f.name] || []).includes(c))
+                    headerSets.every(set => set.has(c))
                   )
                   : [];
 
