@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import * as echarts from "echarts";
 import {
   BarChart3,
@@ -16,16 +16,11 @@ import {
   Layers,
   FileSpreadsheet,
   Plus,
-  Trash2,
   Calendar,
-  ScatterChart,
-  Box,
-  ChevronDown,
   Loader2,
   Copy,
   Check,
   Activity,
-  Award,
 } from "lucide-react";
 import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -331,7 +326,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     sample_values?: string[];
   }>>([]);
   const [numericCols, setNumericCols] = useState<string[]>([]);
-  const [categoricalCols, setCategoricalCols] = useState<string[]>([]);
+  const [, setCategoricalCols] = useState<string[]>([]);
   const [temporalCols, setTemporalCols] = useState<string[]>([]);
 
   // Explore Controls State
@@ -343,10 +338,9 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const [aggregate, setAggregate] = useState<string>("COUNT");
   const [secondaryMetric, setSecondaryMetric] = useState<string>("");
   const [secondaryAggregate, setSecondaryAggregate] = useState<string>("AVG");
-  const [yAxisScale, setYAxisScale] = useState<string>("linear");
+  const [yAxisScale] = useState<string>("linear");
   const [timeGrain, setTimeGrain] = useState<string>("");
   const [filters, setFilters] = useState<FilterItem[]>([]);
-  const [showFilterBuilder, setShowFilterBuilder] = useState<boolean>(false);
   const [rowLimit, setRowLimit] = useState<number>(25);
   const [sortOrder, setSortOrder] = useState<string>("desc");
   const [colorPalette, setColorPalette] = useState<string>("supersetColors");
@@ -403,7 +397,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     if (initialTaskId && initialTaskId !== selectedTaskId) {
       setSelectedTaskId(initialTaskId);
     }
-  }, [initialTaskId]);
+  }, [initialTaskId, selectedTaskId]);
 
   // 2. Fetch schema whenever selectedTaskId changes
   useEffect(() => {
@@ -494,6 +488,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     if (dimension && selectedTaskId) {
       executeQuery();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedTaskId,
     chartType,
@@ -522,7 +517,6 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
       value: "",
     };
     setFilters([...filters, newFilter]);
-    setShowFilterBuilder(true);
   };
 
   const removeFilter = (id: string) => {

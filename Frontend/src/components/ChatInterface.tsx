@@ -2,8 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import DOMPurify from "dompurify";
 import { 
   Send, Terminal, User, RefreshCw, ChevronDown, ChevronUp, 
-  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check,
-  Bookmark, BookmarkCheck, Trash2
+  MessageSquare, CheckCircle2, BookOpen, Quote, Copy, Check
 } from "lucide-react";
 import { Button, AnimatedDeleteButton, SaveKpiButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
