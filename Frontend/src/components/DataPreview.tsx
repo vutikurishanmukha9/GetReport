@@ -233,7 +233,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
           >
             <span>Column Quality Audit</span>
             {totalIssuesCount > 0 && (
-              <Badge variant="secondary" className="group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white bg-amber-500/15 text-amber-800 border border-amber-500/30 dark:text-amber-400 text-[10px] px-1.5 py-0 h-4 rounded-full font-mono">
+              <Badge variant="secondary" className="tab-count-badge group-data-[state=active]:bg-white group-data-[state=active]:text-[#800000] bg-amber-500/15 text-amber-800 border border-amber-500/30 dark:text-amber-400 text-[10px] px-1.5 py-0 h-4 rounded-full font-mono">
                 {totalIssuesCount}
               </Badge>
             )}

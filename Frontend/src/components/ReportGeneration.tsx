@@ -722,7 +722,7 @@ export const ReportGeneration = ({
               <TrendingUp className="h-4 w-4" />
               <span>Visual Analytics</span>
               {chartTabsList.length > 0 && (
-                <span className="text-[10px] font-sans font-bold tabular-nums px-1.5 py-0.2 rounded-full bg-stone-300 text-stone-900 border border-stone-400/40 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white group-data-[state=active]:border-transparent dark:bg-white/10 dark:text-zinc-300 dark:group-data-[state=active]:bg-black/15 dark:group-data-[state=active]:text-black">
+                <span className="tab-count-badge text-[10px] font-sans font-bold tabular-nums px-1.5 py-0.2 rounded-full bg-stone-300 text-stone-900 border border-stone-400/40 group-data-[state=active]:bg-white group-data-[state=active]:text-[#800000] group-data-[state=active]:border-transparent dark:bg-white/10 dark:text-zinc-300 dark:group-data-[state=active]:bg-zinc-950 dark:group-data-[state=active]:text-white">
                   {chartTabsList.length}
                 </span>
               )}
@@ -734,7 +734,7 @@ export const ReportGeneration = ({
             >
               <ShieldCheck className="h-4 w-4" />
               <span>Trust Ledger</span>
-              <span className="text-[10px] font-sans font-bold tabular-nums px-1.5 py-0.2 rounded-full bg-stone-300 text-stone-900 border border-stone-400/40 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white group-data-[state=active]:border-transparent dark:bg-white/10 dark:text-zinc-300 dark:group-data-[state=active]:bg-black/15 dark:group-data-[state=active]:text-black">
+              <span className="tab-count-badge text-[10px] font-sans font-bold tabular-nums px-1.5 py-0.2 rounded-full bg-stone-300 text-stone-900 border border-stone-400/40 group-data-[state=active]:bg-white group-data-[state=active]:text-[#800000] group-data-[state=active]:border-transparent dark:bg-white/10 dark:text-zinc-300 dark:group-data-[state=active]:bg-zinc-950 dark:group-data-[state=active]:text-white">
                 {confidence.columns.length}
               </span>
             </TabsTrigger>

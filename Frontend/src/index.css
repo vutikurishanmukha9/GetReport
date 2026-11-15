@@ -733,21 +733,24 @@ Strictly dark theme only across all surfaces. All colors HSL.
   color: #78716C !important;
 }
 
-/* Ensure Maroon Primary Buttons take absolute precedence in Light Mode */
-:root:not(.dark) button[class*="bg-white"][class*="text-zinc-950"],
-:root:not(.dark) button[class*="bg-white"][class*="text-black"],
-:root:not(.dark) button[class*="bg-white"][class*="text-slate-950"],
-:root:not(.dark) a[role="button"][class*="bg-white"][class*="text-zinc-950"],
-:root:not(.dark) a[role="button"][class*="bg-white"][class*="text-black"],
-:root:not(.dark) .btn-maroon,
-:root:not(.dark) button[class*="bg-[#800000]"],
-:root:not(.dark) a[class*="bg-[#800000]"] {
+/* Primary Action CTA Buttons in Light Mode */
+:root:not(.dark) .btn-maroon {
   background-color: #800000 !important;
   color: #ffffff !important;
   border-color: #800000 !important;
 }
 
-/* Explicit Badge & Arrow Icon Styling for Primary Action Buttons */
+:root:not(.dark) .btn-maroon:hover {
+  background-color: #6b0000 !important;
+  color: #ffffff !important;
+}
+
+:root:not(.dark) .btn-maroon:active {
+  background-color: #570000 !important;
+  color: #ffffff !important;
+}
+
+/* Explicit Arrow Badge on Primary CTAs */
 :root:not(.dark) .cta-arrow-badge,
 :root:not(.dark) .cta-arrow-badge * {
   background-color: #ffffff !important;
@@ -762,50 +765,51 @@ Strictly dark theme only across all surfaces. All colors HSL.
   stroke: #ffffff !important;
 }
 
-:root:not(.dark) button[class*="bg-[#800000]"] *:not(.cta-arrow-badge):not(.cta-arrow-badge *):not(.bg-white):not(.bg-white *),
-:root:not(.dark) a[class*="bg-[#800000]"] *:not(.cta-arrow-badge):not(.cta-arrow-badge *):not(.bg-white):not(.bg-white *),
-:root:not(.dark) .btn-maroon *:not(.cta-arrow-badge):not(.cta-arrow-badge *):not(.bg-white):not(.bg-white *) {
-  color: #ffffff !important;
+/* High-Contrast Tab Triggers & Numeric Badges */
+:root:not(.dark) [role="tab"]:not([data-state="active"]) {
+  background-color: transparent !important;
+  color: #1C1917 !important;
+  border-color: transparent !important;
 }
 
-:root:not(.dark) button[class*="bg-[#800000]"] .bg-white,
-:root:not(.dark) button[class*="bg-[#800000]"] .bg-white *,
-:root:not(.dark) a[class*="bg-[#800000]"] .bg-white,
-:root:not(.dark) a[class*="bg-[#800000]"] .bg-white *,
-:root:not(.dark) .btn-maroon .bg-white,
-:root:not(.dark) .btn-maroon .bg-white * {
+:root:not(.dark) [role="tab"]:not([data-state="active"]):hover {
+  background-color: rgba(220, 214, 201, 0.6) !important;
+  color: #0c0a09 !important;
+}
+
+:root:not(.dark) [role="tab"][data-state="active"] {
+  background-color: #800000 !important;
+  color: #ffffff !important;
+  border-color: #800000 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Numeric Badges Inside Tabs */
+:root:not(.dark) .tab-count-badge,
+:root:not(.dark) [role="tab"]:not([data-state="active"]) .tab-count-badge {
+  background-color: #DCD6C9 !important;
+  color: #1C1917 !important;
+  border-color: rgba(68, 64, 60, 0.3) !important;
+}
+
+:root:not(.dark) [data-state="active"] .tab-count-badge,
+:root:not(.dark) [role="tab"][data-state="active"] .tab-count-badge {
+  background-color: #ffffff !important;
   color: #800000 !important;
-  stroke: #800000 !important;
+  border-color: transparent !important;
 }
 
-.dark button .bg-black,
-.dark button .bg-black *,
-.dark a .bg-black,
-.dark a .bg-black * {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
+.dark [role="tab"]:not([data-state="active"]) .tab-count-badge {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #d4d4d8 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-:root:not(.dark) button[class*="bg-white"][class*="text-zinc-950"]:hover,
-:root:not(.dark) button[class*="bg-white"][class*="text-black"]:hover,
-:root:not(.dark) a[role="button"][class*="bg-white"][class*="text-zinc-950"]:hover,
-:root:not(.dark) a[role="button"][class*="bg-white"][class*="text-black"]:hover,
-:root:not(.dark) .btn-maroon:hover,
-:root:not(.dark) button[class*="bg-[#800000]"]:hover,
-:root:not(.dark) a[class*="bg-[#800000]"]:hover {
-  background-color: #6b0000 !important;
+.dark [data-state="active"] .tab-count-badge,
+.dark [role="tab"][data-state="active"] .tab-count-badge {
+  background-color: #09090b !important;
   color: #ffffff !important;
-}
-
-:root:not(.dark) button[class*="bg-white"][class*="text-zinc-950"]:active,
-:root:not(.dark) button[class*="bg-white"][class*="text-black"]:active,
-:root:not(.dark) a[role="button"][class*="bg-white"][class*="text-zinc-950"]:active,
-:root:not(.dark) a[role="button"][class*="bg-white"][class*="text-black"]:active,
-:root:not(.dark) .btn-maroon:active,
-:root:not(.dark) button[class*="bg-[#800000]"]:active,
-:root:not(.dark) a[class*="bg-[#800000]"]:active {
-  background-color: #570000 !important;
-  color: #ffffff !important;
+  border-color: transparent !important;
 }
 
 /* ─── Transitions.dev & beUI Semantic Motion Tokens ────────────────────── */
