@@ -1176,19 +1176,19 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
                   size="sm"
                   onClick={handlePreview}
                   disabled={!activeQuery || isPreviewing || Boolean(sqlValidationError)}
-                  className="border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10 text-xs gap-1.5"
+                  className="border-stone-300 bg-stone-200/80 text-stone-800 hover:bg-stone-300 dark:border-white/10 dark:bg-white/5 dark:text-zinc-200 dark:hover:bg-white/10 text-xs gap-1.5"
                 >
                   {isPreviewing ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <Eye className="h-3.5 w-3.5 text-zinc-300" />
+                    <Eye className="h-3.5 w-3.5 text-stone-600 dark:text-zinc-300" />
                   )}
                   Preview 25 Rows
                 </Button>
 
-                <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px] text-zinc-500 font-mono">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px] text-stone-600 dark:text-zinc-500 font-mono">
                   {useSampling && (
-                    <Badge variant="outline" className="border-white/10 bg-white/5 text-zinc-300 text-[10px]">
+                    <Badge variant="outline" className="border-stone-300 bg-stone-200/80 text-stone-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 text-[10px]">
                       Sampled (10%)
                     </Badge>
                   )}
