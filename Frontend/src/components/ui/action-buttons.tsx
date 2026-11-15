@@ -3,13 +3,9 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   CheckCheck,
   Check,
-  Trash2,
   X,
-  XCircle,
-  Download,
   Bookmark,
   BookmarkCheck,
-  ArrowRight,
   Loader2,
   ChevronRight,
   AlertTriangle

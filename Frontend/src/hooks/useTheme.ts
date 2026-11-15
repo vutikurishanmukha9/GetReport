@@ -48,9 +48,9 @@ export function applyTheme(theme: Theme): void {
  * falling back to synchronous atomic application without main-thread jank.
  */
 function transitionTheme(nextTheme: Theme): void {
-  if (typeof document !== "undefined" && "startViewTransition" in document) {
-    // @ts-ignore - Document.startViewTransition is supported in modern browsers
-    document.startViewTransition(() => {
+  const doc = typeof document !== "undefined" ? (document as Document & { startViewTransition?: (cb: () => void) => void }) : null;
+  if (doc?.startViewTransition) {
+    doc.startViewTransition(() => {
       applyTheme(nextTheme);
     });
   } else {
@@ -63,7 +63,9 @@ export function useTheme() {
 
   useEffect(() => {
     applyTheme(theme);
+  }, [theme]);
 
+  useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === THEME_STORAGE_KEY && event.newValue) {
         if (event.newValue === "light" || event.newValue === "dark") {

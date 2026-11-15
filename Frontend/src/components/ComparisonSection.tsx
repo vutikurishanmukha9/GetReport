@@ -1,4 +1,4 @@
-import { CheckCircle2, ArrowRight, ShieldCheck, Database, Layers, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, ArrowRight, ShieldCheck, FileSpreadsheet } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const ComparisonSection = () => {

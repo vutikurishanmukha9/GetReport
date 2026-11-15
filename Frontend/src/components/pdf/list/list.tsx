@@ -54,7 +54,7 @@ const dotMarker = (level: number, styles: Styles): React.ReactElement =>
     </View>
   );
 
-// eslint-disable-next-line no-use-before-define, prefer-const
+// eslint-disable-next-line prefer-const
 let renderBulletItem: (
   item: ListItem,
   index: number,
@@ -63,7 +63,7 @@ let renderBulletItem: (
   styles: Styles,
   level: number
 ) => React.ReactElement;
-// eslint-disable-next-line no-use-before-define, prefer-const
+// eslint-disable-next-line prefer-const
 let renderMultiLevelItem: (
   item: ListItem,
   index: number,

@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SupersetExploreStudio } from "@/components/SupersetExploreStudio";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Database, Activity, Cpu, BarChart3 } from "lucide-react";
+import { Database, Activity, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const Analytics: React.FC = () => {

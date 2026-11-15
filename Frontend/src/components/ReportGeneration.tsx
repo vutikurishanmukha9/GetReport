@@ -4,8 +4,8 @@ import {
   AlertTriangle, ArrowRight, BarChart3, PieChart, Activity,
   FileSpreadsheet, TrendingUp, ChevronDown, ChevronUp, ShieldCheck,
   BookOpen, Table2, Grid, Cpu, Terminal, Play, Sliders, Search,
-  Copy, Check, Bookmark, BookmarkCheck, Trash2, Database, Columns,
-  History, ArrowUpDown, Code2, PanelLeftClose, PanelLeftOpen, Filter
+  Copy, Check, Trash2, Database,
+  History, ArrowUpDown, Code2, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, AnimatedDeleteButton, ShimmerActionButton, SaveKpiButton } from "@/components/ui/button";
@@ -147,7 +147,7 @@ export const ReportGeneration = ({
   const [resultsSortCol, setResultsSortCol] = useState<string | null>(null);
   const [resultsSortAsc, setResultsSortAsc] = useState<boolean>(true);
   const [resultsPage, setResultsPage] = useState<number>(1);
-  const [resultsPerPage, setResultsPerPage] = useState<number>(15);
+  const [resultsPerPage] = useState<number>(15);
 
   // Query History
   const [queryHistory, setQueryHistory] = useState<string[]>([

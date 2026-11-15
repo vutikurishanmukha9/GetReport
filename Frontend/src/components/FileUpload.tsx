@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
-  Upload, FileSpreadsheet, Shield, Lock, Trash2, Database,
+  Upload, FileSpreadsheet, Shield, Lock, Database,
   ArrowRightLeft, ArrowRight, Link2, AlertCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";

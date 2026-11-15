@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { getInitialTheme, applyTheme, useTheme } from "@/hooks/useTheme";
+import { getInitialTheme, applyTheme } from "@/hooks/useTheme";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { buttonVariants } from "@/components/ui/button";
 

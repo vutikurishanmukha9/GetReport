@@ -3,8 +3,8 @@ import {
   ArrowRight, Layers, CheckCircle2, 
   FileText, ArrowLeftRight, Activity, ShieldCheck,
   Code2, MessageSquareCode, Lock, Database,
-  Sliders, Eye, Download, AlertTriangle, ChevronDown,
-  Check, X
+  ChevronDown,
+  Check
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
