@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import {
     Select,
     SelectContent,
@@ -70,6 +72,16 @@ const KNOWN_ACTIONS = new Set([
     "add_missing_indicator",
     "log1p_transform",
     "hash_pii",
+]);
+
+const DESTRUCTIVE_ACTIONS = new Set([
+    "drop_rows",
+    "drop_column",
+    "drop_duplicate_keys",
+    "drop_duplicate_rows",
+    "drop_empty_rows",
+    "nullify_out_of_range",
+    "nullify_invalid_regex",
 ]);
 
 const getActionDisplayLabel = (action: string, issue?: QualityIssue | null): string => {
@@ -228,6 +240,9 @@ const getTypeStyle = (type: string) => {
 };
 
 export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealthCheckProps) => {
+    const { toast } = useToast();
+    const [activePreset, setActivePreset] = useState<"all" | "high" | "conservative" | "raw" | "custom">("all");
+
     // Automatically pre-populate rules with dynamic suggestions from the backend engine
     const [rules, setRules] = useState<CleaningRulesMap>(() => {
         const initial: CleaningRulesMap = {};
@@ -268,6 +283,10 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
         });
     }, [report]);
 
+    const activeRulesCount = useMemo(() => {
+        return Object.values(rules).filter(r => r?.action && r.action !== "default").length;
+    }, [rules]);
+
     const handleActionChange = (column: string, action: string) => {
         const normalizedAction = (action === "replace_outliers_median" || action === "winsorize")
             ? "cap_outliers"
@@ -280,10 +299,12 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                 value: normalizedAction === "fill_value" ? "Unknown" : undefined
             }
         }));
+        setActivePreset("custom");
     };
 
     const handleApplyAllSuggestions = () => {
         const updated: CleaningRulesMap = {};
+        let count = 0;
         (report?.issues || []).forEach(issue => {
             if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
                 const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
@@ -294,55 +315,90 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     action: normalizedAction as CleaningRule["action"],
                     value: normalizedAction === "fill_value" ? "Unknown" : undefined
                 };
+                count += 1;
             }
         });
         setRules(updated);
+        setActivePreset("all");
+        toast({
+            title: "Applied All Suggestions",
+            description: `Activated all ${count} automated cleaning rules across your flagged columns.`,
+        });
     };
 
     const handleApplyHighConfidenceOnly = () => {
         const updated: CleaningRulesMap = {};
+        let appliedCount = 0;
+        let skippedCount = 0;
         (report?.issues || []).forEach(issue => {
-            if (
-                issue.column &&
-                issue.column !== "Multiple" &&
-                issue.action &&
-                issue.action !== "default" &&
-                (issue.confidence_score ?? 100) >= 90
-            ) {
-                const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
-                    ? "cap_outliers"
-                    : issue.action;
-                updated[issue.column] = {
-                    // SAFETY: normalizedAction is validated from issue.action
-                    action: normalizedAction as CleaningRule["action"],
-                    value: normalizedAction === "fill_value" ? "Unknown" : undefined
-                };
+            if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
+                const conf = issue.confidence_score ?? 100;
+                if (conf >= 90) {
+                    const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
+                        ? "cap_outliers"
+                        : issue.action;
+                    updated[issue.column] = {
+                        // SAFETY: normalizedAction is validated from issue.action
+                        action: normalizedAction as CleaningRule["action"],
+                        value: normalizedAction === "fill_value" ? "Unknown" : undefined
+                    };
+                    appliedCount += 1;
+                } else {
+                    skippedCount += 1;
+                }
             }
         });
         setRules(updated);
+        setActivePreset("high");
+        toast({
+            title: "Applied High-Confidence Suggestions",
+            description: skippedCount > 0
+                ? `Activated ${appliedCount} high-confidence rules (>=90%). Bypassed ${skippedCount} lower-confidence rule(s).`
+                : `Activated all ${appliedCount} high-confidence cleaning rules.`,
+        });
     };
 
     const handleApplyConservative = () => {
         const updated: CleaningRulesMap = {};
+        let safeApplied = 0;
+        let destructiveSkipped = 0;
+
         (report?.issues || []).forEach(issue => {
-            if (
-                issue.column &&
-                issue.column !== "Multiple" &&
-                issue.action &&
-                ["fill_median", "fill_mean", "fill_mode", "fill_value", "clean_text", "clean_masked_nulls"].includes(issue.action)
-            ) {
-                updated[issue.column] = {
-                    // SAFETY: issue.action is checked against valid CleaningRule actions
-                    action: issue.action as CleaningRule["action"],
-                    value: issue.action === "fill_value" ? "Unknown" : undefined
-                };
+            if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
+                const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
+                    ? "cap_outliers"
+                    : issue.action;
+
+                if (!DESTRUCTIVE_ACTIONS.has(normalizedAction)) {
+                    updated[issue.column] = {
+                        // SAFETY: normalizedAction is validated and verified non-destructive
+                        action: normalizedAction as CleaningRule["action"],
+                        value: normalizedAction === "fill_value" ? "Unknown" : undefined
+                    };
+                    safeApplied += 1;
+                } else {
+                    destructiveSkipped += 1;
+                }
             }
         });
+
         setRules(updated);
+        setActivePreset("conservative");
+        toast({
+            title: "Conservative Preset Applied",
+            description: destructiveSkipped > 0
+                ? `Applied ${safeApplied} safe transformation(s). Skipped ${destructiveSkipped} destructive row/column deletion rule(s).`
+                : `Applied ${safeApplied} safe transformation(s) across flagged columns.`,
+        });
     };
 
     const handleResetAllToIgnore = () => {
         setRules({});
+        setActivePreset("raw");
+        toast({
+            title: "Reset to Raw Data",
+            description: "All automated cleaning rules disabled. Dataset will be inspected in its raw original state.",
+        });
     };
 
     const getActionForColumn = (column: string) => {
@@ -415,7 +471,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             {columnsWithIssues.length > 0 && (
                 <div className="bg-stone-100/90 dark:bg-[#0e1017] border border-stone-200 dark:border-white/10 p-3.5 rounded-2xl space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200 dark:border-white/5 pb-2.5">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <SlidersHorizontal className="w-4 h-4 text-[#800000] dark:text-primary" />
                             <span className="text-xs font-semibold text-stone-900 dark:text-foreground tracking-tight">
                                 Auto-Suggestion Presets
@@ -423,9 +479,34 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             <span className="text-[11px] font-sans font-medium tabular-nums px-2 py-0.5 rounded-full bg-stone-200/80 text-stone-700 border border-stone-300 dark:bg-white/5 dark:text-zinc-400 dark:border-white/10">
                                 {columnsWithIssues.length} columns flagged
                             </span>
+                            {activePreset === "all" && (
+                                <span className="text-[10px] font-sans font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-[#800000]/10 text-[#800000] border border-[#800000]/30 dark:bg-primary/10 dark:text-primary dark:border-primary/30">
+                                    Preset Active: All Suggestions ({activeRulesCount} rules)
+                                </span>
+                            )}
+                            {activePreset === "conservative" && (
+                                <span className="text-[10px] font-sans font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
+                                    Preset Active: Conservative ({activeRulesCount} safe rules)
+                                </span>
+                            )}
+                            {activePreset === "high" && (
+                                <span className="text-[10px] font-sans font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
+                                    Preset Active: High-Confidence ({activeRulesCount} rules)
+                                </span>
+                            )}
+                            {activePreset === "raw" && (
+                                <span className="text-[10px] font-sans font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-800 border border-stone-300 dark:bg-white/10 dark:text-zinc-300 dark:border-white/15">
+                                    Preset Active: Raw Data (0 rules)
+                                </span>
+                            )}
+                            {activePreset === "custom" && (
+                                <span className="text-[10px] font-sans font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
+                                    Custom Rules ({activeRulesCount} active)
+                                </span>
+                            )}
                         </div>
                         <div className="text-[11px] text-stone-600 dark:text-muted-foreground font-sans">
-                            Distribution-aware actions calibrated with confidence scores & impact estimates.
+                            Click any preset to instantly reconfigure all column actions below.
                         </div>
                     </div>
 
@@ -434,22 +515,19 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={handleApplyHighConfidenceOnly}
-                            className="text-xs h-8 rounded-lg cursor-pointer bg-[#800000]/10 hover:bg-[#800000]/20 text-[#800000] border-[#800000]/30 dark:bg-primary/10 dark:hover:bg-primary/20 dark:text-primary dark:border-primary/30 font-medium font-sans"
-                        >
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                            Apply High-Confidence ({highConfidenceCount})
-                        </Button>
-
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
                             onClick={handleApplyAllSuggestions}
-                            className="text-xs h-8 rounded-lg cursor-pointer bg-white hover:bg-stone-100 text-stone-800 border-stone-300 dark:hover:bg-white/10 dark:text-foreground dark:border-white/15 font-sans"
+                            className={cn(
+                                "text-xs h-8.5 rounded-lg cursor-pointer transition-all font-sans flex items-center gap-1.5",
+                                activePreset === "all"
+                                    ? "bg-[#800000] text-white border-[#800000] hover:bg-[#6b0000] dark:bg-primary dark:text-primary-foreground dark:border-primary shadow-xs font-semibold"
+                                    : "bg-white hover:bg-stone-100 text-stone-800 border-stone-300 dark:bg-white/5 dark:hover:bg-white/10 dark:text-zinc-200 dark:border-white/15"
+                            )}
                         >
-                            <Layers className="w-3.5 h-3.5 mr-1.5 text-stone-500 dark:text-zinc-400" />
-                            Apply All Suggestions
+                            <Layers className={cn("w-3.5 h-3.5", activePreset === "all" ? "text-white" : "text-stone-500 dark:text-zinc-400")} />
+                            <span>Apply All Suggestions</span>
+                            {activePreset === "all" && (
+                                <Check className="w-3 h-3 ml-0.5 text-white/90" />
+                            )}
                         </Button>
 
                         <Button
@@ -457,20 +535,56 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             variant="outline"
                             size="sm"
                             onClick={handleApplyConservative}
-                            className="text-xs h-8 rounded-lg cursor-pointer bg-white hover:bg-stone-100 text-stone-800 border-stone-300 dark:hover:bg-white/10 dark:text-zinc-300 dark:border-white/10 font-sans"
+                            className={cn(
+                                "text-xs h-8.5 rounded-lg cursor-pointer transition-all font-sans flex items-center gap-1.5",
+                                activePreset === "conservative"
+                                    ? "bg-emerald-700 text-white border-emerald-800 hover:bg-emerald-800 dark:bg-emerald-600 dark:border-emerald-500 shadow-xs font-semibold"
+                                    : "bg-white hover:bg-stone-100 text-stone-800 border-stone-300 dark:bg-white/5 dark:hover:bg-white/10 dark:text-zinc-200 dark:border-white/15"
+                            )}
                         >
-                            Conservative (Safe Only)
+                            <CheckCircle2 className={cn("w-3.5 h-3.5", activePreset === "conservative" ? "text-white" : "text-emerald-700 dark:text-emerald-400")} />
+                            <span>Conservative (Safe Only)</span>
+                            {activePreset === "conservative" && (
+                                <Check className="w-3 h-3 ml-0.5 text-white/90" />
+                            )}
                         </Button>
 
                         <Button
                             type="button"
-                            variant="ghost"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleApplyHighConfidenceOnly}
+                            className={cn(
+                                "text-xs h-8.5 rounded-lg cursor-pointer transition-all font-sans flex items-center gap-1.5",
+                                activePreset === "high"
+                                    ? "bg-sky-700 text-white border-sky-800 hover:bg-sky-800 dark:bg-sky-600 dark:border-sky-500 shadow-xs font-semibold"
+                                    : "bg-white hover:bg-stone-100 text-stone-800 border-stone-300 dark:bg-white/5 dark:hover:bg-white/10 dark:text-zinc-200 dark:border-white/15"
+                            )}
+                        >
+                            <Sparkles className={cn("w-3.5 h-3.5", activePreset === "high" ? "text-white" : "text-sky-700 dark:text-sky-400")} />
+                            <span>Apply High-Confidence ({highConfidenceCount})</span>
+                            {activePreset === "high" && (
+                                <Check className="w-3 h-3 ml-0.5 text-white/90" />
+                            )}
+                        </Button>
+
+                        <Button
+                            type="button"
+                            variant="outline"
                             size="sm"
                             onClick={handleResetAllToIgnore}
-                            className="text-xs h-8 rounded-lg cursor-pointer text-muted-foreground hover:text-foreground font-sans ml-auto"
+                            className={cn(
+                                "text-xs h-8.5 rounded-lg cursor-pointer transition-all font-sans flex items-center gap-1.5 sm:ml-auto",
+                                activePreset === "raw"
+                                    ? "bg-stone-800 text-white border-stone-900 hover:bg-stone-900 dark:bg-zinc-200 dark:text-zinc-950 dark:border-white shadow-xs font-semibold"
+                                    : "bg-white hover:bg-stone-100 text-stone-700 border-stone-300 dark:bg-transparent dark:hover:bg-white/10 dark:text-zinc-400 dark:border-white/10"
+                            )}
                         >
-                            <RotateCcw className="w-3 h-3 mr-1" />
-                            Reset to Raw
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Reset to Raw</span>
+                            {activePreset === "raw" && (
+                                <Check className="w-3 h-3 ml-0.5" />
+                            )}
                         </Button>
                     </div>
                 </div>
@@ -485,29 +599,60 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                     if (!hasIssue) return null;
 
                     const typeStyle = getTypeStyle(col.inferred_type);
+                    const currentAction = getActionForColumn(col.name);
+                    const isActionActive = currentAction !== "default";
+                    const recommendedAction = issue?.action && issue.action !== "default"
+                        ? (issue.action === "replace_outliers_median" || issue.action === "winsorize" ? "cap_outliers" : issue.action)
+                        : null;
 
                     return (
-                        <Card key={col.name} className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12] rounded-2xl shadow-sm dark:shadow-premium overflow-hidden flex flex-col justify-between t-card-lift">
-                            <CardHeader className="pb-3 bg-stone-100/70 border-b border-stone-200 dark:bg-white/[0.02] dark:border-white/5">
+                        <Card
+                            key={col.name}
+                            className={cn(
+                                "border rounded-2xl shadow-sm dark:shadow-premium overflow-hidden flex flex-col justify-between t-card-lift transition-all duration-200",
+                                isActionActive
+                                    ? "border-emerald-300/90 dark:border-emerald-500/30 bg-[#FAF8F5] dark:bg-[#0c0d12] ring-1 ring-emerald-500/15"
+                                    : "border-stone-300 dark:border-white/10 bg-stone-50/60 dark:bg-[#0c0d12]/60 opacity-90"
+                            )}
+                        >
+                            <CardHeader className={cn(
+                                "pb-3 border-b transition-colors",
+                                isActionActive
+                                    ? "bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/10 dark:border-white/5"
+                                    : "bg-stone-100/70 border-stone-200 dark:bg-white/[0.02] dark:border-white/5"
+                            )}>
                                 <div className="flex justify-between items-start gap-2">
                                     <CardTitle className="text-base font-sans font-semibold text-foreground truncate tracking-tight" title={col.name}>
                                         {col.name}
                                     </CardTitle>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <span
-                                                    className={`inline-flex items-center text-[10px] font-sans font-medium gap-1 px-2.5 py-0.5 rounded-full border ${typeStyle.className} shrink-0 shadow-2xs`}
-                                                >
-                                                    {typeStyle.icon}
-                                                    {col.inferred_type}
-                                                </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent className="rounded-xl border border-stone-300 bg-[#FAF8F5] text-stone-900 dark:border-border/80 dark:bg-popover dark:text-popover-foreground shadow-xl">
-                                                <p className="text-xs font-sans">Inferred Type: <code className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold">{col.inferred_type}</code> ({col.dtype})</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        {isActionActive ? (
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30 shadow-2xs">
+                                                <Check className="w-2.5 h-2.5 text-emerald-700 dark:text-emerald-400" />
+                                                Active Fix
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-full bg-stone-200 text-stone-700 border border-stone-300 dark:bg-white/5 dark:text-zinc-400 dark:border-white/10 shadow-2xs">
+                                                <RotateCcw className="w-2.5 h-2.5 text-stone-500 dark:text-zinc-400" />
+                                                Raw
+                                            </span>
+                                        )}
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <span
+                                                        className={`inline-flex items-center text-[10px] font-sans font-medium gap-1 px-2.5 py-0.5 rounded-full border ${typeStyle.className} shrink-0 shadow-2xs`}
+                                                    >
+                                                        {typeStyle.icon}
+                                                        {col.inferred_type}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="rounded-xl border border-stone-300 bg-[#FAF8F5] text-stone-900 dark:border-border/80 dark:bg-popover dark:text-popover-foreground shadow-xl">
+                                                    <p className="text-xs font-sans">Inferred Type: <code className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold">{col.inferred_type}</code> ({col.dtype})</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
                                 </div>
 
                                 <CardDescription className="flex items-center gap-1.5 text-amber-800 dark:text-amber-400 font-sans text-xs font-semibold mt-1">
@@ -535,10 +680,15 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
                             <CardContent className="py-4 space-y-3">
                                 {/* Suggestion Header with Confidence & Impact */}
-                                <div className="p-3 rounded-xl bg-stone-100/90 border border-stone-200 text-xs text-stone-600 dark:bg-white/[0.03] dark:border-white/10 dark:text-muted-foreground font-sans space-y-2">
+                                <div className={cn(
+                                    "p-3 rounded-xl border text-xs font-sans space-y-2 transition-colors",
+                                    isActionActive
+                                        ? "bg-stone-100/90 border-stone-200 text-stone-700 dark:bg-white/[0.03] dark:border-white/10 dark:text-muted-foreground"
+                                        : "bg-stone-100/50 border-stone-200/60 text-stone-500 dark:bg-white/[0.01] dark:border-white/5 dark:text-zinc-500"
+                                )}>
                                     <div className="flex items-center justify-between gap-1 flex-wrap">
                                         <span className="text-[10px] text-stone-500 dark:text-muted-foreground uppercase font-semibold tracking-wider font-sans">
-                                            Auto-Suggestion
+                                            {isActionActive ? "Current Cleaning Action" : "Bypassed (Original Data)"}
                                         </span>
                                         <div className="flex items-center gap-1.5">
                                             {issue?.confidence_score !== undefined && (
@@ -556,9 +706,14 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                         </div>
                                     </div>
 
-                                    <div className="font-semibold text-stone-900 dark:text-foreground text-sm flex items-center gap-1.5">
-                                        <Wrench className="w-3.5 h-3.5 text-[#800000] dark:text-primary shrink-0" />
-                                        <span className="truncate">{issue?.label || issue?.suggestion || "Ignore (Leave as is)"}</span>
+                                    <div className={cn(
+                                        "font-semibold text-sm flex items-center gap-1.5 transition-colors",
+                                        isActionActive
+                                            ? "text-stone-900 dark:text-foreground"
+                                            : "text-stone-500 dark:text-zinc-400"
+                                    )}>
+                                        {getActionIcon(currentAction)}
+                                        <span className="truncate">{getActionDisplayLabel(currentAction, issue)}</span>
                                     </div>
 
                                     {issue?.rationale && (
@@ -568,7 +723,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                     )}
 
                                     {/* Before vs After Visual Diff */}
-                                    {issue?.before_sample && issue?.after_sample && issue.before_sample.length > 0 && (
+                                    {isActionActive && issue?.before_sample && issue?.after_sample && issue.before_sample.length > 0 && (
                                         <div className="p-2 rounded-lg bg-stone-100/90 border border-stone-200 dark:bg-black/40 dark:border-white/5 space-y-1 font-mono text-[11px] mt-2">
                                             <div className="flex items-center justify-between text-[9px] text-stone-600 dark:text-zinc-400 uppercase tracking-wider font-sans font-semibold">
                                                 <span>Preview</span>
@@ -578,7 +733,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 {issue.before_sample.slice(0, 2).map((b, idx) => {
                                                     const afterVal = issue.after_sample?.[idx];
                                                     return (
-                                                        <div key={idx} className="flex items-center justify-between gap-2 text-xs">
+                                                        <div key={`sample_${col.name}_${idx}_${String(b)}`} className="flex items-center justify-between gap-2 text-xs">
                                                             <span className="text-rose-700 dark:text-rose-400/90 truncate max-w-[110px]" title={String(b)}>
                                                                 {b === null ? "null" : String(b)}
                                                             </span>
@@ -598,17 +753,10 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             </CardContent>
 
                             <CardFooter className="pt-0 pb-4 px-4">
-                                {(() => {
-                                    const currentAction = getActionForColumn(col.name);
-                                    const recommendedAction = issue?.action && issue.action !== "default"
-                                        ? (issue.action === "replace_outliers_median" || issue.action === "winsorize" ? "cap_outliers" : issue.action)
-                                        : null;
-
-                                    return (
-                                        <Select
-                                            value={currentAction}
-                                            onValueChange={(val) => handleActionChange(col.name, val)}
-                                        >
+                                <Select
+                                    value={currentAction}
+                                    onValueChange={(val) => handleActionChange(col.name, val)}
+                                >
                                             <SelectTrigger className="w-full bg-white hover:bg-stone-50 border-stone-300 text-stone-900 dark:bg-[#131620] dark:hover:bg-[#1a1f2c] dark:border-white/10 dark:text-foreground rounded-xl text-xs h-10 font-medium focus:border-stone-400 dark:hover:border-primary/40 focus:ring-1 focus:ring-stone-400/20 shadow-2xs transition-colors cursor-pointer">
                                                 <div className="flex items-center gap-2 truncate">
                                                     {getActionIcon(currentAction)}
@@ -879,8 +1027,6 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 )}
                                             </SelectContent>
                                         </Select>
-                                    );
-                                })()}
                             </CardFooter>
                         </Card>
                     );
