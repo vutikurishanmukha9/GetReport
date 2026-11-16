@@ -5,16 +5,23 @@ and enterprise graph database formats (Neo4j Cypher, GraphML).
 """
 from __future__ import annotations
 import os
+import sys
 import logging
+from pathlib import Path
 from typing import Dict, List, Any, Optional
 import networkx as nx
+
+# Ensure Backend directory containing graphify engine is on sys.path
+_BACKEND_DIR = Path(__file__).resolve().parent.parent.parent.parent
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_DIR))
 
 try:
     from graphify.exporters.html import to_html
     from graphify.export import to_svg, to_cypher, to_graphml, to_json
     HAS_GRAPHIFY_EXPORTERS = True
 except ImportError as err:
-    logging.getLogger(__name__).warning("Failed to import graphify exporters: %s", err)
+    logging.getLogger(__name__).debug("Graphify native export engine not available (%s); utilizing built-in export engine.", err)
     HAS_GRAPHIFY_EXPORTERS = False
 
 logger = logging.getLogger(__name__)

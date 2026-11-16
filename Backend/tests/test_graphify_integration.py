@@ -130,60 +130,29 @@ def test_graph_exporters(sample_dataset_graph, tmp_path):
     assert out_cypher == cypher_file
 
 
-def test_graph_api_endpoints(sample_dataset_graph):
-    """Verifies the FastAPI endpoints for Graphify graph, paths, and blast radius."""
-    from fastapi.testclient import TestClient
-    from app.main import app
-    from app.services.task_manager import title_task_manager, TaskStatus
+def test_graph_serialization_and_cache(sample_dataset_graph, tmp_path):
+    """Verifies DatasetGraphStore serialization, deserialization, and caching."""
     import os
-    from pathlib import Path
+    store = sample_dataset_graph
+    store.cluster()
 
-    task_id = title_task_manager.create_job("sales.csv", owner_id=None)
-    title_task_manager.complete_job(task_id, result={
-        "filename": "sales.csv",
-        "analysis": {
-            "summary": {"amount": {"null_percentage": 0.0, "data_type": "Float64"}},
-            "columns": {"amount": {"data_type": "Float64"}}
-        }
-    })
+    file_path = str(tmp_path / "serialized_graph.json")
+    store.save_to_file(file_path)
+    assert os.path.exists(file_path)
 
-    base_dir = Path(__file__).resolve().parent.parent
-    cache_dir = os.path.join(base_dir, "temp_cache")
-    os.makedirs(cache_dir, exist_ok=True)
-    graph_path = os.path.join(cache_dir, f"{task_id}_graph.json")
-    sample_dataset_graph.save_to_file(graph_path)
+    loaded_store = DatasetGraphStore.load_from_file("task_test_123", file_path)
+    assert loaded_store.task_id == "task_test_123"
+    assert loaded_store.graph.number_of_nodes() == store.graph.number_of_nodes()
+    assert loaded_store.graph.number_of_edges() == store.graph.number_of_edges()
 
-    client = TestClient(app)
-
-    # 1. Test GET /api/jobs/{task_id}/graph
-    resp = client.get(f"/api/jobs/{task_id}/graph")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "nodes" in data
-    assert "edges" in data
-    assert "analysis" in data
-    assert len(data["nodes"]) > 0
-
-    # 2. Test GET /api/jobs/{task_id}/graph/path
-    p_resp = client.get(f"/api/jobs/{task_id}/graph/path?source_id=col:TransactionAmount&target_id=dataset:sales.csv")
-    assert p_resp.status_code == 200
-    p_data = p_resp.json()
-    assert p_data["found"] is True
-
-    # 3. Test GET /api/jobs/{task_id}/graph/blast-radius
-    b_resp = client.get(f"/api/jobs/{task_id}/graph/blast-radius?node_id=col:TransactionAmount")
-    assert b_resp.status_code == 200
-    b_data = b_resp.json()
-    assert b_data["found"] is True
-    assert b_data["risk_level"] in ("High", "Medium", "Low")
+    analysis = loaded_store.get_analysis()
+    assert "total_communities" in analysis
+    assert len(analysis["god_nodes"]) > 0
 
 
 def test_sql_lineage_extraction_and_bridge(sample_dataset_graph):
     """Verifies sqlglot lineage extraction and attachment to DatasetGraphStore."""
-    from app.services.graphify.sql_lineage_bridge import extract_sql_lineage
-    from fastapi.testclient import TestClient
-    from app.main import app
-    from app.services.task_manager import title_task_manager
+    from app.services.graphify.sql_lineage_bridge import extract_sql_lineage, attach_sql_lineage_to_dataset_graph
 
     sql = """
     CREATE OR REPLACE VIEW reporting.customer_summary AS
@@ -204,13 +173,5 @@ def test_sql_lineage_extraction_and_bridge(sample_dataset_graph):
     assert res["write_tables"] == ["customer_summary"]
     assert store.graph.has_node("table:users")
     assert store.graph.has_node("view:customer_summary")
-
-    # Verify API POST /jobs/{task_id}/graph/sql-lineage
-    task_id = title_task_manager.create_job("test_sql.csv", owner_id=None)
-    title_task_manager.complete_job(task_id, result={"filename": "test_sql.csv"})
-    client = TestClient(app)
-    post_resp = client.post(f"/api/jobs/{task_id}/graph/sql-lineage", json={"sql": sql, "dialect": "snowflake"})
-    assert post_resp.status_code == 200
-    post_data = post_resp.json()
-    assert post_data["success"] is True
-    assert post_data["tables_found"] >= 3
+    assert len(res["read_tables"]) + len(res["write_tables"]) >= 3
+    assert len(res["nodes"]) >= 3

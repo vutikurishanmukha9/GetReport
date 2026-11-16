@@ -6,11 +6,14 @@ sub-millisecond trigram search, causal path traversal, and multi-format exporter
 import sys
 from pathlib import Path
 
-# Ensure graphify package directory in workspace root is on sys.path
-_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-_GRAPHIFY_PATH = _REPO_ROOT / "graphify"
-if _GRAPHIFY_PATH.exists() and str(_GRAPHIFY_PATH) not in sys.path:
-    sys.path.insert(0, str(_GRAPHIFY_PATH))
+# Ensure backend root and workspace directories are on sys.path for graphify discovery
+_SERVICES_DIR = Path(__file__).resolve().parent
+_BACKEND_DIR = _SERVICES_DIR.parent.parent.parent
+_REPO_ROOT = _BACKEND_DIR.parent
+
+for candidate in [_BACKEND_DIR, _BACKEND_DIR / "graphify", _REPO_ROOT / "graphify", _REPO_ROOT]:
+    if candidate.exists() and str(candidate) not in sys.path:
+        sys.path.insert(0, str(candidate))
 
 from app.services.graphify.cluster_bridge import cluster_and_analyze_dataset_graph
 from app.services.graphify.query_bridge import find_causal_path, compute_blast_radius, search_graph_entities
