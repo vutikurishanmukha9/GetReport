@@ -271,9 +271,6 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
         return (
             <div className="relative rounded-[2rem] p-1.5 sm:p-2 bg-gradient-to-b from-stone-200/50 via-stone-200/20 to-transparent dark:from-white/[0.12] dark:via-white/[0.04] dark:to-white/[0.01] border border-stone-300 dark:border-white/10 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)] backdrop-blur-2xl max-w-2xl mx-auto overflow-hidden animate-in fade-in duration-300">
                 <div className="relative rounded-[calc(2rem-0.5rem)] bg-[#FAF8F5] dark:bg-[#090a10]/95 border border-[#DCD6C9] dark:border-white/[0.06] p-8 text-center overflow-hidden">
-                    {/* Ambient Glow */}
-                    <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-32 bg-emerald-500/20 blur-3xl pointer-events-none rounded-full" />
-                    
                     <div className="relative z-10 flex flex-col items-center">
                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-b from-emerald-500/25 to-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-5 shadow-[0_0_30px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.2)]">
                             <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-300" />
@@ -325,9 +322,6 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
     return (
         <div className="relative rounded-[2rem] p-1.5 sm:p-2 bg-gradient-to-b from-stone-200/50 via-stone-200/20 to-transparent dark:from-white/[0.12] dark:via-white/[0.04] dark:to-white/[0.01] border border-stone-300 dark:border-white/10 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)] backdrop-blur-2xl overflow-hidden animate-in fade-in duration-300 font-sans">
-            {/* Top Ambient Glow Sheen */}
-            <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[32rem] h-48 bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-teal-500/10 blur-3xl pointer-events-none rounded-full" />
-
             <div className="relative rounded-[calc(2rem-0.5rem)] bg-[#FAF8F5] dark:bg-[#090a10]/95 border border-[#DCD6C9] dark:border-white/[0.06] overflow-hidden">
                 {/* ─── 1. COMPONENT HEADER ────────────────────────────────────────── */}
                 <div className="border-b border-stone-200 dark:border-white/[0.06] px-5 sm:px-7 py-5 bg-gradient-to-b from-stone-100/50 dark:from-white/[0.03] to-transparent">

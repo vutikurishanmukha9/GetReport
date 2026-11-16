@@ -23,33 +23,46 @@ export const HeroSection = () => {
 
   return (
     <section className="relative pt-28 lg:pt-30 pb-6 sm:pb-12 bg-hero-custom-gradient border-b border-stone-300/80 dark:border-white/10 overflow-hidden text-center text-stone-900 dark:text-zinc-100">
-      {/* 1. Precision Technical Grid Lines with Center Alignment and Broad Horizon Mask */}
+      {/* 1. Dual-Tone Architectural Blueprint Grid with Center Alignment & Ambient Illumination */}
       <div 
-        className="absolute inset-0 pointer-events-none select-none overflow-hidden [mask-image:radial-gradient(ellipse_120%_80%_at_50%_38%,#000_55%,transparent_100%)]"
+        className="absolute inset-0 pointer-events-none select-none overflow-hidden [mask-image:radial-gradient(ellipse_115%_85%_at_50%_36%,#000_45%,transparent_98%)]"
         aria-hidden="true"
       >
-        {/* Ambient Subtle Radial Glow Underlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_28%,rgba(128,0,0,0.04),transparent_75%)] dark:bg-[radial-gradient(ellipse_70%_55%_at_50%_28%,rgba(255,255,255,0.045),transparent_75%)]" />
+        {/* Ambient Focal Glow Underlay (Illuminates grid lines naturally at center) */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_60%_at_50%_32%,rgba(255,255,255,0.7),transparent_75%)] dark:bg-[radial-gradient(ellipse_70%_55%_at_50%_30%,rgba(255,255,255,0.06),transparent_75%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_50%_34%,rgba(128,0,0,0.035),transparent_70%)] dark:bg-[radial-gradient(ellipse_60%_45%_at_50%_32%,rgba(244,63,94,0.03),transparent_70%)]" />
 
-        {/* Architectural Vector Grid Pattern (80px Cadence) */}
+        {/* Dual-Tone Architectural Vector Matrix (80px Major Structural Grid + 20px Micro-Subdivisions) */}
         <svg
-          className="absolute inset-0 h-full w-full stroke-stone-900/[0.09] dark:stroke-white/[0.09]"
+          className="absolute inset-0 h-full w-full"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
             <pattern
-              id="hero-grid-pattern"
+              id="hero-grid-blueprint"
               width="80"
               height="80"
               patternUnits="userSpaceOnUse"
               x="50%"
               y="-1"
             >
-              {/* Primary 80x80 Grid Lines */}
-              <path d="M.5 80V.5H80" fill="none" strokeWidth="1" />
+              {/* Secondary 20px Blueprint Micro-Subdivisions */}
+              <path
+                d="M 20.5 0 V 80 M 40.5 0 V 80 M 60.5 0 V 80 M 0 20.5 H 80 M 0 40.5 H 80 M 0 60.5 H 80"
+                fill="none"
+                strokeWidth="1"
+                className="stroke-stone-900/[0.035] dark:stroke-white/[0.04]"
+              />
+              {/* Primary 80px Structural Ledger Grid Lines */}
+              <path
+                d="M.5 80V.5H80"
+                fill="none"
+                strokeWidth="1"
+                className="stroke-stone-900/[0.10] dark:stroke-white/[0.11]"
+              />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" strokeWidth="0" fill="url(#hero-grid-pattern)" />
+          <rect width="100%" height="100%" strokeWidth="0" fill="url(#hero-grid-blueprint)" />
         </svg>
       </div>
 
@@ -118,10 +131,14 @@ export const HeroSection = () => {
             </Link>
           </div>
 
-          {/* Micro Trust Indicators */}
-          <p className="text-xs font-sans text-stone-500 dark:text-zinc-400 font-medium">
-            No signup required • Instant browser scan • Works with Excel, CSV & Parquet
-          </p>
+          {/* Micro Trust Indicators with Deliberate Spacing & Refined Typography */}
+          <div className="flex flex-wrap items-center justify-center gap-x-6 sm:gap-x-7 gap-y-2 pt-2.5 text-[13px] sm:text-sm font-sans font-medium text-stone-600 dark:text-zinc-400 tracking-[-0.01em]">
+            <span className="whitespace-nowrap">No signup required</span>
+            <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-stone-300 dark:bg-zinc-700 shrink-0" aria-hidden="true" />
+            <span className="whitespace-nowrap">Instant browser scan</span>
+            <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-stone-300 dark:bg-zinc-700 shrink-0" aria-hidden="true" />
+            <span className="whitespace-nowrap">Works with Excel, CSV & Parquet</span>
+          </div>
         </div>
       </motion.div>
     </section>

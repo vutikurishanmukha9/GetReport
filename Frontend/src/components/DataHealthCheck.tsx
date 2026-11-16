@@ -16,7 +16,8 @@ import {
     RotateCcw,
     ArrowRight,
     SlidersHorizontal,
-    Sparkles
+    CheckCheck,
+    ShieldCheck
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -469,44 +470,26 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
             {/* Strategy Presets Toolbar */}
             {columnsWithIssues.length > 0 && (
-                <div className="bg-stone-100/90 dark:bg-[#0e1017] border border-stone-200 dark:border-white/10 p-3.5 rounded-2xl space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200 dark:border-white/5 pb-2.5">
+                <div className="bg-[#FAF8F5] dark:bg-[#0c0d12] border border-stone-200/90 dark:border-white/10 p-3.5 sm:p-4 rounded-2xl space-y-3 shadow-2xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200/80 dark:border-white/5 pb-2.5">
                         <div className="flex items-center gap-2 flex-wrap">
                             <SlidersHorizontal className="w-4 h-4 text-[#800000] dark:text-primary" />
                             <span className="text-xs font-semibold text-stone-900 dark:text-foreground tracking-tight">
                                 Auto-Suggestion Presets
                             </span>
-                            <span className="text-[11px] font-sans font-medium tabular-nums px-2 py-0.5 rounded-full bg-stone-200/80 text-stone-700 border border-stone-300 dark:bg-white/5 dark:text-zinc-400 dark:border-white/10">
+                            <span className="text-[11px] font-sans font-medium tabular-nums px-2 py-0.5 rounded-md bg-stone-200/70 text-stone-700 border border-stone-300/80 dark:bg-white/5 dark:text-zinc-400 dark:border-white/10">
                                 {columnsWithIssues.length} columns flagged
                             </span>
-                            {activePreset === "all" && (
-                                <span className="text-[10px] font-sans font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-[#800000]/10 text-[#800000] border border-[#800000]/30 dark:bg-primary/10 dark:text-primary dark:border-primary/30">
-                                    Preset Active: All Suggestions ({activeRulesCount} rules)
-                                </span>
-                            )}
-                            {activePreset === "conservative" && (
-                                <span className="text-[10px] font-sans font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30">
-                                    Preset Active: Conservative ({activeRulesCount} safe rules)
-                                </span>
-                            )}
-                            {activePreset === "high" && (
-                                <span className="text-[10px] font-sans font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30">
-                                    Preset Active: High-Confidence ({activeRulesCount} rules)
-                                </span>
-                            )}
-                            {activePreset === "raw" && (
-                                <span className="text-[10px] font-sans font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-800 border border-stone-300 dark:bg-white/10 dark:text-zinc-300 dark:border-white/15">
-                                    Preset Active: Raw Data (0 rules)
-                                </span>
-                            )}
-                            {activePreset === "custom" && (
-                                <span className="text-[10px] font-sans font-semibold tabular-nums px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
-                                    Custom Rules ({activeRulesCount} active)
-                                </span>
-                            )}
+                            <span className="text-[11px] font-sans font-medium tabular-nums px-2 py-0.5 rounded-md bg-stone-900/5 text-stone-800 border border-stone-300/60 dark:bg-white/10 dark:text-zinc-300 dark:border-white/15">
+                                {activePreset === "all" && `All Suggestions (${activeRulesCount} rules)`}
+                                {activePreset === "conservative" && `Conservative (${activeRulesCount} safe rules)`}
+                                {activePreset === "high" && `High-Confidence (${activeRulesCount} rules)`}
+                                {activePreset === "raw" && `Raw Data (0 rules)`}
+                                {activePreset === "custom" && `Custom (${activeRulesCount} active)`}
+                            </span>
                         </div>
-                        <div className="text-[11px] text-stone-600 dark:text-muted-foreground font-sans">
-                            Click any preset to instantly reconfigure all column actions below.
+                        <div className="text-[11px] text-stone-500 dark:text-muted-foreground font-sans">
+                            Select a preset to reconfigure all column actions below
                         </div>
                     </div>
 
@@ -517,17 +500,14 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             size="sm"
                             onClick={handleApplyAllSuggestions}
                             className={cn(
-                                "text-xs h-8.5 rounded-lg cursor-pointer transition-all font-sans flex items-center gap-1.5",
+                                "text-xs h-9 px-3.5 rounded-xl cursor-pointer transition-all duration-150 font-sans flex items-center gap-2 select-none",
                                 activePreset === "all"
-                                    ? "bg-[#800000] text-white border-[#800000] hover:bg-[#6b0000] dark:bg-primary dark:text-primary-foreground dark:border-primary shadow-xs font-semibold"
-                                    : "bg-white hover:bg-stone-100 text-stone-800 border-stone-300 dark:bg-white/5 dark:hover:bg-white/10 dark:text-zinc-200 dark:border-white/15"
+                                    ? "bg-[#800000] hover:bg-[#6b0000] text-white border-[#800000] dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-950 dark:border-white shadow-xs font-semibold active:scale-[0.98]"
+                                    : "bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:text-zinc-300 dark:hover:text-white dark:border-white/10 shadow-2xs font-medium active:scale-[0.98]"
                             )}
                         >
-                            <Layers className={cn("w-3.5 h-3.5", activePreset === "all" ? "text-white" : "text-stone-500 dark:text-zinc-400")} />
+                            <Layers className={cn("w-3.5 h-3.5 shrink-0", activePreset === "all" ? "text-white dark:text-zinc-950" : "text-stone-500 dark:text-zinc-400")} />
                             <span>Apply All Suggestions</span>
-                            {activePreset === "all" && (
-                                <Check className="w-3 h-3 ml-0.5 text-white/90" />
-                            )}
                         </Button>
 
                         <Button
@@ -536,17 +516,14 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             size="sm"
                             onClick={handleApplyConservative}
                             className={cn(
-                                "text-xs h-8.5 rounded-lg cursor-pointer transition-all font-sans flex items-center gap-1.5",
+                                "text-xs h-9 px-3.5 rounded-xl cursor-pointer transition-all duration-150 font-sans flex items-center gap-2 select-none",
                                 activePreset === "conservative"
-                                    ? "bg-emerald-700 text-white border-emerald-800 hover:bg-emerald-800 dark:bg-emerald-600 dark:border-emerald-500 shadow-xs font-semibold"
-                                    : "bg-white hover:bg-stone-100 text-stone-800 border-stone-300 dark:bg-white/5 dark:hover:bg-white/10 dark:text-zinc-200 dark:border-white/15"
+                                    ? "bg-[#800000] hover:bg-[#6b0000] text-white border-[#800000] dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-950 dark:border-white shadow-xs font-semibold active:scale-[0.98]"
+                                    : "bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:text-zinc-300 dark:hover:text-white dark:border-white/10 shadow-2xs font-medium active:scale-[0.98]"
                             )}
                         >
-                            <CheckCircle2 className={cn("w-3.5 h-3.5", activePreset === "conservative" ? "text-white" : "text-emerald-700 dark:text-emerald-400")} />
+                            <ShieldCheck className={cn("w-3.5 h-3.5 shrink-0", activePreset === "conservative" ? "text-white dark:text-zinc-950" : "text-stone-500 dark:text-zinc-400")} />
                             <span>Conservative (Safe Only)</span>
-                            {activePreset === "conservative" && (
-                                <Check className="w-3 h-3 ml-0.5 text-white/90" />
-                            )}
                         </Button>
 
                         <Button
@@ -555,17 +532,22 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             size="sm"
                             onClick={handleApplyHighConfidenceOnly}
                             className={cn(
-                                "text-xs h-8.5 rounded-lg cursor-pointer transition-all font-sans flex items-center gap-1.5",
+                                "text-xs h-9 px-3.5 rounded-xl cursor-pointer transition-all duration-150 font-sans flex items-center gap-2 select-none",
                                 activePreset === "high"
-                                    ? "bg-sky-700 text-white border-sky-800 hover:bg-sky-800 dark:bg-sky-600 dark:border-sky-500 shadow-xs font-semibold"
-                                    : "bg-white hover:bg-stone-100 text-stone-800 border-stone-300 dark:bg-white/5 dark:hover:bg-white/10 dark:text-zinc-200 dark:border-white/15"
+                                    ? "bg-[#800000] hover:bg-[#6b0000] text-white border-[#800000] dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-950 dark:border-white shadow-xs font-semibold active:scale-[0.98]"
+                                    : "bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:text-zinc-300 dark:hover:text-white dark:border-white/10 shadow-2xs font-medium active:scale-[0.98]"
                             )}
                         >
-                            <Sparkles className={cn("w-3.5 h-3.5", activePreset === "high" ? "text-white" : "text-sky-700 dark:text-sky-400")} />
-                            <span>Apply High-Confidence ({highConfidenceCount})</span>
-                            {activePreset === "high" && (
-                                <Check className="w-3 h-3 ml-0.5 text-white/90" />
-                            )}
+                            <CheckCheck className={cn("w-3.5 h-3.5 shrink-0", activePreset === "high" ? "text-white dark:text-zinc-950" : "text-stone-500 dark:text-zinc-400")} />
+                            <span>Apply High-Confidence</span>
+                            <span className={cn(
+                                "text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-md tabular-nums leading-none",
+                                activePreset === "high"
+                                    ? "bg-white/20 text-white dark:bg-black/15 dark:text-zinc-950"
+                                    : "bg-stone-100 text-stone-600 border border-stone-200/80 dark:bg-white/10 dark:text-zinc-300 dark:border-white/5"
+                            )}>
+                                {highConfidenceCount}
+                            </span>
                         </Button>
 
                         <Button
@@ -574,17 +556,14 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                             size="sm"
                             onClick={handleResetAllToIgnore}
                             className={cn(
-                                "text-xs h-8.5 rounded-lg cursor-pointer transition-all font-sans flex items-center gap-1.5 sm:ml-auto",
+                                "text-xs h-9 px-3 rounded-xl cursor-pointer transition-all duration-150 font-sans flex items-center gap-1.5 sm:ml-auto select-none",
                                 activePreset === "raw"
-                                    ? "bg-stone-800 text-white border-stone-900 hover:bg-stone-900 dark:bg-zinc-200 dark:text-zinc-950 dark:border-white shadow-xs font-semibold"
-                                    : "bg-white hover:bg-stone-100 text-stone-700 border-stone-300 dark:bg-transparent dark:hover:bg-white/10 dark:text-zinc-400 dark:border-white/10"
+                                    ? "bg-stone-900 text-white border-stone-900 dark:bg-zinc-200 dark:text-zinc-950 dark:border-white shadow-xs font-semibold"
+                                    : "bg-transparent hover:bg-stone-200/50 text-stone-600 hover:text-stone-900 border border-dashed border-stone-300 hover:border-stone-400 dark:border-white/15 dark:text-zinc-400 dark:hover:text-zinc-200"
                             )}
                         >
-                            <RotateCcw className="w-3 h-3" />
+                            <RotateCcw className="w-3.5 h-3.5 shrink-0" />
                             <span>Reset to Raw</span>
-                            {activePreset === "raw" && (
-                                <Check className="w-3 h-3 ml-0.5" />
-                            )}
                         </Button>
                     </div>
                 </div>
@@ -771,7 +750,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     <>
                                                         <SelectGroup>
                                                             <SelectLabel className="flex items-center gap-1.5 text-[10px] font-sans font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 px-2.5 py-1">
-                                                                <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
                                                                 Recommended Fix
                                                             </SelectLabel>
                                                             <SelectItem
