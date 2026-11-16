@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,22 +6,24 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { Loader2 } from "lucide-react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 
-// Lazy Loaded Pages
-const Index = lazy(() => import("./pages/Index"));
-const Workspace = lazy(() => import("./pages/Workspace"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const Pricing = lazy(() => import("./pages/Pricing"));
-const Features = lazy(() => import("./pages/Features"));
-const HowItWorks = lazy(() => import("./pages/HowItWorks"));
-const Documentation = lazy(() => import("./pages/Documentation"));
+// Lazy Loaded Pages with deployment auto-recovery
+const Index = lazyWithRetry(() => import("./pages/Index"), "Index");
+const Workspace = lazyWithRetry(() => import("./pages/Workspace"), "Workspace");
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"), "NotFound");
+const Pricing = lazyWithRetry(() => import("./pages/Pricing"), "Pricing");
+const Features = lazyWithRetry(() => import("./pages/Features"), "Features");
+const HowItWorks = lazyWithRetry(() => import("./pages/HowItWorks"), "HowItWorks");
+const Documentation = lazyWithRetry(() => import("./pages/Documentation"), "Documentation");
 
-const Examples = lazy(() => import("./pages/Examples"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsOfService = lazy(() => import("./pages/TermsOfService"));
-const Contact = lazy(() => import("./pages/Contact"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Analytics = lazy(() => import("./pages/Analytics"));
+const Examples = lazyWithRetry(() => import("./pages/Examples"), "Examples");
+const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"), "PrivacyPolicy");
+const TermsOfService = lazyWithRetry(() => import("./pages/TermsOfService"), "TermsOfService");
+const Contact = lazyWithRetry(() => import("./pages/Contact"), "Contact");
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"), "Dashboard");
+const Analytics = lazyWithRetry(() => import("./pages/Analytics"), "Analytics");
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,28 +77,30 @@ const App = () => (
       <BrowserRouter>
         <ScrollToTop />
         <DocumentMetadata />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/workspace" element={<Workspace />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/features" element={<Features />} />
-            <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/documentation" element={<Documentation />} />
-            <Route path="/docs" element={<Navigate to="/documentation" replace />} />
-            <Route path="/app" element={<Navigate to="/workspace" replace />} />
+        <ErrorBoundary fallbackTitle="Application Interface">
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/workspace" element={<Workspace />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/documentation" element={<Documentation />} />
+              <Route path="/docs" element={<Navigate to="/documentation" replace />} />
+              <Route path="/app" element={<Navigate to="/workspace" replace />} />
 
-            <Route path="/examples" element={<Examples />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/bi" element={<Navigate to="/analytics" replace />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+              <Route path="/examples" element={<Examples />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/bi" element={<Navigate to="/analytics" replace />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -10,10 +10,12 @@ import { ProcessPipeline } from "@/components/ProcessPipeline";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 
-// Lazy-load heavy ReportGeneration component carrying matplotlib/base64 gallery
-const ReportGeneration = lazy(() => 
-  import("@/components/ReportGeneration").then(module => ({ default: module.ReportGeneration }))
+// Lazy-load heavy ReportGeneration component with deployment auto-recovery
+const ReportGeneration = lazyWithRetry(
+  () => import("@/components/ReportGeneration"),
+  "ReportGeneration"
 );
 
 export type AppStep = "upload" | "preview" | "generating" | "complete";

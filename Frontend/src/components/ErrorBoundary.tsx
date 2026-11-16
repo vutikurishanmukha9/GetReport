@@ -36,6 +36,13 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      const errorMessage = this.state.error?.message || String(this.state.error || "");
+      const isChunkError =
+        errorMessage.includes("dynamically imported module") ||
+        errorMessage.includes("Failed to fetch") ||
+        errorMessage.includes("error loading dynamically imported module") ||
+        errorMessage.includes("Importing a module script failed");
+
       return (
         <div className="w-full rounded-2xl border border-destructive/30 bg-destructive/5 p-6 sm:p-8 space-y-4 my-4 animate-in fade-in duration-200">
           <div className="flex items-center gap-3">
@@ -44,30 +51,43 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <div>
               <h3 className="text-base font-bold text-foreground">
-                {this.props.fallbackTitle || "Something went wrong in this module"}
+                {isChunkError ? "Application Updated" : (this.props.fallbackTitle || "Something went wrong in this module")}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                An unexpected interface error occurred. You can safely retry or switch to another tab.
+                {isChunkError
+                  ? "A new version of GetReport has been deployed. Please reload to load the latest application assets."
+                  : "An unexpected interface error occurred. You can safely retry or switch to another tab."}
               </p>
             </div>
           </div>
 
           {this.state.error && (
             <div className="p-3 rounded-xl bg-background/80 border border-destructive/20 font-mono text-xs text-destructive overflow-x-auto max-h-32">
-              {this.state.error.message || String(this.state.error)}
+              {errorMessage}
             </div>
           )}
 
           <div className="flex items-center gap-2 pt-1">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={this.handleReset}
-              className="gap-1.5 text-xs h-8 cursor-pointer"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Retry Module</span>
-            </Button>
+            {isChunkError ? (
+              <Button
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="gap-1.5 text-xs h-8 cursor-pointer bg-primary text-primary-foreground font-semibold"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Reload Page</span>
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={this.handleReset}
+                className="gap-1.5 text-xs h-8 cursor-pointer"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Retry Module</span>
+              </Button>
+            )}
           </div>
         </div>
       );
