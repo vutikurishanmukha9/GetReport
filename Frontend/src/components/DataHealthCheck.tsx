@@ -17,9 +17,13 @@ import {
     ArrowRight,
     SlidersHorizontal,
     CheckCheck,
-    ShieldCheck
+    ShieldCheck,
+    Calculator,
+    Tag,
+    PlusCircle,
+    ToggleLeft
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -156,55 +160,58 @@ const getActionIcon = (action: string) => {
         case "cap_outliers":
         case "replace_outliers_median":
         case "winsorize":
-            return <Wrench className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 shrink-0" />;
+            return <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "flag_outliers":
-            return <CheckCircle2 className="w-3.5 h-3.5 text-sky-700 dark:text-sky-400 shrink-0" />;
+            return <CheckCircle2 className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "log1p_transform":
-            return <BarChart2 className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400 shrink-0" />;
+            return <TrendingUp className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "drop_rows":
         case "drop_column":
         case "drop_duplicate_rows":
         case "drop_empty_rows":
-            return <Trash2 className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400 shrink-0" />;
+            return <Trash2 className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />;
         case "drop_duplicate_keys":
         case "keep_first":
         case "keep_last":
-            return <Wrench className="w-3.5 h-3.5 text-stone-700 dark:text-zinc-300 shrink-0" />;
+            return <Layers className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "coerce_numeric":
-            return <Hash className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400 shrink-0" />;
+            return <Hash className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "parse_date":
-            return <Calendar className="w-3.5 h-3.5 text-teal-700 dark:text-teal-400 shrink-0" />;
+            return <Calendar className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "clean_masked_nulls":
         case "nullify_sentinel":
-            return <Wrench className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 shrink-0" />;
+            return <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "nullify_out_of_range":
         case "nullify_invalid_regex":
-            return <AlertTriangle className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400 shrink-0" />;
+            return <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />;
         case "clean_text":
-            return <Type className="w-3.5 h-3.5 text-violet-700 dark:text-violet-400 shrink-0" />;
+            return <Type className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "fix_mojibake":
-            return <Wrench className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />;
+            return <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "standardize_categories":
-            return <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-700 dark:text-indigo-400 shrink-0" />;
+            return <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "cast_boolean":
-            return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />;
+            return <ToggleLeft className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "keep_as_text":
-            return <Type className="w-3.5 h-3.5 text-stone-600 dark:text-zinc-400 shrink-0" />;
+            return <Type className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "fill_median":
+            return <Calculator className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "fill_mean":
+            return <BarChart2 className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "fill_mode":
+            return <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "fill_value":
-            return <Wrench className="w-3.5 h-3.5 text-stone-600 dark:text-zinc-400 shrink-0" />;
+            return <Tag className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "fill_group_median":
-            return <Layers className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400 shrink-0" />;
+            return <Layers className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "add_missing_indicator":
-            return <CheckCircle2 className="w-3.5 h-3.5 text-sky-700 dark:text-sky-400 shrink-0" />;
+            return <PlusCircle className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "hash_pii":
-            return <ShieldAlert className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />;
+            return <ShieldAlert className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
         case "default":
-            return <RotateCcw className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
+            return <RotateCcw className="w-3.5 h-3.5 text-stone-400 dark:text-zinc-500 shrink-0" />;
         default:
-            return <Wrench className="w-3.5 h-3.5 text-stone-700 dark:text-zinc-300 shrink-0" />;
+            return <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400 shrink-0" />;
     }
 };
 
@@ -214,31 +221,6 @@ interface DataHealthCheckProps {
     isProcessing: boolean;
 }
 
-const getTypeStyle = (type: string) => {
-    const t = (type || "").toLowerCase();
-    if (t.includes("int") || t.includes("float") || t.includes("num")) {
-        return {
-            icon: <Hash className="h-3 w-3 text-stone-700 dark:text-zinc-300" />,
-            className: "bg-stone-200/80 text-stone-800 border-stone-300 dark:bg-white/5 dark:text-zinc-300 dark:border-white/10",
-        };
-    }
-    if (t.includes("datetime") || t.includes("date") || t.includes("time")) {
-        return {
-            icon: <Calendar className="h-3 w-3 text-amber-700 dark:text-amber-400" />,
-            className: "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/25",
-        };
-    }
-    if (t.includes("bool")) {
-        return {
-            icon: <CheckCircle2 className="h-3 w-3 text-emerald-700 dark:text-emerald-400" />,
-            className: "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/25",
-        };
-    }
-    return {
-        icon: <Type className="h-3 w-3 text-violet-700 dark:text-violet-400" />,
-        className: "bg-violet-100 text-violet-900 border-violet-300 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/25",
-    };
-};
 
 export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealthCheckProps) => {
     const { toast } = useToast();
@@ -577,7 +559,6 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
                     if (!hasIssue) return null;
 
-                    const typeStyle = getTypeStyle(col.inferred_type);
                     const currentAction = getActionForColumn(col.name);
                     const isActionActive = currentAction !== "default";
                     const recommendedAction = issue?.action && issue.action !== "default"
@@ -588,54 +569,48 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                         <Card
                             key={col.name}
                             className={cn(
-                                "border rounded-2xl shadow-sm dark:shadow-premium overflow-hidden flex flex-col justify-between t-card-lift transition-all duration-200",
+                                "rounded-xl border transition-all duration-200 overflow-hidden flex flex-col justify-between shadow-2xs hover:shadow-xs",
                                 isActionActive
-                                    ? "border-emerald-300/90 dark:border-emerald-500/30 bg-[#FAF8F5] dark:bg-[#0c0d12] ring-1 ring-emerald-500/15"
-                                    : "border-stone-300 dark:border-white/10 bg-stone-50/60 dark:bg-[#0c0d12]/60 opacity-90"
+                                    ? "bg-white dark:bg-[#11131a] border-stone-200/90 dark:border-white/10 border-t-2 border-t-[#800000] dark:border-t-zinc-200"
+                                    : "bg-stone-50/60 dark:bg-[#11131a]/60 border-stone-200/70 dark:border-white/5 opacity-85"
                             )}
                         >
-                            <CardHeader className={cn(
-                                "pb-3 border-b transition-colors",
-                                isActionActive
-                                    ? "bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/10 dark:border-white/5"
-                                    : "bg-stone-100/70 border-stone-200 dark:bg-white/[0.02] dark:border-white/5"
-                            )}>
-                                <div className="flex justify-between items-start gap-2">
-                                    <CardTitle className="text-base font-sans font-semibold text-foreground truncate tracking-tight" title={col.name}>
-                                        {col.name}
-                                    </CardTitle>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        {isActionActive ? (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30 shadow-2xs">
-                                                <Check className="w-2.5 h-2.5 text-emerald-700 dark:text-emerald-400" />
-                                                Active Fix
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-sans font-medium px-2 py-0.5 rounded-full bg-stone-200 text-stone-700 border border-stone-300 dark:bg-white/5 dark:text-zinc-400 dark:border-white/10 shadow-2xs">
-                                                <RotateCcw className="w-2.5 h-2.5 text-stone-500 dark:text-zinc-400" />
-                                                Raw
-                                            </span>
-                                        )}
+                            <CardHeader className="p-3.5 pb-2.5 border-b border-stone-100 dark:border-white/5 bg-stone-50/50 dark:bg-white/[0.015] space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                        <CardTitle className="text-xs font-mono font-semibold text-stone-900 dark:text-zinc-100 truncate tracking-tight" title={col.name}>
+                                            {col.name}
+                                        </CardTitle>
                                         <TooltipProvider>
                                             <Tooltip>
-                                                <TooltipTrigger>
-                                                    <span
-                                                        className={`inline-flex items-center text-[10px] font-sans font-medium gap-1 px-2.5 py-0.5 rounded-full border ${typeStyle.className} shrink-0 shadow-2xs`}
-                                                    >
-                                                        {typeStyle.icon}
+                                                <TooltipTrigger asChild>
+                                                    <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400 bg-stone-200/60 dark:bg-white/5 px-1.5 py-0.5 rounded font-normal shrink-0 cursor-default">
                                                         {col.inferred_type}
                                                     </span>
                                                 </TooltipTrigger>
-                                                <TooltipContent className="rounded-xl border border-stone-300 bg-[#FAF8F5] text-stone-900 dark:border-border/80 dark:bg-popover dark:text-popover-foreground shadow-xl">
-                                                    <p className="text-xs font-sans">Inferred Type: <code className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold">{col.inferred_type}</code> ({col.dtype})</p>
+                                                <TooltipContent className="rounded-lg border border-stone-200 bg-white text-stone-900 dark:border-white/10 dark:bg-[#11131a] dark:text-zinc-100 shadow-lg text-xs">
+                                                    <p className="font-sans">Inferred: <code className="font-mono font-semibold">{col.inferred_type}</code> ({col.dtype})</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
                                     </div>
+                                    <div className="shrink-0 flex items-center">
+                                        {isActionActive ? (
+                                            <span className="inline-flex items-center gap-1.5 text-[11px] font-sans font-medium text-emerald-700 dark:text-emerald-400">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
+                                                Active Fix
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 text-[11px] font-sans font-medium text-stone-500 dark:text-zinc-500">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-stone-400 dark:bg-zinc-600 shrink-0" />
+                                                Raw
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <CardDescription className="flex items-center gap-1.5 text-amber-800 dark:text-amber-400 font-sans text-xs font-semibold mt-1">
-                                    <AlertTriangle className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
+                                <CardDescription className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-sans text-xs font-medium">
+                                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                                     <span>
                                         {issue?.type === 'masked_nulls'
                                             ? `${issue.count} masked placeholder(s)`
@@ -657,86 +632,26 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                 </CardDescription>
                             </CardHeader>
 
-                            <CardContent className="py-4 space-y-3">
-                                {/* Suggestion Header with Confidence & Impact */}
-                                <div className={cn(
-                                    "p-3 rounded-xl border text-xs font-sans space-y-2 transition-colors",
-                                    isActionActive
-                                        ? "bg-stone-100/90 border-stone-200 text-stone-700 dark:bg-white/[0.03] dark:border-white/10 dark:text-muted-foreground"
-                                        : "bg-stone-100/50 border-stone-200/60 text-stone-500 dark:bg-white/[0.01] dark:border-white/5 dark:text-zinc-500"
-                                )}>
-                                    <div className="flex items-center justify-between gap-1 flex-wrap">
-                                        <span className="text-[10px] text-stone-500 dark:text-muted-foreground uppercase font-semibold tracking-wider font-sans">
-                                            {isActionActive ? "Current Cleaning Action" : "Bypassed (Original Data)"}
-                                        </span>
-                                        <div className="flex items-center gap-1.5">
+                            <CardContent className="p-3.5 space-y-3 flex-1 flex flex-col justify-between">
+                                <div className="space-y-2.5">
+                                    {/* Action Selector Header */}
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center justify-between gap-2 text-[11px]">
+                                            <span className="text-[10px] font-mono uppercase tracking-wider text-stone-600 dark:text-zinc-400 font-semibold">
+                                                Transform Action
+                                            </span>
                                             {issue?.confidence_score !== undefined && (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold tabular-nums px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
-                                                    <CheckCircle2 className="w-2.5 h-2.5" />
-                                                    {issue.confidence_score}%
-                                                </span>
-                                            )}
-                                            {issue?.impact_estimate && (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold tabular-nums px-2 py-0.5 rounded-full bg-sky-100 text-sky-900 border border-sky-300 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20">
-                                                    <TrendingUp className="w-2.5 h-2.5" />
-                                                    {issue.impact_estimate}
+                                                <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400 shrink-0">
+                                                    {issue.confidence_score}% confidence
                                                 </span>
                                             )}
                                         </div>
-                                    </div>
 
-                                    <div className={cn(
-                                        "font-semibold text-sm flex items-center gap-1.5 transition-colors",
-                                        isActionActive
-                                            ? "text-stone-900 dark:text-foreground"
-                                            : "text-stone-500 dark:text-zinc-400"
-                                    )}>
-                                        {getActionIcon(currentAction)}
-                                        <span className="truncate">{getActionDisplayLabel(currentAction, issue)}</span>
-                                    </div>
-
-                                    {issue?.rationale && (
-                                        <p className="text-[11px] text-stone-600 dark:text-muted-foreground leading-relaxed font-sans">
-                                            {issue.rationale}
-                                        </p>
-                                    )}
-
-                                    {/* Before vs After Visual Diff */}
-                                    {isActionActive && issue?.before_sample && issue?.after_sample && issue.before_sample.length > 0 && (
-                                        <div className="p-2 rounded-lg bg-stone-100/90 border border-stone-200 dark:bg-black/40 dark:border-white/5 space-y-1 font-mono text-[11px] mt-2">
-                                            <div className="flex items-center justify-between text-[9px] text-stone-600 dark:text-zinc-400 uppercase tracking-wider font-sans font-semibold">
-                                                <span>Preview</span>
-                                                <span>Before → After</span>
-                                            </div>
-                                            <div className="space-y-1 pt-0.5">
-                                                {issue.before_sample.slice(0, 2).map((b, idx) => {
-                                                    const afterVal = issue.after_sample?.[idx];
-                                                    return (
-                                                        <div key={`sample_${col.name}_${idx}_${String(b)}`} className="flex items-center justify-between gap-2 text-xs">
-                                                            <span className="text-rose-700 dark:text-rose-400/90 truncate max-w-[110px]" title={String(b)}>
-                                                                {b === null ? "null" : String(b)}
-                                                            </span>
-                                                            <ArrowRight className="w-3 h-3 text-stone-500 dark:text-zinc-400 shrink-0" />
-                                                            <span className="text-emerald-700 dark:text-emerald-400/90 truncate max-w-[110px] font-semibold" title={String(afterVal)}>
-                                                                {afterVal === null ? "null" : String(afterVal)}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {col.distribution && <SparklineHistogram data={col.distribution} />}
-                            </CardContent>
-
-                            <CardFooter className="pt-0 pb-4 px-4">
-                                <Select
-                                    value={currentAction}
-                                    onValueChange={(val) => handleActionChange(col.name, val)}
-                                >
-                                            <SelectTrigger className="w-full bg-white hover:bg-stone-50 border-stone-300 text-stone-900 dark:bg-[#131620] dark:hover:bg-[#1a1f2c] dark:border-white/10 dark:text-foreground rounded-xl text-xs h-10 font-medium focus:border-stone-400 dark:hover:border-primary/40 focus:ring-1 focus:ring-stone-400/20 shadow-2xs transition-colors cursor-pointer">
+                                        <Select
+                                            value={currentAction}
+                                            onValueChange={(val) => handleActionChange(col.name, val)}
+                                        >
+                                            <SelectTrigger className="w-full bg-white hover:bg-stone-50/80 border-stone-200/90 hover:border-stone-300 text-stone-900 dark:bg-[#14161f] dark:hover:bg-[#1a1d28] dark:border-white/10 dark:hover:border-white/20 dark:text-zinc-100 rounded-lg text-xs h-9 font-medium shadow-2xs transition-all cursor-pointer focus:ring-1 focus:ring-stone-400/20">
                                                 <div className="flex items-center gap-2 truncate">
                                                     {getActionIcon(currentAction)}
                                                     <SelectValue placeholder="Select action…">
@@ -744,31 +659,31 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     </SelectValue>
                                                 </div>
                                             </SelectTrigger>
-                                            <SelectContent className="w-[320px] sm:w-[360px] max-h-[380px] rounded-xl border border-stone-300 bg-white text-stone-900 dark:border-white/10 dark:bg-[#0c0d12] dark:text-zinc-100 shadow-2xl backdrop-blur-xl p-1.5 custom-scrollbar">
+                                            <SelectContent className="w-[320px] sm:w-[360px] max-h-[380px] rounded-xl border border-stone-200/90 bg-white text-stone-900 dark:border-white/10 dark:bg-[#12141a] dark:text-zinc-100 shadow-2xl p-1 custom-scrollbar">
                                                 {/* ── 1. RECOMMENDED AUTO-SUGGESTION (ALWAYS AT THE VERY TOP) ── */}
                                                 {recommendedAction && (
                                                     <>
                                                         <SelectGroup>
-                                                            <SelectLabel className="flex items-center gap-1.5 text-[10px] font-sans font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 px-2.5 py-1">
+                                                            <SelectLabel className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-stone-600 dark:text-zinc-400 px-2.5 py-1">
                                                                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
                                                                 Recommended Fix
                                                             </SelectLabel>
                                                             <SelectItem
                                                                 value={recommendedAction}
-                                                                className="bg-emerald-50/90 hover:bg-emerald-100/90 border border-emerald-300/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 dark:border-emerald-500/30 my-1"
+                                                                className="bg-stone-50 hover:bg-stone-100 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-stone-200/80 dark:border-white/10 my-1 font-medium"
                                                             >
                                                                 <span className="flex items-center justify-between w-full gap-2">
-                                                                    <span className="flex items-center gap-2 font-semibold text-emerald-950 dark:text-emerald-200 truncate">
+                                                                    <span className="flex items-center gap-2 text-stone-900 dark:text-zinc-100 truncate">
                                                                         {getActionIcon(recommendedAction)}
                                                                         <span className="truncate">{getActionDisplayLabel(recommendedAction, issue)}</span>
                                                                     </span>
-                                                                    <span className="inline-flex items-center gap-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 shrink-0 shadow-2xs">
+                                                                    <span className="text-[10px] font-mono text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.5 rounded font-medium shrink-0">
                                                                         Recommended
                                                                     </span>
                                                                 </span>
                                                             </SelectItem>
                                                         </SelectGroup>
-                                                        <SelectSeparator className="my-1.5" />
+                                                        <SelectSeparator className="my-1" />
                                                     </>
                                                 )}
 
@@ -826,7 +741,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     )}
                                                 </SelectGroup>
 
-                                                <SelectSeparator className="my-1.5" />
+                                                <SelectSeparator className="my-1" />
 
                                                 {/* ── 3. OUTLIERS & DATA QUALITY ── */}
                                                 <SelectGroup>
@@ -875,7 +790,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     )}
                                                 </SelectGroup>
 
-                                                <SelectSeparator className="my-1.5" />
+                                                <SelectSeparator className="my-1" />
 
                                                 {/* ── 4. FORMATTING, TYPES & TEXT ── */}
                                                 <SelectGroup>
@@ -938,7 +853,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     )}
                                                 </SelectGroup>
 
-                                                <SelectSeparator className="my-1.5" />
+                                                <SelectSeparator className="my-1" />
 
                                                 {/* ── 5. KEY DEDUPLICATION & COLUMNS ── */}
                                                 <SelectGroup>
@@ -965,7 +880,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "drop_column" && (
-                                                        <SelectItem value="drop_column" className="text-rose-700 dark:text-rose-400">
+                                                        <SelectItem value="drop_column" className="text-rose-600 dark:text-rose-400">
                                                             <span className="flex items-center gap-2">
                                                                 {getActionIcon("drop_column")} Drop Column
                                                             </span>
@@ -973,7 +888,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     )}
                                                 </SelectGroup>
 
-                                                <SelectSeparator className="my-1.5" />
+                                                <SelectSeparator className="my-1" />
 
                                                 {/* ── 6. DEFAULT (RAW AS IS) ── */}
                                                 <SelectGroup>
@@ -988,7 +903,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 {/* ── 7. DYNAMIC FALLBACK (FOR CUSTOM ACTIONS) ── */}
                                                 {!KNOWN_ACTIONS.has(currentAction) && currentAction !== "default" && currentAction !== recommendedAction && (
                                                     <>
-                                                        <SelectSeparator className="my-1.5" />
+                                                        <SelectSeparator className="my-1" />
                                                         <SelectGroup>
                                                             <SelectLabel>Custom Selected Action</SelectLabel>
                                                             <SelectItem value={currentAction}>
@@ -996,7 +911,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                                     <span className="flex items-center gap-2">
                                                                         {getActionIcon(currentAction)} {getActionDisplayLabel(currentAction, issue)}
                                                                     </span>
-                                                                    <span className="text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-stone-200 text-stone-800 border border-stone-300 dark:bg-white/10 dark:text-zinc-300">
+                                                                    <span className="text-[10px] font-sans font-medium px-2 py-0.5 rounded bg-stone-200 text-stone-800 dark:bg-white/10 dark:text-zinc-300">
                                                                         Active
                                                                     </span>
                                                                 </span>
@@ -1006,7 +921,49 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 )}
                                             </SelectContent>
                                         </Select>
-                            </CardFooter>
+                                    </div>
+
+                                    {/* Rationale explanation */}
+                                    {issue?.rationale && (
+                                        <div className="text-[11px] text-stone-600 dark:text-zinc-400 leading-relaxed font-sans space-y-1">
+                                            <p>{issue.rationale}</p>
+                                            {issue?.impact_estimate && (
+                                                <p className="font-mono text-[10px] text-stone-500 dark:text-zinc-400">
+                                                    Estimated Impact: <span className="font-medium text-stone-700 dark:text-zinc-300">{issue.impact_estimate}</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Before vs After Visual Diff */}
+                                    {isActionActive && issue?.before_sample && issue?.after_sample && issue.before_sample.length > 0 && (
+                                        <div className="pt-2.5 border-t border-stone-100 dark:border-white/5 space-y-1.5">
+                                            <div className="flex items-center justify-between text-[10px] font-mono text-stone-600 dark:text-zinc-400 uppercase tracking-wider font-semibold">
+                                                <span>Sample Preview</span>
+                                                <span>Before → After</span>
+                                            </div>
+                                            <div className="rounded-lg bg-stone-50/70 dark:bg-white/[0.02] border border-stone-200/60 dark:border-white/5 px-2.5 py-2 space-y-1.5 font-mono text-xs">
+                                                {issue.before_sample.slice(0, 2).map((b, idx) => {
+                                                    const afterVal = issue.after_sample?.[idx];
+                                                    return (
+                                                        <div key={`sample_${col.name}_${idx}_${String(b)}`} className="flex items-center justify-between gap-2">
+                                                            <span className="text-stone-500 dark:text-zinc-400 truncate max-w-[110px]" title={String(b)}>
+                                                                {b === null ? "null" : String(b)}
+                                                            </span>
+                                                            <ArrowRight className="w-3 h-3 text-stone-400 dark:text-zinc-500 shrink-0" />
+                                                            <span className="text-emerald-700 dark:text-emerald-400 truncate max-w-[110px] font-semibold" title={String(afterVal)}>
+                                                                {afterVal === null ? "null" : String(afterVal)}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {col.distribution && <SparklineHistogram data={col.distribution} />}
+                            </CardContent>
                         </Card>
                     );
                 })}
@@ -1104,25 +1061,25 @@ const SparklineHistogram = ({ data }: { data: { count: number; label: string }[]
     const max = Math.max(...data.map(d => d.count)) || 1;
 
     return (
-        <div className="mt-3.5 pt-2 border-t border-stone-200 dark:border-white/5">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5 font-sans">
-                <span className="font-semibold text-foreground/80 flex items-center gap-1.5">
-                    <BarChart2 className="w-3.5 h-3.5 text-[#800000] dark:text-primary" /> Distribution
+        <div className="mt-2.5 pt-2.5 border-t border-stone-100 dark:border-white/5">
+            <div className="flex items-center justify-between text-[11px] text-stone-500 dark:text-zinc-400 mb-1.5 font-sans">
+                <span className="font-medium text-stone-700 dark:text-zinc-300">
+                    Distribution
                 </span>
-                <span className="text-[10px] font-mono">{data.length} bins</span>
+                <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400">{data.length} bins</span>
             </div>
-            <div className="flex items-end h-14 gap-[3px] w-full bg-stone-100 dark:bg-black/30 p-2 rounded-xl border border-stone-200 dark:border-white/5">
+            <div className="flex items-end h-9 gap-[2px] w-full pt-0.5">
                 {data.map((d) => (
                     <TooltipProvider key={`hist_bin_${d.label}`}>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div
-                                    className="flex-1 bg-gradient-to-t from-primary/30 to-primary/80 hover:from-primary hover:to-primary/90 transition-all rounded-t-xs cursor-pointer shadow-2xs"
+                                    className="flex-1 bg-stone-300 dark:bg-zinc-700 hover:bg-[#800000] dark:hover:bg-zinc-200 transition-colors rounded-t-[1px] cursor-pointer"
                                     style={{ height: `${Math.max(12, (d.count / max) * 100)}%` }}
                                 />
                             </TooltipTrigger>
-                            <TooltipContent className="rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-xl">
-                                <p className="text-xs font-sans text-popover-foreground">{d.label}: <strong className="font-mono text-primary">{d.count}</strong></p>
+                            <TooltipContent className="rounded-lg border border-stone-200 bg-white text-stone-900 dark:border-white/10 dark:bg-[#11131a] dark:text-zinc-100 shadow-lg text-xs">
+                                <p className="font-sans">{d.label}: <strong className="font-mono text-stone-900 dark:text-white">{d.count}</strong></p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
