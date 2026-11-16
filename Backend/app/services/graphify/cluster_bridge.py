@@ -4,9 +4,16 @@ Wraps Graphify's Rust-native Leiden and deterministic Louvain algorithms
 with cohesion scoring, automatic hub-based labeling, god nodes, and surprising connection discovery.
 """
 from __future__ import annotations
+import sys
 import logging
+from pathlib import Path
 from typing import Dict, List, Any, Tuple, Optional
 import networkx as nx
+
+# Ensure Backend directory containing graphify engine is on sys.path
+_BACKEND_DIR = Path(__file__).resolve().parent.parent.parent.parent
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_DIR))
 
 # Import directly from graphify package
 try:
@@ -14,7 +21,7 @@ try:
     from graphify.analyze import god_nodes, surprising_connections
     HAS_GRAPHIFY_CLUSTER = True
 except ImportError as err:
-    logging.getLogger(__name__).warning("Failed to import graphify cluster/analyze: %s", err)
+    logging.getLogger(__name__).debug("Graphify native clustering engine not available (%s); utilizing built-in analytical engine.", err)
     HAS_GRAPHIFY_CLUSTER = False
 
 logger = logging.getLogger(__name__)
