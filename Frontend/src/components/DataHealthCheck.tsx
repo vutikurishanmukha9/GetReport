@@ -485,7 +485,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                 "text-xs h-9 px-3.5 rounded-xl cursor-pointer transition-all duration-150 font-sans flex items-center gap-2 select-none",
                                 activePreset === "all"
                                     ? "bg-[#800000] hover:bg-[#6b0000] text-white border-[#800000] dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-950 dark:border-white shadow-xs font-semibold active:scale-[0.98]"
-                                    : "bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:text-zinc-300 dark:hover:text-white dark:border-white/10 shadow-2xs font-medium active:scale-[0.98]"
+                                    : "bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:hover:text-white dark:border-white/10 shadow-2xs font-medium active:scale-[0.98]"
                             )}
                         >
                             <Layers className={cn("w-3.5 h-3.5 shrink-0", activePreset === "all" ? "text-white dark:text-zinc-950" : "text-stone-500 dark:text-zinc-400")} />
@@ -501,7 +501,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                 "text-xs h-9 px-3.5 rounded-xl cursor-pointer transition-all duration-150 font-sans flex items-center gap-2 select-none",
                                 activePreset === "conservative"
                                     ? "bg-[#800000] hover:bg-[#6b0000] text-white border-[#800000] dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-950 dark:border-white shadow-xs font-semibold active:scale-[0.98]"
-                                    : "bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:text-zinc-300 dark:hover:text-white dark:border-white/10 shadow-2xs font-medium active:scale-[0.98]"
+                                    : "bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:hover:text-white dark:border-white/10 shadow-2xs font-medium active:scale-[0.98]"
                             )}
                         >
                             <ShieldCheck className={cn("w-3.5 h-3.5 shrink-0", activePreset === "conservative" ? "text-white dark:text-zinc-950" : "text-stone-500 dark:text-zinc-400")} />
@@ -517,7 +517,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                 "text-xs h-9 px-3.5 rounded-xl cursor-pointer transition-all duration-150 font-sans flex items-center gap-2 select-none",
                                 activePreset === "high"
                                     ? "bg-[#800000] hover:bg-[#6b0000] text-white border-[#800000] dark:bg-zinc-100 dark:hover:bg-zinc-200 dark:text-zinc-950 dark:border-white shadow-xs font-semibold active:scale-[0.98]"
-                                    : "bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:text-zinc-300 dark:hover:text-white dark:border-white/10 shadow-2xs font-medium active:scale-[0.98]"
+                                    : "bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 dark:text-zinc-300 dark:hover:text-white dark:border-white/10 shadow-2xs font-medium active:scale-[0.98]"
                             )}
                         >
                             <CheckCheck className={cn("w-3.5 h-3.5 shrink-0", activePreset === "high" ? "text-white dark:text-zinc-950" : "text-stone-500 dark:text-zinc-400")} />

@@ -544,16 +544,11 @@ Strictly dark theme only across all surfaces. All colors HSL.
   background-color: rgba(0, 0, 0, 0.6) !important;
 }
 
-/* Semi-transparent white utility backgrounds inside dark components */
-:root:not(.dark) [class*="bg-white/[0.02]"],
-:root:not(.dark) [class*="bg-white/[0.03]"],
-:root:not(.dark) [class*="bg-white/[0.04]"],
-:root:not(.dark) [class*="bg-white/[0.05]"],
-:root:not(.dark) [class*="bg-white/[0.06]"],
-:root:not(.dark) [class*="bg-white/[0.08]"],
-:root:not(.dark) [class*="bg-white/5"] {
-  background-color: #F0EBE1 !important;
-  border-color: #DCD6C9 !important;
+/* Segmented control tabs & pill buttons must never have inactive backgrounds hijacked in light mode */
+:root:not(.dark) button[role="tab"]:not([data-state="active"]),
+:root:not(.dark) .segmented-tab-btn:not(.is-active) {
+  background-color: transparent !important;
+  border-color: transparent !important;
 }
 
 /* Radix Select & Menu items must preserve clean transparent baseline and crisp hover states in light mode */
