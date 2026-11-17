@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CtaBanner } from "@/components/CtaBanner";
+import { BackgroundGrid } from "@/components/BackgroundGrid";
 import { useToast } from "@/hooks/use-toast";
 
 interface EndpointSpec {
@@ -476,10 +477,12 @@ export const Documentation = () => {
   }, [searchQuery, selectedCategory]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-slate-100 selection:bg-[#800000]/20 selection:text-[#800000] dark:selection:bg-white/20 dark:selection:text-white font-sans antialiased">
+    <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-slate-100 selection:bg-[#800000]/20 selection:text-[#800000] dark:selection:bg-white/20 dark:selection:text-white font-sans antialiased relative">
+      {/* Technical Background Grid & Film Grain */}
+      <BackgroundGrid patternId="docs-grid-blueprint" />
       <Header onReset={() => {}} showReset={false} />
 
-      <main className="flex-1 pt-24 sm:pt-28 pb-20">
+      <main className="flex-1 pt-24 sm:pt-28 pb-20 relative z-10">
         
         {/* Hero Section: Machined Raycast/Linear Obsidian Aesthetic */}
         <div className="relative border-b border-stone-300 dark:border-white/10 bg-radial from-stone-200/50 via-transparent to-transparent dark:from-white/[0.04] py-12 sm:py-16 overflow-hidden">

@@ -16,7 +16,7 @@ export const CtaBanner: React.FC<CtaBannerProps> = ({
   description = "Launch the interactive workspace and see these algorithms in action.",
   buttonText = "Launch Workspace",
   buttonLink = "/workspace",
-  className = "border-t border-stone-300 bg-[#FAF8F5]/90 py-10 sm:py-12 dark:border-border/60 dark:bg-muted/20",
+  className = "border-t border-stone-300 bg-[#FAF8F5]/50 backdrop-blur-xs py-10 sm:py-12 dark:border-border/60 dark:bg-[#0c0d12]/40",
 }) => {
   return (
     <div className={className}>

@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { BackgroundGrid } from "@/components/BackgroundGrid";
 
 interface FeatureCategory {
   category: string;
@@ -98,14 +99,13 @@ export const Pricing = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-zinc-100 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
-      <div className="hero-grain-overlay" />
+      <BackgroundGrid patternId="pricing-grid-blueprint" />
 
       <Header onReset={() => {}} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28 relative z-10">
         {/* Header */}
-        <div className="border-b border-stone-300/80 bg-[#FAF8F5]/90 dark:border-white/[0.08] dark:bg-[#07080a]/90 py-8 sm:py-14 relative z-10">
+        <div className="border-b border-stone-300/80 bg-[#FAF8F5]/50 backdrop-blur-xs dark:border-white/[0.08] dark:bg-[#07080a]/50 py-8 sm:py-14 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl text-center space-y-3 sm:space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-stone-300 bg-stone-100 text-stone-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-300 text-xs font-sans font-medium">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -293,7 +293,7 @@ export const Pricing = () => {
         </div>
 
         {/* Section 4: Bottom Conversion Bar */}
-        <div className="border-t border-stone-300/80 bg-[#FAF8F5]/90 dark:border-white/10 dark:bg-[#0c0d12]/60 py-10 sm:py-14">
+        <div className="border-t border-stone-300/80 bg-[#FAF8F5]/50 backdrop-blur-xs dark:border-white/10 dark:bg-[#0c0d12]/40 py-10 sm:py-14">
           <div className="container mx-auto px-4 text-center space-y-4 max-w-3xl">
             <h2 className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white tracking-tight">
               Start auditing datasets in seconds

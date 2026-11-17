@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CtaBanner } from "@/components/CtaBanner";
+import { BackgroundGrid } from "@/components/BackgroundGrid";
 
 interface DatasetExample {
   id: string;
@@ -167,14 +168,13 @@ export const Examples = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-zinc-100 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
-      <div className="hero-grain-overlay" />
+      <BackgroundGrid patternId="examples-grid-blueprint" />
 
       <Header onReset={() => {}} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28 relative z-10">
         {/* Header */}
-        <div className="border-b border-stone-200/90 bg-[#FAF8F5]/90 dark:border-white/[0.08] dark:bg-[#07080a]/90 py-8 sm:py-14 relative z-10">
+        <div className="border-b border-stone-200/90 bg-[#FAF8F5]/50 backdrop-blur-xs dark:border-white/[0.08] dark:bg-[#07080a]/50 py-8 sm:py-14 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-black text-stone-900 dark:text-white tracking-[-0.03em] leading-[1.12]">
