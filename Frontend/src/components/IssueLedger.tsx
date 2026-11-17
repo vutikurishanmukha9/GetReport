@@ -384,7 +384,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                 <div className="bg-stone-50/60 dark:bg-white/[0.02] border-b border-stone-200 dark:border-white/[0.06] px-5 sm:px-7 py-3.5">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
                         {/* Segmented Filter Tabs */}
-                        <div className="inline-flex p-1 rounded-xl bg-stone-200/60 dark:bg-zinc-950/80 border border-stone-300 dark:border-white/[0.07] shadow-inner text-xs font-medium self-start">
+                        <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-stone-200/70 dark:bg-zinc-900/80 border border-stone-300/80 dark:border-white/10 shadow-inner text-xs font-medium self-start">
                             {[
                                 { key: 'all', label: 'All Issues', count: summary.total },
                                 { key: 'pending', label: 'Pending', count: summary.pending, alert: summary.pending > 0 },
@@ -398,21 +398,21 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                         type="button"
                                         onClick={() => setFilterStatus(/* // SAFETY: tab.key matches 'all' | 'pending' | 'approved' | 'rejected' */ tab.key as typeof filterStatus)}
                                         className={cn(
-                                            "relative px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-200 cursor-pointer select-none",
+                                            "relative px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all duration-150 cursor-pointer select-none border",
                                             isActive
-                                                ? "bg-white text-stone-900 font-semibold shadow-sm border border-stone-200 dark:bg-white/[0.12] dark:text-white dark:border-white/10"
-                                                : "text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-white/[0.04]"
+                                                ? "bg-white text-stone-900 font-semibold shadow-xs border-stone-200/90 dark:bg-zinc-800 dark:text-white dark:border-white/10"
+                                                : "bg-transparent text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-800/60 border-transparent"
                                         )}
                                     >
                                         {tab.alert && tab.key === 'pending' && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse" />
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse shrink-0" />
                                         )}
-                                        <span>{tab.label}</span>
+                                        <span className="font-sans">{tab.label}</span>
                                         <span className={cn(
-                                            "px-1.5 py-0.2 rounded-md font-sans font-semibold tabular-nums text-[10px]",
+                                            "px-1.5 py-0.5 rounded-md font-sans font-semibold tabular-nums text-[10px] leading-none shrink-0",
                                             isActive 
-                                                ? "bg-stone-100 text-stone-900 dark:bg-white/20 dark:text-white" 
-                                                : "bg-stone-200/50 text-stone-600 dark:bg-white/[0.04] dark:text-zinc-400"
+                                                ? "bg-stone-100 text-stone-900 dark:bg-white/15 dark:text-white border border-stone-200/60 dark:border-white/10" 
+                                                : "bg-stone-300/60 text-stone-600 dark:bg-zinc-800 dark:text-zinc-400"
                                         )}>
                                             {tab.count}
                                         </span>
