@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { BackgroundGrid } from "@/components/BackgroundGrid";
 
 // Module scope pure function for Confidence Grade calculation
 const getConfidenceGrade = (score: number) => {
@@ -73,14 +74,13 @@ export const Features = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-zinc-100 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
-      <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none opacity-40" />
-      <div className="hero-grain-overlay" />
+      <BackgroundGrid patternId="features-grid-blueprint" />
       <Header onReset={() => {}} showReset={false} />
 
-      <main className="flex-1 pt-24 sm:pt-28">
+      <main className="flex-1 pt-24 sm:pt-28 relative z-10">
         
         {/* Section 1: Hero Header & Live Polars Benchmark Terminal */}
-        <section className="border-b border-stone-300/80 bg-[#FAF8F5]/90 dark:border-white/[0.08] dark:bg-[#07080a]/90 py-8 sm:py-16 relative z-10">
+        <section className="border-b border-stone-300/80 bg-[#FAF8F5]/50 backdrop-blur-xs dark:border-white/[0.08] dark:bg-[#07080a]/50 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
               
@@ -819,7 +819,7 @@ export const Features = () => {
         </section>
 
         {/* Section 6: High-Converting Obsidian Conversion Banner */}
-        <section className="border-t border-stone-300 bg-gradient-to-b from-[#FAF8F5]/80 via-[#F5F2EB] to-[#F5F2EB] dark:border-border/60 dark:bg-gradient-to-b dark:from-card/30 dark:via-background dark:to-background py-14 sm:py-20">
+        <section className="border-t border-stone-300 bg-gradient-to-b from-[#FAF8F5]/50 via-transparent to-transparent dark:border-border/60 dark:bg-gradient-to-b dark:from-card/20 dark:via-background dark:to-background py-14 sm:py-20 relative z-10">
           <div className="container mx-auto px-4 max-w-4xl">
             <div className="relative rounded-3xl border border-stone-300 bg-[#FAF8F5] p-8 sm:p-12 text-center space-y-5 shadow-sm dark:border-primary/30 dark:bg-card/80 dark:shadow-premium overflow-hidden">
               <div className="space-y-2">
