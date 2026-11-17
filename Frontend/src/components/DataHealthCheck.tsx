@@ -659,26 +659,26 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     </SelectValue>
                                                 </div>
                                             </SelectTrigger>
-                                            <SelectContent className="w-[320px] sm:w-[360px] max-h-[380px] rounded-xl border border-stone-200/90 bg-white text-stone-900 dark:border-white/10 dark:bg-[#12141a] dark:text-zinc-100 shadow-2xl p-1 custom-scrollbar">
+                                            <SelectContent className="w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)] max-h-60 rounded-xl border border-stone-200/90 bg-white text-stone-900 dark:border-white/10 dark:bg-[#12141a] dark:text-zinc-100 shadow-xl p-1 custom-scrollbar overflow-x-hidden">
                                                 {/* ── 1. RECOMMENDED AUTO-SUGGESTION (ALWAYS AT THE VERY TOP) ── */}
                                                 {recommendedAction && (
                                                     <>
                                                         <SelectGroup>
-                                                            <SelectLabel className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-stone-600 dark:text-zinc-400 px-2.5 py-1">
+                                                            <SelectLabel className="flex items-center gap-1.5 text-[9.5px] font-mono uppercase tracking-wider text-stone-500 dark:text-zinc-400 px-2 py-0.5">
                                                                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
                                                                 Recommended Fix
                                                             </SelectLabel>
                                                             <SelectItem
                                                                 value={recommendedAction}
-                                                                className="bg-stone-50 hover:bg-stone-100 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-stone-200/80 dark:border-white/10 my-1 font-medium"
+                                                                className="bg-emerald-50/70 hover:bg-emerald-100/70 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/45 border border-emerald-200/70 dark:border-emerald-800/30 my-0.5 font-medium"
                                                             >
-                                                                <span className="flex items-center justify-between w-full gap-2">
-                                                                    <span className="flex items-center gap-2 text-stone-900 dark:text-zinc-100 truncate">
+                                                                <span className="flex items-center justify-between w-full gap-1.5 min-w-0">
+                                                                    <span className="flex items-center gap-1.5 text-stone-900 dark:text-zinc-100 truncate min-w-0">
                                                                         {getActionIcon(recommendedAction)}
                                                                         <span className="truncate">{getActionDisplayLabel(recommendedAction, issue)}</span>
                                                                     </span>
-                                                                    <span className="text-[10px] font-mono text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 px-1.5 py-0.5 rounded font-medium shrink-0">
-                                                                        Recommended
+                                                                    <span className="text-[9px] font-mono text-emerald-800 dark:text-emerald-400 bg-emerald-100/80 dark:bg-emerald-900/40 px-1 py-0.2 rounded font-semibold shrink-0">
+                                                                        Rec
                                                                     </span>
                                                                 </span>
                                                             </SelectItem>
@@ -692,50 +692,50 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     <SelectLabel>Missing Values & Imputation</SelectLabel>
                                                     {recommendedAction !== "fill_median" && (
                                                         <SelectItem value="fill_median">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("fill_median")} Fill with Median
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("fill_median")} <span className="truncate">Fill with Median</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "fill_mean" && (
                                                         <SelectItem value="fill_mean">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("fill_mean")} Fill with Average
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("fill_mean")} <span className="truncate">Fill with Average</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "fill_mode" && (
                                                         <SelectItem value="fill_mode">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("fill_mode")} Fill with Most Frequent
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("fill_mode")} <span className="truncate">Fill with Most Frequent</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "fill_value" && (
                                                         <SelectItem value="fill_value">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("fill_value")} Fill with &ldquo;Unknown&rdquo;
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("fill_value")} <span className="truncate">Fill with &ldquo;Unknown&rdquo;</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "fill_group_median" && (
                                                         <SelectItem value="fill_group_median">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("fill_group_median")} Fill with Group Median
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("fill_group_median")} <span className="truncate">Fill with Group Median</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "add_missing_indicator" && (
                                                         <SelectItem value="add_missing_indicator">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("add_missing_indicator")} Add Missing Indicator Column
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("add_missing_indicator")} <span className="truncate">Add Missing Indicator</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "drop_rows" && (
                                                         <SelectItem value="drop_rows" className="text-rose-700 dark:text-rose-400">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("drop_rows")} Drop Missing Rows
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("drop_rows")} <span className="truncate">Drop Missing Rows</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
@@ -748,43 +748,43 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     <SelectLabel>Outliers & Data Quality</SelectLabel>
                                                     {recommendedAction !== "cap_outliers" && (
                                                         <SelectItem value="cap_outliers">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("cap_outliers")} Cap Outliers (Tukey IQR Fences)
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("cap_outliers")} <span className="truncate">Cap Outliers (Tukey IQR)</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "flag_outliers" && (
                                                         <SelectItem value="flag_outliers">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("flag_outliers")} Flag Outliers (Indicator Column)
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("flag_outliers")} <span className="truncate">Flag Outliers (Indicator)</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "log1p_transform" && (
                                                         <SelectItem value="log1p_transform">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("log1p_transform")} Log1p Transform (Reduce Skew)
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("log1p_transform")} <span className="truncate">Log1p Transform (Skew)</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "nullify_out_of_range" && (
                                                         <SelectItem value="nullify_out_of_range">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("nullify_out_of_range")} Nullify Out-of-Range Values
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("nullify_out_of_range")} <span className="truncate">Nullify Out-of-Range</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "nullify_sentinel" && (
                                                         <SelectItem value="nullify_sentinel">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("nullify_sentinel")} Nullify Sentinels (-999, 9999)
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("nullify_sentinel")} <span className="truncate">Nullify Sentinels</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "clean_masked_nulls" && (
                                                         <SelectItem value="clean_masked_nulls">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("clean_masked_nulls")} Clean Masked Nulls (to null)
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("clean_masked_nulls")} <span className="truncate">Clean Masked Nulls</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
@@ -797,57 +797,57 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     <SelectLabel>Formatting, Types & Text</SelectLabel>
                                                     {recommendedAction !== "coerce_numeric" && (
                                                         <SelectItem value="coerce_numeric">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("coerce_numeric")} Coerce to Numeric (Strip Currency/%)
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("coerce_numeric")} <span className="truncate">Coerce to Numeric</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "parse_date" && (
                                                         <SelectItem value="parse_date">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("parse_date")} Parse Date (ISO 8601)
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("parse_date")} <span className="truncate">Parse Date (ISO 8601)</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "clean_text" && (
                                                         <SelectItem value="clean_text">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("clean_text")} Clean Text (Trim Whitespace)
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("clean_text")} <span className="truncate">Clean Text (Trim Whitespace)</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "fix_mojibake" && (
                                                         <SelectItem value="fix_mojibake">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("fix_mojibake")} Fix Mojibake Encoding
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("fix_mojibake")} <span className="truncate">Fix Mojibake Encoding</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "standardize_categories" && (
                                                         <SelectItem value="standardize_categories">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("standardize_categories")} Standardize Categories
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("standardize_categories")} <span className="truncate">Standardize Categories</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "cast_boolean" && (
                                                         <SelectItem value="cast_boolean">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("cast_boolean")} Cast to Boolean
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("cast_boolean")} <span className="truncate">Cast to Boolean</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "keep_as_text" && (
                                                         <SelectItem value="keep_as_text">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("keep_as_text")} Preserve as String / Text
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("keep_as_text")} <span className="truncate">Preserve as Text</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "nullify_invalid_regex" && (
                                                         <SelectItem value="nullify_invalid_regex">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("nullify_invalid_regex")} Nullify Invalid Format
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("nullify_invalid_regex")} <span className="truncate">Nullify Invalid Format</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
@@ -860,29 +860,29 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                     <SelectLabel>Key Deduplication & Columns</SelectLabel>
                                                     {recommendedAction !== "drop_duplicate_keys" && recommendedAction !== "keep_first" && (
                                                         <SelectItem value="drop_duplicate_keys">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("drop_duplicate_keys")} Keep First Row per Key (Deduplicate)
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("drop_duplicate_keys")} <span className="truncate">Keep First Row per Key</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "drop_duplicate_rows" && (
                                                         <SelectItem value="drop_duplicate_rows">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("drop_duplicate_rows")} Drop Duplicate Rows
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("drop_duplicate_rows")} <span className="truncate">Drop Duplicate Rows</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "hash_pii" && (
                                                         <SelectItem value="hash_pii">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("hash_pii")} Hash / Mask PII Column
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("hash_pii")} <span className="truncate">Hash / Mask PII</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
                                                     {recommendedAction !== "drop_column" && (
                                                         <SelectItem value="drop_column" className="text-rose-600 dark:text-rose-400">
-                                                            <span className="flex items-center gap-2">
-                                                                {getActionIcon("drop_column")} Drop Column
+                                                            <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                {getActionIcon("drop_column")} <span className="truncate">Drop Column</span>
                                                             </span>
                                                         </SelectItem>
                                                     )}
@@ -894,8 +894,8 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                 <SelectGroup>
                                                     <SelectLabel>No Action</SelectLabel>
                                                     <SelectItem value="default" className="text-stone-600 dark:text-zinc-400">
-                                                        <span className="flex items-center gap-2">
-                                                            {getActionIcon("default")} Ignore (Leave raw as is)
+                                                        <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                            {getActionIcon("default")} <span className="truncate">Ignore (Leave raw as is)</span>
                                                         </span>
                                                     </SelectItem>
                                                 </SelectGroup>
@@ -907,11 +907,11 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                                                         <SelectGroup>
                                                             <SelectLabel>Custom Selected Action</SelectLabel>
                                                             <SelectItem value={currentAction}>
-                                                                <span className="flex items-center justify-between w-full gap-2">
-                                                                    <span className="flex items-center gap-2">
-                                                                        {getActionIcon(currentAction)} {getActionDisplayLabel(currentAction, issue)}
+                                                                <span className="flex items-center justify-between w-full gap-1.5 min-w-0">
+                                                                    <span className="flex items-center gap-1.5 truncate min-w-0">
+                                                                        {getActionIcon(currentAction)} <span className="truncate">{getActionDisplayLabel(currentAction, issue)}</span>
                                                                     </span>
-                                                                    <span className="text-[10px] font-sans font-medium px-2 py-0.5 rounded bg-stone-200 text-stone-800 dark:bg-white/10 dark:text-zinc-300">
+                                                                    <span className="text-[10px] font-sans font-medium px-1.5 py-0.5 rounded bg-stone-200 text-stone-800 dark:bg-white/10 dark:text-zinc-300 shrink-0">
                                                                         Active
                                                                     </span>
                                                                 </span>
