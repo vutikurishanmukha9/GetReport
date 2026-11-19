@@ -441,8 +441,8 @@ export const ReportGeneration = ({
   const activeTableMeta = sqlSchema?.tables?.[0];
 
   const filteredSchemaColumns = useMemo(() => {
-    if (!activeTableMeta) return [];
-    return activeTableMeta.columns.filter(col => {
+    if (!activeTableMeta || !activeTableMeta.columns) return [];
+    return (activeTableMeta.columns || []).filter(col => {
       const matchesSearch = !schemaSearch.trim() ||
         col.name.toLowerCase().includes(schemaSearch.toLowerCase().trim()) ||
         col.type.toLowerCase().includes(schemaSearch.toLowerCase().trim());
@@ -505,10 +505,10 @@ export const ReportGeneration = ({
 
   // Construct Parallel Coordinates Payload
   const hiplotPayload = useMemo<HiPlotPayload | null>(() => {
-    if (!info.preview || info.preview.length < 2) return null;
+    if (!info?.preview || info.preview.length < 2) return null;
 
-    const candidateCols = info.columns.filter(col => {
-      const dtype = (info.dtypes[col] || "").toLowerCase();
+    const candidateCols = (info?.columns || []).filter(col => {
+      const dtype = (info.dtypes?.[col] || "").toLowerCase();
       return dtype.includes("int") || dtype.includes("float") || dtype.includes("str") || dtype.includes("cat");
     }).slice(0, 8);
 
@@ -575,22 +575,24 @@ export const ReportGeneration = ({
     };
   }, [info.columns, info.missing_values]);
 
-  const confidence = analysis.confidence_scores || fallbackConfidenceScores;
-  const datasetGrade = confidence.dataset_grade || "B";
-  const datasetConfidence = confidence.dataset_confidence || 82.5;
+  const confidence = (analysis?.confidence_scores && Array.isArray(analysis.confidence_scores.columns))
+    ? analysis.confidence_scores
+    : fallbackConfidenceScores;
+  const datasetGrade = confidence?.dataset_grade || "B";
+  const datasetConfidence = confidence?.dataset_confidence || 82.5;
 
   // Filter columns in the ledger
   const filteredLedgerColumns = useMemo(() => {
-    return confidence.columns.filter(c => {
-      const matchesSearch = c.column.toLowerCase().includes(ledgerSearch.toLowerCase().trim());
+    return (confidence?.columns || []).filter(c => {
+      const matchesSearch = (c.column || "").toLowerCase().includes(ledgerSearch.toLowerCase().trim());
       if (!matchesSearch) return false;
       if (ledgerGradeFilter === "all") return true;
-      if (ledgerGradeFilter === "A") return c.grade.toUpperCase() === "A";
-      if (ledgerGradeFilter === "B") return c.grade.toUpperCase() === "B";
-      if (ledgerGradeFilter === "attention") return ["C", "D", "F"].includes(c.grade.toUpperCase());
+      if (ledgerGradeFilter === "A") return (c.grade || "").toUpperCase() === "A";
+      if (ledgerGradeFilter === "B") return (c.grade || "").toUpperCase() === "B";
+      if (ledgerGradeFilter === "attention") return ["C", "D", "F"].includes((c.grade || "").toUpperCase());
       return true;
     });
-  }, [confidence.columns, ledgerSearch, ledgerGradeFilter]);
+  }, [confidence?.columns, ledgerSearch, ledgerGradeFilter]);
 
   // Visual insights tabs
   const chartTabsList = useMemo(() => {

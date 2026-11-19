@@ -30,7 +30,7 @@ from app.services.data_processing import (
     ParseError,
 )
 from app.services.issue_ledger import detect_issues
-from app.services.analysis import analyze_dataset
+from app.services.analysis import analyze_dataset, build_empty_dataset_analysis, EmptyDatasetError
 from app.services.analysis_config import AnalysisConfig
 from app.services.dataset_versioning import build_schema_profile, build_historical_comparison
 from app.services.comparison import comparison_service
@@ -189,6 +189,21 @@ async def inspect_file_task(ctx: Optional[dict], task_id: str, file_ref: str, fi
         except Exception as e:
             raise ParseError(f"Load failed: {e}")
 
+        # Ensure file has parseable tabular structure
+        if df.width == 0:
+            raise ParseError(
+                f"The uploaded file '{filename}' contains no readable columns or headers. "
+                "Please verify that the file is a valid tabular dataset."
+            )
+
+        if df.height == 0:
+            logger.info("Task %s: Uploaded file '%s' has %d columns but 0 rows.", task_id, filename, df.width)
+        else:
+            total_cells = df.height * df.width
+            total_nulls = int(df.null_count().sum_horizontal()[0]) if df.width > 0 else 0
+            if total_nulls >= total_cells:
+                logger.info("Task %s: Uploaded file '%s' contains only empty/blank cells across all %d rows.", task_id, filename, df.height)
+
         # 2. Inspect data quality
         title_task_manager.update_progress(task_id, 25, "Inspecting data quality & schema...")
         quality_report = await asyncio.to_thread(inspect_dataset, df)
@@ -278,6 +293,12 @@ async def resume_analysis_pipeline_task(
         del df
         gc.collect()
 
+        if cleaned_df.width == 0:
+            logger.info("Task %s: Cleaned dataset has 0 columns remaining. Proceeding with analysis.", task_id)
+
+        if cleaned_df.height == 0:
+            logger.info("Task %s: Cleaned dataset has 0 rows remaining. Proceeding with empty-dataset analysis.", task_id)
+
         # Persist intermediate cleaned data (Parquet)
         buffer = BytesIO()
         cleaned_df.write_parquet(buffer)
@@ -307,7 +328,11 @@ async def resume_analysis_pipeline_task(
             analysis_config = AnalysisConfig.default()
 
         def _analysis_worker():
-            analysis_res = analyze_dataset(cleaned_df, top_cats, analysis_config)
+            try:
+                analysis_res = analyze_dataset(cleaned_df, top_cats, analysis_config)
+            except EmptyDatasetError:
+                logger.info("Task %s: Empty dataset detected during analysis; building empty-dataset analysis profile.", task_id)
+                analysis_res = build_empty_dataset_analysis(cleaned_df)
             ds_info = get_dataset_info(cleaned_df)
             iss_ledger = detect_issues(cleaned_df)
             sch_profile = build_schema_profile(cleaned_df)

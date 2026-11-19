@@ -61,42 +61,43 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
 
   // Filter preview rows by text search
   const filteredRows = useMemo(() => {
-    if (!rowSearchQuery.trim()) return info.preview;
+    const previewList = info?.preview || [];
+    if (!rowSearchQuery.trim()) return previewList;
     const q = rowSearchQuery.toLowerCase().trim();
-    return info.preview.filter(row => {
+    return previewList.filter(row => {
       if (!row) return false;
       return Object.values(row).some(val =>
         val !== null && val !== undefined && String(val).toLowerCase().includes(q)
       );
     });
-  }, [info.preview, rowSearchQuery]);
+  }, [info?.preview, rowSearchQuery]);
 
   // Filter columns based on category
   const visibleColumns = useMemo(() => {
-    return info.columns.filter(col => {
-      const dtype = (info.dtypes[col] || "").toLowerCase();
+    return (info?.columns || []).filter(col => {
+      const dtype = (info?.dtypes?.[col] || "").toLowerCase();
       if (colTypeFilter === "numeric") return dtype.includes("int") || dtype.includes("float");
       if (colTypeFilter === "categorical") return dtype.includes("str") || dtype.includes("object") || dtype.includes("cat") || dtype.includes("bool");
       if (colTypeFilter === "datetime") return dtype.includes("date") || dtype.includes("time");
       return true;
     });
-  }, [info.columns, info.dtypes, colTypeFilter]);
+  }, [info?.columns, info?.dtypes, colTypeFilter]);
 
   // Filter columns in the quality tab
   const qualityColumns = useMemo(() => {
-    return info.columns.filter(col => {
+    return (info?.columns || []).filter(col => {
       const matchesSearch = col.toLowerCase().includes(colSearchQuery.toLowerCase().trim());
       if (!matchesSearch) return false;
 
-      const missing = info.missing_values?.[col] || { count: 0, percentage: 0 };
-      const issues = analysis.column_quality_flags?.[col] || [];
+      const missing = info?.missing_values?.[col] || { count: 0, percentage: 0 };
+      const issues = analysis?.column_quality_flags?.[col] || [];
       const hasIssues = issues.length > 0 || missing.count > 0;
 
       if (qualityFilter === "issues") return hasIssues;
       if (qualityFilter === "clean") return !hasIssues;
       return true;
     });
-  }, [info.columns, info.missing_values, analysis.column_quality_flags, colSearchQuery, qualityFilter]);
+  }, [info?.columns, info?.missing_values, analysis?.column_quality_flags, colSearchQuery, qualityFilter]);
 
   const totalIssuesCount = useMemo(() => {
     return info.columns.reduce((acc, col) => {
@@ -120,9 +121,6 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
               <h1 className="text-2xl sm:text-3xl font-sans font-bold tracking-[-0.025em] text-foreground truncate">
                 Dataset Ingestion Preview
               </h1>
-              <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
-                Validated
-              </Badge>
               {analysis?.snowflake_meta?.truncated && (
                 <Badge variant="outline" className="text-[10px] font-sans font-semibold uppercase tracking-wider bg-rose-500/15 text-rose-400 border-rose-500/30">
                   Truncated at Limit (150MB Ceiling)

@@ -110,6 +110,10 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     Every chart includes a 'narrative' field explaining what the data reveals.
     All axis labels use actual column names.
     """
+    if df.height == 0 or df.width == 0:
+        logger.info("Visualization: DataFrame has 0 rows or columns; skipping chart generation.")
+        return {}, []
+
     charts = {}
     warnings = []
     

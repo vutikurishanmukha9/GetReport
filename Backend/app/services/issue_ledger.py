@@ -416,6 +416,54 @@ def _detect_summary_rows_and_mid_headers(df: pl.DataFrame) -> list[Issue]:
     return issues
 
 
+def _detect_blank_row_issues(df: pl.DataFrame) -> list[Issue]:
+    """Detect completely empty/blank rows across all columns."""
+    issues = []
+    n_rows = df.height
+    n_cols = df.width
+    if n_rows == 0 or n_cols == 0:
+        return issues
+
+    blank_exprs = []
+    for col in df.columns:
+        dtype = df[col].dtype
+        c = pl.col(col)
+        if dtype in (pl.Utf8, pl.String):
+            blank_exprs.append(c.is_null() | (c.str.strip_chars() == ""))
+        elif dtype in (pl.Float32, pl.Float64):
+            blank_exprs.append(c.is_null() | c.is_nan())
+        else:
+            blank_exprs.append(c.is_null())
+
+    all_blank_mask = df.select(pl.all_horizontal(blank_exprs)).to_series()
+    blank_count = int(all_blank_mask.sum())
+
+    if blank_count > 0:
+        pct = (blank_count / n_rows) * 100.0
+        all_blank = (blank_count == n_rows)
+        issues.append(Issue(
+            id=_generate_id(),
+            issue_type="format_issue",
+            severity="critical" if all_blank else ("high" if pct >= 20.0 else "medium"),
+            column=None,
+            affected_rows=blank_count,
+            affected_pct=pct,
+            description=(
+                f"All {blank_count:,} rows in dataset are completely blank (no data values in any column)"
+                if all_blank
+                else f"{blank_count:,} completely blank row(s) detected across all columns ({pct:.1f}% of dataset)"
+            ),
+            suggested_fix=(
+                "Upload a dataset with populated data records (dropping all blank rows leaves 0 records)"
+                if all_blank
+                else f"Automatically remove {blank_count:,} blank row(s) during data cleaning"
+            ),
+            fix_code="# Cannot proceed: 0 data rows remaining" if all_blank else "df = df.filter(~all_blank_mask)",
+        ))
+
+    return issues
+
+
 
 def _detect_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
     """Detect duplicate rows with enhanced diagnostics.
@@ -684,21 +732,25 @@ def _detect_empty_column_issues(df: pl.DataFrame) -> list[Issue]:
     """Detect columns that are entirely empty."""
     issues = []
     n_rows = df.height
+    n_cols = df.width
+    if n_rows == 0 or n_cols == 0:
+        return issues
     
-    for col in df.columns:
-        null_count = df[col].null_count()
-        if null_count == n_rows:
-            issues.append(Issue(
-                id=_generate_id(),
-                issue_type="empty_column",
-                severity="high",
-                column=col,
-                affected_rows=n_rows,
-                affected_pct=100.0,
-                description=f"Column is entirely empty",
-                suggested_fix="Drop empty column",
-                fix_code=f"df = df.drop({repr(col)})",
-            ))
+    empty_cols = [col for col in df.columns if df[col].null_count() == n_rows]
+    all_empty = len(empty_cols) == n_cols
+
+    for col in empty_cols:
+        issues.append(Issue(
+            id=_generate_id(),
+            issue_type="empty_column",
+            severity="critical" if all_empty else "high",
+            column=col,
+            affected_rows=n_rows,
+            affected_pct=100.0,
+            description="Entire dataset has 0 populated values in this column" if all_empty else "Column is entirely empty",
+            suggested_fix="Dataset contains no populated records; cannot drop all columns" if all_empty else "Drop empty column",
+            fix_code="# Cannot drop all columns" if all_empty else f"df = df.drop({repr(col)})",
+        ))
     
     return issues
 
@@ -1431,6 +1483,9 @@ def detect_issues(
     ledger = IssueLedger()
     
     # Detect various issue types
+    for issue in _detect_blank_row_issues(df):
+        ledger.add_issue(issue)
+
     for issue in _detect_empty_column_issues(df):
         ledger.add_issue(issue)
     
