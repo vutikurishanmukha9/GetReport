@@ -1011,7 +1011,7 @@ def _build_recommendations_section(
 ) -> list[Flowable]:
     """Build section showing actionable recommendations with color-coded priorities."""
     recs = analysis_results.get("recommendations")
-    if not recs:
+    if not recs or not isinstance(recs, dict):
         meta.sections_skipped.append({"section": "Recommendations", "reason": "No recommendations data."})
         return []
 
@@ -1175,7 +1175,7 @@ def _build_analysis_decisions_section(
     """Build section showing why each analysis was run or skipped with grouped layout."""
     story = []
     decisions_data = analysis_results.get("analysis_decisions")
-    if not decisions_data:
+    if not decisions_data or not isinstance(decisions_data, dict):
         meta.sections_skipped.append("Methodology & Transparency")
         return story
 

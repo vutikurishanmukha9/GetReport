@@ -195,11 +195,23 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
       });
       return false;
     }
+
+    if (file.size === 0) {
+      toast({
+        title: "Empty file",
+        description: `'${file.name}' contains 0 bytes. Please upload a populated dataset.`,
+        variant: "destructive",
+      });
+      return false;
+    }
+
     return true;
   }, [toast]);
 
   const addFilesToStaging = useCallback((files: File[]) => {
     const valid = files.filter(validateFile);
+    if (valid.length === 0) return;
+
     if (valid.length === 0) return;
 
     setStagedFiles(prev => {

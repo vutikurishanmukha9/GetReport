@@ -226,3 +226,73 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
     return result
 
 
+def build_empty_dataset_analysis(df: pl.DataFrame, duration_s: float = 0.0) -> dict[str, Any]:
+    """Build a valid analysis dictionary for a dataset with 0 rows or 0 columns."""
+    numeric_cols = [c for c, t in df.schema.items() if t.is_numeric()]
+    cat_cols = [c for c in df.columns if c not in numeric_cols]
+
+    try:
+        from app.services.analysis_decisions import evaluate_analysis_decisions
+        decisions_data = evaluate_analysis_decisions(df).to_dict()
+    except Exception:
+        decisions_data = {"decisions": [], "summary": {"total": 0, "ran": 0, "skipped": 0}}
+
+    try:
+        from app.services.confidence_scoring import calculate_confidence_scores
+        conf_scores = calculate_confidence_scores(df)
+        confidence_data = conf_scores if isinstance(conf_scores, dict) else conf_scores.to_dict()
+    except Exception:
+        confidence_data = {
+            "columns": [],
+            "dataset_confidence": 0.0,
+            "dataset_grade": "F",
+            "high_confidence_count": 0,
+            "low_confidence_count": 0,
+            "critical_issues": ["Dataset contains 0 populated rows"],
+            "ml_readiness": {"is_ready": False, "score": 0.0, "reasons": ["Dataset contains 0 rows"]},
+            "data_quality_index": 0.0,
+        }
+
+    return {
+        "metadata": {
+            "total_rows": df.height,
+            "total_columns": df.width,
+            "numeric_columns": numeric_cols,
+            "categorical_columns": cat_cols,
+            "status": "empty_dataset",
+            "message": "Dataset contains 0 populated records after cleaning or filtering.",
+        },
+        "summary": {},
+        "correlation": {},
+        "strong_correlations": [],
+        "phik_matrix": {},
+        "phik_strong_associations": [],
+        "outliers": {},
+        "categorical_distribution": {},
+        "column_quality_flags": {},
+        "ranked_insights": [],
+        "timing_ms": round(duration_s * 1000, 2),
+        "time_series_analysis": {},
+        "missing_patterns": {},
+        "confidence_scores": confidence_data,
+        "analysis_decisions": decisions_data,
+        "semantic_analysis": {},
+        "feature_engineering": {},
+        "smart_schema": {},
+        "recommendations": {
+            "domain_specific": [],
+            "data_quality": [{"title": "Populate dataset records", "description": "Dataset contains 0 populated rows; all rows were empty or dropped as blank.", "priority": "high"}],
+            "analysis": [],
+            "visualization": [],
+        },
+        "unsupervised_learning": {},
+        "supervised_learning": {},
+        "ml_readiness": {
+            "is_ready": False,
+            "score": 0.0,
+            "reasons": ["Dataset contains 0 records."],
+        },
+    }
+
+
+

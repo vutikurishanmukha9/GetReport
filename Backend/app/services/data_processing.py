@@ -977,7 +977,7 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
             "dtype": dtype_str,
             "inferred_type": inferred,
             "missing_count": null_count,
-            "missing_percentage": round((null_count / df.height) * 100, 1)
+            "missing_percentage": round((null_count / df.height) * 100, 1) if df.height > 0 else 0.0
         }
         quality_report["columns"].append(col_info)
 
@@ -1020,8 +1020,8 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
     
     # Analyze only the first 15 for the preview report
     for col_name in numeric_cols_for_hist[:15]:
-        # Skip if mostly null
-        if df[col_name].null_count() == df.height:
+        # Skip if empty or mostly null
+        if df.height == 0 or df[col_name].null_count() == df.height:
             continue
 
         try:
@@ -1404,15 +1404,18 @@ def clean_data(
 
             elif action == "drop_column":
                 if target_col in df.columns:
-                    df = df.drop(target_col)
-                    dag.add_node(
-                        operation="drop_column",
-                        df_before=df_before,
-                        df_after=df,
-                        target_column=target_col,
-                        parameters={"action": "drop_column"},
-                        duration_ms=(time.perf_counter() - step_start) * 1000,
-                    )
+                    if df.width > 1:
+                        df = df.drop(target_col)
+                        dag.add_node(
+                            operation="drop_column",
+                            df_before=df_before,
+                            df_after=df,
+                            target_column=target_col,
+                            parameters={"action": "drop_column"},
+                            duration_ms=(time.perf_counter() - step_start) * 1000,
+                        )
+                    else:
+                        logger.warning("Prevented dropping the last remaining column: %s", target_col)
 
             elif action == "clean_text":
                 df = df.with_columns(
@@ -1639,10 +1642,20 @@ def clean_data(
 
 # ─── Dataset Info (Polars) ───────────────────────────────────────────────────
 def get_dataset_info(df: pl.DataFrame) -> dict[str, Any]:
-    
-    # Polars `describe` is different from Pandas.
-    # We construct summary manually or via `describe`
-    
+    if df.width == 0:
+        return {
+            "rows": df.height,
+            "columns": [],
+            "dtypes": {},
+            "summary": {"statistic": []},
+            "preview": [],
+            "missing_values": {},
+            "duplicate_rows": 0,
+            "numeric_columns": [],
+            "categorical_columns": [],
+            "memory_usage_mb": 0.0,
+        }
+
     summary_df = df.describe() 
     # summary_df has columns: "statistic", col1, col2...
     summary_dict = summary_df.to_dict(as_series=False)

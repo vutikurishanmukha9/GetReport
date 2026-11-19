@@ -21,6 +21,8 @@ import {
   Copy,
   Check,
   Activity,
+  Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1279,30 +1281,71 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
               {/* AI/Statistical Smart Insights Strip */}
               {queryResult?.smart_insights && queryResult.smart_insights.length > 0 && (
-                <div className="rounded-xl bg-gradient-to-r from-emerald-500/[0.08] via-sky-500/[0.05] to-purple-500/[0.05] border border-stone-200 dark:border-white/10 p-3 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-semibold text-stone-800 dark:text-zinc-200">
-                    <div className="flex items-center gap-1.5">
-                      <Activity className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span>Automated Data Insights</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400">Polars Vector Engine</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {queryResult.smart_insights.map((ins: any) => (
-                      <div key={ins.id} className="flex items-start gap-2 p-2 rounded-lg bg-white/80 border border-stone-200/80 text-xs dark:bg-black/40 dark:border-white/5 shadow-2xs">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold shrink-0 ${
-                          ins.severity === 'positive' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' :
-                          ins.severity === 'warning' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300' :
-                          'bg-sky-500/20 text-sky-700 dark:text-sky-300'
-                        }`}>
-                          {ins.badge || 'Insight'}
-                        </span>
-                        <p className="text-stone-700 dark:text-zinc-300 text-[11px] leading-relaxed">
-                          <strong className="text-stone-900 dark:text-white mr-1">{ins.title}:</strong>
-                          {ins.description}
-                        </p>
+                <div className="rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#121215] p-3.5 sm:p-4 space-y-3 shadow-2xs dark:shadow-none">
+                  <div className="flex items-center justify-between pb-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-stone-900 text-white dark:bg-white dark:text-stone-900 shadow-2xs">
+                        <Sparkles className="h-3.5 w-3.5" />
                       </div>
-                    ))}
+                      <h4 className="text-xs font-sans font-semibold tracking-tight text-stone-900 dark:text-white">
+                        Automated Insights
+                      </h4>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-stone-200/90 dark:border-white/10 bg-stone-50 dark:bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-sans font-medium text-stone-600 dark:text-zinc-400">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                      </span>
+                      <span>Statistical Engine</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    {queryResult.smart_insights.map((ins: any) => {
+                      const isPositive = ins.severity === "positive";
+                      const isWarning = ins.severity === "warning";
+
+                      const badgeClass = isPositive
+                        ? "bg-emerald-50 text-emerald-800 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40"
+                        : isWarning
+                        ? "bg-amber-50 text-amber-800 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40"
+                        : "bg-sky-50 text-sky-800 border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/40";
+
+                      const IconComponent =
+                        ins.type === "dominance"
+                          ? Sparkles
+                          : ins.type === "trend"
+                          ? TrendingUp
+                          : ins.type === "anomaly"
+                          ? AlertTriangle
+                          : ins.type === "concentration"
+                          ? PieChart
+                          : Activity;
+
+                      return (
+                        <div
+                          key={ins.id}
+                          className="group relative flex flex-col justify-between rounded-lg border border-stone-200/80 bg-stone-50/60 p-3 transition-all duration-200 hover:border-stone-300 hover:bg-stone-50/90 dark:border-white/[0.06] dark:bg-[#161720] dark:hover:border-white/[0.12] dark:hover:bg-[#191a24]"
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-sans font-semibold tracking-wide border ${badgeClass}`}
+                            >
+                              {ins.badge || "Insight"}
+                            </span>
+                            <IconComponent className="h-3.5 w-3.5 text-stone-400 group-hover:text-stone-600 dark:text-zinc-500 dark:group-hover:text-zinc-300 transition-colors" />
+                          </div>
+                          <div>
+                            <h5 className="text-xs font-sans font-semibold text-stone-900 dark:text-white tracking-tight">
+                              {ins.title}
+                            </h5>
+                            <p className="text-[11.5px] leading-relaxed text-stone-600 dark:text-zinc-300 mt-1 font-sans">
+                              {ins.description}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

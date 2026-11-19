@@ -119,31 +119,31 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
     // Sync optimistic state with incoming props
-    const issuesList = optimisticIssues || data.issues;
+    const issuesList = optimisticIssues || data?.issues || [];
 
     // Derived summary counts for instant UI reactivity
     const summary = useMemo(() => {
-        const approved = issuesList.filter(i => i.status === 'approved').length;
-        const rejected = issuesList.filter(i => i.status === 'rejected').length;
-        const modified = issuesList.filter(i => i.status === 'modified').length;
-        const pending = issuesList.filter(i => i.status === 'pending').length;
+        const approved = (issuesList || []).filter(i => i.status === 'approved').length;
+        const rejected = (issuesList || []).filter(i => i.status === 'rejected').length;
+        const modified = (issuesList || []).filter(i => i.status === 'modified').length;
+        const pending = (issuesList || []).filter(i => i.status === 'pending').length;
         return {
             approved,
             rejected,
             modified,
             pending,
-            total: issuesList.length
+            total: (issuesList || []).length
         };
     }, [issuesList]);
 
     const reviewedCount = summary.approved + summary.rejected;
     const progressPct = summary.total > 0 ? Math.round((reviewedCount / summary.total) * 100) : 100;
     const hasPending = summary.pending > 0;
-    const locked = data.locked;
+    const locked = data?.locked ?? false;
 
     // Filter issues based on active tab and search query
     const filteredIssues = useMemo(() => {
-        return issuesList.filter(issue => {
+        return (issuesList || []).filter(issue => {
             // Status tab match
             if (filterStatus !== 'all' && issue.status !== filterStatus) {
                 return false;
@@ -168,7 +168,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         const previous = issuesList;
         setOptimisticIssues(prev =>
-            (prev || data.issues).map(i => (i.id === issueId ? { ...i, status: /* // SAFETY: literal status narrow */ 'approved' as const } : i))
+            (prev || data?.issues || []).map(i => (i.id === issueId ? { ...i, status: /* // SAFETY: literal status narrow */ 'approved' as const } : i))
         );
 
         try {
@@ -189,7 +189,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         const previous = issuesList;
         setOptimisticIssues(prev =>
-            (prev || data.issues).map(i => (i.id === issueId ? { ...i, status: /* // SAFETY: literal status narrow */ 'rejected' as const } : i))
+            (prev || data?.issues || []).map(i => (i.id === issueId ? { ...i, status: /* // SAFETY: literal status narrow */ 'rejected' as const } : i))
         );
 
         try {
@@ -210,7 +210,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         const previous = issuesList;
         setOptimisticIssues(prev =>
-            (prev || data.issues).map(i => (i.status === 'pending' ? { ...i, status: /* // SAFETY: literal status narrow */ 'approved' as const } : i))
+            (prev || data?.issues || []).map(i => (i.status === 'pending' ? { ...i, status: /* // SAFETY: literal status narrow */ 'approved' as const } : i))
         );
 
         try {
@@ -231,7 +231,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         const previous = issuesList;
         setOptimisticIssues(prev =>
-            (prev || data.issues).map(i => (i.status === 'pending' ? { ...i, status: /* // SAFETY: literal status narrow */ 'rejected' as const } : i))
+            (prev || data?.issues || []).map(i => (i.status === 'pending' ? { ...i, status: /* // SAFETY: literal status narrow */ 'rejected' as const } : i))
         );
 
         try {

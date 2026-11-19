@@ -83,32 +83,57 @@ class ComparisonService:
         """
         Compare two dataframes and return a comprehensive comparison report.
         """
-        if df_before.is_empty():
-            logger.warning("Original dataframe is empty, skipping comparison")
-            return self._empty_comparison()
-            
+        rows_before = df_before.height if df_before is not None else 0
+        cols_before = df_before.width if df_before is not None else 0
+        
+        rows_after = df_after.height if df_after is not None else 0
+        cols_after = df_after.width if df_after is not None else 0
+
+        if rows_before == 0 or cols_before == 0:
+            logger.warning("Original dataframe has 0 rows or 0 columns, skipping detailed comparison")
+            return DatasetComparison(
+                rows_before=rows_before,
+                rows_after=rows_after,
+                cols_before=cols_before,
+                cols_after=cols_after,
+                completeness_score_before=0.0,
+                completeness_score_after=0.0,
+                uniqueness_score_before=0.0,
+                uniqueness_score_after=0.0,
+            )
+
+        if rows_after == 0 or cols_after == 0:
+            logger.warning("Cleaned dataframe has 0 rows or 0 columns, skipping column-level comparisons")
+            nulls_before = int(df_before.null_count().sum_horizontal()[0]) if cols_before > 0 else 0
+            total_cells_before = rows_before * cols_before
+            comp_before = ((total_cells_before - nulls_before) / total_cells_before * 100) if total_cells_before > 0 else 0
+            unique_rows_before = df_before.n_unique()
+            unique_score_before = (unique_rows_before / rows_before * 100) if rows_before > 0 else 0
+
+            return DatasetComparison(
+                rows_before=rows_before,
+                rows_after=rows_after,
+                cols_before=cols_before,
+                cols_after=cols_after,
+                completeness_score_before=comp_before,
+                completeness_score_after=0.0,
+                uniqueness_score_before=unique_score_before,
+                uniqueness_score_after=0.0,
+            )
+
         # 1. Dataset Level Stats
-        rows_before = df_before.height
-        cols_before = df_before.width
-        
-        rows_after = df_after.height
-        cols_after = df_after.width
-        
-        # Completeness = (Total Cells - Null Cells) / Total Cells * 100
-        # Polars: sum_horizontal() sums across columns
-        nulls_before = df_before.null_count().sum_horizontal()[0]
+        nulls_before = int(df_before.null_count().sum_horizontal()[0]) if cols_before > 0 else 0
         total_cells_before = rows_before * cols_before
         comp_before = ((total_cells_before - nulls_before) / total_cells_before * 100) if total_cells_before > 0 else 0
-        
-        nulls_after = df_after.null_count().sum_horizontal()[0]
+
+        nulls_after = int(df_after.null_count().sum_horizontal()[0]) if cols_after > 0 else 0
         total_cells_after = rows_after * cols_after
         comp_after = ((total_cells_after - nulls_after) / total_cells_after * 100) if total_cells_after > 0 else 0
-        
+
         # Uniqueness (Approximate for speed if needed, but unique() is fast enough usually)
-        # Using row uniqueness
         unique_rows_before = df_before.n_unique()
         unique_score_before = (unique_rows_before / rows_before * 100) if rows_before > 0 else 0
-        
+
         unique_rows_after = df_after.n_unique()
         unique_score_after = (unique_rows_after / rows_after * 100) if rows_after > 0 else 0
 

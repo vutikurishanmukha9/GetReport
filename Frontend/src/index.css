@@ -1015,3 +1015,61 @@ html {
 .group:hover .trash-lid-hover {
   transform: rotate(-28deg) translateY(-2px);
 }
+
+/* ─── High-Elevation 100% Solid Opaque Toast Architecture ─── */
+[data-getreport-toast],
+li[data-getreport-toast],
+.toast-root,
+li.toast-root {
+  background-color: #ffffff !important;
+  color: #1c1917 !important;
+  border: 1px solid #e7e5e4 !important;
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.06) !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.dark [data-getreport-toast],
+.dark li[data-getreport-toast],
+.dark .toast-root,
+.dark li.toast-root {
+  background-color: #18181b !important;
+  color: #f4f4f6 !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-getreport-toast][data-variant="destructive"],
+li[data-getreport-toast][data-variant="destructive"],
+.toast-root.toast-destructive,
+li.toast-root.toast-destructive {
+  background-color: #ffffff !important;
+  border: 1px solid #fda4af !important;
+  box-shadow: 0 12px 32px -4px rgba(225, 29, 72, 0.12), 0 4px 10px -2px rgba(225, 29, 72, 0.06) !important;
+}
+.dark [data-getreport-toast][data-variant="destructive"],
+.dark li[data-getreport-toast][data-variant="destructive"],
+.dark .toast-root.toast-destructive,
+.dark li.toast-root.toast-destructive {
+  background-color: #1c1316 !important;
+  border: 1px solid rgba(244, 63, 94, 0.4) !important;
+  box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(244, 63, 94, 0.25) !important;
+}
+
+[data-getreport-toast][data-variant="success"],
+li[data-getreport-toast][data-variant="success"],
+.toast-root.toast-success,
+li.toast-root.toast-success {
+  background-color: #ffffff !important;
+  border: 1px solid #a7f3d0 !important;
+  box-shadow: 0 12px 32px -4px rgba(16, 185, 129, 0.12), 0 4px 10px -2px rgba(16, 185, 129, 0.06) !important;
+}
+.dark [data-getreport-toast][data-variant="success"],
+.dark li[data-getreport-toast][data-variant="success"],
+.dark .toast-root.toast-success,
+.dark li.toast-root.toast-success {
+  background-color: #0f1b15 !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(16, 185, 129, 0.25) !important;
+}

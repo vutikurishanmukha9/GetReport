@@ -436,6 +436,43 @@ class SupersetEngine:
 
         return df
 
+    def _clean_metric_name_and_type(self, metric_label: str) -> tuple[str, str]:
+        """
+        Parses raw SQL expressions like 'AVG(age)' or 'SUM(revenue)' into clean business English
+        and classifies whether the metric is an average, additive sum, count, extreme, or general.
+        """
+        raw = metric_label.strip()
+        upper = raw.upper()
+
+        if upper.startswith("AVG(") and upper.endswith(")"):
+            inner = raw[4:-1].strip()
+            return f"average {inner}", "average"
+        if upper.startswith("MEAN(") and upper.endswith(")"):
+            inner = raw[5:-1].strip()
+            return f"mean {inner}", "average"
+        if upper.startswith("MEDIAN(") and upper.endswith(")"):
+            inner = raw[7:-1].strip()
+            return f"median {inner}", "average"
+        if upper.startswith("SUM(") and upper.endswith(")"):
+            inner = raw[4:-1].strip()
+            return f"total {inner}", "sum"
+        if upper.startswith("COUNT(") and upper.endswith(")"):
+            inner = raw[6:-1].strip()
+            return f"{inner} count", "count"
+        if upper.startswith("COUNT_DISTINCT(") and upper.endswith(")"):
+            inner = raw[15:-1].strip()
+            return f"unique {inner} count", "count"
+        if upper.startswith("MIN(") and upper.endswith(")"):
+            inner = raw[4:-1].strip()
+            return f"minimum {inner}", "extreme"
+        if upper.startswith("MAX(") and upper.endswith(")"):
+            inner = raw[4:-1].strip()
+            return f"maximum {inner}", "extreme"
+        if upper in ("RECORD COUNT", "RECORDS", "TOTAL ROWS"):
+            return "record volume", "count"
+
+        return raw, "general"
+
     def _generate_smart_insights(
         self,
         df: pl.DataFrame,
@@ -447,37 +484,65 @@ class SupersetEngine:
     ) -> List[Dict[str, Any]]:
         """
         Computes automatic AI/statistical smart insights from the aggregated query result.
-        Calculates Pareto dominance, statistical outliers (>2σ), interval growth, and spread ratios.
+        Produces human-readable, executive prose tailored to the metric type (average, sum, count, etc.)
+        covering benchmark dominance, distribution uniformity, Pareto concentration, temporal trends, and anomalies.
         """
         insights: List[Dict[str, Any]] = []
         if not records or len(records) == 0:
             return insights
 
-        valid_vals = [float(r["value"]) for r in records if r.get("value") is not None and not (isinstance(r["value"], float) and math.isnan(r["value"]))]
+        valid_vals = [
+            float(r["value"])
+            for r in records
+            if r.get("value") is not None and not (isinstance(r["value"], float) and math.isnan(r["value"]))
+        ]
         if not valid_vals:
             return insights
 
+        clean_metric, metric_type = self._clean_metric_name_and_type(metric_label)
         total_sum = sum(valid_vals)
         num_records = len(records)
         top_rec = records[0]
         top_cat = str(top_rec.get(dimension, "N/A"))
         top_val = float(top_rec.get("value", 0))
 
-        # 1. Dominance & Pareto Concentration
-        if total_sum > 0:
+        # 1. Metric-Aware Category Leadership / Distribution
+        if metric_type == "average":
+            cat_avg = total_sum / num_records if num_records > 0 else 0
+            if cat_avg > 0:
+                diff_pct = ((top_val - cat_avg) / cat_avg) * 100
+                if diff_pct >= 15.0:
+                    insights.append({
+                        "id": "insight_dominance",
+                        "type": "dominance",
+                        "title": "Category Leader",
+                        "badge": "Top Performer",
+                        "severity": "positive",
+                        "description": f"'{top_cat}' leads with an {clean_metric} of {top_val:,.1f}, outperforming the category benchmark ({cat_avg:,.1f}) by {diff_pct:.1f}%."
+                    })
+                elif len(valid_vals) >= 3 and diff_pct < 8.0:
+                    insights.append({
+                        "id": "insight_uniform",
+                        "type": "distribution",
+                        "title": "Balanced Distribution",
+                        "badge": "Even Spread",
+                        "severity": "info",
+                        "description": f"{clean_metric.capitalize()} is uniformly distributed across categories, with '{top_cat}' peaking slightly at {top_val:,.1f} (benchmark: {cat_avg:,.1f})."
+                    })
+        elif total_sum > 0:
             top_share = (top_val / total_sum) * 100
             if top_share >= 25.0:
                 insights.append({
                     "id": "insight_dominance",
                     "type": "dominance",
                     "title": "Top Driver Concentration",
-                    "badge": "Dominant Group",
+                    "badge": "Top Driver",
                     "severity": "positive" if top_share < 60 else "warning",
-                    "description": f"'{top_cat}' accounts for {top_share:.1f}% ({top_val:,.1f}) of all {metric_label} across the dataset."
+                    "description": f"'{top_cat}' represents {top_share:.1f}% ({top_val:,.1f}) of all {clean_metric} across the dataset."
                 })
 
-        # 2. Pareto 80/20 Rule Analysis
-        if num_records >= 4 and total_sum > 0:
+        # 2. Pareto 80/20 Rule Analysis (for additive volume metrics)
+        if metric_type in ("sum", "count", "general") and num_records >= 4 and total_sum > 0:
             cum_sum = 0
             needed_cats = 0
             for r in records:
@@ -490,17 +555,17 @@ class SupersetEngine:
                 insights.append({
                     "id": "insight_pareto",
                     "type": "concentration",
-                    "title": "Pareto Skewness",
+                    "title": "Pareto Concentration",
                     "badge": "High Concentration",
                     "severity": "info",
-                    "description": f"The top {needed_cats} group{'s' if needed_cats > 1 else ''} ({pct_cats:.0f}% of categories) drive {(cum_sum / total_sum * 100):.1f}% of total volume."
+                    "description": f"The top {needed_cats} group{'s' if needed_cats > 1 else ''} ({pct_cats:.0f}% of categories) drive {(cum_sum / total_sum * 100):.1f}% of total {clean_metric}."
                 })
 
         # 3. Category Spread Ratio (Max vs Min)
         if len(valid_vals) >= 2:
             min_val = min(valid_vals)
             max_val = max(valid_vals)
-            if min_val > 0 and max_val / min_val >= 2.5:
+            if min_val > 0 and max_val / min_val >= 2.0:
                 ratio = max_val / min_val
                 insights.append({
                     "id": "insight_spread",
@@ -508,7 +573,7 @@ class SupersetEngine:
                     "title": "Performance Spread",
                     "badge": f"{ratio:.1f}x Variance",
                     "severity": "info",
-                    "description": f"Peak group '{top_cat}' is {ratio:.1f}x larger than the lowest observed group ({min_val:,.1f})."
+                    "description": f"Peak category '{top_cat}' ({max_val:,.1f}) is {ratio:.1f}x larger than the lowest observed group ({min_val:,.1f}) in {clean_metric}."
                 })
 
         # 4. Temporal Velocity (Interval-over-Interval % Change)
@@ -518,14 +583,15 @@ class SupersetEngine:
                 curr_val = float(records[-1].get("value", 0))
                 if prev_val != 0:
                     growth = ((curr_val - prev_val) / abs(prev_val)) * 100
-                    direction = "grown" if growth >= 0 else "contracted"
+                    direction = "expanded" if growth >= 0 else "contracted"
+                    period_label = str(records[-1].get(dimension, "recent period"))
                     insights.append({
                         "id": "insight_growth",
                         "type": "trend",
                         "title": f"Recent Period {'Expansion' if growth >= 0 else 'Contraction'}",
                         "badge": f"{'+' if growth >= 0 else ''}{growth:.1f}%",
                         "severity": "positive" if growth >= 0 else "warning",
-                        "description": f"{metric_label} has {direction} by {abs(growth):.1f}% in the most recent period ({records[-1].get(dimension)})."
+                        "description": f"{clean_metric.capitalize()} has {direction} by {abs(growth):.1f}% in the most recent period ({period_label})."
                     })
             except Exception:
                 pass
@@ -544,10 +610,10 @@ class SupersetEngine:
                         insights.append({
                             "id": f"insight_outlier_{cat_name}",
                             "type": "anomaly",
-                            "title": "Statistical Anomaly Detected",
+                            "title": "Statistical Anomaly",
                             "badge": f"+{z_score:.1f}σ Outlier",
                             "severity": "warning",
-                            "description": f"'{cat_name}' deviates by {z_score:.1f} standard deviations above the category average."
+                            "description": f"'{cat_name}' deviates at {val:,.1f} (+{z_score:.1f}σ above the group mean of {mean:,.1f})."
                         })
                         break
 
