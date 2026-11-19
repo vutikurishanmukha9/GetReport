@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import * as echarts from "echarts";
 import {
   BarChart3,
+  AlignLeft,
   TrendingUp,
   PieChart,
   Grid,
@@ -23,11 +24,18 @@ import {
   Activity,
   Sparkles,
   AlertTriangle,
+  Search,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Trophy,
+  Hash,
 } from "lucide-react";
 import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/hooks/useTheme";
 
 interface DatasetItem {
   task_id: string;
@@ -61,7 +69,8 @@ interface SupersetExploreStudioProps {
 }
 
 const CHART_TYPES = [
-  { id: "echarts_bar", label: "Bar / Column", icon: BarChart3, desc: "Categorical comparisons & counts" },
+  { id: "echarts_bar", label: "Column (Vert)", icon: BarChart3, desc: "Vertical categorical comparisons & counts" },
+  { id: "echarts_horizontal_bar", label: "Bar (Horiz)", icon: AlignLeft, desc: "Horizontal ranking & clean labels" },
   { id: "echarts_line", label: "Line / Trend", icon: TrendingUp, desc: "Trends & series distributions" },
   { id: "echarts_combo", label: "Dual Combo", icon: TrendingUp, desc: "Bar (Left Y) + Line (Right Y) Dual Axis" },
   { id: "echarts_area", label: "Area Fill", icon: Layers, desc: "Cumulative series volume" },
@@ -72,7 +81,6 @@ const CHART_TYPES = [
   { id: "echarts_heatmap", label: "2D Heatmap", icon: Grid, desc: "Matrix intensity (requires 2 dims)" },
   { id: "echarts_boxplot", label: "Boxplot", icon: Table2, desc: "Five-number quartile spread" },
   { id: "echarts_treemap", label: "Treemap", icon: Grid, desc: "Hierarchical rectangular area" },
-  { id: "table", label: "Data Grid", icon: Table2, desc: "Tabular grouped records" },
 ];
 
 const AGGREGATIONS = [
@@ -136,9 +144,19 @@ interface NativeEChartsViewProps {
   className?: string;
 }
 
-const sanitizeEChartsOption = (opt: any): any => {
+const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
   if (!opt || typeof opt !== 'object') return opt;
-  const clone = { ...opt };
+  const clone = JSON.parse(JSON.stringify(opt));
+
+  // High-contrast, theme-calibrated typography and hairline colors
+  // Light Mode: Pure rich black/charcoal (#18181b / #292524) for 100% legibility on light canvas
+  // Dark Mode: Crisp bright zinc (#f4f4f5 / #d4d4d8) for 100% legibility on dark canvas
+  const primaryTextColor = isDark ? "#f4f4f5" : "#18181b";
+  const secondaryTextColor = isDark ? "#a1a1aa" : "#44403c";
+  const axisLabelColor = isDark ? "#d4d4d8" : "#292524";
+  const axisLineColor = isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.15)";
+  const splitLineColor = isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.08)";
+  const labelHaloColor = isDark ? "rgba(9, 13, 22, 0.95)" : "rgba(255, 255, 255, 0.95)";
 
   const sanitizeAxis = (axis: any) => {
     if (!axis || typeof axis !== 'object') return axis;
@@ -146,48 +164,91 @@ const sanitizeEChartsOption = (opt: any): any => {
     if (clean.type === 'linear') {
       clean.type = 'value';
     }
+    clean.axisLabel = {
+      fontSize: 11,
+      fontFamily: "inherit",
+      fontWeight: 500,
+      ...(clean.axisLabel || {}),
+      color: axisLabelColor, // Always enforce high-contrast theme color
+    };
+    if (clean.name) {
+      clean.nameTextStyle = {
+        fontSize: 11,
+        fontFamily: "inherit",
+        fontWeight: 600,
+        ...(clean.nameTextStyle || {}),
+        color: primaryTextColor,
+      };
+    }
+    clean.axisLine = {
+      ...(clean.axisLine || {}),
+      lineStyle: {
+        ...(clean.axisLine?.lineStyle || {}),
+        color: axisLineColor,
+      },
+    };
+    if (clean.splitLine && clean.splitLine.show !== false) {
+      clean.splitLine = {
+        ...(clean.splitLine || {}),
+        lineStyle: {
+          type: "dashed",
+          ...(clean.splitLine?.lineStyle || {}),
+          color: splitLineColor,
+        },
+      };
+    }
     return clean;
   };
 
   if (clone.yAxis) {
-    if (Array.isArray(clone.yAxis)) {
-      clone.yAxis = clone.yAxis.map(sanitizeAxis);
-    } else {
-      clone.yAxis = sanitizeAxis(clone.yAxis);
-    }
+    clone.yAxis = Array.isArray(clone.yAxis) ? clone.yAxis.map(sanitizeAxis) : sanitizeAxis(clone.yAxis);
   }
 
   if (clone.xAxis) {
-    if (Array.isArray(clone.xAxis)) {
-      clone.xAxis = clone.xAxis.map(sanitizeAxis);
-    } else {
-      clone.xAxis = sanitizeAxis(clone.xAxis);
-    }
+    clone.xAxis = Array.isArray(clone.xAxis) ? clone.xAxis.map(sanitizeAxis) : sanitizeAxis(clone.xAxis);
   }
 
-  // Ensure tooltips are safely confined within canvas across all chart types
-  if (clone.tooltip) {
-    clone.tooltip = {
-      confine: true,
-      ...clone.tooltip,
-    };
-  }
+  // Ensure tooltips are safely confined within canvas across all chart types and styled to theme
+  clone.tooltip = {
+    confine: true,
+    backgroundColor: isDark ? "#18181b" : "#ffffff",
+    borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)",
+    borderWidth: 1,
+    padding: [8, 12],
+    textStyle: { color: isDark ? "#f4f4f5" : "#18181b", fontSize: 12, fontWeight: 500 },
+    extraCssText: isDark
+      ? "box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5); border-radius: 10px; backdrop-filter: blur(8px);"
+      : "box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.12); border-radius: 10px;",
+    ...(clone.tooltip || {}),
+  };
 
-  // Ensure legend is always scrollable and positioned at top to avoid bar/axis collision
+  // Ensure legend is always scrollable, positioned at top, and text is 100% visible
   if (clone.legend && clone.legend.show !== false) {
+    const origLegend = clone.legend;
     clone.legend = {
+      ...origLegend,
       orient: "horizontal",
       left: "center",
       right: "4%",
-      pageButtonPosition: "end",
-      pageIconColor: "#38bdf8",
-      pageIconInactiveColor: "#475569",
-      pageIconSize: 10,
-      pageTextStyle: { color: "#94a3b8", fontSize: 10 },
-      textStyle: { color: "#cbd5e1", fontSize: 11 },
-      ...clone.legend,
-      type: "scroll",
       top: "0%",
+      type: "scroll",
+      pageButtonPosition: "end",
+      pageIconColor: isDark ? "#38bdf8" : "#800000",
+      pageIconInactiveColor: isDark ? "#52525b" : "#a8a29e",
+      pageIconSize: 11,
+      pageTextStyle: {
+        fontSize: 10,
+        fontWeight: 600,
+        ...(origLegend.pageTextStyle || {}),
+        color: secondaryTextColor, // Always enforce visible page text (e.g. 1/7)
+      },
+      textStyle: {
+        fontSize: 11,
+        fontWeight: 500,
+        fontFamily: "inherit",
+        ...(origLegend.textStyle || {}),
+        color: primaryTextColor, // Always enforce visible legend item text
+      },
     };
     delete clone.legend.bottom;
     if (clone.grid) {
@@ -196,6 +257,78 @@ const sanitizeEChartsOption = (opt: any): any => {
         top: Math.max(typeof clone.grid.top === "number" ? clone.grid.top : parseInt(clone.grid.top || "8", 10), 45),
       };
     }
+  }
+
+  // Ensure series labels (pie slice callouts, bar values, line markers) are high-contrast with halo outline
+  if (Array.isArray(clone.series)) {
+    clone.series = clone.series.map((s: any) => {
+      if (!s || typeof s !== 'object') return s;
+      const cleanSeries = { ...s };
+
+      // High-visibility label formatting with 3px halo outline
+      if (cleanSeries.label) {
+        cleanSeries.label = {
+          fontSize: 11,
+          fontFamily: "inherit",
+          fontWeight: 500,
+          ...cleanSeries.label,
+          color: primaryTextColor, // High-contrast solid color
+          textBorderColor: labelHaloColor,
+          textBorderWidth: 3, // Halo outline guarantees crisp contrast
+        };
+      }
+
+      // Pie & Donut chart callout lines and slice boundaries
+      if (cleanSeries.type === "pie") {
+        cleanSeries.labelLine = {
+          ...(cleanSeries.labelLine || {}),
+          lineStyle: {
+            width: 1.2,
+            ...(cleanSeries.labelLine?.lineStyle || {}),
+            color: isDark ? "rgba(255, 255, 255, 0.45)" : "rgba(0, 0, 0, 0.45)",
+          },
+        };
+        cleanSeries.itemStyle = {
+          ...(cleanSeries.itemStyle || {}),
+          borderColor: isDark ? "#0c0d12" : "#ffffff",
+          borderWidth: 2,
+        };
+      }
+
+      return cleanSeries;
+    });
+  }
+
+  // Ensure title text is high-contrast
+  if (clone.title) {
+    clone.title = {
+      ...clone.title,
+      textStyle: {
+        fontSize: 13,
+        fontWeight: 600,
+        ...(clone.title.textStyle || {}),
+        color: primaryTextColor,
+      },
+    };
+  }
+
+  // Ensure dataZoom slider text and borders are high-contrast
+  if (Array.isArray(clone.dataZoom)) {
+    clone.dataZoom = clone.dataZoom.map((dz: any) => ({
+      ...dz,
+      textStyle: {
+        fontSize: 10,
+        fontWeight: 500,
+        ...(dz.textStyle || {}),
+        color: secondaryTextColor,
+      },
+      borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)",
+      handleStyle: {
+        color: isDark ? "#38bdf8" : "#800000",
+        borderColor: isDark ? "#0284c7" : "#550000",
+        ...(dz.handleStyle || {}),
+      },
+    }));
   }
 
   return clone;
@@ -212,6 +345,41 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
   const onChartClickRef = useRef(onChartClick);
   const onInstanceReadyRef = useRef(onInstanceReady);
+  const { theme } = useTheme();
+
+  // Dynamic theme state that reacts to both useTheme hook and document root classList
+  const [effectiveDark, setEffectiveDark] = useState<boolean>(() => {
+    if (typeof document !== "undefined") {
+      return document.documentElement.classList.contains("dark");
+    }
+    return theme === "dark";
+  });
+
+  useEffect(() => {
+    const updateThemeState = () => {
+      if (typeof document !== "undefined") {
+        setEffectiveDark(document.documentElement.classList.contains("dark"));
+      } else {
+        setEffectiveDark(theme === "dark");
+      }
+    };
+
+    updateThemeState();
+
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.attributeName === "class") {
+          updateThemeState();
+        }
+      }
+    });
+
+    if (typeof document !== "undefined") {
+      observer.observe(document.documentElement, { attributes: true });
+    }
+
+    return () => observer.disconnect();
+  }, [theme]);
 
   useEffect(() => {
     onChartClickRef.current = onChartClick;
@@ -258,7 +426,7 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
     let timer2: ReturnType<typeof setTimeout> | undefined;
 
     if (option && Object.keys(option).length > 0) {
-      const cleanOption = sanitizeEChartsOption(option);
+      const cleanOption = sanitizeEChartsOption(option, effectiveDark);
       try {
         // Clear previous series & coordinate systems when switching chart types to prevent layout collision
         instance.clear();
@@ -298,7 +466,7 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
       window.removeEventListener("resize", resizeChart);
       instance.off("click", clickHandler);
     };
-  }, [option]);
+  }, [option, effectiveDark]);
 
   useEffect(() => {
     return () => {
@@ -373,6 +541,77 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const [viewMode, setViewMode] = useState<"chart" | "data">("chart");
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [mobileTab, setMobileTab] = useState<"chart" | "controls">("chart");
+
+  // Interactive Data Table Exploration State
+  const [tableSearch, setTableSearch] = useState<string>("");
+  const [tableSortCol, setTableSortCol] = useState<string>("value");
+  const [tableSortDir, setTableSortDir] = useState<"asc" | "desc">("desc");
+  const [tablePage, setTablePage] = useState<number>(1);
+  const [tablePageSize, setTablePageSize] = useState<number>(10);
+
+  // Reset table pagination when search or dimension changes
+  useEffect(() => {
+    setTablePage(1);
+  }, [tableSearch, selectedTaskId, dimension]);
+
+  const totalMetricSum = useMemo(() => {
+    if (!queryResult?.records || !Array.isArray(queryResult.records)) return 0;
+    return queryResult.records.reduce(
+      (acc: number, r: any) => acc + (typeof r.value === "number" ? Math.abs(r.value) : 0),
+      0
+    );
+  }, [queryResult?.records]);
+
+  const totalRowCount = useMemo(() => {
+    if (!queryResult?.records || !Array.isArray(queryResult.records)) return 0;
+    return queryResult.records.reduce(
+      (acc: number, r: any) => acc + (typeof r.count === "number" ? r.count : 0),
+      0
+    );
+  }, [queryResult?.records]);
+
+  const filteredAndSortedRecords = useMemo(() => {
+    if (!queryResult?.records || !Array.isArray(queryResult.records)) return [];
+    let list = [...queryResult.records];
+
+    if (tableSearch.trim()) {
+      const q = tableSearch.toLowerCase().trim();
+      list = list.filter((r) =>
+        Object.values(r).some(
+          (val) => val !== null && val !== undefined && String(val).toLowerCase().includes(q)
+        )
+      );
+    }
+
+    list.sort((a, b) => {
+      const aVal = a[tableSortCol];
+      const bVal = b[tableSortCol];
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return tableSortDir === "asc" ? aVal - bVal : bVal - aVal;
+      }
+      const strA = String(aVal ?? "");
+      const strB = String(bVal ?? "");
+      return tableSortDir === "asc" ? strA.localeCompare(strB) : strB.localeCompare(strA);
+    });
+
+    return list;
+  }, [queryResult?.records, tableSearch, tableSortCol, tableSortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedRecords.length / tablePageSize));
+  const paginatedRecords = useMemo(() => {
+    const start = (tablePage - 1) * tablePageSize;
+    return filteredAndSortedRecords.slice(start, start + tablePageSize);
+  }, [filteredAndSortedRecords, tablePage, tablePageSize]);
+
+  const handleSortClick = (col: string) => {
+    if (tableSortCol === col) {
+      setTableSortDir(prev => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setTableSortCol(col);
+      setTableSortDir("desc");
+    }
+    setTablePage(1);
+  };
 
   // Dynamic Chart Auto-Resize
   useEffect(() => {
@@ -1274,163 +1513,231 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               mobileTab === "chart" ? "flex" : "hidden lg:flex"
             }`}>
               
-              {/* Top: Superset BigNumber KPI Cards with Compact Number Formatting */}
-              {queryResult?.kpis && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#121215] p-3.5 shadow-2xs dark:shadow-none">
-                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-500 dark:text-zinc-400 block">
-                      Total Records
-                    </span>
-                    <span className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white mt-1 block tabular-nums">
-                      {formatCompactNumber(queryResult.kpis.total_rows)}
-                    </span>
-                  </div>
+              {/* Top: Architectural Precision Telemetry Deck */}
+              {queryResult?.kpis && (() => {
+                const isAvg = aggregate === "AVG";
+                const isSum = aggregate === "SUM";
+                const isCount = aggregate === "COUNT";
+                const isMax = aggregate === "MAX";
+                const isMin = aggregate === "MIN";
 
-                  <div className="rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#121215] p-3.5 shadow-2xs dark:shadow-none">
-                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-500 dark:text-zinc-400 block truncate">
-                      {queryResult.kpis.metric_label || "Metric Value"}
-                    </span>
-                    <span className="text-xl sm:text-2xl font-sans font-bold text-emerald-700 dark:text-emerald-400 mt-1 block tabular-nums">
-                      {queryResult.kpis.mean !== null && queryResult.kpis.mean !== undefined
-                        ? formatCompactNumber(queryResult.kpis.mean)
-                        : queryResult.kpis.sum !== null && queryResult.kpis.sum !== undefined
-                        ? formatCompactNumber(queryResult.kpis.sum)
-                        : "—"}
-                    </span>
-                  </div>
+                const metricDisplayVal = isAvg
+                  ? (queryResult.kpis.mean ?? queryResult.kpis.sum)
+                  : isSum
+                  ? (queryResult.kpis.sum ?? queryResult.kpis.mean)
+                  : isMax
+                  ? (queryResult.kpis.max ?? queryResult.kpis.sum)
+                  : isMin
+                  ? (queryResult.kpis.min ?? queryResult.kpis.sum)
+                  : (queryResult.kpis.sum ?? queryResult.kpis.mean);
 
-                  <div className="rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#121215] p-3.5 shadow-2xs dark:shadow-none">
-                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-500 dark:text-zinc-400 block">
-                      Peak Group
-                    </span>
-                    <span className="text-xl sm:text-2xl font-sans font-bold text-emerald-700 dark:text-emerald-400 mt-1 block truncate">
-                      {queryResult.records?.[0]?.[dimension] ?? "—"}
-                    </span>
-                  </div>
+                const metricSubtitle = isAvg
+                  ? "Average per record"
+                  : isSum
+                  ? "Dataset sum total"
+                  : isMax
+                  ? "Peak maximum record"
+                  : isMin
+                  ? "Lowest record value"
+                  : isCount
+                  ? "Total count"
+                  : "Aggregate metric total";
 
-                  <div className="rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#121215] p-3.5 shadow-2xs dark:shadow-none">
-                    <span className="text-[10px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-500 dark:text-zinc-400 block">
-                      Total Groups
-                    </span>
-                    <span className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-slate-200 mt-1 block tabular-nums">
-                      {formatCompactNumber(queryResult.total_groups)}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* AI/Statistical Smart Insights Strip */}
-              {queryResult?.smart_insights && queryResult.smart_insights.length > 0 && (
-                <div className="rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#121215] p-3.5 sm:p-4 space-y-3 shadow-2xs dark:shadow-none">
-                  <div className="flex items-center justify-between pb-1">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-stone-900 text-white dark:bg-white dark:text-stone-900 shadow-2xs">
-                        <Sparkles className="h-3.5 w-3.5" />
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {/* Card 1: Records In Scope */}
+                    <div className="group relative rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 shadow-2xs hover:border-stone-300 dark:hover:border-white/20 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between text-stone-500 dark:text-zinc-400">
+                        <span className="text-[10.5px] font-mono font-medium uppercase tracking-[0.08em] text-stone-500 dark:text-zinc-400">
+                          Total Records
+                        </span>
+                        <span className="text-[9.5px] font-mono tracking-widest text-stone-400 dark:text-zinc-600 font-medium">
+                          SCOPE
+                        </span>
                       </div>
-                      <h4 className="text-xs font-sans font-semibold tracking-tight text-stone-900 dark:text-white">
-                        Automated Insights
+                      <div className="mt-3">
+                        <span className="text-2xl sm:text-3xl font-mono font-semibold text-stone-900 dark:text-white tabular-nums tracking-tight block">
+                          {formatCompactNumber(queryResult.kpis.total_rows)}
+                        </span>
+                        <span className="text-[11.5px] text-stone-500 dark:text-zinc-400 font-sans block mt-1 truncate">
+                          records in scope
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Card 2: Metric Aggregate */}
+                    <div className="group relative rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 shadow-2xs hover:border-stone-300 dark:hover:border-white/20 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between text-stone-500 dark:text-zinc-400">
+                        <span className="text-[10.5px] font-mono font-medium uppercase tracking-[0.08em] text-stone-500 dark:text-zinc-400 truncate max-w-[120px]" title={queryResult.kpis.metric_label || "Metric"}>
+                          {queryResult.kpis.metric_label || "Metric Value"}
+                        </span>
+                        <span className="text-[9.5px] font-mono tracking-widest text-stone-400 dark:text-zinc-600 font-medium">
+                          {aggregate}
+                        </span>
+                      </div>
+                      <div className="mt-3">
+                        <span className="text-2xl sm:text-3xl font-mono font-semibold text-stone-900 dark:text-white tabular-nums tracking-tight block">
+                          {metricDisplayVal !== null && metricDisplayVal !== undefined
+                            ? formatCompactNumber(metricDisplayVal)
+                            : "—"}
+                        </span>
+                        <span className="text-[11.5px] text-stone-500 dark:text-zinc-400 font-sans block mt-1 truncate">
+                          {metricSubtitle}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Peak Performer */}
+                    <div className="group relative rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 shadow-2xs hover:border-stone-300 dark:hover:border-white/20 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between text-stone-500 dark:text-zinc-400">
+                        <span className="text-[10.5px] font-mono font-medium uppercase tracking-[0.08em] text-stone-500 dark:text-zinc-400">
+                          Peak Performer
+                        </span>
+                        <span className="text-[9.5px] font-mono tracking-widest text-stone-400 dark:text-zinc-600 font-medium">
+                          RANK 1
+                        </span>
+                      </div>
+                      <div className="mt-3">
+                        <span className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white truncate block tracking-tight">
+                          {queryResult.records?.[0]?.[dimension] ?? "—"}
+                        </span>
+                        <span className="text-[11.5px] text-stone-500 dark:text-zinc-400 font-sans block mt-1 truncate">
+                          {queryResult.records?.[0]?.value !== undefined
+                            ? `${formatCompactNumber(queryResult.records[0].value)} (${queryResult.records[0].count?.toLocaleString() || 0} rows)`
+                            : "Leading rank"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Card 4: Total Groups */}
+                    <div className="group relative rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 shadow-2xs hover:border-stone-300 dark:hover:border-white/20 transition-all flex flex-col justify-between">
+                      <div className="flex items-center justify-between text-stone-500 dark:text-zinc-400">
+                        <span className="text-[10.5px] font-mono font-medium uppercase tracking-[0.08em] text-stone-500 dark:text-zinc-400">
+                          Total Groups
+                        </span>
+                        <span className="text-[9.5px] font-mono tracking-widest text-stone-400 dark:text-zinc-600 font-medium">
+                          GROUPS
+                        </span>
+                      </div>
+                      <div className="mt-3">
+                        <span className="text-2xl sm:text-3xl font-mono font-semibold text-stone-900 dark:text-white tabular-nums tracking-tight block">
+                          {formatCompactNumber(queryResult.total_groups)}
+                        </span>
+                        <span className="text-[11.5px] text-stone-500 dark:text-zinc-400 font-sans block mt-1 truncate">
+                          distinct categories
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Statistical & Observational Insights Strip */}
+              {queryResult?.smart_insights && queryResult.smart_insights.length > 0 && (
+                <div className="rounded-xl border border-stone-200/80 bg-white/80 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 space-y-2.5 shadow-2xs">
+                  <div className="flex items-center justify-between pb-1 border-b border-stone-100 dark:border-white/[0.06]">
+                    <div className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-stone-400 dark:bg-zinc-500" />
+                      <h4 className="text-[11px] font-mono uppercase tracking-[0.08em] text-stone-600 dark:text-zinc-400 font-medium">
+                        Key Observations & Patterns
                       </h4>
                     </div>
-                    <div className="inline-flex items-center gap-1.5 rounded-full border border-stone-200/90 dark:border-white/10 bg-stone-50 dark:bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-sans font-medium text-stone-600 dark:text-zinc-400">
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                      </span>
-                      <span>Statistical Engine</span>
-                    </div>
+                    <span className="text-[10px] font-mono text-stone-400 dark:text-zinc-500">
+                      {queryResult.smart_insights.length} observations
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                    {queryResult.smart_insights.map((ins: any) => {
-                      const isPositive = ins.severity === "positive";
-                      const isWarning = ins.severity === "warning";
-
-                      const badgeClass = isPositive
-                        ? "bg-emerald-50 text-emerald-800 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40"
-                        : isWarning
-                        ? "bg-amber-50 text-amber-800 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40"
-                        : "bg-sky-50 text-sky-800 border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/40";
-
-                      const IconComponent =
-                        ins.type === "dominance"
-                          ? Sparkles
-                          : ins.type === "trend"
-                          ? TrendingUp
-                          : ins.type === "anomaly"
-                          ? AlertTriangle
-                          : ins.type === "concentration"
-                          ? PieChart
-                          : Activity;
-
-                      return (
-                        <div
-                          key={ins.id}
-                          className="group relative flex flex-col justify-between rounded-lg border border-stone-200/80 bg-stone-50/60 p-3 transition-all duration-200 hover:border-stone-300 hover:bg-stone-50/90 dark:border-white/[0.06] dark:bg-[#161720] dark:hover:border-white/[0.12] dark:hover:bg-[#191a24]"
-                        >
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-sans font-semibold tracking-wide border ${badgeClass}`}
-                            >
-                              {ins.badge || "Insight"}
-                            </span>
-                            <IconComponent className="h-3.5 w-3.5 text-stone-400 group-hover:text-stone-600 dark:text-zinc-500 dark:group-hover:text-zinc-300 transition-colors" />
-                          </div>
-                          <div>
-                            <h5 className="text-xs font-sans font-semibold text-stone-900 dark:text-white tracking-tight">
-                              {ins.title}
-                            </h5>
-                            <p className="text-[11.5px] leading-relaxed text-stone-600 dark:text-zinc-300 mt-1 font-sans">
-                              {ins.description}
-                            </p>
-                          </div>
+                    {queryResult.smart_insights.map((ins: any) => (
+                      <div
+                        key={ins.id}
+                        className="group relative flex flex-col justify-between rounded-lg border border-stone-200/70 bg-stone-50/50 p-3 transition-colors hover:border-stone-300 dark:border-white/[0.05] dark:bg-white/[0.02] dark:hover:border-white/10"
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-stone-500 dark:text-zinc-400">
+                            {ins.badge || "Observation"}
+                          </span>
+                          <span className="text-[10px] font-mono text-stone-400 dark:text-zinc-600">
+                            {ins.type || "pattern"}
+                          </span>
                         </div>
-                      );
-                    })}
+                        <div>
+                          <h5 className="text-xs font-sans font-semibold text-stone-900 dark:text-white tracking-tight">
+                            {ins.title}
+                          </h5>
+                          <p className="text-[11.5px] leading-relaxed text-stone-600 dark:text-zinc-300 mt-1 font-sans">
+                            {ins.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
               {/* Main Chart or Table Canvas */}
-              <div className="flex-1 min-h-[380px] sm:min-h-[460px] rounded-xl border border-stone-200 bg-white dark:border-slate-800 dark:bg-[#0c0d12] p-3 sm:p-4 flex flex-col relative shadow-2xs dark:shadow-none">
+              <div className="flex-1 min-h-[400px] sm:min-h-[480px] rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#0c0d12] p-3.5 sm:p-5 flex flex-col relative shadow-2xs">
                 
-                {/* View Switcher: Chart vs Raw Data */}
-                <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 pb-3 border-b border-stone-200 dark:border-slate-800/80 mb-2">
-                  <div className="flex items-center gap-1.5 bg-stone-200/80 dark:bg-[#0e1017] p-1 rounded-lg border border-stone-300 dark:border-slate-800">
+                {/* View Switcher & Toolbar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200 dark:border-white/10 mb-3">
+                  <div className="flex items-center gap-1 bg-stone-100 dark:bg-[#14151c] p-0.5 rounded-lg border border-stone-200/80 dark:border-white/10">
                     <button
                       type="button"
                       onClick={() => setViewMode("chart")}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
                         viewMode === "chart"
                           ? "bg-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:text-zinc-950"
-                          : "text-stone-700 hover:text-stone-950 dark:text-slate-400 dark:hover:text-slate-200"
+                          : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-white"
                       }`}
                     >
-                      Visual Chart
+                      <BarChart3 className="h-3.5 w-3.5" />
+                      <span>Visual Chart</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setViewMode("data")}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
                         viewMode === "data"
                           ? "bg-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:text-zinc-950"
-                          : "text-stone-700 hover:text-stone-950 dark:text-slate-400 dark:hover:text-slate-200"
+                          : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-white"
                       }`}
                     >
-                      Aggregated Data ({queryResult?.records?.length ?? 0})
+                      <Table2 className="h-3.5 w-3.5" />
+                      <span>Aggregated Data</span>
+                      <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-black/10 dark:bg-white/15 tabular-nums">
+                        {queryResult?.records?.length ?? 0}
+                      </span>
                     </button>
                   </div>
 
-                  <div className="text-xs text-stone-600 dark:text-slate-400 font-mono truncate">
-                    {queryResult?.metric_label} by {dimension}
-                    {timeGrain && <span className="text-sky-600 dark:text-sky-400 ml-1">({timeGrain})</span>}
+                  {/* Canvas Toolbar Controls */}
+                  <div className="flex items-center gap-2 flex-wrap text-xs font-sans">
+                    {/* Quick Bar Orientation Toggle */}
+                    {viewMode === "chart" && (chartType === "echarts_bar" || chartType === "echarts_horizontal_bar") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setChartType(chartType === "echarts_bar" ? "echarts_horizontal_bar" : "echarts_bar")}
+                        className="h-7 px-2 rounded-lg text-[11px] gap-1 border-stone-200 bg-white hover:bg-stone-50 dark:border-white/10 dark:bg-[#14151c] dark:hover:bg-white/[0.08] cursor-pointer"
+                        title="Toggle Vertical Column vs Horizontal Ranking"
+                      >
+                        {chartType === "echarts_bar" ? <AlignLeft className="h-3 w-3" /> : <BarChart3 className="h-3 w-3" />}
+                        <span>{chartType === "echarts_bar" ? "Horizontal Rank" : "Vertical Column"}</span>
+                      </Button>
+                    )}
+
+                    <div className="text-xs text-stone-600 dark:text-zinc-400 font-mono truncate hidden md:inline">
+                      {queryResult?.metric_label} by {dimension}
+                      {timeGrain && <span className="text-sky-600 dark:text-sky-400 ml-1">({timeGrain})</span>}
+                    </div>
                   </div>
                 </div>
 
                 {/* Loading Overlay */}
                 {executing && (
-                  <div className="absolute inset-0 bg-white/80 dark:bg-[#07080a]/80 backdrop-blur-xs flex flex-col items-center justify-center z-20 gap-2">
+                  <div className="absolute inset-0 bg-white/80 dark:bg-[#07080a]/80 backdrop-blur-xs flex flex-col items-center justify-center z-20 gap-2 rounded-2xl">
                     <Loader2 className="h-6 w-6 animate-spin text-stone-700 dark:text-zinc-300" />
-                    <span className="text-xs font-mono text-stone-600 dark:text-slate-400">Computing visual analytics...</span>
+                    <span className="text-xs font-mono text-stone-600 dark:text-zinc-400">Computing visual analytics...</span>
                   </div>
                 )}
 
@@ -1448,46 +1755,240 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
                 {/* Empty State when no data records or query resulted in 0 rows */}
                 {viewMode === "chart" && chartType !== "table" && (!queryResult || !queryResult.echarts_option || queryResult.records?.length === 0) && !executing && (
-                  <div className="flex-1 w-full min-h-[420px] flex flex-col items-center justify-center p-8 text-center border border-dashed border-stone-300 dark:border-slate-800 rounded-xl bg-stone-100/50 dark:bg-black/20">
-                    <div className="h-12 w-12 rounded-2xl bg-stone-200 dark:bg-slate-900 border border-stone-300 dark:border-slate-800 flex items-center justify-center text-stone-500 dark:text-slate-400 mb-3">
-                      <BarChart3 className="h-6 w-6 text-stone-500 dark:text-slate-500" />
+                  <div className="flex-1 w-full min-h-[420px] flex flex-col items-center justify-center p-8 text-center border border-dashed border-stone-300 dark:border-white/10 rounded-2xl bg-stone-100/50 dark:bg-white/[0.02]">
+                    <div className="h-12 w-12 rounded-2xl bg-stone-200 dark:bg-white/10 border border-stone-300 dark:border-white/10 flex items-center justify-center text-stone-500 dark:text-zinc-400 mb-3">
+                      <BarChart3 className="h-6 w-6 text-stone-500 dark:text-zinc-400" />
                     </div>
                     <h3 className="text-sm font-semibold text-stone-900 dark:text-white">No Visual Data Available</h3>
-                    <p className="text-xs text-stone-600 dark:text-slate-400 max-w-sm mt-1">
+                    <p className="text-xs text-stone-600 dark:text-zinc-400 max-w-sm mt-1">
                       No data records matched the selected dimension and metric filters. Try adjusting your dimension, metric, or filters on the left panel.
                     </p>
                   </div>
                 )}
 
-                {/* View Mode 2: Aggregated Data Table */}
+                {/* View Mode 2: Enhanced Interactive Data Table */}
                 {(viewMode === "data" || chartType === "table") && queryResult?.records && (
-                  <div className="flex-1 overflow-x-auto min-h-[320px] sm:min-h-[400px] -mx-1 px-1 sm:mx-0 sm:px-0 scrollbar-thin">
-                    <table className="w-full text-left text-xs font-mono">
-                      <thead className="bg-stone-100 text-stone-700 dark:bg-[#0e1017] dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-stone-200 dark:border-slate-800">
-                        <tr>
-                          <th className="py-2.5 px-3">#</th>
-                          <th className="py-2.5 px-3">{dimension}</th>
-                          {secondaryDimension && <th className="py-2.5 px-3">{secondaryDimension}</th>}
-                          <th className="py-2.5 px-3">{queryResult.metric_label || "Value"}</th>
-                          <th className="py-2.5 px-3">Records</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-stone-200 text-stone-800 dark:divide-slate-800/60 dark:text-slate-200">
-                        {queryResult.records.map((row: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-stone-100/80 dark:hover:bg-slate-800/30 transition">
-                            <td className="py-2 px-3 text-stone-500 dark:text-slate-400">{idx + 1}</td>
-                            <td className="py-2 px-3 font-medium text-stone-900 dark:text-white">{row[dimension] ?? "—"}</td>
+                  <div className="flex-1 flex flex-col space-y-3 min-h-[420px]">
+                    
+                    {/* In-Table Search Bar & Page Size Selector */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2">
+                      <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-stone-400 dark:text-zinc-500" />
+                        <input
+                          type="text"
+                          placeholder={`Search ${dimension} or values...`}
+                          value={tableSearch}
+                          onChange={(e) => setTableSearch(e.target.value)}
+                          className="w-full pl-9 pr-3 py-1.5 text-xs bg-stone-50 dark:bg-[#14151c] border border-stone-200 dark:border-white/10 rounded-xl text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-stone-400 dark:focus:border-white/30 font-sans shadow-2xs"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <span className="text-[11px] text-stone-500 dark:text-zinc-400 font-sans">Rows per page:</span>
+                        <select
+                          aria-label="Rows per page"
+                          value={tablePageSize}
+                          onChange={(e) => {
+                            setTablePageSize(Number(e.target.value));
+                            setTablePage(1);
+                          }}
+                          className="bg-stone-50 dark:bg-[#14151c] border border-stone-200 dark:border-white/10 rounded-lg px-2 py-1 text-xs text-stone-800 dark:text-zinc-200 font-mono shadow-2xs"
+                        >
+                          <option value={10}>10</option>
+                          <option value={25}>25</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Table Container */}
+                    <div className="flex-1 overflow-x-auto rounded-xl border border-stone-200/90 dark:border-white/10 bg-white dark:bg-[#090a0f] scrollbar-thin">
+                      <table className="w-full text-left text-xs font-sans">
+                        <thead className="bg-stone-50/90 text-stone-700 dark:bg-[#13141b] dark:text-zinc-300 uppercase text-[10.5px] font-semibold tracking-wider border-b border-stone-200 dark:border-white/10">
+                          <tr>
+                            <th className="py-2.5 px-3 w-12 text-center text-stone-400 dark:text-zinc-500">#</th>
+                            <th
+                              onClick={() => handleSortClick(dimension)}
+                              className="py-2.5 px-3 cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span>{dimension}</span>
+                                <ArrowUpDown className={`h-3 w-3 ${tableSortCol === dimension ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
+                              </div>
+                            </th>
                             {secondaryDimension && (
-                              <td className="py-2 px-3 text-stone-700 dark:text-slate-300">{row[secondaryDimension] ?? "—"}</td>
+                              <th
+                                onClick={() => handleSortClick(secondaryDimension)}
+                                className="py-2.5 px-3 cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <span>{secondaryDimension}</span>
+                                  <ArrowUpDown className={`h-3 w-3 ${tableSortCol === secondaryDimension ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
+                                </div>
+                              </th>
                             )}
-                            <td className="py-2 px-3 text-stone-900 dark:text-zinc-200 font-bold">
-                              {typeof row.value === "number" ? row.value.toLocaleString() : row.value ?? "—"}
-                            </td>
-                            <td className="py-2 px-3 text-stone-600 dark:text-slate-400">{row.count?.toLocaleString() ?? "—"}</td>
+                            <th
+                              onClick={() => handleSortClick("value")}
+                              className="py-2.5 px-3 min-w-[200px] cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span>{queryResult.metric_label || "Metric Value"} & Share</span>
+                                <ArrowUpDown className={`h-3 w-3 ${tableSortCol === "value" ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
+                              </div>
+                            </th>
+                            <th
+                              onClick={() => handleSortClick("count")}
+                              className="py-2.5 px-3 text-right cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
+                            >
+                              <div className="flex items-center justify-end gap-1.5">
+                                <span>Records</span>
+                                <ArrowUpDown className={`h-3 w-3 ${tableSortCol === "count" ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
+                              </div>
+                            </th>
+                            <th className="py-2.5 px-3 text-right w-16">Action</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+
+                        <tbody className="divide-y divide-stone-100 dark:divide-white/[0.05] text-stone-800 dark:text-zinc-200">
+                          {paginatedRecords.length > 0 ? (
+                            paginatedRecords.map((row: any, idx: number) => {
+                              const globalIdx = (tablePage - 1) * tablePageSize + idx + 1;
+                              const rowVal = typeof row.value === "number" ? row.value : 0;
+                              const pctOfTotal = totalMetricSum > 0 ? (Math.abs(rowVal) / totalMetricSum) * 100 : 0;
+                              const paletteColors = COLOR_PALETTES.find(p => p.id === colorPalette)?.preview || ["#1FA8C9"];
+
+                              return (
+                                <tr key={idx} className="hover:bg-stone-50/80 dark:hover:bg-white/[0.04] transition group">
+                                  <td className="py-2.5 px-3 text-center text-stone-400 dark:text-zinc-500 font-mono text-[11px]">
+                                    {globalIdx}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-medium text-stone-900 dark:text-white">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleChartClick({ name: row[dimension] })}
+                                      className="text-left hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer flex items-center gap-1.5"
+                                      title={`Filter by ${dimension} = "${row[dimension]}"`}
+                                    >
+                                      <span>{row[dimension] ?? "—"}</span>
+                                    </button>
+                                  </td>
+                                  {secondaryDimension && (
+                                    <td className="py-2.5 px-3 text-stone-700 dark:text-zinc-300 font-mono text-[11px]">
+                                      {row[secondaryDimension] ?? "—"}
+                                    </td>
+                                  )}
+                                  <td className="py-2.5 px-3">
+                                    <div className="space-y-1">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="font-bold text-stone-900 dark:text-white font-mono text-[11.5px] tabular-nums">
+                                          {typeof row.value === "number"
+                                            ? row.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                            : row.value ?? "—"}
+                                        </span>
+                                        <span className="text-[10px] text-stone-500 dark:text-zinc-400 font-mono font-medium">
+                                          {totalMetricSum > 0 ? `${pctOfTotal.toFixed(1)}%` : ""}
+                                        </span>
+                                      </div>
+                                      <div className="w-full h-1.5 bg-stone-200/70 dark:bg-white/10 rounded-full overflow-hidden">
+                                        <div
+                                          className="h-full rounded-full transition-all duration-300"
+                                          style={{
+                                            width: `${Math.min(100, Math.max(3, pctOfTotal))}%`,
+                                            backgroundColor: paletteColors[0] || "#10b981",
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right font-mono text-[11px] text-stone-600 dark:text-zinc-400 tabular-nums">
+                                    {row.count?.toLocaleString() ?? "—"}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const text = JSON.stringify(row, null, 2);
+                                        navigator.clipboard.writeText(text);
+                                        toast({ title: "Row Copied", description: "Row JSON copied to clipboard." });
+                                      }}
+                                      className="p-1 rounded-md text-stone-400 hover:text-stone-700 dark:text-zinc-500 dark:hover:text-zinc-200 hover:bg-stone-100 dark:hover:bg-white/10 transition cursor-pointer"
+                                      title="Copy row data"
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          ) : (
+                            <tr>
+                              <td colSpan={6} className="py-8 text-center text-stone-500 dark:text-zinc-400 font-sans">
+                                No records matching "{tableSearch}"
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+
+                        {/* Summary Footer Row */}
+                        {filteredAndSortedRecords.length > 0 && (
+                          <tfoot className="bg-stone-50/90 dark:bg-[#13141b] border-t border-stone-200 dark:border-white/10 font-sans font-semibold text-[11px] text-stone-900 dark:text-white">
+                            <tr>
+                              <td className="py-2.5 px-3 text-center text-stone-500 dark:text-zinc-400">∑</td>
+                              <td className="py-2.5 px-3">
+                                Total ({filteredAndSortedRecords.length} categories)
+                              </td>
+                              {secondaryDimension && <td className="py-2.5 px-3">—</td>}
+                              <td className="py-2.5 px-3 font-mono tabular-nums">
+                                {totalMetricSum.toLocaleString(undefined, { maximumFractionDigits: 2 })} (100%)
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono tabular-nums">
+                                {totalRowCount.toLocaleString()}
+                              </td>
+                              <td className="py-2.5 px-3 text-right">—</td>
+                            </tr>
+                          </tfoot>
+                        )}
+                      </table>
+                    </div>
+
+                    {/* Pagination Bar */}
+                    <div className="flex items-center justify-between text-xs text-stone-600 dark:text-zinc-400 pt-1 font-sans">
+                      <span className="text-[11px]">
+                        Showing <strong className="text-stone-900 dark:text-white font-mono">{(tablePage - 1) * tablePageSize + 1}</strong> to{" "}
+                        <strong className="text-stone-900 dark:text-white font-mono">
+                          {Math.min(tablePage * tablePageSize, filteredAndSortedRecords.length)}
+                        </strong>{" "}
+                        of <strong className="text-stone-900 dark:text-white font-mono">{filteredAndSortedRecords.length}</strong> groups
+                      </span>
+
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={tablePage <= 1}
+                          onClick={() => setTablePage(p => Math.max(1, p - 1))}
+                          className="h-7 px-2 rounded-lg text-xs gap-1 border-stone-200 bg-white hover:bg-stone-100 dark:border-white/10 dark:bg-[#14151c] dark:hover:bg-white/[0.08] cursor-pointer"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                          <span>Prev</span>
+                        </Button>
+                        <span className="text-[11px] px-2 font-mono">
+                          {tablePage} / {totalPages}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={tablePage >= totalPages}
+                          onClick={() => setTablePage(p => Math.min(totalPages, p + 1))}
+                          className="h-7 px-2 rounded-lg text-xs gap-1 border-stone-200 bg-white hover:bg-stone-100 dark:border-white/10 dark:bg-[#14151c] dark:hover:bg-white/[0.08] cursor-pointer"
+                        >
+                          <span>Next</span>
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
                   </div>
                 )}
 

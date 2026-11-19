@@ -1,14 +1,3 @@
-"""
-Apache Superset Native Query & Visual Analytics Engine.
-
-Directly adapted from Apache Superset codebase (superset/superset/dataframe.py,
-superset/superset/explore/, and superset/superset/utils/core.py).
-Executes high-speed in-process analytical aggregations, metric calculations,
-temporal bucketing, ad-hoc multi-dimensional filters, multi-metric dual-axis
-combinations, AI/statistical smart insights, and ECharts data series transformations
-directly on GetReport's uploaded datasets with in-memory DataFrame caching.
-"""
-
 from enum import IntEnum
 import logging
 import math
@@ -103,7 +92,7 @@ class SupersetExploreQuery(BaseModel):
     task_id: str = Field(..., description="GetReport task ID identifying the uploaded dataset")
     chart_type: str = Field(
         "echarts_bar",
-        description="echarts_bar, echarts_line, echarts_area, echarts_pie, echarts_scatter, echarts_heatmap, echarts_boxplot, echarts_treemap, echarts_funnel, echarts_radar, echarts_combo, table"
+        description="echarts_bar, echarts_horizontal_bar, echarts_line, echarts_area, echarts_pie, echarts_scatter, echarts_heatmap, echarts_boxplot, echarts_treemap, echarts_funnel, echarts_radar, echarts_combo, table"
     )
     dimension: str = Field(..., description="Primary categorical/date dimension for X-axis / GroupBy")
     secondary_dimension: Optional[str] = Field(None, description="Optional secondary dimension for stacked series or breakdown")
@@ -1001,7 +990,6 @@ class SupersetEngine:
                         "label": {
                             "show": True,
                             "formatter": "{b}: {d}%",
-                            "color": "#cbd5e1",
                             "fontSize": 11,
                         },
                         "emphasis": {
@@ -1353,7 +1341,111 @@ class SupersetEngine:
                 ] if needs_data_zoom else []
             }
 
-        # ── 9. Categorical Bar, Column, Line, and Area Charts ─────────────
+        # ── 9. Horizontal Bar Chart (Ranking & Clean Category Labels) ─────
+        if chart_type in ("echarts_horizontal_bar", "horizontal_bar"):
+            categories = list(dict.fromkeys(str(r[dimension]) for r in records))
+            rev_categories = list(reversed(categories))
+            needs_data_zoom = len(categories) > 15
+            is_stacked = str(bar_mode).lower() == "stacked"
+
+            if secondary_dimension:
+                sec_values = list(dict.fromkeys(str(r.get(secondary_dimension, "N/A")) for r in records))
+                lookup = {(str(r[dimension]), str(r.get(secondary_dimension, "N/A"))): r.get("value", 0) for r in records}
+                h_series = []
+                for idx, sec in enumerate(sec_values):
+                    s_data = [lookup.get((cat, sec), 0) for cat in rev_categories]
+                    s_item = {
+                        "name": sec,
+                        "type": "bar",
+                        "data": s_data,
+                        "emphasis": {"focus": "series"},
+                        "itemStyle": {
+                            "borderRadius": [0, 4, 4, 0],
+                        },
+                    }
+                    if is_stacked:
+                        s_item["stack"] = "total"
+                    else:
+                        s_item["barMaxWidth"] = 24
+                    h_series.append(s_item)
+
+                h_legend = {
+                    "show": True,
+                    "type": "scroll",
+                    "orient": "horizontal",
+                    "top": "0%",
+                    "left": "center",
+                    "right": "4%",
+                    "pageButtonPosition": "end",
+                    "pageIconColor": "#38bdf8",
+                    "pageIconInactiveColor": "#475569",
+                    "pageTextStyle": {"color": "#94a3b8", "fontSize": 10},
+                    "textStyle": {"color": "#cbd5e1", "fontSize": 11},
+                }
+            else:
+                rev_data = list(reversed([r.get("value", 0) for r in records]))
+                h_series = [
+                    {
+                        "name": metric_label,
+                        "type": "bar",
+                        "data": rev_data,
+                        "barMaxWidth": 26,
+                        "itemStyle": {
+                            "color": palette[0],
+                            "borderRadius": [0, 6, 6, 0],
+                        },
+                    }
+                ]
+                h_legend = {"show": False}
+
+            return {
+                "backgroundColor": "transparent",
+                "color": palette,
+                "tooltip": {
+                    "trigger": "axis",
+                    "axisPointer": {"type": "shadow"},
+                    "backgroundColor": "#181f30",
+                    "borderColor": "#334155",
+                    "textStyle": {"color": "#f8fafc", "fontSize": 12},
+                },
+                "legend": h_legend,
+                "grid": {
+                    "left": "4%",
+                    "right": "6%",
+                    "bottom": "8%",
+                    "top": "14%" if secondary_dimension else "8%",
+                    "containLabel": True,
+                },
+                "xAxis": {
+                    "type": "log" if str(y_axis_scale).lower() == "log" else "value",
+                    "name": metric_label,
+                    "axisLabel": {"color": "#94a3b8", "fontSize": 11},
+                    "splitLine": {"lineStyle": {"color": "#1e293b", "type": "dashed"}},
+                },
+                "yAxis": {
+                    "type": "category",
+                    "data": rev_categories,
+                    "axisLabel": {"color": "#94a3b8", "fontSize": 11},
+                    "axisLine": {"lineStyle": {"color": "#334155"}},
+                },
+                "series": h_series,
+                "dataZoom": [
+                    {
+                        "type": "slider",
+                        "yAxisIndex": 0,
+                        "show": needs_data_zoom,
+                        "right": "1%",
+                        "width": 18,
+                        "borderColor": "#334155",
+                        "fillerColor": "rgba(56, 189, 248, 0.15)",
+                        "handleStyle": {"color": "#38bdf8", "borderColor": "#0284c7"},
+                        "textStyle": {"color": "#94a3b8", "fontSize": 10},
+                    },
+                    {"type": "inside", "yAxisIndex": 0}
+                ] if needs_data_zoom else []
+            }
+
+        # ── 10. Categorical Bar, Column, Line, and Area Charts ────────────
         categories = list(dict.fromkeys(str(r[dimension]) for r in records))
         needs_data_zoom = len(categories) > 15 or has_time_grain
         chart_kind = "line" if chart_type in ("echarts_line", "line", "echarts_area", "area") else "bar"
