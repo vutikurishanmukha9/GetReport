@@ -17,7 +17,7 @@
 [![Snowflake](https://img.shields.io/badge/Snowflake-Arrow%20Stream%20(Beta)-29B5E8?style=flat-square&logo=snowflake&logoColor=white)](https://www.snowflake.com/)
 [![Google Antigravity](https://img.shields.io/badge/Agent-Google%20Antigravity-4285F4?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Security Audit](https://img.shields.io/badge/Security-0%20Vulnerabilities%20%7C%20Hardened-brightgreen?style=flat-square&logo=shield&logoColor=white)](https://github.com/)
-[![Automated Tests](https://img.shields.io/badge/Tests-446%20Passed%20(100%25)-brightgreen?style=flat-square)](https://github.com/)
+[![Automated Tests](https://img.shields.io/badge/Tests-517%20Passed%20(100%25)-brightgreen?style=flat-square)](https://github.com/)
 
 <br/>
 
@@ -91,9 +91,12 @@ GetReport unifies high-performance Rust/Python data processing, mathematical pro
 ### 1. Interactive Business Intelligence (BI) Studio
 - **Superset-Grade Exploration**: Full-featured interactive visual analytics engine built directly into GetReport (`/analytics` and `/bi`), powered by Apache ECharts.
 - **Dynamic Multidimensional Aggregations**: Compute grouped sums, averages, counts, minimums, and maximums across any combination of categorical dimensions and numerical metrics.
-- **Multi-Series Breakdowns**: Split metrics across secondary categorical dimensions for comparative stacked and grouped visualizations.
+- **Multi-Series Breakdowns & Horizontal Ranking**: Split metrics across secondary categorical dimensions for comparative stacked and grouped visualizations. Includes executive horizontal ranking bar charts (`echarts_horizontal_bar`) with 1-click canvas orientation toggles between vertical column and horizontal ranking.
+- **High-Contrast Multi-Theme Synchronization**: Integrated real-time DOM `MutationObserver` synchronization between Light (`#FAF8F5`) and Dark (`#07080a`) modes. Features 3px protective halo outlines (`textBorderColor`, `textBorderWidth: 3`) around pie/donut slice callout labels and high-contrast legends, ensuring 100% legibility on any background.
+- **Interactive Aggregated Data Table (View Mode 2)**: Full-featured data table view complete with in-table real-time search, bidirectional column sorting, embedded visual percentage share bars, sticky summary footer row ($\Sigma$) calculating sums and row counts, and configurable page sizes (10, 25, 50, 100).
+- **Anti-Slop Precision Telemetry Deck**: Executive `rounded-xl` KPI cards with hairline borders, monospace indicators (`SCOPE`, `{aggregate}`, `RANK 1`, `GROUPS`), and synchronized mathematical metric aggregation matching (`SUM`, `AVG`, `MAX`, `MIN`), free from decorative template clutter.
+- **Zero-Delay Dataset Pre-Warming**: Background dataset schema introspection and default chart pre-warming upon file upload, ensuring instant, lag-free handoff into the BI Studio.
 - **Responsive Mobile Layout**: Features an adaptive segmented dual-tab switcher (`Chart & Visuals` vs `Query Controls`) with viewport-aware auto-resizing, ensuring charts render smoothly on mobile, tablet, and desktop form factors.
-- **Real-Time BigNumber KPIs**: Live cards surfacing total records, aggregated metrics, peak groups, and group cardinality.
 - **Executive Color Themes**: Instant palette switching across Obsidian Dark, Emerald Finance, Amber Warmth, and Minimalist Monochrome.
 
 ### 2. In-Process DuckDB OLAP & Golden Query Store
@@ -114,6 +117,7 @@ GetReport unifies high-performance Rust/Python data processing, mathematical pro
   - `REVIEW` (Severity 1): Suspicious or multi-column relationship violations; flagged with natural-language drivers for human audit, never mutated or dropped.
   - `FIX` (Severity 2): Safe, deterministic cell repairs (masked null placeholders like `"N/A"`, imputable nulls with $\le 30\%$ column missingness).
   - `EXCLUDE` (Severity 3): Non-data artifacts (blank rows, repeated headers, subtotal/total rows, export footers).
+- **Universal Robust Ingestion & Edge-Case Resilience**: Seamlessly parses and processes datasets with empty cells, blank rows, trailing whitespace, jagged headers, and mixed types without runtime crashes or `undefined` filter errors. Implements defensive sanitization across all JSON serialization boundaries.
 - **Structural Sanitation & Statistical Isolation**: Purges non-data rows in Step 1b so summary totals never double revenue metrics or distort averages, and header strings never corrupt numeric column types. All summary statistics and quartiles run solely across valid data rows.
 - **Gated Smart Imputation**: Sparse rows ($\le 10\%$ populated) and heavily missing columns ($>30\%$ nulls) are strictly blocked from median/mode imputation, completely preventing the pipeline from hallucinating synthetic records.
 - **Self-Supervised Cross-Column ML Layer (`HistGradientBoostingRegressor`)**: Trains out-of-fold regression models natively handling NaNs. Evaluates columns with $R^2 \ge 0.30$, applies two-pass outlier decontamination, scales residuals by missingness pattern MAD ($\text{MAD} \times 1.4826$), and flags extreme tail deviations ($Z \ge 6.0$, $\ge 2.5 \times 99\text{th percentile}$, $\le 1\%$ cap).
@@ -254,10 +258,11 @@ pytest -q
 ```
 
 ```
-================== 446 passed in 74.15s (100%) ==================
+================== 517 passed (100%) ==================
 ```
 
 ### Test Suite Distribution
+- **22 Superset BI Engine Tests** (`test_superset_engine.py`): Validates automated dataset schema introspection, column type mapping, complex multi-operator filtering, temporal bucketing, vertical and horizontal ranking bar charts (`echarts_horizontal_bar`), log scale combo charts, boxplots, 2D heatmaps, stacked series, and pre-warmed schema caching.
 - **15 Snowflake Warehouse Integration Tests** (`test_snowflake_integration.py`): Validates account identifier format sanitization, double-quote identifier SQL safety, Arrow schema compilation, batch normalization, PKCS#8 RSA private key DER serialization, HKDF/AES-256 encrypted session vault lifecycle, driver metadata discovery, streaming Parquet extraction, cooperative query cancellation, and session teardown.
 - **22 Row Intelligence & Machine Learning Tests** (`test_row_intelligence.py`): Validates 4-tier triage exclusivity, bit-identical immutability on clean records, safe non-data row pruning, gated imputation on sparse rows, and self-supervised multi-column anomaly detection (`HistGradientBoostingRegressor`) with contrastive driver explanations.
 - **17 Security Verification Tests** (`test_security_audit.py`): Validates complete 0-vulnerability posture across the full application surface:
