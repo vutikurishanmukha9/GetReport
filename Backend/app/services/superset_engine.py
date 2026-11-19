@@ -129,10 +129,48 @@ class SupersetEngine:
     def __init__(self):
         # In-memory LRU cache: file_path -> (mtime, pl.DataFrame)
         self._df_cache: Dict[str, Tuple[float, pl.DataFrame]] = {}
+        # Zero-copy Task ID -> in-memory DataFrame cache directly from main pipeline
+        self._task_df_cache: Dict[str, pl.DataFrame] = {}
+        # Schema cache: task_id -> pre-computed schema & default chart
+        self._schema_cache: Dict[str, Dict[str, Any]] = {}
         self._cache_lock = threading.Lock()
+
+    def prewarm_dataset(
+        self,
+        task_id: str,
+        file_ref: str,
+        df: pl.DataFrame,
+        file_path: Optional[str] = None
+    ) -> None:
+        """
+        Pre-warm in-memory DataFrame and cache pointers directly from the main pipeline.
+        Eliminates cold Parquet disk read latency when switching to the BI studio.
+        """
+        with self._cache_lock:
+            self._task_df_cache[task_id] = df
+            if len(self._task_df_cache) > 20:
+                oldest_task = next(iter(self._task_df_cache))
+                del self._task_df_cache[oldest_task]
+
+            if file_path:
+                try:
+                    mtime = os.path.getmtime(file_path) if os.path.exists(file_path) else time.time()
+                    self._df_cache[file_path] = (mtime, df)
+                    if len(self._df_cache) > 20:
+                        oldest_key = next(iter(self._df_cache))
+                        del self._df_cache[oldest_key]
+                except Exception:
+                    pass
+        logger.info("Pre-warmed in-memory BI engine cache for task: %s (%d rows, %d cols)", task_id, df.height, df.width)
 
     def resolve_dataset_df(self, task_id: str) -> pl.DataFrame:
         """Resolve and load the audited Polars DataFrame for a task ID with in-memory caching."""
+        # 1. Fast path: check in-memory task cache (zero-copy handoff from main engine)
+        with self._cache_lock:
+            cached_df = self._task_df_cache.get(task_id)
+            if cached_df is not None:
+                return cached_df
+
         from app.services.task_manager import title_task_manager
         from app.services.storage import get_storage_provider
 
@@ -154,49 +192,75 @@ class SupersetEngine:
         with self._cache_lock:
             cached = self._df_cache.get(file_path)
             if cached and cached[0] == mtime:
+                self._task_df_cache[task_id] = cached[1]
                 return cached[1]
 
-            # Read from disk and populate cache
-            if file_path.endswith(".parquet"):
-                df = pl.read_parquet(file_path)
-            else:
-                df = pl.read_csv(file_path)
+        # Read from disk outside the lock to avoid blocking concurrent requests
+        if file_path.endswith(".parquet"):
+            df = pl.read_parquet(file_path)
+        else:
+            df = pl.read_csv(file_path)
 
-            # Keep cache size capped at 12 recent datasets
-            if len(self._df_cache) > 12:
+        with self._cache_lock:
+            if len(self._df_cache) > 20:
                 oldest_key = next(iter(self._df_cache))
                 del self._df_cache[oldest_key]
-
             self._df_cache[file_path] = (mtime, df)
+            self._task_df_cache[task_id] = df
             return df
 
     def introspect_dataset(self, task_id: str) -> Dict[str, Any]:
         """
         Returns Superset Explore column definitions, types, summary metrics,
-        and one-click smart visual exploration recommendations.
+        and one-click smart visual exploration recommendations with vectorized execution.
         """
+        # Check pre-computed schema cache
+        with self._cache_lock:
+            cached_schema = self._schema_cache.get(task_id)
+            if cached_schema:
+                return cached_schema
+
         df = self.resolve_dataset_df(task_id)
         columns_meta = []
         numeric_cols = []
         categorical_cols = []
         temporal_cols = []
 
+        # Vectorized null-count and distinct-count across ALL columns in one pass
+        if df.width > 0 and df.height > 0:
+            stats_exprs = []
+            for col in df.columns:
+                stats_exprs.append(pl.col(col).null_count().alias(f"__nc__{col}"))
+                stats_exprs.append(pl.col(col).n_unique().alias(f"__nu__{col}"))
+            stats_row = df.select(stats_exprs).to_dicts()[0]
+            # Use bounded sample slice for fast string date inspection & filter autocomplete
+            sample_slice = df.head(500) if df.height > 500 else df
+        else:
+            stats_row = {}
+            sample_slice = df
+
         for col, dtype in zip(df.columns, df.dtypes):
             sup_type = map_polars_to_superset_dtype(dtype)
             is_num = sup_type == GenericDataType.NUMERIC
             is_temp = sup_type == GenericDataType.TEMPORAL
 
-            # Detect potential string dates
-            if sup_type == GenericDataType.STRING:
-                col_sample = df[col].drop_nulls().head(10).to_list()
+            # Detect potential string dates from sample slice
+            if sup_type == GenericDataType.STRING and df.height > 0:
+                col_sample = sample_slice[col].drop_nulls().head(10).to_list()
                 if col_sample and any(isinstance(x, str) and re.match(r"^\d{4}[-/]\d{2}[-/]\d{2}", str(x).strip()) for x in col_sample):
                     is_temp = True
                     sup_type = GenericDataType.TEMPORAL
 
-            # Sample values for filter builder autocomplete
-            sample_vals = [
-                str(x) for x in df[col].drop_nulls().unique().head(10).to_list()
-            ]
+            # Fast sample values for filter builder autocomplete (from bounded sample slice)
+            if df.height > 0:
+                sample_vals = [
+                    str(x) for x in sample_slice[col].drop_nulls().unique().head(10).to_list()
+                ]
+            else:
+                sample_vals = []
+
+            null_count = int(stats_row.get(f"__nc__{col}", 0))
+            unique_values = int(stats_row.get(f"__nu__{col}", 0))
 
             col_meta = {
                 "name": col,
@@ -204,8 +268,8 @@ class SupersetEngine:
                 "type_name": sup_type.name,
                 "is_numeric": is_num,
                 "is_temporal": is_temp,
-                "null_count": int(df[col].is_null().sum()),
-                "unique_values": int(df[col].n_unique()),
+                "null_count": null_count,
+                "unique_values": unique_values,
                 "sample_values": sample_vals,
             }
             columns_meta.append(col_meta)
@@ -316,7 +380,27 @@ class SupersetEngine:
                 "badge": "Cross Matrix"
             })
 
-        return {
+        # Pre-compute and bundle the default recommended chart for instant first paint
+        default_chart = None
+        if recommendations and df.height > 0:
+            try:
+                top_rec = recommendations[0]
+                rec_query = SupersetExploreQuery(
+                    task_id=task_id,
+                    chart_type=top_rec.get("chart_type", "echarts_bar"),
+                    dimension=top_rec.get("dimension", df.columns[0]),
+                    metric=top_rec.get("metric"),
+                    aggregate=top_rec.get("aggregate", "COUNT"),
+                    secondary_metric=top_rec.get("secondary_metric"),
+                    secondary_aggregate=top_rec.get("secondary_aggregate", "AVG"),
+                    time_grain=top_rec.get("time_grain"),
+                    row_limit=top_rec.get("row_limit", 25),
+                )
+                default_chart = self.execute_explore_query(rec_query)
+            except Exception as chart_err:
+                logger.debug("Could not pre-bundle default chart for task %s: %s", task_id, chart_err)
+
+        result = {
             "task_id": task_id,
             "total_rows": len(df),
             "total_columns": len(df.columns),
@@ -327,7 +411,16 @@ class SupersetEngine:
             "time_grains": ["day", "week", "month", "quarter", "year"],
             "color_palettes": list(SUPERSET_COLOR_PALETTES.keys()),
             "recommendations": recommendations,
+            "default_query_result": default_chart,
         }
+
+        with self._cache_lock:
+            if len(self._schema_cache) > 20:
+                oldest_task = next(iter(self._schema_cache))
+                del self._schema_cache[oldest_task]
+            self._schema_cache[task_id] = result
+
+        return result
 
     def _apply_filters(self, df: pl.DataFrame, filters: Optional[List[ExploreFilter]]) -> pl.DataFrame:
         """Applies ad-hoc user filters prior to metric aggregation."""

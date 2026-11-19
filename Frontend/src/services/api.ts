@@ -972,6 +972,7 @@ export const api = {
             row_limit?: number;
             badge?: string;
         }>;
+        default_query_result?: any;
     }> => {
         return fetchClient(`/analytics/explore/${encodeURIComponent(taskId)}/schema`);
     },

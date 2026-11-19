@@ -93,8 +93,9 @@ def analyze_dataset(df: pl.DataFrame, top_categories: int = 10, config: Analysis
         "exclusion_reasons": column_classification["exclusion_reasons"]
     }
     
-    # Use ONLY analytical columns for meaningful analysis
-    summary_stats = compute_summary(df, analytical_cols)
+    # Use analytical columns, or fall back to all numeric columns if all were excluded (e.g. constant/ID columns)
+    cols_for_summary = analytical_cols if len(analytical_cols) > 0 else all_numeric_cols
+    summary_stats = compute_summary(df, cols_for_summary)
     
     correlation = {}
     strong_pairs = []
