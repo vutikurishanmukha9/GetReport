@@ -155,6 +155,27 @@ def test_execute_explore_query_bar(mock_engine):
     assert option["series"][0]["type"] == "bar"
 
 
+def test_execute_explore_query_horizontal_bar(mock_engine):
+    query = SupersetExploreQuery(
+        task_id="test_task_123",
+        chart_type="echarts_horizontal_bar",
+        dimension="category",
+        metric="revenue",
+        aggregate="SUM",
+        row_limit=10,
+    )
+    result = mock_engine.execute_explore_query(query)
+
+    assert result["total_groups"] == 4
+    assert len(result["records"]) == 4
+    option = result["echarts_option"]
+    # In horizontal bar, yAxis is category and xAxis is value
+    assert option["yAxis"]["type"] == "category"
+    assert option["xAxis"]["type"] == "value"
+    assert option["series"][0]["type"] == "bar"
+    assert option["series"][0]["itemStyle"]["borderRadius"] == [0, 6, 6, 0]
+
+
 def test_execute_explore_query_log_scale_and_combo(mock_engine):
     query = SupersetExploreQuery(
         task_id="test_task_123",
