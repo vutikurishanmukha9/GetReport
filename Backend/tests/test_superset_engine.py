@@ -294,3 +294,50 @@ def test_execute_explore_query_empty_filtered(mock_engine):
     assert result["kpis"]["total_rows"] == 0
     assert "title" in result["echarts_option"]
 
+
+def test_prewarm_dataset_and_cache(sample_df):
+    """Verify prewarm_dataset populates task_df_cache and allows instant zero-copy retrieval."""
+    engine = SupersetEngine()
+    task_id = "prewarm_task_999"
+
+    # Before prewarm, resolving unknown task raises ValueError
+    with pytest.raises(ValueError, match="not found or results missing"):
+        engine.resolve_dataset_df(task_id)
+
+    # Prewarm directly in memory
+    engine.prewarm_dataset(task_id, f"cleaned_{task_id}.parquet", sample_df)
+
+    # Now resolution is immediate and returns the exact in-memory dataframe
+    resolved = engine.resolve_dataset_df(task_id)
+    assert resolved.shape == sample_df.shape
+    assert resolved.columns == sample_df.columns
+
+
+def test_introspect_dataset_vectorized_and_default_chart(sample_df):
+    """Verify vectorized schema profiling, caching, and default chart bundling."""
+    engine = SupersetEngine()
+    task_id = "intro_task_888"
+    engine.prewarm_dataset(task_id, f"cleaned_{task_id}.parquet", sample_df)
+
+    schema = engine.introspect_dataset(task_id)
+    assert schema["task_id"] == task_id
+    assert schema["total_rows"] == 100
+    assert schema["total_columns"] == len(sample_df.columns)
+    assert len(schema["recommendations"]) > 0
+
+    # Verify default bundled chart exists for instant first paint
+    assert schema["default_query_result"] is not None
+    assert "echarts_option" in schema["default_query_result"]
+    assert "kpis" in schema["default_query_result"]
+
+    # Verify column statistics matched vectorized results
+    notes_meta = next(c for c in schema["columns"] if c["name"] == "notes")
+    # In sample_df, notes is None if i % 5 == 0 -> 20 nulls
+    assert notes_meta["null_count"] == 20
+
+    # Verify schema caching
+    assert task_id in engine._schema_cache
+    cached_schema = engine.introspect_dataset(task_id)
+    assert cached_schema is schema
+
+

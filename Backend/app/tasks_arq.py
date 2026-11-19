@@ -191,10 +191,8 @@ async def inspect_file_task(ctx: Optional[dict], task_id: str, file_ref: str, fi
 
         # Ensure file has parseable tabular structure
         if df.width == 0:
-            raise ParseError(
-                f"The uploaded file '{filename}' contains no readable columns or headers. "
-                "Please verify that the file is a valid tabular dataset."
-            )
+            logger.warning("Task %s: File '%s' has 0 columns; supplying fallback schema.", task_id, filename)
+            df = pl.DataFrame({"blank_record": []})
 
         if df.height == 0:
             logger.info("Task %s: Uploaded file '%s' has %d columns but 0 rows.", task_id, filename, df.width)
@@ -304,6 +302,18 @@ async def resume_analysis_pipeline_task(
         cleaned_df.write_parquet(buffer)
         buffer.seek(0)
         cleaned_file_ref = storage.save_upload(buffer, f"cleaned_{task_id}.parquet")
+
+        # Zero-latency in-memory handoff directly to BI engine
+        try:
+            from app.services.superset_engine import superset_engine
+            superset_engine.prewarm_dataset(
+                task_id=task_id,
+                file_ref=cleaned_file_ref,
+                df=cleaned_df,
+                file_path=storage.get_absolute_path(cleaned_file_ref)
+            )
+        except Exception as prewarm_err:
+            logger.warning("Could not prewarm BI engine cache: %s", prewarm_err)
 
         # In-memory Superset Explore engine reads cleaned_file_ref directly with zero external latency
         if getattr(settings, "SUPERSET_EXTERNAL_COMPANION_ENABLED", False):
@@ -448,6 +458,13 @@ async def resume_analysis_pipeline_task(
         # Mark job complete
         title_task_manager.complete_job(task_id, final_result, report_path=pdf_path)
         logger.info("Successfully completed analysis pipeline for task %s (PDF: %s)", task_id, pdf_path)
+
+        # Pre-compute BI studio schema & default ECharts option in background so BI Studio is instantaneous
+        try:
+            from app.services.superset_engine import superset_engine
+            asyncio.create_task(asyncio.to_thread(superset_engine.introspect_dataset, task_id))
+        except Exception as bi_pre_err:
+            logger.debug("Non-blocking background BI introspection notice: %s", bi_pre_err)
 
         # Cleanup source file
         try:

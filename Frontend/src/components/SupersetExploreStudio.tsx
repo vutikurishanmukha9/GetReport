@@ -51,6 +51,13 @@ interface SupersetExploreStudioProps {
   taskId?: string;
   datasetName?: string;
   allowDatasetSwitching?: boolean;
+  initialInfo?: {
+    columns?: string[];
+    dtypes?: Record<string, string>;
+    rows?: number;
+    preview?: any[];
+    missing_values?: Record<string, { count: number; percentage: number }>;
+  };
 }
 
 const CHART_TYPES = [
@@ -315,10 +322,11 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   taskId: initialTaskId,
   datasetName: initialDatasetName,
   allowDatasetSwitching = false,
+  initialInfo,
 }) => {
   const { toast } = useToast();
   const nativeChartInstanceRef = useRef<echarts.ECharts | null>(null);
-
+  const lastExecutedKeyRef = useRef<string>("");
 
   // Dataset Selection State
   const [availableDatasets, setAvailableDatasets] = useState<DatasetItem[]>([]);
@@ -385,8 +393,11 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     };
   }, [mobileTab, isFullscreen, viewMode]);
 
-  // 1. Load available datasets
+  // 1. Load available datasets (skip if embedded with dedicated taskId)
   useEffect(() => {
+    if (!allowDatasetSwitching && initialTaskId) {
+      return;
+    }
     api.listRecentDatasets(20)
       .then(res => {
         if (res && res.datasets && res.datasets.length > 0) {
@@ -403,7 +414,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
       .catch(err => {
         console.warn("Could not load recent datasets:", err);
       });
-  }, [selectedTaskId]);
+  }, [selectedTaskId, allowDatasetSwitching, initialTaskId]);
 
   useEffect(() => {
     if (initialTaskId && initialTaskId !== selectedTaskId) {
@@ -425,18 +436,38 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         setTemporalCols(Array.isArray(res.temporal_columns) ? res.temporal_columns : []);
         setRecommendations(Array.isArray(res.recommendations) ? res.recommendations : []);
 
-        // Pick intelligent default dimension & metric
-        const defaultDim = res.categorical_columns && res.categorical_columns.length > 0
-          ? res.categorical_columns[0]
-          : res.columns?.[0]?.name || "";
-        setDimension(defaultDim);
+        const topRec = Array.isArray(res.recommendations) && res.recommendations.length > 0
+          ? res.recommendations[0]
+          : null;
 
-        if (res.numeric_columns && res.numeric_columns.length > 0) {
-          setMetric(res.numeric_columns[0]);
-          setAggregate("AVG");
-        } else {
-          setMetric("");
-          setAggregate("COUNT");
+        const targetDim = topRec?.dimension || (
+          res.categorical_columns && res.categorical_columns.length > 0
+            ? res.categorical_columns[0]
+            : res.columns?.[0]?.name || ""
+        );
+        const targetMetric = topRec?.metric || (
+          res.numeric_columns && res.numeric_columns.length > 0
+            ? res.numeric_columns[0]
+            : ""
+        );
+        const targetAgg = topRec?.aggregate || (
+          targetMetric ? "AVG" : "COUNT"
+        );
+        const targetChartType = topRec?.chart_type || "echarts_bar";
+
+        if (topRec?.chart_type) setChartType(topRec.chart_type);
+        setDimension(targetDim);
+        setMetric(targetMetric);
+        setAggregate(targetAgg);
+        if (topRec?.secondary_metric) setSecondaryMetric(topRec.secondary_metric);
+        if (topRec?.secondary_aggregate) setSecondaryAggregate(topRec.secondary_aggregate);
+        if (topRec?.time_grain) setTimeGrain(topRec.time_grain);
+
+        // Instant first paint: if backend pre-bundled default query result, render immediately with 0 extra network calls
+        if (res.default_query_result) {
+          const prewarmedKey = `${selectedTaskId}|${targetChartType}|${targetDim}|${targetMetric}|${targetAgg}|${topRec?.secondary_dimension || ''}|${topRec?.secondary_metric || ''}|${topRec?.time_grain || ''}|[]|25|desc|supersetColors|grouped`;
+          lastExecutedKeyRef.current = prewarmedKey;
+          setQueryResult(res.default_query_result);
         }
       })
       .catch(err => {
@@ -456,16 +487,24 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const executeQuery = useCallback(async (signal?: AbortSignal) => {
     if (!selectedTaskId || !dimension) return;
 
+    const activeFilters = filters
+      .filter(f => f.column && (f.operator.includes("null") || f.value.trim() !== ""))
+      .map(f => ({
+        column: f.column,
+        operator: f.operator,
+        value: f.operator.includes("null") ? null : f.value,
+      }));
+
+    const currentKey = `${selectedTaskId}|${chartType}|${dimension}|${metric}|${aggregate}|${secondaryDimension || ''}|${secondaryMetric || ''}|${timeGrain || ''}|${JSON.stringify(activeFilters)}|${rowLimit}|${sortOrder}|${colorPalette}|${barMode}`;
+
+    if (lastExecutedKeyRef.current === currentKey && queryResult) {
+      // Query is identical to what is already displayed, skip redundant execution
+      return;
+    }
+    lastExecutedKeyRef.current = currentKey;
+
     setExecuting(true);
     try {
-      const activeFilters = filters
-        .filter(f => f.column && (f.operator.includes("null") || f.value.trim() !== ""))
-        .map(f => ({
-          column: f.column,
-          operator: f.operator,
-          value: f.operator.includes("null") ? null : f.value,
-        }));
-
       const res = await api.querySupersetExplore({
         task_id: selectedTaskId,
         chart_type: chartType,
@@ -514,6 +553,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     rowLimit,
     sortOrder,
     colorPalette,
+    queryResult,
     toast,
   ]);
 

@@ -139,3 +139,24 @@ def test_pipeline_processes_completely_blank_dataset():
     assert len(pdf_buf.getvalue()) > 0
 
 
+def test_load_dataframe_on_header_only_and_empty_files(tmp_path):
+    """Verify load_dataframe loads 0-row CSVs and 0-byte files without raising EmptyFileError."""
+    from app.services.data_processing import load_dataframe
+
+    # Case 1: Headers only
+    header_file = tmp_path / "headers_only.csv"
+    header_file.write_text("user_id,username,email\n", encoding="utf-8")
+    df_headers = load_dataframe(str(header_file))
+    assert df_headers.width == 3
+    assert df_headers.height == 0
+    assert df_headers.columns == ["user_id", "username", "email"]
+
+    # Case 2: Completely 0-byte file
+    zero_byte_file = tmp_path / "zero_bytes.csv"
+    zero_byte_file.write_bytes(b"")
+    df_zero = load_dataframe(str(zero_byte_file))
+    assert df_zero.width >= 1
+    assert df_zero.height == 0
+
+
+

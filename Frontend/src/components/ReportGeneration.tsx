@@ -2181,6 +2181,7 @@ export const ReportGeneration = ({
                 taskId={taskId || undefined}
                 datasetName={filename}
                 allowDatasetSwitching={false}
+                initialInfo={info}
               />
             </ErrorBoundary>
           </TabsContent>

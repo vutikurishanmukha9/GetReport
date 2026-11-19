@@ -310,7 +310,7 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
     4. Replace infinity / -infinity float values with Null.
     5. Clean leading '-' symbols from phone/mobile columns and keep as string identifiers.
     """
-    if df.height == 0 or df.width == 0:
+    if df.width == 0:
         return df
 
     # Step A: Unique snake_case column names
@@ -327,6 +327,9 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
         new_column_names.append(clean_name)
 
     df = df.rename(dict(zip(df.columns, new_column_names)))
+
+    if df.height == 0:
+        return df
 
     # Step B: Column-level cleaning & vectorized auto coercion
     exprs = []
@@ -448,7 +451,12 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
         _validate_zip_bomb(file_path, max_uncompressed_size_mb=settings.MAX_EXCEL_DECOMPRESSED_SIZE_MB)
     elif lower_path.endswith(".gz"):
         _validate_gzip_bomb(file_path, max_uncompressed_size_mb=settings.MAX_EXCEL_DECOMPRESSED_SIZE_MB)
-    
+
+    # Pre-check empty 0-byte file
+    if os.path.exists(file_path) and os.path.getsize(file_path) == 0:
+        logger.warning("Empty file '%s' has 0 bytes. Assigning fallback schema.", file_path)
+        return pl.DataFrame({"blank_record": []})
+
     try:
         lower_path = file_path.lower()
         if lower_path.endswith(".csv") or lower_path.endswith(".txt"):
@@ -534,8 +542,9 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
         else:
             raise UnsupportedFileTypeError(f"Unsupported extension for: {file_path}")
 
-        if df.height == 0:
-            raise EmptyFileError("File is empty")
+        if df.width == 0:
+            logger.warning("Empty file '%s' loaded with 0 columns; assigning fallback schema.", file_path)
+            df = pl.DataFrame({"blank_record": []})
 
         # Sanitize column names, coerce currency/percent strings, and clean nulls
         df = _sanitize_and_coerce_df(df)
@@ -544,6 +553,10 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
         return df
 
     except Exception as e:
+        err_msg = str(e).lower()
+        if "empty" in err_msg or "no data" in err_msg:
+            logger.warning("Empty dataset condition encountered for '%s': %s. Returning fallback schema.", file_path, e)
+            return pl.DataFrame({"blank_record": []})
         logger.error("Parse failed: %s", e)
         raise ParseError(f"Could not parse file: {str(e)}")
 
