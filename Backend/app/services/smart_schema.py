@@ -252,8 +252,14 @@ def _detect_foreign_key_relationships(df: pl.DataFrame) -> list[RelationshipDete
     """Detect potential foreign key relationships between columns."""
     relationships = []
     
-    # Get columns by type
-    int_cols = [c for c, t in df.schema.items() if t in (pl.Int64, pl.Int32)]
+    # Get columns by type - require ID/Key semantic naming to avoid spurious numerical subsets
+    NON_FK_PATTERNS = {"row_id", "index", "age", "hour", "year", "education", "churn", "rating", "quantity", "day", "month"}
+    int_cols = [
+        c for c, t in df.schema.items() 
+        if t in (pl.Int64, pl.Int32, pl.Utf8, pl.String)
+        and (c.lower().endswith("_id") or c.lower().endswith("_code") or c.lower().endswith("_key"))
+        and not any(non_fk in c.lower() for non_fk in NON_FK_PATTERNS)
+    ]
     
     for i, col1 in enumerate(int_cols):
         for col2 in int_cols[i+1:]:
@@ -468,7 +474,9 @@ def discover_symbolic_equations(df: pl.DataFrame, numeric_cols: list[str] | None
         
     # Cap to top 15 columns and subsample rows to prevent RAM spikes on large tables
     eval_cols = numeric_cols[:15]
-    clean_df = df.select([pl.col(c).cast(pl.Float64) for c in eval_cols]).drop_nulls()
+    clean_df = df.select([pl.col(c).cast(pl.Float64) for c in eval_cols]).filter(
+        pl.all_horizontal([pl.col(c).is_finite() for c in eval_cols])
+    )
     if clean_df.height < 5:
         return []
     if clean_df.height > 3000:
@@ -478,60 +486,66 @@ def discover_symbolic_equations(df: pl.DataFrame, numeric_cols: list[str] | None
     col_arrays = {c: clean_df[c].to_numpy() for c in eval_cols}
     equations = []
     
-    for i, target_col in enumerate(eval_cols):
-        other_cols = [c for j, c in enumerate(eval_cols) if j != i]
-        target_series = col_arrays[target_col]
-        
-        for a_idx, col_a in enumerate(other_cols):
-            a_vals = col_arrays[col_a]
-            for col_b in other_cols[a_idx + 1:]:
-                b_vals = col_arrays[col_b]
-                
-                # Formula 1: C = A + B
-                sum_diff = np.abs((a_vals + b_vals) - target_series)
-                if np.max(sum_diff) < 1e-4:
-                    equations.append({
-                        "target_column": target_col,
-                        "formula": f"{target_col} = {col_a} + {col_b}",
-                        "equation_type": "additive_sum",
-                        "variables": [col_a, col_b],
-                        "confidence": 1.0
-                    })
-                    continue
+    old_err = np.seterr(all="ignore")
+    try:
+        for i, target_col in enumerate(eval_cols):
+            other_cols = [c for j, c in enumerate(eval_cols) if j != i]
+            target_series = col_arrays[target_col]
+            
+            for a_idx, col_a in enumerate(other_cols):
+                a_vals = col_arrays[col_a]
+                for col_b in other_cols[a_idx + 1:]:
+                    b_vals = col_arrays[col_b]
                     
-                # Formula 2: C = A - B
+                    # Formula 1: C = A + B
+                    sum_diff = np.abs((a_vals + b_vals) - target_series)
+                    valid_mask = np.isfinite(sum_diff)
+                    if valid_mask.sum() > 20 and (sum_diff[valid_mask] < 0.05).mean() >= 0.95:
+                        equations.append({
+                            "target_column": target_col,
+                            "formula": f"{target_col} = {col_a} + {col_b}",
+                            "equation_type": "additive_sum",
+                            "variables": [col_a, col_b],
+                            "confidence": round(float((sum_diff[valid_mask] < 0.05).mean()), 3)
+                        })
+                        continue
+                    
+                    # Formula 2: C = A - B
                 sub_diff_1 = np.abs((a_vals - b_vals) - target_series)
-                if np.max(sub_diff_1) < 1e-4:
+                v1 = np.isfinite(sub_diff_1)
+                if v1.sum() > 20 and (sub_diff_1[v1] < 0.05).mean() >= 0.95:
                     equations.append({
                         "target_column": target_col,
                         "formula": f"{target_col} = {col_a} - {col_b}",
                         "equation_type": "subtraction",
                         "variables": [col_a, col_b],
-                        "confidence": 1.0
+                        "confidence": round(float((sub_diff_1[v1] < 0.05).mean()), 3)
                     })
                     continue
                     
                 # Formula 3: C = B - A
                 sub_diff_2 = np.abs((b_vals - a_vals) - target_series)
-                if np.max(sub_diff_2) < 1e-4:
+                v2 = np.isfinite(sub_diff_2)
+                if v2.sum() > 20 and (sub_diff_2[v2] < 0.05).mean() >= 0.95:
                     equations.append({
                         "target_column": target_col,
                         "formula": f"{target_col} = {col_b} - {col_a}",
                         "equation_type": "subtraction",
                         "variables": [col_b, col_a],
-                        "confidence": 1.0
+                        "confidence": round(float((sub_diff_2[v2] < 0.05).mean()), 3)
                     })
                     continue
                     
                 # Formula 4: C = A * B
                 prod_diff = np.abs((a_vals * b_vals) - target_series)
-                if np.max(prod_diff) < 1e-4:
+                vp = np.isfinite(prod_diff)
+                if vp.sum() > 20 and (prod_diff[vp] < 0.05).mean() >= 0.95:
                     equations.append({
                         "target_column": target_col,
                         "formula": f"{target_col} = {col_a} * {col_b}",
                         "equation_type": "multiplication",
                         "variables": [col_a, col_b],
-                        "confidence": 1.0
+                        "confidence": round(float((prod_diff[vp] < 0.05).mean()), 3)
                     })
                     continue
                     
@@ -562,6 +576,8 @@ def discover_symbolic_equations(df: pl.DataFrame, numeric_cols: list[str] | None
                                 "confidence": 1.0
                             })
                             continue
+    finally:
+        np.seterr(**old_err)
                             
     del col_arrays
     return equations

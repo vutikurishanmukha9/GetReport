@@ -192,6 +192,17 @@ class SupervisedStep:
         gc.collect()
 
 
+class TextSecurityStep:
+    name = "text_hazards"
+
+    def __call__(self, df: pl.DataFrame, result: dict[str, Any]) -> None:
+        from app.services.text_security import scan_text_hazards
+        hazards = scan_text_hazards(df)
+        result["text_hazards"] = hazards
+        if hazards.get("has_hazards"):
+            logger.info("Text security audit: Found %d total hazards", hazards["total_hazards_count"])
+
+
 # ─── Default Pipeline ───────────────────────────────────────────────────────
 
 DEFAULT_STEPS: Sequence[AnalysisStep] = [
@@ -203,6 +214,7 @@ DEFAULT_STEPS: Sequence[AnalysisStep] = [
     RecommendationsStep(),
     UnsupervisedStep(),
     SupervisedStep(),
+    TextSecurityStep(),
 ]
 
 

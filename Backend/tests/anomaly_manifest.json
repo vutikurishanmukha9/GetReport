@@ -1,0 +1,23 @@
+{
+  "files": {
+    "getreport_messy_master_100k.csv": {
+      "data_rows_requested": 100000,
+      "rows_including_structural_junk": 102967,
+      "columns": 44
+    }
+  },
+  "structural_anomalies_master": {
+    "exact_duplicate_rows": 1513,
+    "near_duplicate_rows": 1053,
+    "all_null_token_rows": 83,
+    "fully_blank_rows": 182,
+    "whitespace_only_rows": 99,
+    "repeated_mid_file_header_rows": 12,
+    "subtotal_summary_rows": 19,
+    "grand_total_rows": 1,
+    "sparse_footer_rows": 5
+  },
+  "cell_level_anomalies_master": {
+    "Country:casing_variant": 19000
+  }
+}

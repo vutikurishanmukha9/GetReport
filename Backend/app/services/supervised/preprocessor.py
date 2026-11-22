@@ -94,23 +94,26 @@ class AutoMLMatrixPreprocessor:
                 pl.Float32, pl.Float64
             ):
                 arr = series.to_numpy().astype(np.float64)
-                # Check for constant column
-                valid_vals = arr[np.isfinite(arr)]
-                if len(valid_vals) == 0 or np.std(valid_vals) < 1e-7:
-                    continue
+                # Check for constant column or extreme values
+                valid_mask = np.isfinite(arr) & (np.abs(arr) <= 1e12)
+                valid_vals = arr[valid_mask]
+                with np.errstate(all="ignore"):
+                    if len(valid_vals) == 0 or np.std(valid_vals) < 1e-7:
+                        continue
 
-                # Leakage check: perfect correlation with continuous target
-                if task_type == TaskType.REGRESSION and len(valid_vals) == len(arr):
-                    std_arr = np.std(arr)
-                    std_y = np.std(y)
-                    if std_arr > 1e-7 and std_y > 1e-7:
-                        corr = np.corrcoef(arr, y)[0, 1]
-                        if np.abs(corr) > 0.99:
-                            continue  # Potential leakage or duplicate
+                    # Leakage check: perfect correlation with continuous target
+                    if task_type == TaskType.REGRESSION and len(valid_vals) == len(arr):
+                        std_arr = np.std(arr)
+                        std_y = np.std(y)
+                        if std_arr > 1e-7 and std_y > 1e-7:
+                            corr = np.corrcoef(arr, y)[0, 1]
+                            if np.abs(corr) > 0.99:
+                                continue  # Potential leakage or duplicate
 
-                # Impute missing values with median
-                median_val = float(np.nanmedian(arr)) if len(valid_vals) > 0 else 0.0
-                arr = np.where(np.isnan(arr), median_val, arr)
+                # Impute missing and non-finite values with median
+                median_val = float(np.median(valid_vals)) if len(valid_vals) > 0 else 0.0
+                arr = np.where(~valid_mask, median_val, arr)
+                arr = np.clip(arr, -1e9, 1e9).astype(np.float32)
 
                 feature_arrays.append(arr.reshape(-1, 1))
                 final_feature_names.append(col)
@@ -135,10 +138,13 @@ class AutoMLMatrixPreprocessor:
             raise ValueError("No predictive features with sufficient variance remaining.")
 
         X = np.hstack(feature_arrays).astype(np.float32)
+        X = np.nan_to_num(X, nan=0.0, posinf=1e6, neginf=-1e6)
+        X = np.clip(X, -1e9, 1e9)
 
         # 5. Robust scaling for consistent model stability
         scaler = RobustScaler()
         X_scaled = scaler.fit_transform(X).astype(np.float32)
+        X_scaled = np.nan_to_num(X_scaled, nan=0.0, posinf=0.0, neginf=0.0)
 
         # 6. Stratified / Standard train-test split
         stratify = None

@@ -13,7 +13,9 @@ import {
     Copy, 
     Check as CheckIcon,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/services/api';
@@ -117,6 +119,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [expandedCodeId, setExpandedCodeId] = useState<string | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [pageSize, setPageSize] = useState<number>(15);
 
     // Sync optimistic state with incoming props
     const issuesList = optimisticIssues || data?.issues || [];
@@ -160,6 +164,18 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
             return true;
         });
     }, [issuesList, filterStatus, searchQuery]);
+
+    // Reset current page to 1 when filter or search changes
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [filterStatus, searchQuery]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredIssues.length / pageSize));
+    const paginatedIssues = useMemo(() => {
+        if (pageSize >= filteredIssues.length) return filteredIssues;
+        const start = (currentPage - 1) * pageSize;
+        return filteredIssues.slice(start, start + pageSize);
+    }, [filteredIssues, currentPage, pageSize]);
 
     // Handle single issue approval
     const handleApprove = async (issueId: string) => {
@@ -205,7 +221,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
     // Handle Approve All
     const handleApproveAll = async () => {
-        setLoading('all-approve');
+        setLoading('approve_all');
         setError(null);
 
         const previous = issuesList;
@@ -226,7 +242,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
     // Handle Reject All
     const handleRejectAll = async () => {
-        setLoading('all-reject');
+        setLoading('reject_all');
         setError(null);
 
         const previous = issuesList;
@@ -490,7 +506,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                             No issues matching current filter.
                         </div>
                     ) : (
-                        filteredIssues.map((issue) => {
+                        paginatedIssues.map((issue) => {
                             const sev = severityConfig[issue.severity];
                             const isApproved = issue.status === 'approved';
                             const isRejected = issue.status === 'rejected';
@@ -691,6 +707,63 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         })
                     )}
                 </div>
+
+                {/* ─── 4.5 PAGINATION CONTROLS ────────────────────────────────────── */}
+                {filteredIssues.length > 0 && (
+                    <div className="bg-stone-100/60 dark:bg-white/[0.02] border-t border-stone-200 dark:border-white/[0.06] px-5 sm:px-7 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-sans text-stone-600 dark:text-zinc-400">
+                        <div className="flex items-center gap-2">
+                            <span>
+                                Showing <strong className="text-stone-900 dark:text-white font-semibold tabular-nums">
+                                    {Math.min(filteredIssues.length, (currentPage - 1) * pageSize + 1)}–{Math.min(filteredIssues.length, currentPage * pageSize)}
+                                </strong> of <strong className="text-stone-900 dark:text-white font-semibold tabular-nums">{filteredIssues.length}</strong> issues
+                            </span>
+                            <div className="hidden sm:flex items-center gap-1.5 ml-3">
+                                <span className="text-[11px] text-stone-500 dark:text-zinc-500">Per page:</span>
+                                {[15, 30, 50, 100].map(size => (
+                                    <button
+                                        key={size}
+                                        type="button"
+                                        onClick={() => { setPageSize(size); setCurrentPage(1); }}
+                                        className={cn(
+                                            "px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer",
+                                            pageSize === size
+                                                ? "bg-stone-300 dark:bg-white/20 text-stone-900 dark:text-white"
+                                                : "text-stone-500 hover:text-stone-900 dark:text-zinc-500 dark:hover:text-zinc-300"
+                                        )}
+                                    >
+                                        {size}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {totalPages > 1 && (
+                            <div className="flex items-center gap-1.5 ml-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-1 rounded-lg border border-stone-300 dark:border-white/10 hover:bg-stone-200/60 dark:hover:bg-white/[0.05] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                    aria-label="Previous page"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <span className="px-2 text-xs font-medium tabular-nums text-stone-700 dark:text-zinc-300">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-1 rounded-lg border border-stone-300 dark:border-white/10 hover:bg-stone-200/60 dark:hover:bg-white/[0.05] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                    aria-label="Next page"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* ─── 5. FOOTER & PRIMARY PROCEED ACTION ───────────────────────────── */}
                 <div className="bg-stone-50/60 dark:bg-white/[0.02] border-t border-stone-200 dark:border-white/[0.06] px-5 sm:px-7 py-4">

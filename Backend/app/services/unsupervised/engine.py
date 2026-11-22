@@ -41,8 +41,9 @@ class UnsupervisedIntelligenceService:
         if df.height < 15:
             return ClusteringResult(ran=False, reason="too_few_rows (minimum 15 rows required)")
 
-        # Subsample large datasets for memory and latency efficiency
-        sample_df = df.sample(n=1500, seed=random_state) if df.height > 1500 else df
+        # Subsample large datasets for memory and latency efficiency while preserving >= 50% representation
+        sample_size = min(df.height, max(int(df.height * 0.6), 55000))
+        sample_df = df.sample(n=sample_size, seed=random_state) if df.height > sample_size else df
 
         start_time = time.perf_counter()
 
@@ -70,8 +71,10 @@ class UnsupervisedIntelligenceService:
                 random_state=random_state,
             )
 
-            # 4. Persona & contrast synthesis
-            personas = PersonaSynthesizer.synthesize(sample_df, labels, optimal_k, numeric_cols)
+            # 4. Persona & contrast synthesis (extrapolated to total dataset population)
+            personas = PersonaSynthesizer.synthesize(
+                sample_df, labels, optimal_k, numeric_cols, total_population=df.height
+            )
 
             duration_ms = (time.perf_counter() - start_time) * 1000
             logger.info(

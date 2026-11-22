@@ -5,8 +5,14 @@ from app.core.config import settings
 # ─── Semantic Column Detection Thresholds ─────────────────────────────────────
 ID_UNIQUENESS_THRESHOLD: float = settings.ID_UNIQUENESS_THRESHOLD  # >98% unique values AND name suggests ID = likely ID
 EXCEL_DATE_RANGE = (25569, 73050)  # Excel serial dates: 1970-2100
-# Only very strong ID patterns - avoid false positives like "student_number" which is valid data
-ID_COLUMN_PATTERNS = ['_id', 'uuid', 'guid', 'pk', 'primary_key', 'row_id', 'record_id', 'retailer_id', 'store_id', 'customer_id', 'user_id', 'account_id', 'product_id', 'order_id', 'invoice_id', 'item_id', 'vendor_id', 'client_id', 'zip_code', 'postal_code', 'code']
+# Strong ID and sensitive credential patterns to exclude from continuous numerical metrics
+ID_COLUMN_PATTERNS = [
+    '_id', 'uuid', 'guid', 'pk', 'primary_key', 'row_id', 'record_id', 
+    'retailer_id', 'store_id', 'customer_id', 'user_id', 'account_id', 
+    'product_id', 'order_id', 'invoice_id', 'item_id', 'vendor_id', 
+    'client_id', 'zip_code', 'postal_code', 'code', 'credit_card', 
+    'card', 'pan', 'ssn', 'api_key', 'token', 'secret', 'phone'
+]
 DATE_COLUMN_PATTERNS = ['date', 'time', 'timestamp', 'created_at', 'updated_at', 'modified_at']
 
 def classify_numeric_columns(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, list[str]]:

@@ -5,11 +5,46 @@ import logging
 import math
 from typing import Any
 
+import re
+import pandas as pd
+
 logger = logging.getLogger(__name__)
 
 def detect_time_columns(df: pl.DataFrame) -> list[str]:
-    """Identify datetime columns in the DataFrame."""
-    return [c for c, t in df.schema.items() if t in (pl.Date, pl.Datetime)]
+    """Identify datetime columns in the DataFrame, including mixed-format string date columns."""
+    direct = [c for c, t in df.schema.items() if t in (pl.Date, pl.Datetime)]
+    if direct:
+        return direct
+
+    # Scan string columns for date headers or patterns
+    date_candidates = []
+    date_keywords = ["date", "time", "timestamp", "created_at", "order_date", "dob", "period", "day"]
+    for c in df.columns:
+        if df[c].dtype in (pl.Utf8, pl.String, pl.Object):
+            c_lower = c.lower()
+            if any(k in c_lower for k in date_keywords):
+                sample = df[c].drop_nulls().head(60).to_list()
+                if sample:
+                    matches = sum(1 for s in sample if re.search(r"\d{1,4}[-/. ]\d{1,2}[-/. ]\d{1,4}|\d{4}[-]\d{2}", str(s)))
+                    if matches >= len(sample) * 0.6:
+                        date_candidates.append(c)
+    return date_candidates
+
+def sens_slope(series: np.ndarray) -> float:
+    """Non-parametric Sen's slope estimator (median of pairwise slopes)."""
+    n = len(series)
+    if n < 2:
+        return 0.0
+    if n > 1000:
+        step = n // 1000 + 1
+        series = series[::step]
+        n = len(series)
+    i, j = np.triu_indices(n, k=1)
+    diff = j - i
+    with np.errstate(divide="ignore", invalid="ignore"):
+        slopes = (series[j] - series[i]) / diff
+        finite_slopes = slopes[np.isfinite(slopes)]
+    return float(np.median(finite_slopes)) if len(finite_slopes) > 0 else 0.0
 
 def mann_kendall_trend_test(series: np.ndarray) -> dict[str, Any]:
     """
@@ -65,17 +100,31 @@ def mann_kendall_trend_test(series: np.ndarray) -> dict[str, Any]:
 def detect_trend(df: pl.DataFrame, time_col: str, value_col: str) -> dict[str, Any]:
     """
     Detect trend using both Linear Regression and Non-Parametric Mann-Kendall tests.
-    Returns trend direction, strength, and p-value approximation.
+    Returns trend direction, strength, Sen's slope, and p-value approximation.
     """
     try:
-        # Sort by time
-        sorted_df = df.select([time_col, value_col]).drop_nulls().sort(time_col)
-        if sorted_df.height < 10:
+        # Chronological sorting with robust mixed-date parsing if time_col is string
+        time_series = df[time_col]
+        if time_series.dtype in (pl.Utf8, pl.String, pl.Object):
+            dt_s = pd.to_datetime(time_series.to_pandas(), format="mixed", errors="coerce", utc=True)
+            valid_dt = ~dt_s.isna()
+            y_raw = df[value_col].cast(pl.Float64, strict=False).to_numpy()
+            valid_mask = valid_dt & np.isfinite(y_raw) & (np.abs(y_raw) < 1e12)
+            dt_s_valid = dt_s[valid_mask]
+            sorted_idx = dt_s_valid.argsort()
+            y = np.clip(y_raw[valid_mask][sorted_idx], -1e9, 1e9)
+        else:
+            clean_df = df.filter(pl.col(time_col).is_not_null() & pl.col(value_col).is_not_null() & pl.col(value_col).is_finite() & (pl.col(value_col).abs() < 1e12))
+            sorted_df = clean_df.select([time_col, value_col]).sort(time_col)
+            y = sorted_df[value_col].to_numpy()
+            y = np.clip(y[np.isfinite(y)], -1e9, 1e9)
+            
+        if len(y) < 10:
             return {"detected": False, "reason": "Insufficient data points"}
         
-        # Create numeric time index
-        y = sorted_df[value_col].to_numpy()
-        x = np.arange(len(y))
+        # Create numeric time index (float64 prevents int64 overflow on 100k+ series)
+        x = np.arange(len(y), dtype=np.float64)
+        y = y.astype(np.float64)
         
         # Linear regression
         n = len(x)
@@ -97,8 +146,9 @@ def detect_trend(df: pl.DataFrame, time_col: str, value_col: str) -> dict[str, A
         r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
         p_value = _linear_trend_p_value(float(slope), x, y, y_pred)
         
-        # Non-parametric Mann-Kendall verification
+        # Non-parametric Mann-Kendall verification & Sen's slope
         mk_res = mann_kendall_trend_test(y)
+        s_slope = sens_slope(y)
         
         # Trend direction
         if abs(slope) < 1e-10:
@@ -120,6 +170,7 @@ def detect_trend(df: pl.DataFrame, time_col: str, value_col: str) -> dict[str, A
             "detected": True,
             "direction": direction,
             "slope": round(float(slope), 6),
+            "sens_slope": round(float(s_slope), 6),
             "r_squared": round(float(r_squared), 4),
             "p_value": round(float(p_value), 4) if p_value is not None else None,
             "statistically_significant": bool(p_value is not None and p_value < 0.05),
@@ -170,7 +221,8 @@ def detect_seasonality(df: pl.DataFrame, time_col: str, value_col: str) -> dict[
     """
     try:
         sorted_df = df.select([time_col, value_col]).drop_nulls().sort(time_col)
-        y = sorted_df[value_col].to_numpy()
+        y = sorted_df[value_col].cast(pl.Float64, strict=False).to_numpy()
+        y = y[np.isfinite(y) & (np.abs(y) < 1e12)]
         n = len(y)
         
         if n < 60:
@@ -178,13 +230,14 @@ def detect_seasonality(df: pl.DataFrame, time_col: str, value_col: str) -> dict[
         
         # Detrend using linear regression residuals
         x = np.arange(n, dtype=np.float64)
-        if np.all(y == y[0]):
-            y_detrend = y - y[0]
-        else:
-            slope, intercept = np.polyfit(x, y, 1)
-            y_detrend = y - (slope * x + intercept)
-        
-        residual_std = float(np.std(y_detrend))
+        with np.errstate(all="ignore"):
+            if np.all(y == y[0]):
+                y_detrend = y - y[0]
+            else:
+                slope, intercept = np.polyfit(x, y, 1)
+                y_detrend = y - (slope * x + intercept)
+            
+            residual_std = float(np.std(y_detrend))
         if residual_std < 1e-4:
             return {"detected": False, "reason": "No residual variance after detrending"}
 
@@ -197,10 +250,9 @@ def detect_seasonality(df: pl.DataFrame, time_col: str, value_col: str) -> dict[
             
             s1 = y_detrend[:-lag]
             s2 = y_detrend[lag:]
-            if np.std(s1) < 1e-4 or np.std(s2) < 1e-4:
-                continue
-
-            with np.errstate(divide="ignore", invalid="ignore"):
+            with np.errstate(all="ignore"):
+                if np.std(s1) < 1e-4 or np.std(s2) < 1e-4:
+                    continue
                 autocorr = np.corrcoef(s1, s2)[0, 1]
             
             if np.isnan(autocorr):
@@ -237,9 +289,34 @@ def analyze_time_series(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, 
         return {"has_time_series": False, "message": "No datetime or numeric columns found"}
     
     primary_time_col = time_cols[0]
+    
+    # Check for mixed date formats
+    mixed_formats = False
+    detected_formats = []
+    if df[primary_time_col].dtype in (pl.Utf8, pl.String, pl.Object):
+        sample = df[primary_time_col].drop_nulls().head(100).to_list()
+        formats = set()
+        for s in sample:
+            str_s = str(s).strip()
+            if re.match(r"^\d{4}-\d{2}-\d{2}$", str_s):
+                formats.add("YYYY-MM-DD")
+            elif re.match(r"^\d{4}/\d{2}/\d{2}$", str_s):
+                formats.add("YYYY/MM/DD")
+            elif re.match(r"^\d{2}-[A-Za-z]{3}-\d{4}$", str_s):
+                formats.add("DD-Mon-YYYY")
+            elif re.match(r"^\d{1,2}/\d{1,2}/\d{4}$", str_s):
+                formats.add("MM/DD/YYYY")
+            elif " " in str_s and "-" in str_s:
+                formats.add("YYYY-MM-DD HH:MM:SS")
+        if len(formats) > 1:
+            mixed_formats = True
+            detected_formats = sorted(list(formats))
+
     results = {
         "has_time_series": True,
         "time_column": primary_time_col,
+        "mixed_date_formats": mixed_formats,
+        "detected_formats": detected_formats,
         "trends": {},
         "seasonality": {},
         "kats_intelligence": {},

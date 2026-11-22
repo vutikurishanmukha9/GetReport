@@ -27,11 +27,13 @@ class PersonaSynthesizer:
         labels: np.ndarray,
         k: int,
         numeric_cols: List[str],
+        total_population: Optional[int] = None,
     ) -> List[ClusterPersona]:
         """
         Contrasts cluster means against population baseline and generates summaries.
         """
-        total_rows = df.height
+        sample_rows = df.height
+        pop_rows = total_population if total_population and total_population > 0 else sample_rows
         personas: List[ClusterPersona] = []
 
         # Population averages
@@ -42,11 +44,12 @@ class PersonaSynthesizer:
 
         for c in range(k):
             c_mask = labels == c
-            c_size = int(c_mask.sum())
-            if c_size == 0:
+            c_sample_size = int(c_mask.sum())
+            if c_sample_size == 0:
                 continue
 
-            share_pct = (c_size / total_rows) * 100.0
+            share_pct = (c_sample_size / sample_rows) * 100.0
+            c_size = int(round((share_pct / 100.0) * pop_rows))
             sub_df = df.filter(pl.Series(c_mask))
 
             diffs: List[ClusterFeatureDiff] = []

@@ -65,7 +65,11 @@ _NOTE_LABEL = re.compile(
 @dataclass
 class RowTriageConfig:
     protected_columns: frozenset[str] = frozenset()
-    placeholders: frozenset[str] = frozenset({"n/a", "na", "-999", "null", "?", "-", "missing", "unknown", "none"})
+    placeholders: frozenset[str] = frozenset({
+        "", "n/a", "na", "null", "none", "-", "--", "---", "?", "??", "-999", "-9999",
+        "#null!", "#n/a", "nan", "missing", "unknown", "tbd", "(blank)", "<null>",
+        "nil", "undefined", "#ref!", "#div/0!"
+    })
     sparse_fill_ratio: float = 0.10       # row with <= 10% of cells filled is "sparse"
     sparse_min_columns: int = 5
     footer_scan_rows: int = 5
@@ -82,8 +86,8 @@ class RowTriageConfig:
     learned_z_threshold: float = 6.0      # robust residual z-score needed to flag a cell
     learned_min_r2: float = 0.30          # a column is only judged if the others explain at least this much of it
     learned_folds: int = 3
-    learned_fit_sample: int = 50_000
-    learned_max_targets: int = 15
+    learned_fit_sample: int = 15_000
+    learned_max_targets: int = 8
     learned_max_predictors: int = 30
     learned_max_categories: int = 50
     learned_max_flag_share: float = 0.01  # if more than 1% of a column trips the test, keep only the worst 1%
@@ -243,12 +247,17 @@ def _is_text(dtype: pl.DataType) -> bool:
     return dtype in (pl.Utf8, pl.String)
 
 
-def _blank_expr(col: str, dtype: pl.DataType) -> pl.Expr:
+def _blank_expr(col: str, dtype: pl.DataType, placeholders: frozenset[str] | None = None) -> pl.Expr:
     c = pl.col(col)
     if _is_text(dtype):
-        return c.is_null() | (c.str.strip_chars() == "")
+        is_empty = c.is_null() | (c.str.strip_chars() == "")
+        if placeholders:
+            is_empty = is_empty | c.str.strip_chars().str.to_lowercase().is_in(list(placeholders))
+        return is_empty
     if dtype in (pl.Float32, pl.Float64):
-        return c.is_null() | c.is_nan()
+        return c.is_null() | c.is_nan() | c.is_in([-999.0, -9999.0, 9999.0, 99999.0])
+    if dtype in (pl.Int64, pl.Int32, pl.Int16, pl.Int8, pl.UInt64, pl.UInt32):
+        return c.is_null() | c.is_in([-999, -9999, 9999, 99999])
     return c.is_null()
 
 
@@ -265,11 +274,17 @@ def _model_matrix(
         if role in ("id", "protected"):
             continue
         if role == "numeric":
-            numeric[c] = s.cast(pl.Float64, strict=False).to_numpy().astype(float)
+            arr = s.cast(pl.Float64, strict=False).to_numpy().astype(float)
+            arr[~np.isfinite(arr) | (np.abs(arr) > 1e12)] = np.nan
+            numeric[c] = arr
         elif role == "numeric_text":
-            numeric[c] = s.str.replace_all(_NUMERIC_JUNK, "").cast(pl.Float64, strict=False).to_numpy().astype(float)
+            arr = s.str.replace_all(_NUMERIC_JUNK, "").cast(pl.Float64, strict=False).to_numpy().astype(float)
+            arr[~np.isfinite(arr) | (np.abs(arr) > 1e12)] = np.nan
+            numeric[c] = arr
         elif s.dtype in (pl.Date, pl.Datetime):
-            numeric[c] = s.cast(pl.Datetime("us")).cast(pl.Int64).cast(pl.Float64).to_numpy().astype(float) / 86_400_000_000.0
+            arr = s.cast(pl.Datetime("us")).cast(pl.Int64).cast(pl.Float64).to_numpy().astype(float) / 86_400_000_000.0
+            arr[~np.isfinite(arr)] = np.nan
+            numeric[c] = arr
         elif role == "text":
             sub = s.filter(pl.Series(valid)).drop_nulls()
             if 2 <= sub.n_unique() <= cfg.learned_max_categories:
@@ -288,9 +303,12 @@ def _oof_predictions(
 
     # SeedSequence with a salt: fold labels can never coincide with a user's own seeded data
     rng = np.random.default_rng([cfg.random_state, 0x5EED])
-    known = valid_pos[~np.isnan(y[valid_pos])]
+    # Ensure known only contains finite target values (HistGradientBoostingRegressor strictly rejects inf/-inf)
+    known = valid_pos[np.isfinite(y[valid_pos])]
     folds = rng.integers(0, cfg.learned_folds, known.size)
     pred = np.full(y.shape[0], np.nan)
+    # Ensure feature matrix never contains inf/-inf (NaN is supported by HistGradientBoostingRegressor, but inf raises ValueError)
+    F_clean = np.where(np.isinf(F), np.nan, F)
     for k in range(cfg.learned_folds):
         train = known[folds != k]
         if exclude_from_training is not None:
@@ -301,19 +319,29 @@ def _oof_predictions(
         if train.size < 30 or test.size == 0:
             continue
         model = HistGradientBoostingRegressor(
-            max_iter=120, learning_rate=0.1, max_leaf_nodes=15, categorical_features=cat_mask if cat_mask.any() else None,
+            max_iter=40,
+            early_stopping=True,
+            n_iter_no_change=5,
+            learning_rate=0.1,
+            max_leaf_nodes=15,
+            categorical_features=cat_mask if cat_mask.any() else None,
             random_state=cfg.random_state,
         )
-        model.fit(F[train], y[train])
-        pred[test] = model.predict(F[test])
+        model.fit(F_clean[train], y[train])
+        pred[test] = model.predict(F_clean[test])
     return pred, known
 
 
 def _robust_sigma(r: np.ndarray) -> float:
     if r.size == 0:
         return 0.0
-    sig = float(np.median(np.abs(r - np.median(r)))) * 1.4826
-    return sig if sig > 0 else float(np.std(r))
+    r_finite = r[np.isfinite(r) & (np.abs(r) < 1e12)]
+    if r_finite.size == 0:
+        return 0.0
+    med = np.median(r_finite)
+    sig = float(np.median(np.abs(r_finite - med))) * 1.4826
+    with np.errstate(all="ignore"):
+        return sig if sig > 0 else float(np.std(r_finite))
 
 
 def _scaled_residuals(resid: np.ndarray, F_rows: np.ndarray, base_sigma: float, cfg: RowTriageConfig) -> np.ndarray:
@@ -384,15 +412,24 @@ def _learned_layer(
         if ok.size < cfg.learned_min_rows:
             skipped[c] = "too_few_known_values"
             continue
-        resid = y[ok] - pred[ok]
-        var_y = float(np.var(y[ok]))
-        r2 = 1.0 - float(np.var(resid)) / var_y if var_y > 0 else 0.0
-        if r2 < cfg.learned_min_r2:
-            skipped[c] = f"not_explained_by_other_columns (r2={r2:.2f})"
+        y_ok = y[ok]
+        pred_ok = pred[ok]
+        finite_mask = np.isfinite(y_ok) & (np.abs(y_ok) < 1e12) & np.isfinite(pred_ok) & (np.abs(pred_ok) < 1e12)
+        if finite_mask.sum() < cfg.learned_min_rows:
+            skipped[c] = "too_few_finite_values"
             continue
-        sigma = float(np.median(np.abs(resid - np.median(resid)))) * 1.4826
-        if sigma <= 0:
-            sigma = float(np.std(resid))
+        ok = ok[finite_mask]
+        resid = y[ok] - pred[ok]
+        with np.errstate(all="ignore"):
+            var_y = float(np.var(y[ok]))
+            r2 = 1.0 - float(np.var(resid)) / var_y if var_y > 0 else 0.0
+            if r2 < cfg.learned_min_r2:
+                skipped[c] = f"not_explained_by_other_columns (r2={r2:.2f})"
+                continue
+            med_resid = np.median(resid)
+            sigma = float(np.median(np.abs(resid - med_resid))) * 1.4826
+            if sigma <= 0:
+                sigma = float(np.std(resid))
         if sigma <= 0:
             skipped[c] = "zero_residual_spread"
             continue
@@ -407,7 +444,8 @@ def _learned_layer(
                 pred, ok = pred2, ok2
                 resid = y[ok] - pred[ok]
                 clean_resid = resid[~first[ok]]
-                sig2 = float(np.median(np.abs(clean_resid - np.median(clean_resid)))) * 1.4826 if clean_resid.size else 0.0
+                clean_finite = clean_resid[np.isfinite(clean_resid) & (np.abs(clean_resid) < 1e12)]
+                sig2 = float(np.median(np.abs(clean_finite - np.median(clean_finite)))) * 1.4826 if clean_finite.size else 0.0
                 sigma = sig2 if sig2 > 0 else sigma
 
         z = _scaled_residuals(y[ok] - pred[ok], F[ok], sigma, cfg)
@@ -494,7 +532,7 @@ def triage_rows(df: pl.DataFrame, config: RowTriageConfig | None = None) -> RowT
 
     # blank matrix, one bool array per column
     blanks: dict[str, np.ndarray] = {
-        c: data.select(_blank_expr(c, data[c].dtype)).to_series().to_numpy().astype(bool) for c in cols
+        c: data.select(_blank_expr(c, data[c].dtype, cfg.placeholders)).to_series().to_numpy().astype(bool) for c in cols
     }
     filled = np.zeros(n, dtype=np.int32)
     for c in cols:

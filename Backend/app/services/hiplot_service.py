@@ -73,10 +73,14 @@ class HiPlotDataService:
                     continue
 
                 arr = s_clean.to_numpy().astype(np.float64)
-                min_v = float(np.min(arr))
-                max_v = float(np.max(arr))
-                mean_v = float(np.mean(arr))
-                std_v = float(np.std(arr))
+                arr = arr[np.isfinite(arr) & (np.abs(arr) < 1e12)]
+                if len(arr) == 0:
+                    continue
+                with np.errstate(all="ignore"):
+                    min_v = float(np.min(arr))
+                    max_v = float(np.max(arr))
+                    mean_v = float(np.mean(arr))
+                    std_v = float(np.std(arr))
 
                 # Check for heavy positive skew / dynamic range across orders of magnitude to recommend log scale
                 use_log = False

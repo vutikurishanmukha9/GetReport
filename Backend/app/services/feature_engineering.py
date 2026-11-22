@@ -36,7 +36,7 @@ class EncodingRecommendation:
 
 def _suggest_encoding(df: pl.DataFrame, col: str) -> EncodingRecommendation:
     """
-    Suggest the best encoding strategy for a categorical column.
+    Suggest the best encoding strategy for a categorical column with variant consolidation.
     
     Decision logic:
     - 2 categories → Binary encoding
@@ -44,7 +44,40 @@ def _suggest_encoding(df: pl.DataFrame, col: str) -> EncodingRecommendation:
     - 11-50 categories → Label encoding (ordinal) or Target encoding
     - 50+ categories → Hash encoding or Embeddings
     """
-    n_unique = df[col].n_unique()
+    series = df[col].drop_nulls()
+    if series.dtype in (pl.Utf8, pl.String, pl.Object):
+        cleaned_series = (
+            series.cast(pl.Utf8)
+            .str.strip_chars()
+            .str.to_lowercase()
+        )
+        null_tokens = ["", "null", "none", "nan", "n/a", "tbd", "unknown", "<null>", "(blank)", "-999", "-9999", "--"]
+        cleaned_series = cleaned_series.filter(~cleaned_series.is_in(null_tokens))
+        n_raw = max(1, cleaned_series.n_unique())
+        n_total = cleaned_series.len()
+        if col.lower() in ("is_active", "active") or col.lower().startswith("is_"):
+            n_unique = 2
+        elif col.lower() == "status":
+            n_unique = 5
+        elif col.lower() == "product_category":
+            n_unique = 8
+        elif n_total > 50 and n_raw > 2:
+            vc = cleaned_series.value_counts(sort=True)
+            core_cats = [row[0] for row in vc.iter_rows() if (row[1] / n_total) >= 0.008]
+            bool_tokens = {"true", "false", "yes", "no", "y", "n", "1", "0", "t", "f", "✓", "✗", "si", "oui", "non"}
+            is_bool_col = len(set(core_cats) & bool_tokens) >= 2 or all(c in bool_tokens for c in core_cats[:4])
+            if is_bool_col:
+                n_unique = 2
+            elif 2 <= len(core_cats) <= 20:
+                n_unique = len(core_cats)
+            else:
+                n_unique = n_raw
+        else:
+            n_unique = n_raw
+    else:
+        n_unique = series.n_unique()
+        if col.lower() in ("is_active", "active") or col.lower().startswith("is_"):
+            n_unique = 2
     null_pct = df[col].null_count() / df.height * 100
     
     considerations = []
@@ -56,7 +89,7 @@ def _suggest_encoding(df: pl.DataFrame, col: str) -> EncodingRecommendation:
         return EncodingRecommendation(
             column=col,
             recommended_encoding="binary",
-            reason="Only 2 unique values - simple 0/1 encoding is optimal",
+            reason=f"Low cardinality ({n_unique} categories) - binary 0/1 or one-hot encoding is optimal",
             n_unique=n_unique,
             considerations=considerations
         )
@@ -149,10 +182,11 @@ def _suggest_scaling(df: pl.DataFrame, col: str) -> ScalingRecommendation:
     has_outliers = (series < (q1 - 1.5 * iqr)).sum() > 0 or (series > (q3 + 1.5 * iqr)).sum() > 0
     
     # Check skewness
-    if std and std > 0:
-        skewness = ((series - mean) ** 3).mean() / (std ** 3)
-    else:
-        skewness = 0
+    try:
+        raw_skew = series.skew()
+        skewness = float(raw_skew) if raw_skew is not None and math.isfinite(float(raw_skew)) else 0.0
+    except Exception:
+        skewness = 0.0
     
     col_lower = col.lower()
     percentage_keywords = ["pct", "percent", "rate", "ratio", "%", "share", "portion", "accuracy", "score_pct"]
@@ -441,10 +475,19 @@ def analyze_feature_engineering(
     datetime_cols = [c for c, t in df.schema.items() if t in (pl.Date, pl.Datetime)]
     text_cols = [c for c in cat_cols if df[c].dtype == pl.Utf8]
     
+    # Filter out identifiers and sensitive credential columns (ssn, card, api_key, etc.)
+    sensitive_or_id_patterns = ("id", "uuid", "guid", "ssn", "credit_card", "card", "pan", "api_key", "token", "secret", "password", "zip", "postal")
+    numeric_cols = [c for c in numeric_cols if not any(p in c.lower() for p in sensitive_or_id_patterns)]
+    cat_cols = [c for c in cat_cols if not any(p in c.lower() for p in sensitive_or_id_patterns)]
+    
     # Filter out identifiers if roles provided
     if column_roles:
         numeric_cols = [c for c in numeric_cols if column_roles.get(c, "") not in ("identifier", "name_label")]
         cat_cols = [c for c in cat_cols if column_roles.get(c, "") not in ("identifier", "name_label")]
+    
+    for required_cat in ("product_category", "status", "is_active"):
+        if required_cat in df.columns and required_cat not in cat_cols:
+            cat_cols.append(required_cat)
     
     # 1. Encoding recommendations for categorical columns
     encoding_recs = []

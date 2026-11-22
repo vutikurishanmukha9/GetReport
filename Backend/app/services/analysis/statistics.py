@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 CORRELATION_STRONG_THRESHOLD: float = settings.CORRELATION_STRONG_THRESHOLD
 SKEWNESS_THRESHOLD: float = settings.SKEWNESS_THRESHOLD
 
-def compute_summary(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict[str, float]]:
+def compute_summary(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict[str, Any]]:
     """
     Compute comprehensive parametric and non-parametric summary statistics for numeric columns.
     
@@ -26,18 +26,29 @@ def compute_summary(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
     lazy_df = df.lazy()
     
     # Build aggregation expressions in a single Polars execution plan
+    # Filter out sentinel values (-999, -9999, 9999, 99999, inf, -inf, nan)
     aggs = []
     for col in numeric_cols:
+        c_float = pl.col(col).cast(pl.Float64, strict=False)
+        clean_c = (
+            pl.when(
+                c_float.is_in([-999.0, -9999.0, 9999.0, 99999.0])
+                | c_float.is_nan()
+                | c_float.is_infinite()
+            )
+            .then(None)
+            .otherwise(c_float)
+        )
         aggs.extend([
-            pl.col(col).mean().cast(pl.Float64).alias(f"{col}__mean"),
-            pl.col(col).std().cast(pl.Float64).alias(f"{col}__std"),
-            pl.col(col).min().cast(pl.Float64).alias(f"{col}__min"),
-            pl.col(col).max().cast(pl.Float64).alias(f"{col}__max"),
-            pl.col(col).median().cast(pl.Float64).alias(f"{col}__50%"),
-            pl.col(col).quantile(0.25).cast(pl.Float64).alias(f"{col}__25%"),
-            pl.col(col).quantile(0.75).cast(pl.Float64).alias(f"{col}__75%"),
-            pl.col(col).skew().cast(pl.Float64).alias(f"{col}__skewness"),
-            pl.col(col).kurtosis().cast(pl.Float64).alias(f"{col}__kurtosis")
+            clean_c.mean().alias(f"{col}__mean"),
+            clean_c.std().alias(f"{col}__std"),
+            clean_c.min().alias(f"{col}__min"),
+            clean_c.max().alias(f"{col}__max"),
+            clean_c.median().alias(f"{col}__50%"),
+            clean_c.quantile(0.25).alias(f"{col}__25%"),
+            clean_c.quantile(0.75).alias(f"{col}__75%"),
+            clean_c.skew().alias(f"{col}__skewness"),
+            clean_c.kurtosis().alias(f"{col}__kurtosis")
         ])
         
     try:
@@ -45,15 +56,36 @@ def compute_summary(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
         
         result = {}
         for col in numeric_cols:
-            mean_val = float(stats_row.get(f"{col}__mean") or 0.0)
-            std_val = float(stats_row.get(f"{col}__std") or 0.0)
-            min_val = float(stats_row.get(f"{col}__min") or 0.0)
-            max_val = float(stats_row.get(f"{col}__max") or 0.0)
-            median_val = float(stats_row.get(f"{col}__50%") or 0.0)
-            q25 = float(stats_row.get(f"{col}__25%") or 0.0)
-            q75 = float(stats_row.get(f"{col}__75%") or 0.0)
-            skew_val = float(stats_row.get(f"{col}__skewness") or 0.0)
-            kurt_val = float(stats_row.get(f"{col}__kurtosis") or 0.0)
+            mean_raw = stats_row.get(f"{col}__mean")
+            std_raw = stats_row.get(f"{col}__std")
+            min_raw = stats_row.get(f"{col}__min")
+            max_raw = stats_row.get(f"{col}__max")
+            med_raw = stats_row.get(f"{col}__50%")
+            q25_raw = stats_row.get(f"{col}__25%")
+            q75_raw = stats_row.get(f"{col}__75%")
+            skew_raw = stats_row.get(f"{col}__skewness")
+            kurt_raw = stats_row.get(f"{col}__kurtosis")
+
+            def _clean_val(v):
+                if v is None:
+                    return None
+                try:
+                    fv = float(v)
+                    if math.isnan(fv) or math.isinf(fv):
+                        return None
+                    return fv
+                except Exception:
+                    return None
+
+            mean_val = _clean_val(mean_raw) or 0.0
+            std_val = _clean_val(std_raw) or 0.0
+            min_val = _clean_val(min_raw)
+            max_val = _clean_val(max_raw)
+            median_val = _clean_val(med_raw) or 0.0
+            q25 = _clean_val(q25_raw) or 0.0
+            q75 = _clean_val(q75_raw) or 0.0
+            skew_val = _clean_val(skew_raw) or 0.0
+            kurt_val = _clean_val(kurt_raw) or 0.0
             
             # Non-Parametric & Robust Measures
             iqr = round(q75 - q25, 6)
@@ -72,35 +104,51 @@ def compute_summary(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
             mad_val = 0.0
             trimmed_mean = mean_val
             try:
-                non_null_col = df[col].drop_nulls()
-                if non_null_col.len() > 0:
-                    dev_series = (non_null_col.cast(pl.Float64) - median_val).abs()
+                c_flt = pl.col(col).cast(pl.Float64, strict=False)
+                clean_s = (
+                    df.select(
+                        pl.when(
+                            c_flt.is_in([-999.0, -9999.0, 9999.0, 99999.0])
+                            | c_flt.is_nan()
+                            | c_flt.is_infinite()
+                        )
+                        .then(None)
+                        .otherwise(c_flt)
+                        .alias(col)
+                    )
+                    .to_series()
+                    .drop_nulls()
+                )
+                if clean_s.len() > 0:
+                    dev_series = (clean_s - median_val).abs()
                     mad_val = float(dev_series.median() or 0.0)
                     
                     # Exact 5% trimmed mean calculation
-                    sorted_vals = non_null_col.cast(pl.Float64).sort().to_numpy()
+                    sorted_vals = clean_s.sort().to_numpy()
+                    sorted_vals = sorted_vals[np.isfinite(sorted_vals) & (np.abs(sorted_vals) < 1e12)]
                     n = len(sorted_vals)
                     k = int(math.floor(n * 0.05))
-                    if k > 0 and n > 2 * k:
-                        trimmed_mean = float(np.mean(sorted_vals[k:-k]))
-                    elif n > 2:
-                        trimmed_mean = float(np.mean(sorted_vals[1:-1]))
+                    with np.errstate(all="ignore"):
+                        if k > 0 and n > 2 * k:
+                            trimmed_mean = float(np.mean(sorted_vals[k:-k]))
+                        elif n > 2:
+                            trimmed_mean = float(np.mean(sorted_vals[1:-1]))
             except Exception as ex:
                 logger.debug("Error computing robust stats for %s: %s", col, ex)
             
             result[col] = {
-                "mean": round(mean_val, 4),
-                "std": round(std_val, 4),
-                "min": round(min_val, 4),
-                "max": round(max_val, 4),
-                "50%": round(median_val, 4),
-                "median": round(median_val, 4),
-                "25%": round(q25, 4),
-                "75%": round(q75, 4),
+                "mean": round(mean_val, 4) if mean_raw is not None else None,
+                "std": round(std_val, 4) if std_raw is not None else None,
+                "min": round(min_val, 4) if min_val is not None else None,
+                "max": round(max_val, 4) if max_val is not None else None,
+                "50%": round(median_val, 4) if med_raw is not None else None,
+                "median": round(median_val, 4) if med_raw is not None else None,
+                "25%": round(q25, 4) if q25_raw is not None else None,
+                "75%": round(q75, 4) if q75_raw is not None else None,
                 "iqr": round(iqr, 4),
                 "mad": round(mad_val, 4),
-                "skewness": round(skew_val, 4),
-                "kurtosis": round(kurt_val, 4),
+                "skewness": round(skew_val, 4) if skew_raw is not None else None,
+                "kurtosis": round(kurt_val, 4) if kurt_raw is not None else None,
                 "bowley_skewness": bowley_skew,
                 "coefficient_of_variation": cv,
                 "trimmed_mean_5pct": round(trimmed_mean, 4),
@@ -113,77 +161,81 @@ def compute_summary(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
 
 def compute_correlation(df: pl.DataFrame, numeric_cols: list[str]):
     """
-    Vectorized Correlation Engine with numerical stability, zero-variance protection,
+    Pairwise Correlation Engine with sentinel filtering, zero-variance protection,
     and Spearman rank-order correlation inference.
     """
     if len(numeric_cols) < 2:
         return {}, []
 
     try:
-        # Cast to Float64 and clean nulls
-        clean_df = df.select([pl.col(c).cast(pl.Float64) for c in numeric_cols]).drop_nulls()
-        
-        if clean_df.height < 2:
-            # Fallback to median imputation if listwise deletion dropped all rows
-            clean_df = df.select([
-                pl.col(c).cast(pl.Float64).fill_null(pl.col(c).median()).fill_null(0.0)
-                for c in numeric_cols
-            ])
-            
-        if clean_df.height < 2:
-            return {}, []
-            
-        data_matrix = clean_df.to_numpy().T # Shape: (num_features, num_samples)
-        
-        # Calculate standard deviations to identify zero-variance constant features
-        stds = np.std(data_matrix, axis=1)
-        valid_var_mask = stds > 1e-12
-        
-        # Compute Pearson Matrix with warning suppression
-        with np.errstate(divide="ignore", invalid="ignore"):
-            corr_matrix = np.corrcoef(data_matrix)
-            corr_matrix = np.nan_to_num(corr_matrix, nan=0.0)
-            
-        # Zero out rows/cols corresponding to zero-variance vectors
-        for idx, has_var in enumerate(valid_var_mask):
-            if not has_var:
-                corr_matrix[idx, :] = 0.0
-                corr_matrix[:, idx] = 0.0
-                
-        np.fill_diagonal(corr_matrix, 1.0)
-        
-        # Compute Spearman Rank Correlation matrix for non-linear monotonic relationships
-        try:
-            ranked_matrix = np.argsort(np.argsort(data_matrix, axis=1), axis=1).astype(float)
-            with np.errstate(divide="ignore", invalid="ignore"):
-                spearman_matrix = np.nan_to_num(np.corrcoef(ranked_matrix), nan=0.0)
-                for idx, has_var in enumerate(valid_var_mask):
-                    if not has_var:
-                        spearman_matrix[idx, :] = 0.0
-                        spearman_matrix[:, idx] = 0.0
-                np.fill_diagonal(spearman_matrix, 1.0)
-        except Exception:
-            spearman_matrix = corr_matrix
-        
+        # Pre-clean each column to float, filtering out sentinels and non-finite numbers
+        cleaned_series: dict[str, np.ndarray] = {}
+        for c in numeric_cols:
+            c_flt = pl.col(c).cast(pl.Float64, strict=False)
+            clean_s = (
+                df.select(
+                    pl.when(
+                        c_flt.is_in([-999.0, -9999.0, 9999.0, 99999.0])
+                        | c_flt.is_nan()
+                        | c_flt.is_infinite()
+                    )
+                    .then(None)
+                    .otherwise(c_flt)
+                    .alias(c)
+                )
+                .to_series()
+                .to_numpy()
+            )
+            cleaned_series[c] = clean_s
+
         corr_dict = {c: {} for c in numeric_cols}
         strong_pairs = []
-        
+
         for i, col_a in enumerate(numeric_cols):
             corr_dict[col_a][col_a] = 1.0
-            
+            arr_a = cleaned_series[col_a]
+
             for j in range(i + 1, len(numeric_cols)):
                 col_b = numeric_cols[j]
-                val = float(corr_matrix[i, j])
-                spearman_val = float(spearman_matrix[i, j])
-                
-                if np.isnan(val):
-                    val = 0.0
-                if np.isnan(spearman_val):
-                    spearman_val = 0.0
-                
+                arr_b = cleaned_series[col_b]
+
+                # Pairwise mask where both a and b are valid, finite, not negative sentinels, and within realistic bounds
+                mask = (
+                    np.isfinite(arr_a)
+                    & np.isfinite(arr_b)
+                    & (~np.isnan(arr_a))
+                    & (~np.isnan(arr_b))
+                    & (arr_a > -900)
+                    & (arr_b > -900)
+                    & (np.abs(arr_a) < 1e12)
+                    & (np.abs(arr_b) < 1e12)
+                )
+
+                val = 0.0
+                spearman_val = 0.0
+                if mask.sum() >= 10:
+                    x = arr_a[mask]
+                    y = arr_b[mask]
+                    with np.errstate(all="ignore"):
+                        std_x = float(np.std(x))
+                        std_y = float(np.std(y))
+                        if std_x > 1e-12 and std_y > 1e-12:
+                            r_matrix = np.corrcoef(x, y)
+                            v = float(r_matrix[0, 1])
+                            val = 0.0 if np.isnan(v) else v
+                            # Spearman via ranking
+                            try:
+                                rx = np.argsort(np.argsort(x)).astype(float)
+                                ry = np.argsort(np.argsort(y)).astype(float)
+                                sp_matrix = np.corrcoef(rx, ry)
+                                sv = float(sp_matrix[0, 1])
+                                spearman_val = 0.0 if np.isnan(sv) else sv
+                            except Exception:
+                                spearman_val = val
+
                 corr_dict[col_a][col_b] = round(val, 4)
                 corr_dict[col_b][col_a] = round(val, 4)
-                
+
                 # Pearson threshold filter for strong correlations
                 if abs(val) >= CORRELATION_STRONG_THRESHOLD:
                     is_collinear = abs(val) >= 0.90
@@ -196,9 +248,9 @@ def compute_correlation(df: pl.DataFrame, numeric_cols: list[str]):
                         "strength": "very strong" if abs(val) >= 0.9 else "strong",
                         "is_multicollinear": is_collinear,
                     })
-                    
+
         return corr_dict, strong_pairs
-        
+
     except Exception as e:
         logger.error(f"Vectorized correlation failed: {e}")
         return {}, []

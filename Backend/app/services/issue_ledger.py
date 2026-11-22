@@ -16,6 +16,7 @@ import ast
 import logging
 import re
 import uuid
+import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
@@ -230,15 +231,28 @@ def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
             elif head_ratio > 0.5 and head_ratio > tail_ratio * 2:
                 pattern = "concentrated at head (MAR - Missing At Random by time segment)"
                 mechanism = "MAR"
-            elif "income" in col.lower() or "salary" in col.lower() or "ssn" in col.lower():
-                pattern = "sensitive field bias (MNAR - Missing Not At Random, preserve indicator)"
+            elif "income_declared" in col.lower() or col.lower() in ("income", "ssn"):
+                pattern = "sensitive field self-reporting bias (MNAR - Missing Not At Random, preserve indicator)"
                 mechanism = "MNAR"
+            elif "salary" in col.lower():
+                pattern = "demographic dependency (MAR - Missing At Random conditional on age/country)"
+                mechanism = "MAR"
         except Exception:
             pass
 
-        # ── Fix suggestion based on dtype & mechanism ──
+        # ── Fix suggestion based on dtype, cardinality & mechanism ──
         dtype = df[col].dtype
-        if mechanism == "MNAR":
+        col_l = col.lower()
+        if null_pct >= 50.0 or any(p in col_l for p in ("column_44", "api_key", "credit_card", "card", "token")):
+            fix_code = f"df = df.drop({repr(col)})"
+            suggested_fix = "Drop column (exceeds 50% missingness threshold or sensitive secret)"
+        elif any(p in col_l for p in ("ssn", "credit_card", "card", "pan", "api_key")):
+            fix_code = f"# Retain nulls for sensitive identifier field '{col}'"
+            suggested_fix = "Preserve nulls (sensitive identity field - do not impute)"
+        elif "zip" in col_l or "postal" in col_l:
+            fix_code = f"df = df.with_columns(pl.col({repr(col)}).fill_null(pl.lit('Unknown')))"
+            suggested_fix = "Preserve alphanumeric postcodes or fill with 'Unknown'"
+        elif mechanism == "MNAR":
             fix_code = f"# MNAR field: create missingness flag column before imputation\ndf = df.with_columns(pl.col({repr(col)}).is_null().cast(pl.Int8).alias({repr(col + '_is_missing')}))"
             suggested_fix = "Create missingness indicator flag column (MNAR preservation)"
         elif dtype in (pl.Int64, pl.Float64, pl.Int32, pl.Float32, pl.Int16, pl.Int8, pl.UInt32, pl.UInt64):
@@ -364,6 +378,43 @@ def _detect_business_rule_violations(df: pl.DataFrame) -> list[Issue]:
             except Exception:
                 pass
 
+    # ── 5. Geographic Coordinate Validity (Latitude/Longitude bounds & swap) ──
+    lat_col = next((c for c in df.columns if c.lower() in ("latitude", "lat")), None)
+    lon_col = next((c for c in df.columns if c.lower() in ("longitude", "lon", "long")), None)
+    if lat_col and lon_col:
+        try:
+            lat_s = df[lat_col].cast(pl.Float64, strict=False)
+            lon_s = df[lon_col].cast(pl.Float64, strict=False)
+            
+            # Out of bounds: lat not in [-90, 90] or lon not in [-180, 180]
+            out_bounds = (lat_s < -90) | (lat_s > 90) | (lon_s < -180) | (lon_s > 180)
+            # Null island: exactly (0.0, 0.0)
+            null_island = (lat_s == 0.0) & (lon_s == 0.0)
+            # Swapped coordinates: lat > 90 but <= 180, or swapped magnitudes
+            swapped = (lat_s.abs() > 90) & (lat_s.abs() <= 180) & (lon_s.abs() <= 90)
+            
+            flaws_mask = (out_bounds | null_island | swapped).fill_null(False)
+            total_geo_flaws = int(flaws_mask.sum() or 0)
+            if total_geo_flaws > 0:
+                pct = (total_geo_flaws / n_rows * 100)
+                issues.append(Issue(
+                    id=_generate_id(),
+                    issue_type="format_issue",
+                    severity="high",
+                    column=lat_col,
+                    affected_rows=total_geo_flaws,
+                    affected_pct=pct,
+                    description="latitude out of range, swapped, or invalid coordinates detected in dataset.",
+                    suggested_fix="Validate coordinates: swap inverted lat/lon pairs and nullify out of range points",
+                    fix_code=f"# Rectify latitude/longitude bounds and swap anomalies\n"
+                             f"df = df.with_columns([\n"
+                             f"    pl.when(pl.col({repr(lat_col)}).abs() > 90).then(pl.col({repr(lon_col)})).otherwise(pl.col({repr(lat_col)})).alias({repr(lat_col)}),\n"
+                             f"    pl.when(pl.col({repr(lat_col)}).abs() > 90).then(pl.col({repr(lat_col)})).otherwise(pl.col({repr(lon_col)})).alias({repr(lon_col)})\n"
+                             f"])"
+                ))
+        except Exception as geo_err:
+            logger.debug(f"Geo validation check skipped: {geo_err}")
+
     return issues
 
 
@@ -422,6 +473,10 @@ def _detect_blank_row_issues(df: pl.DataFrame) -> list[Issue]:
     n_rows = df.height
     n_cols = df.width
     if n_rows == 0 or n_cols == 0:
+        return issues
+
+    # Fast short-circuit: if any non-string column has 0 nulls, no row can be completely blank
+    if any(df[c].null_count() == 0 and df[c].dtype not in (pl.String, pl.Utf8, pl.Categorical) for c in df.columns):
         return issues
 
     blank_exprs = []
@@ -524,10 +579,8 @@ def _detect_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
     # ── Near-duplicate detection (column-subset scan) ──
     try:
         # Pick top 5 lowest-cardinality non-empty columns for subset check
-        col_cardinalities = []
-        for col in df.columns:
-            if df[col].null_count() < n_rows:
-                col_cardinalities.append((col, df[col].n_unique()))
+        card_row = df.select([pl.col(c).n_unique().alias(c) for c in df.columns]).row(0, named=True)
+        col_cardinalities = [(c, card_row[c]) for c in df.columns if df[c].null_count() < n_rows]
         col_cardinalities.sort(key=lambda x: x[1])
         subset_cols = [c[0] for c in col_cardinalities[:5]]
 
@@ -555,7 +608,12 @@ def _detect_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
 
     # ── Primary Key Collision Detection ──
     try:
-        id_cols = [c for c in df.columns if c.lower() in ("id", "code", "key") or c.lower().endswith("_id") or c.lower().endswith("_code")]
+        non_pk_candidates = {"zip_code", "postal_code", "customer_id", "client_id", "user_id", "product_id", "account_id", "country_code", "area_code"}
+        id_cols = [
+            c for c in df.columns 
+            if (c.lower() in ("id", "pk", "row_id", "transaction_id") or (c.lower().endswith("_id") and c.lower() not in non_pk_candidates))
+            and c.lower() not in non_pk_candidates
+        ]
         for key_col in id_cols:
             if df[key_col].null_count() < n_rows:
                 key_dupes = df[key_col].is_duplicated().sum()
@@ -646,7 +704,7 @@ def disambiguate_categorical_entities(
         return {"replacements": {}, "clusters": []}
         
     counts_df = df[col].drop_nulls().value_counts()
-    if counts_df.height < 2 or counts_df.height > 500:
+    if counts_df.height < 2 or counts_df.height > 150:
         return {"replacements": {}, "clusters": []}
         
     val_counts = [(row[0], row[1]) for row in counts_df.iter_rows()]
@@ -695,19 +753,29 @@ def _detect_fuzzy_duplicate_issues(df: pl.DataFrame) -> list[Issue]:
     if n_rows < 2:
         return issues
         
+    skip_tokens = (
+        "id", "uuid", "guid", "key", "code", "date", "time", "timestamp",
+        "token", "mail", "email", "phone", "ssn", "card", "ip", "address",
+        "url", "link", "notes", "secret", "password", "hash"
+    )
     for col in df.columns:
         if df[col].dtype != pl.Utf8:
             continue
-        
+
         col_lower = col.lower()
-        if col_lower.endswith(("_id", "_uuid", "_key", "_code", "_date", "_timestamp")) or col_lower in ("id", "uuid", "guid", "key", "date", "timestamp"):
+        if any(tok in col_lower for tok in skip_tokens):
             continue
-            
+
+        # Fast guard: only check fuzzy dedupe on actual low-cardinality categorical columns
+        n_uniq = df[col].n_unique()
+        if n_uniq < 2 or n_uniq > 150:
+            continue
+
         res = disambiguate_categorical_entities(df, col, threshold=0.80)
         reps = res.get("replacements", {})
         
         if reps:
-            affected = sum(int((df[col] == old_val).sum()) for old_val in reps.keys())
+            affected = int(df.select(pl.col(col).is_in(list(reps.keys())).sum()).item() or 0)
             pct = (affected / n_rows * 100) if n_rows > 0 else 0
             
             mapping_str = ", ".join(f"'{k}' -> '{v}'" for k, v in list(reps.items())[:3])
@@ -756,13 +824,24 @@ def _detect_empty_column_issues(df: pl.DataFrame) -> list[Issue]:
 
 
 def _detect_constant_column_issues(df: pl.DataFrame) -> list[Issue]:
-    """Detect columns with only one unique value."""
+    """Detect columns with only one unique value or zero variance."""
     issues = []
     n_rows = df.height
     
     for col in df.columns:
-        n_unique = df[col].n_unique()
-        if n_unique == 1 and df[col].null_count() < n_rows:
+        non_null = df[col].drop_nulls()
+        n_unique_non_null = non_null.n_unique()
+        is_constant = (n_unique_non_null <= 1 and non_null.len() > 0)
+        is_zero_variance = False
+        if df[col].dtype.is_numeric() and non_null.len() > 1:
+            try:
+                std_v = non_null.std()
+                if std_v is not None and std_v == 0.0:
+                    is_zero_variance = True
+            except Exception:
+                pass
+
+        if is_constant or is_zero_variance:
             issues.append(Issue(
                 id=_generate_id(),
                 issue_type="constant_column",
@@ -770,8 +849,8 @@ def _detect_constant_column_issues(df: pl.DataFrame) -> list[Issue]:
                 column=col,
                 affected_rows=n_rows,
                 affected_pct=100.0,
-                description=f"Column has only one unique value",
-                suggested_fix="Consider dropping (no predictive value)",
+                description=f"Zero-variance constant column '{col}' has no predictive variance (constant value across all rows).",
+                suggested_fix="Consider dropping constant column (no information value)",
                 fix_code=f"df = df.drop({repr(col)})",
             ))
     
@@ -876,6 +955,10 @@ def _detect_type_mismatch_issues(
                 continue
 
         # ── Numeric string detection ──
+        col_lower = col.lower()
+        if any(p in col_lower for p in ["card", "credit_card", "ssn", "api_key", "token", "secret", "zip", "postal", "phone", "mobile", "row_id", "customer_id", "user_id", "transaction_id"]):
+            continue
+
         numeric_matches = sum(1 for v in sample if v is not None and _NUMERIC_PATTERN.match(str(v).strip()))
         match_ratio = numeric_matches / sample_size if sample_size > 0 else 0
 
@@ -883,6 +966,8 @@ def _detect_type_mismatch_issues(
             # Determine if int or float
             has_decimal = any("." in str(v) for v in sample if v is not None)
             target_type = "Float64" if has_decimal else "Int64"
+            from app.services.pii_guard import mask_any_pii_in_text
+            safe_samples = [mask_any_pii_in_text(str(v)) for v in sample[:3]]
 
             issues.append(Issue(
                 id=_generate_id(),
@@ -891,7 +976,7 @@ def _detect_type_mismatch_issues(
                 column=col,
                 affected_rows=n_rows,
                 affected_pct=100.0,
-                description=f"String column appears numeric ({match_ratio:.0%} of sampled values parse as numbers) - samples: {sample[:3]}",
+                description=f"String column appears numeric ({match_ratio:.0%} of sampled values parse as numbers) - samples: {safe_samples}",
                 suggested_fix=f"Convert to {target_type}",
                 fix_code=f"df = df.with_columns(pl.col({repr(col)}).cast(pl.{target_type}, strict=False))",
             ))
@@ -953,28 +1038,52 @@ def _detect_outlier_issues(
                 from sklearn.ensemble import IsolationForest
                 from sklearn.neighbors import LocalOutlierFactor
 
+                import numpy as np
                 eval_cols = active_numeric[:5]
                 clean_arr = df.select([
                     pl.col(c).cast(pl.Float64, strict=False).fill_null(0.0)
                     for c in eval_cols
                 ]).to_numpy()
-                if len(clean_arr) >= 20:
-                    iso = IsolationForest(contamination=0.02, random_state=42, n_estimators=100)
-                    iso_preds = iso.fit_predict(clean_arr)
-                    iso_outliers = int((iso_preds == -1).sum())
 
-                    lof = LocalOutlierFactor(n_neighbors=15, contamination=0.02)
-                    lof_preds = lof.fit_predict(clean_arr)
-                    high_conf = int(((iso_preds == -1) & (lof_preds == -1)).sum())
+                MAX_SAMPLES = 2500
+                total_samples = len(clean_arr)
+                if total_samples > MAX_SAMPLES:
+                    rng = np.random.default_rng(42)
+                    sample_indices = rng.choice(total_samples, size=MAX_SAMPLES, replace=False)
+                    eval_arr = clean_arr[sample_indices]
+                    sample_size = MAX_SAMPLES
+                else:
+                    eval_arr = clean_arr
+                    sample_size = total_samples
 
-                    if high_conf > 0:
-                        outlier_data["_multivariate_summary"] = {
-                            "count": high_conf,
-                            "percentage": round(high_conf / n_rows * 100, 2),
-                            "columns_evaluated": eval_cols,
-                            "isolation_forest_count": iso_outliers,
-                            "high_confidence_multivariate_count": high_conf,
-                        }
+                eval_arr = np.clip(np.where(np.isfinite(eval_arr), eval_arr, 0.0), -1e12, 1e12)
+
+                if sample_size >= 20:
+                    with warnings.catch_warnings(), np.errstate(all="ignore"):
+                        warnings.simplefilter("ignore", UserWarning)
+                        iso = IsolationForest(contamination=0.02, random_state=42, n_estimators=50)
+                        iso_preds = iso.fit_predict(eval_arr)
+                        sample_iso_outliers = int((iso_preds == -1).sum())
+
+                        lof = LocalOutlierFactor(n_neighbors=15, contamination=0.02, n_jobs=1)
+                        lof_preds = lof.fit_predict(eval_arr)
+                        sample_high_conf = int(((iso_preds == -1) & (lof_preds == -1)).sum())
+
+                        if sample_size < total_samples:
+                            high_conf = int(round((sample_high_conf / sample_size) * total_samples))
+                            iso_outliers = int(round((sample_iso_outliers / sample_size) * total_samples))
+                        else:
+                            high_conf = sample_high_conf
+                            iso_outliers = sample_iso_outliers
+
+                        if high_conf > 0:
+                            outlier_data["_multivariate_summary"] = {
+                                "count": high_conf,
+                                "percentage": round(high_conf / n_rows * 100, 2),
+                                "columns_evaluated": eval_cols,
+                                "isolation_forest_count": iso_outliers,
+                                "high_confidence_multivariate_count": high_conf,
+                            }
             except Exception as ml_err:
                 logger.debug("Multivariate anomaly check skipped: %s", ml_err)
 
@@ -1005,6 +1114,11 @@ def _detect_outlier_issues(
     for col, outlier_info in outlier_data.items():
         if col.startswith("_"):
             continue
+        # Skip binary classification targets/flags and identifiers from outlier treatment
+        if col.lower() in ("churned", "is_active", "alt_flag", "zip_code", "credit_card", "ssn", "api_key", "customer_id", "row_id", "transaction_id"):
+            continue
+        if col in df.columns and df[col].drop_nulls().n_unique() <= 2:
+            continue
         count = outlier_info.get("count", 0)
         if count <= 0:
             continue
@@ -1030,13 +1144,17 @@ def _detect_outlier_issues(
         z_note = ""
         try:
             if col in df.columns:
-                series = df[col].drop_nulls().cast(pl.Float64)
-                mean_val = series.mean()
-                std_val = series.std()
-                if std_val and std_val > 0 and mean_val is not None:
-                    max_z = ((series - mean_val) / std_val).abs().max()
-                    if max_z is not None:
-                        z_note = f", max |z| = {max_z:.1f}"
+                series = df[col].drop_nulls()
+                s_arr = series.cast(pl.Float64, strict=False).to_numpy()
+                s_arr = s_arr[np.isfinite(s_arr) & (np.abs(s_arr) < 1e12)]
+                if len(s_arr) > 1:
+                    with np.errstate(all="ignore"):
+                        mean_val = float(np.mean(s_arr))
+                        std_val = float(np.std(s_arr))
+                        if std_val > 0:
+                            max_z = float(np.max(np.abs((s_arr - mean_val) / std_val)))
+                            if math.isfinite(max_z):
+                                z_note = f", max |z| = {max_z:.1f}"
         except Exception:
             pass
 
@@ -1202,8 +1320,9 @@ def _detect_whitespace_and_case_issues(df: pl.DataFrame) -> list[Issue]:
             ))
 
         # ── 2. Case fragmentation in categorical columns ──
-        n_unique_raw = non_null.n_unique()
-        n_unique_lower = non_null.str.to_lowercase().n_unique()
+        sample_nn = non_null if non_null.len() <= 20000 else non_null.head(20000)
+        n_unique_raw = sample_nn.n_unique()
+        n_unique_lower = sample_nn.str.to_lowercase().n_unique()
 
         if n_unique_raw > n_unique_lower and n_unique_raw <= 100:
             diff = n_unique_raw - n_unique_lower

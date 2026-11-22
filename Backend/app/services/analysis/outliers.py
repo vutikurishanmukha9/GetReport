@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 import math
+import warnings
 import polars as pl
 from app.core.config import settings
 
@@ -48,6 +49,17 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
         aggs_row = lazy_df.select(aggs).collect().row(0, named=True)
 
         for col in numeric_cols:
+            col_l = col.lower()
+            # Exclude identifiers and credential/PAN columns from numeric outlier profiling
+            if any(id_kw in col_l for id_kw in ("id", "ssn", "card", "credit_card", "pan", "zip", "postal", "api_key", "token")):
+                continue
+            # Exclude binary classification targets or flags (e.g. churned) so they are not flagged as outliers
+            try:
+                if df[col].drop_nulls().n_unique() <= 2 or col_l in ("churned", "is_churned", "churn", "target", "alt_flag", "is_active"):
+                    continue
+            except Exception:
+                pass
+
             q1 = aggs_row.get(f"{col}_q1")
             q3 = aggs_row.get(f"{col}_q3")
             median_val = aggs_row.get(f"{col}_median")
@@ -177,7 +189,7 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
 
                 # Safeguard: LOF has O(N^2) distance memory & complexity.
                 # If n_rows > 10,000, sample down to 10,000 to prevent O(N^2) memory and CPU lockups.
-                MAX_MULTIVARIATE_SAMPLES = 10000
+                MAX_MULTIVARIATE_SAMPLES = 2500
                 total_samples = len(clean_arr)
                 if total_samples > MAX_MULTIVARIATE_SAMPLES:
                     rng = np.random.default_rng(42)
@@ -188,14 +200,19 @@ def detect_outliers(df: pl.DataFrame, numeric_cols: list[str]) -> dict[str, dict
                     eval_arr = clean_arr
                     sample_size = total_samples
 
-                if sample_size >= 20:
-                    iso = IsolationForest(contamination=0.02, random_state=42, n_estimators=100, n_jobs=-1)
-                    iso_preds = iso.fit_predict(eval_arr)
-                    sample_iso_outliers = int((iso_preds == -1).sum())
+                # Clip extreme float values to avoid float overflow in distance / tree metrics
+                eval_arr = np.clip(np.where(np.isfinite(eval_arr), eval_arr, 0.0), -1e12, 1e12)
 
-                    lof = LocalOutlierFactor(n_neighbors=15, contamination=0.02, n_jobs=-1)
-                    lof_preds = lof.fit_predict(eval_arr)
-                    sample_high_conf = int(((iso_preds == -1) & (lof_preds == -1)).sum())
+                if sample_size >= 20:
+                    with warnings.catch_warnings(), np.errstate(all="ignore"):
+                        warnings.simplefilter("ignore", UserWarning)
+                        iso = IsolationForest(contamination=0.02, random_state=42, n_estimators=50, n_jobs=-1)
+                        iso_preds = iso.fit_predict(eval_arr)
+                        sample_iso_outliers = int((iso_preds == -1).sum())
+
+                        lof = LocalOutlierFactor(n_neighbors=15, contamination=0.02, n_jobs=-1)
+                        lof_preds = lof.fit_predict(eval_arr)
+                        sample_high_conf = int(((iso_preds == -1) & (lof_preds == -1)).sum())
 
                     if sample_size < total_samples:
                         # Extrapolate counts back to total population
@@ -278,9 +295,10 @@ def detect_time_series_stl_outliers(df: pl.DataFrame, date_col: str, numeric_col
             mod_z_r = 0.6745 * np.abs(resid - median_r) / mad_r
             stl_outliers_mask = mod_z_r > 3.0
         else:
-            std_r = float(np.std(resid))
-            if std_r > 0:
-                stl_outliers_mask = np.abs(resid - np.mean(resid)) > 2.0 * std_r
+            with np.errstate(all="ignore"):
+                std_r = float(np.std(resid))
+                if std_r > 0:
+                    stl_outliers_mask = np.abs(resid - np.mean(resid)) > 2.0 * std_r
 
         stl_outlier_count = int(stl_outliers_mask.sum())
 

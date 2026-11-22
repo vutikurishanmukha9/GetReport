@@ -161,14 +161,14 @@ def evaluate_analysis_decisions(df: pl.DataFrame) -> DecisionLog:
     if low_cardinality_cats:
         log.ran(
             "Categorical Analysis",
-            f"Found {len(low_cardinality_cats)} categorical columns with manageable cardinality",
+            f"Found {len(low_cardinality_cats)} discrete features with manageable cardinality",
             [f"Columns: {', '.join(low_cardinality_cats[:5])}"],
             "Frequency distributions and mode analysis"
         )
     elif cat_cols:
         log.partial(
             "Categorical Analysis",
-            f"High cardinality in all {len(cat_cols)} categorical columns",
+            f"High cardinality in all {len(cat_cols)} discrete features",
             ["All columns have >50 unique values - limited analysis possible"]
         )
     else:
@@ -263,7 +263,7 @@ def evaluate_analysis_decisions(df: pl.DataFrame) -> DecisionLog:
     if numeric_cols or cat_cols:
         log.ran(
             "Feature Engineering Analysis",
-            f"Generating ML-prep suggestions for {len(numeric_cols)} numeric + {len(cat_cols)} categorical columns",
+            f"Generating ML-prep suggestions for {len(numeric_cols)} numeric + {len(cat_cols)} feature columns",
             impact="Encoding, scaling, and feature extraction recommendations"
         )
     

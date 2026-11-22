@@ -97,8 +97,12 @@ def _fmt(val, precision=1) -> str:
 
 def _skewness_word(data: np.ndarray) -> str:
     """Describe distribution shape from data."""
-    mean_val = float(np.mean(data))
-    median_val = float(np.median(data))
+    valid = data[np.isfinite(data) & (np.abs(data) < 1e12)]
+    if len(valid) == 0:
+        return "roughly symmetric"
+    with np.errstate(all="ignore"):
+        mean_val = float(np.mean(valid))
+        median_val = float(np.median(valid))
     if abs(mean_val - median_val) < 0.01 * abs(mean_val + 1e-9):
         return "roughly symmetric"
     return "right-skewed (tail toward high values)" if mean_val > median_val else "left-skewed (tail toward low values)"
@@ -143,7 +147,7 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     if len(numeric_cols) > 1:
         try:
             target_cols_for_corr = numeric_cols[:20]
-            clean_sel = df.select([pl.col(c).cast(pl.Float64) for c in target_cols_for_corr])
+            clean_sel = df.select([pl.col(c).cast(pl.Float64, strict=False) for c in target_cols_for_corr])
             
             # Use listwise deletion if >= 2 rows remain; otherwise fallback to median imputation
             if clean_sel.drop_nulls().height >= 2:
@@ -155,9 +159,11 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
                 ])
                 
             data_matrix = matrix_df.to_numpy().T
+            data_matrix = np.where(np.isfinite(data_matrix) & (np.abs(data_matrix) < 1e12), data_matrix, 0.0)
             
             if data_matrix.shape[1] > 1:
-                corr_matrix = np.nan_to_num(np.corrcoef(data_matrix), nan=0.0)
+                with np.errstate(all="ignore"):
+                    corr_matrix = np.nan_to_num(np.corrcoef(data_matrix), nan=0.0)
                 np.fill_diagonal(corr_matrix, 1.0)
                 
                 from matplotlib.colors import LinearSegmentedColormap
@@ -219,19 +225,26 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
     for idx, col in enumerate(numeric_cols[:5]):
         try:
             data = df[col].drop_nulls().to_numpy()
-            if len(data) == 0: continue
+            data = np.asarray(data, dtype=float)
+            data = data[np.isfinite(data) & (np.abs(data) <= 1e12)]
+            if len(data) < 2: continue
+
+            # For charting, clip extreme 0.5% and 99.5% percentiles to keep axes and bins well-behaved
+            p01, p99 = np.percentile(data, [0.5, 99.5])
+            plot_data = np.clip(data, p01, p99) if p01 < p99 else data
             
             color = BRAND_PALETTE[idx % len(BRAND_PALETTE)]
             fig, ax = _create_figure(figsize=(6.5, 4))
             
-            n_bins, bins, patches = ax.hist(data, bins=25, color=color, edgecolor="white",
+            n_bins, bins, patches = ax.hist(plot_data, bins=25, color=color, edgecolor="white",
                                              alpha=0.85, linewidth=0.5)
             
-            mean_val = float(np.mean(data))
-            median_val = float(np.median(data))
-            std_val = float(np.std(data))
-            min_val = float(np.min(data))
-            max_val = float(np.max(data))
+            with np.errstate(all="ignore"):
+                mean_val = float(np.mean(data))
+                median_val = float(np.median(data))
+                std_val = float(np.std(data))
+                min_val = float(np.min(data))
+                max_val = float(np.max(data))
             
             ax.axvline(mean_val, color="#ef4444", linestyle="--", linewidth=1.5,
                        label=f"Mean: {_fmt(mean_val)}")
@@ -268,7 +281,11 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
 
     # ── 3. Bar Charts (Categorical Frequency) ────────────────────────────────
     bar_list = []
-    plot_cats = [c for c in cat_cols if df[c].n_unique() <= 20]
+    plot_cats = [
+        c for c in cat_cols 
+        if 2 <= df[c].n_unique() <= 20 
+        and not any(k in c.lower() for k in ("constant", "zero_var", "id", "key", "token"))
+    ]
     for col in plot_cats[:3]:
         try:
             vc = df[col].value_counts(sort=True).head(12)
@@ -342,6 +359,8 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
                 group_medians = {}
                 for c in cats:
                     vals = valid_df.filter(pl.col(cat_col) == c)[num_col].to_numpy()
+                    vals = np.asarray(vals, dtype=float)
+                    vals = vals[np.isfinite(vals) & (np.abs(vals) < 1e12)]
                     if len(vals) > 0:
                         groups.append(vals)
                         group_labels.append(c)
@@ -382,7 +401,8 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
                             narrative += "The groups are relatively close in their central values."
                     
                     # Check for spread difference
-                    spreads = {lbl: float(np.std(g)) for lbl, g in zip(group_labels, groups)}
+                    with np.errstate(all="ignore"):
+                        spreads = {lbl: float(np.std(g)) for lbl, g in zip(group_labels, groups)}
                     widest = max(spreads, key=spreads.get)
                     narrative += f' "{widest}" shows the most variability.'
                     
@@ -406,50 +426,56 @@ def generate_charts(df: pl.DataFrame) -> tuple[dict[str, str], list[str]]:
             scatter_df = df.select([col_x, col_y]).drop_nulls()
             x_data = scatter_df[col_x].to_numpy()
             y_data = scatter_df[col_y].to_numpy()
-            
-            if len(x_data) > 2000:
-                rng_idx = np.random.choice(len(x_data), 2000, replace=False)
-                x_data, y_data = x_data[rng_idx], y_data[rng_idx]
-            
-            fig, ax = _create_figure(figsize=(7, 5))
-            ax.scatter(x_data, y_data, c=BRAND_PRIMARY, alpha=0.4, s=12, edgecolors="none")
-            
-            z = np.polyfit(x_data.astype(float), y_data.astype(float), 1)
-            p = np.poly1d(z)
-            x_line = np.linspace(float(x_data.min()), float(x_data.max()), 100)
-            ax.plot(x_line, p(x_line), color="#ef4444", linewidth=2, linestyle="--",
-                    label=f"Trend line (r = {r_val:.3f})")
-            
-            ax.set_title(f"Relationship: {col_x} vs {col_y}")
-            ax.set_xlabel(f"{col_x} (values)", fontsize=10)
-            ax.set_ylabel(f"{col_y} (values)", fontsize=10)
-            ax.legend(fontsize=9, loc="best", framealpha=0.8)
-            fig.tight_layout()
-            
-            # Build narrative
-            slope = z[0]
-            direction = "increases" if slope > 0 else "decreases"
-            strength = "very strong" if abs(r_val) >= 0.9 else "strong" if abs(r_val) >= 0.7 else "moderate"
-            
-            narrative = (
-                f"This scatter plot shows the {strength} relationship between {col_x} and {col_y} "
-                f"(r = {r_val:.3f}). As {col_x} increases, {col_y} {direction}. "
+            finite_mask = (
+                np.isfinite(x_data) & np.isfinite(y_data)
+                & (np.abs(x_data) < 1e12) & (np.abs(y_data) < 1e12)
             )
-            # Practical slope interpretation
-            x_range = float(x_data.max()) - float(x_data.min())
-            if x_range > 0:
-                step = x_range / 10
-                y_change = slope * step
-                narrative += (
-                    f"For every {_fmt(step)} increase in {col_x}, "
-                    f"{col_y} changes by approximately {_fmt(y_change)}."
-                )
+            x_data, y_data = x_data[finite_mask], y_data[finite_mask]
             
-            charts["scatter_plot"] = {
-                "columns": f"{col_x} vs {col_y}",
-                "image": _fig_to_base64(fig),
-                "narrative": narrative,
-            }
+            if len(x_data) >= 2:
+                if len(x_data) > 2000:
+                    rng_idx = np.random.choice(len(x_data), 2000, replace=False)
+                    x_data, y_data = x_data[rng_idx], y_data[rng_idx]
+                
+                fig, ax = _create_figure(figsize=(7, 5))
+                ax.scatter(x_data, y_data, c=BRAND_PRIMARY, alpha=0.4, s=12, edgecolors="none")
+                
+                z = np.polyfit(x_data.astype(float), y_data.astype(float), 1)
+                p = np.poly1d(z)
+                x_line = np.linspace(float(x_data.min()), float(x_data.max()), 100)
+                ax.plot(x_line, p(x_line), color="#ef4444", linewidth=2, linestyle="--",
+                        label=f"Trend line (r = {r_val:.3f})")
+                
+                ax.set_title(f"Relationship: {col_x} vs {col_y}")
+                ax.set_xlabel(f"{col_x} (values)", fontsize=10)
+                ax.set_ylabel(f"{col_y} (values)", fontsize=10)
+                ax.legend(fontsize=9, loc="best", framealpha=0.8)
+                fig.tight_layout()
+                
+                # Build narrative
+                slope = z[0]
+                direction = "increases" if slope > 0 else "decreases"
+                strength = "very strong" if abs(r_val) >= 0.9 else "strong" if abs(r_val) >= 0.7 else "moderate"
+                
+                narrative = (
+                    f"This scatter plot shows the {strength} relationship between {col_x} and {col_y} "
+                    f"(r = {r_val:.3f}). As {col_x} increases, {col_y} {direction}. "
+                )
+                # Practical slope interpretation
+                x_range = float(x_data.max()) - float(x_data.min())
+                if x_range > 0:
+                    step = x_range / 10
+                    y_change = slope * step
+                    narrative += (
+                        f"For every {_fmt(step)} increase in {col_x}, "
+                        f"{col_y} changes by approximately {_fmt(y_change)}."
+                    )
+                
+                charts["scatter_plot"] = {
+                    "columns": f"{col_x} vs {col_y}",
+                    "image": _fig_to_base64(fig),
+                    "narrative": narrative,
+                }
         except Exception as e:
             logger.warning(f"Scatter plot failed: {e}")
 
@@ -619,7 +645,11 @@ def generate_interactive_charts(df: pl.DataFrame) -> dict[str, Any]:
     
     # ── 3. Interactive Bar Charts ─────────────────────────────────────────────
     bar_charts = []
-    plot_cats = [c for c in cat_cols if df[c].n_unique() <= 20]
+    plot_cats = [
+        c for c in cat_cols 
+        if 2 <= df[c].n_unique() <= 20 
+        and not any(k in c.lower() for k in ("constant", "zero_var", "id", "key", "token"))
+    ]
     for col in plot_cats[:3]:
         try:
             vc = df[col].value_counts(sort=True).head(15)
@@ -667,9 +697,11 @@ def generate_interactive_charts(df: pl.DataFrame) -> dict[str, Any]:
                 ])
                 
             data_matrix = matrix_df.to_numpy().T
+            data_matrix = np.where(np.isfinite(data_matrix), data_matrix, 0.0)
             
             if data_matrix.shape[1] > 1:
-                corr_matrix = np.nan_to_num(np.corrcoef(data_matrix), nan=0.0)
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    corr_matrix = np.nan_to_num(np.corrcoef(data_matrix), nan=0.0)
                 np.fill_diagonal(corr_matrix, 1.0)
                 
                 charts["correlation_heatmap"] = {

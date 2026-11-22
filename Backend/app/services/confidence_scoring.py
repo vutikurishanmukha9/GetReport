@@ -121,10 +121,10 @@ def calculate_benfords_law(series: pl.Series) -> dict[str, Any]:
         if pos_vals.len() < 30:
             return {"applicable": False, "reason": "too_few_positive_values"}
         
-        # Check order of magnitude span (Benford requires spanning at least 1-2 orders of magnitude)
+        # Check orders of magnitude / spread
         min_v = pos_vals.min()
         max_v = pos_vals.max()
-        if min_v is None or max_v is None or min_v <= 0 or (max_v / min_v) < 10:
+        if min_v is None or max_v is None or min_v <= 0 or max_v <= min_v:
             return {"applicable": False, "reason": "insufficient_magnitude_span"}
         
         # Extract leading first digit
@@ -208,6 +208,15 @@ def _calculate_consistency(series: pl.Series, dtype: pl.DataType) -> tuple[float
     if dtype in (pl.Utf8, pl.String):
         non_null = series.drop_nulls()
         if non_null.len() > 0:
+            n_raw_unique = non_null.n_unique()
+            lower_s = non_null.cast(pl.Utf8).str.strip_chars().str.to_lowercase()
+            n_lower_unique = lower_s.n_unique()
+            if n_raw_unique > n_lower_unique and n_raw_unique > 1:
+                variant_diff = n_raw_unique - n_lower_unique
+                variant_pct = min(40.0, (variant_diff / max(1, n_raw_unique)) * 100.0)
+                score -= max(18.0, variant_pct)
+                issues.append(f"Casing and spelling variants detected ({variant_diff} variants)")
+
             # Check for mixed case patterns
             sample = non_null.head(min(1000, non_null.len())).to_list()
             
@@ -453,9 +462,19 @@ def calculate_confidence_scores(df: pl.DataFrame) -> ConfidenceReport:
     
     # Dataset-level metrics
     if column_scores:
-        dataset_confidence = sum(c.overall for c in column_scores) / len(column_scores)
-        high_confidence = sum(1 for c in column_scores if c.overall >= 75)
-        low_confidence = sum(1 for c in column_scores if c.overall < 50)
+        # High confidence strictly requires Grade A (overall >= 90)
+        high_confidence = sum(1 for c in column_scores if c.overall >= 90.0)
+        low_confidence = sum(1 for c in column_scores if c.overall < 60.0)
+
+        raw_avg = sum(c.overall for c in column_scores) / len(column_scores)
+
+        # Apply realistic quality penalties for dirty datasets
+        c_or_worse = sum(1 for c in column_scores if c.overall < 75.0)
+        critical_penalty = min(30.0, len(critical_issues) * 6.0)
+        low_quality_ratio = c_or_worse / max(1, len(column_scores))
+        quality_penalty = low_quality_ratio * 25.0
+
+        dataset_confidence = max(10.0, round(raw_avg - critical_penalty - quality_penalty, 1))
     else:
         dataset_confidence = 0.0
         high_confidence = 0

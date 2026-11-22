@@ -581,6 +581,14 @@ def suggest_analysis_pairs(
                     priority=2
                 ))
     
+    # Filter out sensitive credentials or PII from recommended analysis pairs
+    SENSITIVE_PATTERNS = ("credit_card", "card", "pan", "ssn", "api_key", "token", "secret", "password")
+    suggestions = [
+        s for s in suggestions
+        if not any(p in s.column_a.lower() for p in SENSITIVE_PATTERNS)
+        and not any(p in s.column_b.lower() for p in SENSITIVE_PATTERNS)
+    ]
+
     # Sort by priority
     suggestions.sort(key=lambda x: x.priority)
     

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, memo } from "react";
 import {
   Download, RefreshCw, Loader2, FileText, ChevronRight,
-  AlertTriangle, ArrowRight, BarChart3, PieChart, Activity,
+  AlertTriangle, AlertCircle, ArrowRight, BarChart3, PieChart, Activity,
   FileSpreadsheet, TrendingUp, ChevronDown, ChevronUp, ShieldCheck,
   BookOpen, Table2, Grid, Cpu, Terminal, Play, Sliders, Search,
   Copy, Check, Trash2, Database,
@@ -64,13 +64,61 @@ interface ReportGenerationProps {
 }
 
 const getGradeColorClass = (g: string) => {
-  switch (g.toUpperCase()) {
-    case 'A': return 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30';
-    case 'B': return 'bg-zinc-800/60 text-zinc-200 border-white/15';
-    case 'C': return 'bg-amber-950/40 text-amber-400 border-amber-500/30';
-    case 'D': return 'bg-orange-950/40 text-orange-400 border-orange-500/30';
-    case 'F': return 'bg-rose-950/40 text-rose-400 border-rose-500/30';
-    default: return 'bg-white/[0.04] text-zinc-300 border-white/10';
+  switch ((g || '').toUpperCase()) {
+    case 'A': return 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500/30';
+    case 'B': return 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30 dark:bg-zinc-800/60 dark:text-emerald-400 dark:border-white/15';
+    case 'C': return 'bg-amber-500/15 text-amber-800 border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-500/30';
+    case 'D': return 'bg-orange-500/15 text-orange-800 border-orange-500/30 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-500/30';
+    case 'F': return 'bg-rose-500/15 text-rose-800 border-rose-500/30 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-500/30';
+    default: return 'bg-stone-200/80 text-stone-800 border-stone-300 dark:bg-white/[0.04] dark:text-zinc-300 dark:border-white/10';
+  }
+};
+
+const getSealGradeConfig = (grade: string) => {
+  const g = (grade || "B").toUpperCase();
+  switch (g) {
+    case "A":
+      return {
+        container: "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-400",
+        label: "text-emerald-800/80 dark:text-emerald-400/80",
+        grade: "text-emerald-800 dark:text-emerald-400",
+        score: "text-emerald-700 dark:text-emerald-300/90",
+      };
+    case "B":
+      return {
+        container: "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:bg-zinc-800/60 dark:border-white/15 dark:text-emerald-400",
+        label: "text-emerald-800/80 dark:text-emerald-400/80",
+        grade: "text-emerald-800 dark:text-emerald-400",
+        score: "text-emerald-700 dark:text-emerald-300/90",
+      };
+    case "C":
+      return {
+        container: "bg-amber-500/10 border-amber-500/30 text-amber-800 dark:bg-amber-950/40 dark:border-amber-500/30 dark:text-amber-400",
+        label: "text-amber-800/80 dark:text-amber-400/80",
+        grade: "text-amber-800 dark:text-amber-400",
+        score: "text-amber-700 dark:text-amber-300/90",
+      };
+    case "D":
+      return {
+        container: "bg-orange-500/10 border-orange-500/30 text-orange-800 dark:bg-orange-950/40 dark:border-orange-500/30 dark:text-orange-400",
+        label: "text-orange-800/80 dark:text-orange-400/80",
+        grade: "text-orange-800 dark:text-orange-400",
+        score: "text-orange-700 dark:text-orange-300/90",
+      };
+    case "F":
+      return {
+        container: "bg-rose-500/10 border-rose-500/30 text-rose-800 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-400",
+        label: "text-rose-800/80 dark:text-rose-400/80",
+        grade: "text-rose-800 dark:text-rose-400",
+        score: "text-rose-700 dark:text-rose-300/90",
+      };
+    default:
+      return {
+        container: "bg-stone-200/70 border-stone-300 text-stone-800 dark:bg-white/[0.04] dark:border-white/10 dark:text-zinc-300",
+        label: "text-stone-700/80 dark:text-zinc-400/80",
+        grade: "text-stone-800 dark:text-zinc-200",
+        score: "text-stone-700 dark:text-zinc-400",
+      };
   }
 };
 
@@ -623,11 +671,16 @@ export const ReportGeneration = ({
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-6 sm:p-8 bg-card border border-border/80 rounded-3xl shadow-premium relative overflow-hidden">
           <div className="flex items-center gap-5 z-10">
             {/* Seal / Letter Grade Badge */}
-            <div className={`flex flex-col items-center justify-center h-20 w-20 sm:h-24 sm:w-24 rounded-2xl ${getGradeColorClass(datasetGrade)} border shadow-sm shrink-0`}>
-              <span className="text-[9px] font-sans font-bold tracking-[0.2em] uppercase text-emerald-400/80 leading-none mb-1">GRADE</span>
-              <span className="text-3xl sm:text-4xl font-sans font-black leading-none tracking-tight text-emerald-400">{datasetGrade}</span>
-              <span className="text-[11px] font-sans font-bold mt-1 text-emerald-300/90 tabular-nums">{datasetConfidence.toFixed(1)}%</span>
-            </div>
+            {(() => {
+              const seal = getSealGradeConfig(datasetGrade);
+              return (
+                <div className={`flex flex-col items-center justify-center h-20 w-20 sm:h-24 sm:w-24 rounded-2xl ${seal.container} border shadow-sm shrink-0 transition-colors`}>
+                  <span className={`text-[9px] font-sans font-bold tracking-[0.2em] uppercase leading-none mb-1 ${seal.label}`}>GRADE</span>
+                  <span className={`text-3xl sm:text-4xl font-sans font-black leading-none tracking-tight ${seal.grade}`}>{datasetGrade}</span>
+                  <span className={`text-[11px] font-sans font-bold mt-1 tabular-nums ${seal.score}`}>{datasetConfidence.toFixed(1)}%</span>
+                </div>
+              );
+            })()}
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-2.5 flex-wrap">
@@ -799,7 +852,7 @@ export const ReportGeneration = ({
                   <span className="text-2xl sm:text-3xl font-sans font-bold text-foreground tracking-tight tabular-nums">
                     {datasetConfidence.toFixed(1)}%
                   </span>
-                  <span className="text-xs font-sans font-medium text-emerald-400">High Quality</span>
+                  <span className="text-xs font-sans font-medium text-emerald-700 dark:text-emerald-400">High Quality</span>
                 </div>
                 <p className="text-xs font-sans text-muted-foreground/80 mt-1">Overall data confidence index</p>
               </Card>
@@ -845,15 +898,101 @@ export const ReportGeneration = ({
 
             {/* Critical Dataset Alerts (if any) */}
             {confidence.critical_issues && confidence.critical_issues.length > 0 && (
-              <div className="p-4 bg-rose-500/15 border border-rose-500/30 rounded-2xl flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-rose-400 shrink-0 mt-0.5" />
-                <div className="space-y-1 font-mono text-xs text-rose-300">
-                  <span className="font-bold uppercase tracking-wider block text-rose-200">Critical Data Hygiene Notices</span>
-                  <ul className="list-disc pl-4 space-y-0.5 font-sans text-rose-300/90">
-                    {confidence.critical_issues.map((ci: string) => (
-                      <li key={`critical-issue-${ci}`}>{ci}</li>
-                    ))}
-                  </ul>
+              <div className="rounded-3xl border border-rose-200/90 dark:border-rose-900/40 bg-stone-50/70 dark:bg-rose-950/10 p-1 sm:p-1.5 shadow-xs">
+                <div className="rounded-[calc(1.5rem-2px)] sm:rounded-[calc(1.5rem-4px)] border border-rose-100 dark:border-rose-900/30 bg-white dark:bg-[#130d11] p-5 sm:p-6 shadow-xs">
+                  {/* Header Row */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className="h-10 w-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-800/50 flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                        <AlertTriangle className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-rose-600 dark:text-rose-400">
+                            Data Integrity Notice
+                          </span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60">
+                            {confidence.critical_issues.length} {confidence.critical_issues.length === 1 ? "Column Gap" : "Column Gaps"} Flagged
+                          </span>
+                        </div>
+                        <h3 className="text-base sm:text-lg font-sans font-bold text-stone-900 dark:text-white tracking-tight">
+                          Critical Data Hygiene Notices
+                        </h3>
+                        <p className="text-xs text-stone-600 dark:text-zinc-400 font-sans leading-relaxed max-w-2xl">
+                          The following columns exhibit severe missingness (&gt;50%) or distribution anomalies that may distort statistical aggregations and degrade downstream predictive models.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Issues Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mt-5">
+                    {confidence.critical_issues.map((ci: string, idx: number) => {
+                      const colonIdx = ci.indexOf(":");
+                      const col = colonIdx !== -1 ? ci.substring(0, colonIdx).trim() : "Dataset";
+                      const rest = colonIdx !== -1 ? ci.substring(colonIdx + 1).trim() : ci;
+                      const matchPct = rest.match(/(\d+(?:\.\d+)?)\s*%/);
+                      const pctStr = matchPct ? `${matchPct[1]}%` : null;
+                      const pctNum = matchPct ? parseFloat(matchPct[1]) : 0;
+                      const label = matchPct ? rest.replace(/\s*\(\d+(?:\.\d+)?%\)/, "").trim() : rest;
+
+                      return (
+                        <div
+                          key={`critical-issue-${idx}-${col}`}
+                          className="group relative rounded-2xl border border-stone-200/90 dark:border-white/10 bg-stone-50/50 dark:bg-[#181116] p-4 hover:border-rose-300 dark:hover:border-rose-800/60 hover:bg-white dark:hover:bg-[#1d141b] transition-all duration-300 flex flex-col justify-between shadow-2xs"
+                        >
+                          <div>
+                            {/* Column and Severity Pill */}
+                            <div className="flex items-center justify-between gap-2">
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-white/10 text-stone-900 dark:text-stone-100 font-mono text-xs font-semibold border border-stone-200/90 dark:border-white/10 truncate max-w-[170px]"
+                                title={col}
+                              >
+                                <Database className="h-3 w-3 text-stone-500 dark:text-zinc-400 shrink-0" />
+                                <span className="truncate">{col}</span>
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase bg-rose-50 text-rose-700 border border-rose-200/80 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-800/60 shrink-0">
+                                Severe
+                              </span>
+                            </div>
+
+                            {/* Label & Percentage */}
+                            <div className="mt-3.5 space-y-1.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-sans font-medium text-stone-600 dark:text-zinc-400 truncate">
+                                  {label || "High missing rate"}
+                                </span>
+                                {pctStr && (
+                                  <span className="font-mono font-bold text-rose-700 dark:text-rose-400 tabular-nums ml-2 shrink-0">
+                                    {pctStr}
+                                  </span>
+                                )}
+                              </div>
+
+                              {pctNum > 0 && (
+                                <div className="h-1.5 w-full rounded-full bg-stone-200/80 dark:bg-white/10 overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full bg-gradient-to-r from-rose-500 to-rose-600 dark:from-rose-500 dark:to-rose-400 transition-all duration-500"
+                                    style={{ width: `${Math.min(pctNum, 100)}%` }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Recommendation Footer */}
+                          <div className="mt-4 pt-2.5 border-t border-stone-200/70 dark:border-white/[0.08] flex items-center justify-between">
+                            <span className="text-[11px] font-sans font-medium text-stone-500 dark:text-zinc-400">
+                              Suggested Action
+                            </span>
+                            <span className="font-mono font-semibold text-[10px] px-2 py-0.5 rounded-md bg-stone-100 dark:bg-white/5 text-stone-700 dark:text-zinc-300 border border-stone-200/90 dark:border-white/10">
+                              {pctNum >= 80 ? "Drop Column" : "Impute / Synthesize"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
@@ -1172,7 +1311,7 @@ export const ReportGeneration = ({
                     <button
                       type="button"
                       onClick={() => setLedgerGradeFilter("A")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${ledgerGradeFilter === "A" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-xs" : "text-muted-foreground hover:text-foreground"
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${ledgerGradeFilter === "A" ? "bg-emerald-500/20 text-emerald-800 border border-emerald-500/30 shadow-xs dark:text-emerald-300" : "text-muted-foreground hover:text-foreground"
                         }`}
                     >
                       Grade A
@@ -1180,7 +1319,7 @@ export const ReportGeneration = ({
                     <button
                       type="button"
                       onClick={() => setLedgerGradeFilter("attention")}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${ledgerGradeFilter === "attention" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-xs" : "text-muted-foreground hover:text-foreground"
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all ${ledgerGradeFilter === "attention" ? "bg-amber-500/20 text-amber-800 border border-amber-500/30 shadow-xs dark:text-amber-300" : "text-muted-foreground hover:text-foreground"
                         }`}
                     >
                       Flags

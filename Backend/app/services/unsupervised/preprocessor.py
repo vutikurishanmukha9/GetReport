@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 _ID_TOKENS = frozenset({
     "id", "uuid", "guid", "code", "sku", "zip", "zipcode", "pin", "phone",
-    "mobile", "key", "index", "row_id", "__row_id__"
+    "mobile", "key", "index", "row_id", "__row_id__", "card", "credit_card",
+    "pan", "ssn", "api_key", "token", "secret"
 })
 
 
@@ -84,11 +85,13 @@ class ClusterMatrixPreprocessor:
 
         # 1. Process numeric features
         for col in numeric_cols:
-            vals = df[col].cast(pl.Float32, strict=False).to_numpy()
-            nan_mask = np.isnan(vals)
-            if nan_mask.any():
-                med = float(np.nanmedian(vals)) if not np.all(nan_mask) else 0.0
-                vals[nan_mask] = med
+            vals = df[col].cast(pl.Float64, strict=False).to_numpy().copy()
+            non_finite = ~np.isfinite(vals) | (np.abs(vals) > 1e12)
+            if non_finite.any():
+                finite_vals = vals[~non_finite]
+                med = float(np.median(finite_vals)) if len(finite_vals) > 0 else 0.0
+                vals[non_finite] = med
+            vals = np.clip(vals, -1e9, 1e9).astype(np.float32)
             feature_arrays.append(vals.reshape(-1, 1))
             feature_names.append(col)
 
@@ -105,6 +108,8 @@ class ClusterMatrixPreprocessor:
             return None, [], []
 
         X = np.hstack(feature_arrays).astype(np.float32)
+        X = np.nan_to_num(X, nan=0.0, posinf=1e6, neginf=-1e6)
+        X = np.clip(X, -1e9, 1e9)
         scaler = RobustScaler()
         X_scaled = scaler.fit_transform(X).astype(np.float32)
         X_scaled = np.nan_to_num(X_scaled, nan=0.0, posinf=0.0, neginf=0.0)

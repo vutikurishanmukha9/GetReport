@@ -948,11 +948,14 @@ export const api = {
             type_name: string;
             is_numeric: boolean;
             is_temporal: boolean;
+            is_identifier?: boolean;
             null_count: number;
             unique_values: number;
             sample_values?: string[];
         }>;
         numeric_columns: string[];
+        quantitative_columns?: string[];
+        identifier_columns?: string[];
         categorical_columns: string[];
         temporal_columns: string[];
         time_grains?: string[];

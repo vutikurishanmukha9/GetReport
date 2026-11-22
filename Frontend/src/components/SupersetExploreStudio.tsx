@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ExploreTelemetryDeck } from "./ExploreTelemetryDeck";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
@@ -122,16 +123,6 @@ const COLOR_PALETTES = [
   { id: "emerald", label: "Emerald Clean", preview: ["#10b981", "#059669", "#34d399", "#3b82f6"] },
 ];
 
-const formatCompactNumber = (rawVal: unknown): string => {
-  if (rawVal === null || rawVal === undefined) return "—";
-  const num = typeof rawVal === "number" ? rawVal : Number(rawVal);
-  if (isNaN(num)) return String(rawVal);
-  if (Math.abs(num) >= 1_000_000_000) return (num / 1_000_000_000).toFixed(2) + "B";
-  if (Math.abs(num) >= 1_000_000) return (num / 1_000_000).toFixed(2) + "M";
-  if (Math.abs(num) >= 1_000) return (num / 1_000).toFixed(1) + "K";
-  return Number.isInteger(num) ? num.toLocaleString() : num.toFixed(2);
-};
-
 // ─────────────────────────────────────────────────────────────────────────────
 // NATIVE APACHE ECHARTS CANVAS (Direct DOM Mount & Zero-Latency ResizeObserver)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -209,17 +200,24 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
   }
 
   // Ensure tooltips are safely confined within canvas across all chart types and styled to theme
+  const origTooltip = clone.tooltip || {};
   clone.tooltip = {
     confine: true,
+    ...origTooltip,
     backgroundColor: isDark ? "#18181b" : "#ffffff",
     borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)",
     borderWidth: 1,
     padding: [8, 12],
-    textStyle: { color: isDark ? "#f4f4f5" : "#18181b", fontSize: 12, fontWeight: 500 },
+    textStyle: {
+      fontSize: 12,
+      fontWeight: 500,
+      fontFamily: "inherit",
+      ...(origTooltip.textStyle || {}),
+      color: isDark ? "#f4f4f5" : "#18181b", // ALWAYS enforce high-contrast theme color
+    },
     extraCssText: isDark
-      ? "box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5); border-radius: 10px; backdrop-filter: blur(8px);"
-      : "box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.12); border-radius: 10px;",
-    ...(clone.tooltip || {}),
+      ? "box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5); border-radius: 8px; backdrop-filter: blur(8px);"
+      : "box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.12); border-radius: 8px;",
   };
 
   // Ensure legend is always scrollable, positioned at top, and text is 100% visible
@@ -268,9 +266,9 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
       // High-visibility label formatting with 3px halo outline
       if (cleanSeries.label) {
         cleanSeries.label = {
-          fontSize: 11,
+          fontSize: 11.5,
           fontFamily: "inherit",
-          fontWeight: 500,
+          fontWeight: 600,
           ...cleanSeries.label,
           color: primaryTextColor, // High-contrast solid color
           textBorderColor: labelHaloColor,
@@ -280,18 +278,47 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
 
       // Pie & Donut chart callout lines and slice boundaries
       if (cleanSeries.type === "pie") {
+        // Defensive aggregation if pie has more than 7 slices to prevent unreadable bicycle-wheel visual slop
+        if (Array.isArray(cleanSeries.data) && cleanSeries.data.length > 7) {
+          const sorted = [...cleanSeries.data].sort((a: any, b: any) => (Number(b.value) || 0) - (Number(a.value) || 0));
+          const top6 = sorted.slice(0, 6);
+          const restVal = sorted.slice(6).reduce((acc: number, cur: any) => acc + (Number(cur.value) || 0), 0);
+          const restCount = sorted.length - 6;
+          cleanSeries.data = [
+            ...top6,
+            { name: `Other (${restCount} items)`, value: Math.round(restVal * 100) / 100 }
+          ];
+        }
+
+        cleanSeries.radius = ["50%", "72%"];
+        cleanSeries.avoidLabelOverlap = true;
+
         cleanSeries.labelLine = {
+          show: true,
+          length: 15,
+          length2: 12,
+          smooth: 0.2,
           ...(cleanSeries.labelLine || {}),
           lineStyle: {
             width: 1.2,
             ...(cleanSeries.labelLine?.lineStyle || {}),
-            color: isDark ? "rgba(255, 255, 255, 0.45)" : "rgba(0, 0, 0, 0.45)",
+            color: isDark ? "rgba(255, 255, 255, 0.45)" : "rgba(15, 23, 42, 0.45)",
           },
         };
         cleanSeries.itemStyle = {
           ...(cleanSeries.itemStyle || {}),
-          borderColor: isDark ? "#0c0d12" : "#ffffff",
+          borderRadius: 3, // Sleek, non-slop minimal radius overriding any clumsy 6px sausage corners
+          borderColor: isDark ? "#07080a" : "#ffffff",
           borderWidth: 2,
+        };
+      }
+
+      // Bar charts: ensure clean crisp borders without dark outlines
+      if (cleanSeries.type === "bar") {
+        cleanSeries.itemStyle = {
+          ...(cleanSeries.itemStyle || {}),
+          borderColor: "transparent",
+          borderWidth: 0,
         };
       }
 
@@ -389,7 +416,7 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
-      return () => {};
+      return () => { };
     }
 
     let instance = echarts.getInstanceByDom(container);
@@ -679,16 +706,29 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
           ? res.recommendations[0]
           : null;
 
+        const isIdCol = (name: string) => {
+          const n = name.trim().toLowerCase();
+          const metricKeywords = [
+            "revenue", "sales", "price", "amount", "cost", "salary", "profit",
+            "margin", "score", "total", "subtotal", "val", "value", "rate", "ratio",
+            "qty", "quantity", "count", "units", "weight", "height", "depth", "distance",
+            "duration", "balance", "budget", "fee", "tax", "discount", "spend"
+          ];
+          if (metricKeywords.some(kw => n.includes(kw))) return false;
+          return /^(id|.*_id|id_.*|.*_no|no_.*|num|.*_num|sn|s_no|.*_sn|uuid|guid|code|.*_code|index|key|.*_key|row_.*|pk|.*_pk|fk|.*_fk|card|credit_card|creditcard|cc_num|ssn|social_security|phone|mobile|cell|telephone|fax|zip|zipcode|postal|postal_code|pin|pincode|account|acct|iban|routing|swift|cvv|cvc|passport|license|aadhaar|pan|ein|tin|tax_id|ip|ip_address|mac|mac_address|token|hash|batch|seq|sequence|version)$/i.test(n)
+            || /card|ssn|phone|mobile|zipcode|postal|passport|license|iban|routing/i.test(n);
+        };
+        const validQuantMetric = (res.quantitative_columns && res.quantitative_columns.length > 0)
+          ? res.quantitative_columns.find((c: string) => !isIdCol(c)) || ""
+          : (res.numeric_columns || []).find((c: string) => !isIdCol(c)) || "";
+
         const targetDim = topRec?.dimension || (
           res.categorical_columns && res.categorical_columns.length > 0
             ? res.categorical_columns[0]
             : res.columns?.[0]?.name || ""
         );
-        const targetMetric = topRec?.metric || (
-          res.numeric_columns && res.numeric_columns.length > 0
-            ? res.numeric_columns[0]
-            : ""
-        );
+        const recMetricValid = topRec?.metric && !isIdCol(topRec.metric) ? topRec.metric : "";
+        const targetMetric = recMetricValid || validQuantMetric;
         const targetAgg = topRec?.aggregate || (
           targetMetric ? "AVG" : "COUNT"
         );
@@ -792,7 +832,6 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     rowLimit,
     sortOrder,
     colorPalette,
-    queryResult,
     toast,
   ]);
 
@@ -942,13 +981,12 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const isTemporalDimension = selectedColMeta?.is_temporal || (Array.isArray(temporalCols) && temporalCols.includes(dimension));
 
   return (
-    <div className={`w-full rounded-2xl border border-stone-300 bg-[#FAF8F5] text-stone-900 dark:border-slate-800 dark:bg-[#07080a] dark:text-slate-100 overflow-hidden shadow-sm dark:shadow-none ${
-      isFullscreen ? "fixed inset-0 z-50 rounded-none p-4 bg-[#FAF8F5] dark:bg-[#07080a] overflow-y-auto" : ""
-    }`}>
-      
+    <div className={`w-full rounded-2xl border border-stone-300 bg-[#FAF8F5] text-stone-900 dark:border-slate-800 dark:bg-[#07080a] dark:text-slate-100 overflow-hidden shadow-sm dark:shadow-none ${isFullscreen ? "fixed inset-0 z-50 rounded-none p-4 bg-[#FAF8F5] dark:bg-[#07080a] overflow-y-auto" : ""
+      }`}>
+
       {/* ─── Top Studio Header Bar ─── */}
       <div className="px-3.5 sm:px-5 py-3 border-b border-stone-200 bg-[#FAF8F5] dark:border-slate-800 dark:bg-[#0c0d12] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        
+
         {/* Left: Branding & Dataset Identity */}
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 w-full sm:w-auto">
           <div className="h-9 w-9 rounded-xl bg-stone-200 border border-stone-300 dark:bg-slate-800 dark:border-slate-700/80 flex items-center justify-center text-stone-700 dark:text-zinc-300 shrink-0">
@@ -961,7 +999,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
               </span>
 
             </div>
-            
+
             {/* Dataset selector dropdown or name badge */}
             <div className="flex items-center gap-2 mt-0.5 text-xs text-stone-600 dark:text-slate-400">
               {allowDatasetSwitching && availableDatasets.length > 1 ? (
@@ -1002,64 +1040,64 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 self-end sm:self-auto">
           {/* Filter Count Badge */}
-              {filters.length > 0 && (
-                <Badge
-                  variant="outline"
-                  className="bg-sky-500/10 text-sky-700 border-sky-300 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/30 text-xs px-2 py-0.5 rounded-lg font-mono"
-                >
-                  {filters.length} Filter{filters.length > 1 ? "s" : ""}
-                </Badge>
-              )}
+          {filters.length > 0 && (
+            <Badge
+              variant="outline"
+              className="bg-sky-500/10 text-sky-700 border-sky-300 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/30 text-xs px-2 py-0.5 rounded-lg font-mono"
+            >
+              {filters.length} Filter{filters.length > 1 ? "s" : ""}
+            </Badge>
+          )}
 
-              {/* Refresh Query */}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void executeQuery()}
-                disabled={executing || loadingSchema}
-                className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${executing ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">Refresh</span>
-              </Button>
+          {/* Refresh Query */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void executeQuery()}
+            disabled={executing || loadingSchema}
+            className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${executing ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
 
-              {/* Copy Chart Image Action */}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleCopyChartImage}
-                disabled={!queryResult}
-                className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
-                title="Copy chart image to clipboard"
-              >
-                {copiedChart ? <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                <span className="hidden sm:inline">{copiedChart ? "Copied" : "Copy"}</span>
-              </Button>
+          {/* Copy Chart Image Action */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleCopyChartImage}
+            disabled={!queryResult}
+            className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
+            title="Copy chart image to clipboard"
+          >
+            {copiedChart ? <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{copiedChart ? "Copied" : "Copy"}</span>
+          </Button>
 
-              {/* Export Actions */}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleExportChart}
-                disabled={!queryResult}
-                className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
-                title="Export chart as PNG"
-              >
-                <Download className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">PNG</span>
-              </Button>
+          {/* Export Actions */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportChart}
+            disabled={!queryResult}
+            className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
+            title="Export chart as PNG"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">PNG</span>
+          </Button>
 
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleExportCsv}
-                disabled={!queryResult}
-                className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
-                title="Export grouped data to CSV"
-              >
-                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span className="hidden sm:inline">CSV</span>
-              </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportCsv}
+            disabled={!queryResult}
+            className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
+            title="Export grouped data to CSV"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="hidden sm:inline">CSV</span>
+          </Button>
 
           {/* Fullscreen Toggle */}
           <Button
@@ -1076,938 +1114,818 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
       {/* ─── Visual Analytics Studio Canvas ─── */}
       <>
-          {/* Mobile View Switcher Tab (Mobile Only) */}
-          <div className="lg:hidden px-3.5 py-2.5 bg-[#FAF8F5] border-b border-stone-200 dark:bg-[#0a0b10] dark:border-slate-800/80 flex items-center justify-center">
-            <div className="grid grid-cols-2 p-1 rounded-xl bg-stone-200/80 border border-stone-300 dark:bg-black/50 dark:border-white/10 w-full max-w-sm">
-              <button
-                type="button"
-                onClick={() => setMobileTab("chart")}
-                className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium transition cursor-pointer ${
-                  mobileTab === "chart"
-                    ? "bg-[#800000] text-white border border-[#800000] shadow-xs font-semibold dark:bg-white dark:text-zinc-950 dark:border-white"
-                    : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+        {/* Mobile View Switcher Tab (Mobile Only) */}
+        <div className="lg:hidden px-3.5 py-2.5 bg-[#FAF8F5] border-b border-stone-200 dark:bg-[#0a0b10] dark:border-slate-800/80 flex items-center justify-center">
+          <div className="grid grid-cols-2 p-1 rounded-xl bg-stone-200/80 border border-stone-300 dark:bg-black/50 dark:border-white/10 w-full max-w-sm">
+            <button
+              type="button"
+              onClick={() => setMobileTab("chart")}
+              className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium transition cursor-pointer ${mobileTab === "chart"
+                  ? "bg-[#800000] text-white border border-[#800000] shadow-xs font-semibold dark:bg-white dark:text-zinc-950 dark:border-white"
+                  : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
                 }`}
-              >
-                <BarChart3 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Chart & Visuals</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMobileTab("controls")}
-                className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium transition cursor-pointer ${
-                  mobileTab === "controls"
-                    ? "bg-[#800000] text-white border border-[#800000] shadow-xs font-semibold dark:bg-white dark:text-zinc-950 dark:border-white"
-                    : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+            >
+              <BarChart3 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Chart & Visuals</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab("controls")}
+              className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium transition cursor-pointer ${mobileTab === "controls"
+                  ? "bg-[#800000] text-white border border-[#800000] shadow-xs font-semibold dark:bg-white dark:text-zinc-950 dark:border-white"
+                  : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
                 }`}
-              >
-                <Sliders className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                <span>Query Controls</span>
-              </button>
-            </div>
+            >
+              <Sliders className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <span>Query Controls</span>
+            </button>
           </div>
+        </div>
 
-          {/* Two-Column Explore Split Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
-            
-            {/* ──── LEFT PANEL: Superset Explore Controls (4 cols) ──── */}
-            <div className={`lg:col-span-4 p-4 sm:p-5 border-b lg:border-b-0 lg:border-r border-stone-200 bg-[#F4F0EA]/70 dark:border-slate-800 dark:bg-[#0c0d12] space-y-4 sm:space-y-5 ${
-              mobileTab === "controls" ? "block" : "hidden lg:block"
+        {/* Two-Column Explore Split Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+
+          {/* ──── LEFT PANEL: Superset Explore Controls (4 cols) ──── */}
+          <div className={`lg:col-span-4 p-4 sm:p-5 border-b lg:border-b-0 lg:border-r border-stone-200 bg-[#F4F0EA]/70 dark:border-slate-800 dark:bg-[#0c0d12] space-y-4 sm:space-y-5 ${mobileTab === "controls" ? "block" : "hidden lg:block"
             }`}>
-              
-              {/* Section: Suggested Visual Explorations */}
-              {recommendations.length > 0 && (
-                <div className="space-y-2 pb-2 border-b border-stone-200 dark:border-slate-800/80">
-                  <div className="flex items-center gap-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400">
-                    <TrendingUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                    <span>Suggested Explorations</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {recommendations.slice(0, 4).map((rec: any) => (
-                      <button
-                        key={rec.id}
-                        type="button"
-                        onClick={() => applyRecommendation(rec)}
-                        className="text-left text-[11px] px-2 py-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-100 hover:border-[#800000]/40 text-stone-700 hover:text-stone-950 dark:border-white/10 dark:bg-[#0e1017] dark:hover:bg-white/[0.08] dark:hover:border-emerald-500/40 dark:text-zinc-300 dark:hover:text-white transition group flex items-center gap-1.5 cursor-pointer max-w-full font-sans shadow-2xs"
-                        title={rec.description}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
-                        <span className="truncate max-w-[130px] font-medium">{rec.title}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              {/* Section: Chart Type Picker */}
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
-                  Visualization Type
-                </span>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {CHART_TYPES.map((ct) => {
-                    const Icon = ct.icon;
-                    const isActive = chartType === ct.id;
-                    return (
-                      <button
-                        key={ct.id}
-                        type="button"
-                        onClick={() => setChartType(ct.id)}
-                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition font-sans cursor-pointer ${
-                          isActive
-                            ? "bg-[#800000] border-[#800000] text-white shadow-sm font-semibold dark:bg-white dark:border-white dark:text-zinc-950 dark:shadow-sm"
-                            : "bg-white border-stone-200 text-stone-700 hover:bg-stone-100 hover:text-stone-950 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                        }`}
-                        title={ct.desc}
-                      >
-                        <Icon className="h-4 w-4 mb-1" />
-                        <span className="text-[10px] font-medium leading-tight">{ct.label}</span>
-                      </button>
-                    );
-                  })}
+            {/* Section: Suggested Visual Explorations */}
+            {recommendations.length > 0 && (
+              <div className="space-y-2 pb-2 border-b border-stone-200 dark:border-slate-800/80">
+                <div className="flex items-center gap-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400">
+                  <TrendingUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                  <span>Suggested Explorations</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {recommendations.slice(0, 4).map((rec: any) => (
+                    <button
+                      key={rec.id}
+                      type="button"
+                      onClick={() => applyRecommendation(rec)}
+                      className="text-left text-[11px] px-2 py-1 rounded-lg border border-stone-200 bg-white hover:bg-stone-100 hover:border-[#800000]/40 text-stone-700 hover:text-stone-950 dark:border-white/10 dark:bg-[#0e1017] dark:hover:bg-white/[0.08] dark:hover:border-emerald-500/40 dark:text-zinc-300 dark:hover:text-white transition group flex items-center gap-1.5 cursor-pointer max-w-full font-sans shadow-2xs"
+                      title={rec.description}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
+                      <span className="truncate max-w-[130px] font-medium">{rec.title}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
+            )}
 
-              {/* Section: Dimension (X-Axis / Group By) */}
-              <div className="space-y-1.5">
-                <label htmlFor="dimension-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
-                  Dimension (Group By / X-Axis)
-                </label>
+            {/* Section: Chart Type Picker */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
+                Visualization Type
+              </span>
+              <div className="grid grid-cols-3 gap-1.5">
+                {CHART_TYPES.map((ct) => {
+                  const Icon = ct.icon;
+                  const isActive = chartType === ct.id;
+                  return (
+                    <button
+                      key={ct.id}
+                      type="button"
+                      onClick={() => setChartType(ct.id)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition font-sans cursor-pointer ${isActive
+                          ? "bg-[#800000] border-[#800000] text-white shadow-sm font-semibold dark:bg-white dark:border-white dark:text-zinc-950 dark:shadow-sm"
+                          : "bg-white border-stone-200 text-stone-700 hover:bg-stone-100 hover:text-stone-950 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                        }`}
+                      title={ct.desc}
+                    >
+                      <Icon className="h-4 w-4 mb-1" />
+                      <span className="text-[10px] font-medium leading-tight">{ct.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Section: Dimension (X-Axis / Group By) */}
+            <div className="space-y-1.5">
+              <label htmlFor="dimension-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
+                Dimension (Group By / X-Axis)
+              </label>
+              <select
+                id="dimension-select"
+                aria-label="Dimension (Group By / X-Axis)"
+                value={dimension}
+                onChange={(e) => setDimension(e.target.value)}
+                className="w-full bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 dark:focus:border-white/40 font-mono shadow-2xs"
+              >
+                {schemaColumns.map((col) => (
+                  <option key={col.name} value={col.name}>
+                    {col.name} ({col.type_name})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Section: Temporal Bucketing (Time Grain) */}
+            {isTemporalDimension && (
+              <div className="space-y-1.5 p-2.5 rounded-xl bg-sky-50 border border-sky-200 dark:bg-sky-950/20 dark:border-sky-800/40">
+                <div className="flex items-center gap-1.5 text-sky-700 dark:text-sky-400 text-xs font-semibold">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>Time Grain (Date Truncation)</span>
+                </div>
                 <select
-                  id="dimension-select"
-                  aria-label="Dimension (Group By / X-Axis)"
-                  value={dimension}
-                  onChange={(e) => setDimension(e.target.value)}
-                  className="w-full bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 dark:focus:border-white/40 font-mono shadow-2xs"
+                  id="time-grain-select"
+                  aria-label="Time Grain"
+                  value={timeGrain}
+                  onChange={(e) => setTimeGrain(e.target.value)}
+                  className="w-full bg-white border border-sky-300 text-stone-900 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none font-mono dark:bg-[#0e1017] dark:border-sky-800/60 dark:text-sky-200 shadow-2xs"
                 >
-                  {schemaColumns.map((col) => (
-                    <option key={col.name} value={col.name}>
-                      {col.name} ({col.type_name})
+                  {TIME_GRAINS.map((tg) => (
+                    <option key={tg.id} value={tg.id}>
+                      {tg.label}
                     </option>
                   ))}
                 </select>
               </div>
+            )}
 
-              {/* Section: Temporal Bucketing (Time Grain) */}
-              {isTemporalDimension && (
-                <div className="space-y-1.5 p-2.5 rounded-xl bg-sky-50 border border-sky-200 dark:bg-sky-950/20 dark:border-sky-800/40">
-                  <div className="flex items-center gap-1.5 text-sky-700 dark:text-sky-400 text-xs font-semibold">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>Time Grain (Date Truncation)</span>
-                  </div>
-                  <select
-                    id="time-grain-select"
-                    aria-label="Time Grain"
-                    value={timeGrain}
-                    onChange={(e) => setTimeGrain(e.target.value)}
-                    className="w-full bg-white border border-sky-300 text-stone-900 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none font-mono dark:bg-[#0e1017] dark:border-sky-800/60 dark:text-sky-200 shadow-2xs"
-                  >
-                    {TIME_GRAINS.map((tg) => (
-                      <option key={tg.id} value={tg.id}>
-                        {tg.label}
-                      </option>
-                    ))}
-                  </select>
+            {/* Section: Secondary Metric for Combo Chart */}
+            {chartType === "echarts_combo" && (
+              <div className="space-y-2 p-3 rounded-xl bg-purple-50 border border-purple-200 dark:bg-purple-950/20 dark:border-purple-800/40">
+                <div className="flex items-center gap-1.5 text-purple-700 dark:text-purple-400 text-xs font-semibold">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  <span>Secondary Metric (Line on Right Axis)</span>
                 </div>
-              )}
-
-              {/* Section: Secondary Metric for Combo Chart */}
-              {chartType === "echarts_combo" && (
-                <div className="space-y-2 p-3 rounded-xl bg-purple-50 border border-purple-200 dark:bg-purple-950/20 dark:border-purple-800/40">
-                  <div className="flex items-center gap-1.5 text-purple-700 dark:text-purple-400 text-xs font-semibold">
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    <span>Secondary Metric (Line on Right Axis)</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      id="sec-metric-select"
-                      aria-label="Secondary Metric"
-                      value={secondaryMetric}
-                      onChange={(e) => setSecondaryMetric(e.target.value)}
-                      className="bg-white border border-purple-300 text-stone-900 text-xs rounded-lg px-2.5 py-1.5 font-mono dark:bg-[#0e1017] dark:border-purple-800/60 dark:text-purple-200 shadow-2xs"
-                    >
-                      <option value="">None</option>
-                      {numericCols.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                    <select
-                      id="sec-agg-select"
-                      aria-label="Secondary Aggregate"
-                      value={secondaryAggregate}
-                      onChange={(e) => setSecondaryAggregate(e.target.value)}
-                      className="bg-white border border-purple-300 text-stone-900 text-xs rounded-lg px-2.5 py-1.5 font-mono dark:bg-[#0e1017] dark:border-purple-800/60 dark:text-purple-200 shadow-2xs"
-                    >
-                      {AGGREGATIONS.map((a) => (
-                        <option key={a.id} value={a.id}>{a.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Section: Metric (Y-Axis / Measure) */}
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
-                  Metric & Aggregation (Y-Axis)
-                </span>
                 <div className="grid grid-cols-2 gap-2">
                   <select
-                    id="aggregate-select"
-                    aria-label="Aggregation Function"
-                    value={aggregate}
-                    onChange={(e) => setAggregate(e.target.value)}
-                    className="bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 dark:focus:border-white/40 font-mono shadow-2xs"
+                    id="sec-metric-select"
+                    aria-label="Secondary Metric"
+                    value={secondaryMetric}
+                    onChange={(e) => setSecondaryMetric(e.target.value)}
+                    className="bg-white border border-purple-300 text-stone-900 text-xs rounded-lg px-2.5 py-1.5 font-mono dark:bg-[#0e1017] dark:border-purple-800/60 dark:text-purple-200 shadow-2xs"
                   >
-                    {AGGREGATIONS.map((agg) => (
-                      <option key={agg.id} value={agg.id}>
-                        {agg.label}
-                      </option>
+                    <option value="">None</option>
+                    {numericCols.map((c) => (
+                      <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
-
                   <select
-                    id="metric-select"
-                    aria-label="Metric Column"
-                    value={metric}
-                    onChange={(e) => setMetric(e.target.value)}
-                    disabled={aggregate === "COUNT" && !metric}
-                    className="bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 dark:focus:border-white/40 font-mono disabled:opacity-50 disabled:bg-stone-100 dark:disabled:bg-slate-900 shadow-2xs"
+                    id="sec-agg-select"
+                    aria-label="Secondary Aggregate"
+                    value={secondaryAggregate}
+                    onChange={(e) => setSecondaryAggregate(e.target.value)}
+                    className="bg-white border border-purple-300 text-stone-900 text-xs rounded-lg px-2.5 py-1.5 font-mono dark:bg-[#0e1017] dark:border-purple-800/60 dark:text-purple-200 shadow-2xs"
                   >
-                    <option value="">(Row Count)</option>
-                    {numericCols.map((col) => (
-                      <option key={col} value={col}>
-                        {col}
-                      </option>
+                    {AGGREGATIONS.map((a) => (
+                      <option key={a.id} value={a.id}>{a.label}</option>
                     ))}
                   </select>
                 </div>
               </div>
+            )}
 
-              {/* Section: Secondary Breakdown (Series) */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="secondary-dimension-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
-                    Secondary Breakdown
-                  </label>
-                  <span className="text-[10px] text-stone-500 dark:text-zinc-400 font-sans font-medium">
-                    {chartType === "echarts_heatmap" ? "Required for Heatmap" : "Optional"}
-                  </span>
-                </div>
+            {/* Section: Metric (Y-Axis / Measure) */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
+                Metric & Aggregation (Y-Axis)
+              </span>
+              <div className="grid grid-cols-2 gap-2">
                 <select
-                  id="secondary-dimension-select"
-                  aria-label="Secondary Breakdown"
-                  value={secondaryDimension}
-                  onChange={(e) => setSecondaryDimension(e.target.value)}
-                  className={`w-full bg-white border text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none font-mono dark:bg-[#0e1017] dark:text-slate-200 shadow-2xs ${
-                    chartType === "echarts_heatmap" && !secondaryDimension
-                      ? "border-amber-500/70"
-                      : "border-stone-300 dark:border-slate-800"
-                  }`}
+                  id="aggregate-select"
+                  aria-label="Aggregation Function"
+                  value={aggregate}
+                  onChange={(e) => setAggregate(e.target.value)}
+                  className="bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 dark:focus:border-white/40 font-mono shadow-2xs"
                 >
-                  <option value="">None (Single Series)</option>
-                  {schemaColumns
-                    .filter((c) => c.name !== dimension)
-                    .map((col) => (
-                      <option key={col.name} value={col.name}>
-                        {col.name}
-                      </option>
-                    ))}
-                </select>
-                {secondaryDimension && chartType === "echarts_bar" && (
-                  <div className="flex items-center justify-between pt-1.5 px-0.5">
-                    <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400">
-                      Bar Mode
-                    </span>
-                    <div className="flex items-center gap-1 bg-stone-200/80 dark:bg-[#090b10] p-0.5 rounded-lg border border-stone-300 dark:border-slate-800">
-                      <button
-                        type="button"
-                        onClick={() => setBarMode("grouped")}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${
-                          barMode === "grouped"
-                            ? "bg-[#800000] text-white font-bold shadow-xs dark:bg-white dark:text-zinc-950"
-                            : "text-stone-700 hover:text-stone-950 dark:text-slate-400 dark:hover:text-white"
-                        }`}
-                      >
-                        Grouped
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setBarMode("stacked")}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${
-                          barMode === "stacked"
-                            ? "bg-[#800000] text-white font-bold shadow-xs dark:bg-white dark:text-zinc-950"
-                            : "text-stone-700 hover:text-stone-950 dark:text-slate-400 dark:hover:text-white"
-                        }`}
-                      >
-                        Stacked
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Section: Ad-Hoc Filters */}
-              <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-slate-800/80">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400">
-                    <Filter className="h-3 w-3 text-sky-600 dark:text-sky-400" />
-                    <span>Ad-Hoc Filters ({filters.length})</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={addFilter}
-                    className="h-6 px-2 text-[10px] font-medium text-sky-600 hover:text-sky-700 hover:bg-sky-50 dark:text-sky-400 dark:hover:text-sky-300 dark:hover:bg-sky-500/10 rounded-md gap-1 cursor-pointer"
-                  >
-                    <Plus className="h-3 w-3" />
-                    <span>Add</span>
-                  </Button>
-                </div>
-
-                {filters.length > 0 && (
-                  <div className="space-y-2">
-                    {filters.map((f) => (
-                      <div
-                        key={f.id}
-                        className="p-2 rounded-xl bg-white border border-stone-200 dark:bg-[#0e1017] dark:border-slate-800 space-y-1.5 text-xs shadow-2xs"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          {/* Filter Column */}
-                          <select
-                            value={f.column}
-                            onChange={(e) => updateFilter(f.id, "column", e.target.value)}
-                            aria-label="Filter Column"
-                            className="bg-stone-50 border border-stone-300 rounded-md px-1.5 py-1 text-stone-900 text-[11px] font-mono flex-1 truncate dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200"
-                          >
-                            {schemaColumns.map((col) => (
-                              <option key={col.name} value={col.name}>
-                                {col.name}
-                              </option>
-                            ))}
-                          </select>
-
-                          {/* Filter Operator */}
-                          <select
-                            value={f.operator}
-                            onChange={(e) => updateFilter(f.id, "operator", e.target.value)}
-                            aria-label="Filter Operator"
-                            className="bg-stone-50 border border-stone-300 rounded-md px-1.5 py-1 text-stone-900 text-[11px] font-mono dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200"
-                          >
-                            {FILTER_OPERATORS.map((op) => (
-                              <option key={op.id} value={op.id}>
-                                {op.label}
-                              </option>
-                            ))}
-                          </select>
-
-                          {/* Delete button */}
-                          <AnimatedDeleteButton
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 rounded-lg text-stone-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 shrink-0 cursor-pointer"
-                            onDelete={() => removeFilter(f.id)}
-                            title="Remove filter"
-                          />
-                        </div>
-
-                        {/* Value Input (unless is_null / is_not_null) */}
-                        {!f.operator.includes("null") && (
-                          <input
-                            type="text"
-                            placeholder="Comparison value..."
-                            aria-label="Filter Comparison Value"
-                            value={f.value}
-                            onChange={(e) => updateFilter(f.id, "value", e.target.value)}
-                            className="w-full bg-stone-50 border border-stone-300 rounded-md px-2 py-1 text-stone-900 text-[11px] font-mono focus:outline-none focus:border-[#800000]/50 dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200 dark:focus:border-white/30"
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Section: Limits & Sorting */}
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="space-y-1">
-                  <label htmlFor="row-limit-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
-                    Row Limit
-                  </label>
-                  <select
-                    id="row-limit-select"
-                    aria-label="Row Limit"
-                    value={rowLimit}
-                    onChange={(e) => setRowLimit(Number(e.target.value))}
-                    className="w-full bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 font-mono shadow-2xs"
-                  >
-                    <option value={5}>Top 5</option>
-                    <option value={10}>Top 10</option>
-                    <option value={15}>Top 15</option>
-                    <option value={25}>Top 25</option>
-                    <option value={50}>Top 50</option>
-                    <option value={100}>Top 100</option>
-                    <option value={250}>Top 250</option>
-                    <option value={500}>Top 500</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label htmlFor="sort-order-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
-                    Sort Order
-                  </label>
-                  <select
-                    id="sort-order-select"
-                    aria-label="Sort Order"
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value)}
-                    className="w-full bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 font-mono shadow-2xs"
-                  >
-                    <option value="desc">High to Low (Desc)</option>
-                    <option value="asc">Low to High (Asc)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Section: Color Palette */}
-              <div className="space-y-1.5 pt-2 border-t border-stone-200 dark:border-slate-800/80">
-                <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
-                  Color Palette
-                </span>
-                <div className="space-y-1">
-                  {COLOR_PALETTES.map((pal) => (
-                    <button
-                      key={pal.id}
-                      type="button"
-                      onClick={() => setColorPalette(pal.id)}
-                      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg border text-xs transition cursor-pointer ${
-                        colorPalette === pal.id
-                          ? "bg-[#800000] border-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:border-white dark:text-zinc-950"
-                          : "bg-white border-stone-200 text-stone-700 hover:bg-stone-100 hover:text-stone-950 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                      }`}
-                    >
-                      <span>{pal.label}</span>
-                      <div className="flex items-center gap-1">
-                        {pal.preview.map((c, i) => (
-                          <span key={i} className="h-2.5 w-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/20" style={{ backgroundColor: c }} />
-                        ))}
-                      </div>
-                    </button>
+                  {AGGREGATIONS.map((agg) => (
+                    <option key={agg.id} value={agg.id}>
+                      {agg.label}
+                    </option>
                   ))}
-                </div>
-              </div>
+                </select>
 
-              {/* Mobile Apply CTA */}
-              <div className="lg:hidden pt-3 border-t border-slate-800/80">
-                <ShimmerActionButton
-                  onClick={() => setMobileTab("chart")}
-                  className="w-full h-10 text-xs justify-center"
-                  icon={<BarChart3 className="h-3.5 w-3.5 text-white dark:text-zinc-950" />}
+                <select
+                  id="metric-select"
+                  aria-label="Metric Column"
+                  value={metric}
+                  onChange={(e) => setMetric(e.target.value)}
+                  disabled={aggregate === "COUNT" && !metric}
+                  className="bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 dark:focus:border-white/40 font-mono disabled:opacity-50 disabled:bg-stone-100 dark:disabled:bg-slate-900 shadow-2xs"
                 >
-                  <span>Apply & View Visual Chart</span>
-                </ShimmerActionButton>
+                  <option value="">(Row Count)</option>
+                  {numericCols.map((col) => (
+                    <option key={col} value={col}>
+                      {col}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {/* ──── RIGHT CANVAS: Live Visualization & KPIs (8 cols) ──── */}
-            <div className={`lg:col-span-8 p-3.5 sm:p-6 flex flex-col justify-between space-y-4 sm:space-y-6 bg-[#FAF8F5] dark:bg-[#07080a] ${
-              mobileTab === "chart" ? "flex" : "hidden lg:flex"
-            }`}>
-              
-              {/* Top: Architectural Precision Telemetry Deck */}
-              {queryResult?.kpis && (() => {
-                const isAvg = aggregate === "AVG";
-                const isSum = aggregate === "SUM";
-                const isCount = aggregate === "COUNT";
-                const isMax = aggregate === "MAX";
-                const isMin = aggregate === "MIN";
-
-                const metricDisplayVal = isAvg
-                  ? (queryResult.kpis.mean ?? queryResult.kpis.sum)
-                  : isSum
-                  ? (queryResult.kpis.sum ?? queryResult.kpis.mean)
-                  : isMax
-                  ? (queryResult.kpis.max ?? queryResult.kpis.sum)
-                  : isMin
-                  ? (queryResult.kpis.min ?? queryResult.kpis.sum)
-                  : (queryResult.kpis.sum ?? queryResult.kpis.mean);
-
-                const metricSubtitle = isAvg
-                  ? "Average per record"
-                  : isSum
-                  ? "Dataset sum total"
-                  : isMax
-                  ? "Peak maximum record"
-                  : isMin
-                  ? "Lowest record value"
-                  : isCount
-                  ? "Total count"
-                  : "Aggregate metric total";
-
-                return (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {/* Card 1: Records In Scope */}
-                    <div className="group relative rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 shadow-2xs hover:border-stone-300 dark:hover:border-white/20 transition-all flex flex-col justify-between">
-                      <div className="flex items-center justify-between text-stone-500 dark:text-zinc-400">
-                        <span className="text-[10.5px] font-mono font-medium uppercase tracking-[0.08em] text-stone-500 dark:text-zinc-400">
-                          Total Records
-                        </span>
-                        <span className="text-[9.5px] font-mono tracking-widest text-stone-400 dark:text-zinc-600 font-medium">
-                          SCOPE
-                        </span>
-                      </div>
-                      <div className="mt-3">
-                        <span className="text-2xl sm:text-3xl font-mono font-semibold text-stone-900 dark:text-white tabular-nums tracking-tight block">
-                          {formatCompactNumber(queryResult.kpis.total_rows)}
-                        </span>
-                        <span className="text-[11.5px] text-stone-500 dark:text-zinc-400 font-sans block mt-1 truncate">
-                          records in scope
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Card 2: Metric Aggregate */}
-                    <div className="group relative rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 shadow-2xs hover:border-stone-300 dark:hover:border-white/20 transition-all flex flex-col justify-between">
-                      <div className="flex items-center justify-between text-stone-500 dark:text-zinc-400">
-                        <span className="text-[10.5px] font-mono font-medium uppercase tracking-[0.08em] text-stone-500 dark:text-zinc-400 truncate max-w-[120px]" title={queryResult.kpis.metric_label || "Metric"}>
-                          {queryResult.kpis.metric_label || "Metric Value"}
-                        </span>
-                        <span className="text-[9.5px] font-mono tracking-widest text-stone-400 dark:text-zinc-600 font-medium">
-                          {aggregate}
-                        </span>
-                      </div>
-                      <div className="mt-3">
-                        <span className="text-2xl sm:text-3xl font-mono font-semibold text-stone-900 dark:text-white tabular-nums tracking-tight block">
-                          {metricDisplayVal !== null && metricDisplayVal !== undefined
-                            ? formatCompactNumber(metricDisplayVal)
-                            : "—"}
-                        </span>
-                        <span className="text-[11.5px] text-stone-500 dark:text-zinc-400 font-sans block mt-1 truncate">
-                          {metricSubtitle}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Card 3: Peak Performer */}
-                    <div className="group relative rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 shadow-2xs hover:border-stone-300 dark:hover:border-white/20 transition-all flex flex-col justify-between">
-                      <div className="flex items-center justify-between text-stone-500 dark:text-zinc-400">
-                        <span className="text-[10.5px] font-mono font-medium uppercase tracking-[0.08em] text-stone-500 dark:text-zinc-400">
-                          Peak Performer
-                        </span>
-                        <span className="text-[9.5px] font-mono tracking-widest text-stone-400 dark:text-zinc-600 font-medium">
-                          RANK 1
-                        </span>
-                      </div>
-                      <div className="mt-3">
-                        <span className="text-xl sm:text-2xl font-sans font-bold text-stone-900 dark:text-white truncate block tracking-tight">
-                          {queryResult.records?.[0]?.[dimension] ?? "—"}
-                        </span>
-                        <span className="text-[11.5px] text-stone-500 dark:text-zinc-400 font-sans block mt-1 truncate">
-                          {queryResult.records?.[0]?.value !== undefined
-                            ? `${formatCompactNumber(queryResult.records[0].value)} (${queryResult.records[0].count?.toLocaleString() || 0} rows)`
-                            : "Leading rank"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Card 4: Total Groups */}
-                    <div className="group relative rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 shadow-2xs hover:border-stone-300 dark:hover:border-white/20 transition-all flex flex-col justify-between">
-                      <div className="flex items-center justify-between text-stone-500 dark:text-zinc-400">
-                        <span className="text-[10.5px] font-mono font-medium uppercase tracking-[0.08em] text-stone-500 dark:text-zinc-400">
-                          Total Groups
-                        </span>
-                        <span className="text-[9.5px] font-mono tracking-widest text-stone-400 dark:text-zinc-600 font-medium">
-                          GROUPS
-                        </span>
-                      </div>
-                      <div className="mt-3">
-                        <span className="text-2xl sm:text-3xl font-mono font-semibold text-stone-900 dark:text-white tabular-nums tracking-tight block">
-                          {formatCompactNumber(queryResult.total_groups)}
-                        </span>
-                        <span className="text-[11.5px] text-stone-500 dark:text-zinc-400 font-sans block mt-1 truncate">
-                          distinct categories
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Statistical & Observational Insights Strip */}
-              {queryResult?.smart_insights && queryResult.smart_insights.length > 0 && (
-                <div className="rounded-xl border border-stone-200/80 bg-white/80 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 space-y-2.5 shadow-2xs">
-                  <div className="flex items-center justify-between pb-1 border-b border-stone-100 dark:border-white/[0.06]">
-                    <div className="flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-stone-400 dark:bg-zinc-500" />
-                      <h4 className="text-[11px] font-mono uppercase tracking-[0.08em] text-stone-600 dark:text-zinc-400 font-medium">
-                        Key Observations & Patterns
-                      </h4>
-                    </div>
-                    <span className="text-[10px] font-mono text-stone-400 dark:text-zinc-500">
-                      {queryResult.smart_insights.length} observations
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                    {queryResult.smart_insights.map((ins: any) => (
-                      <div
-                        key={ins.id}
-                        className="group relative flex flex-col justify-between rounded-lg border border-stone-200/70 bg-stone-50/50 p-3 transition-colors hover:border-stone-300 dark:border-white/[0.05] dark:bg-white/[0.02] dark:hover:border-white/10"
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-stone-500 dark:text-zinc-400">
-                            {ins.badge || "Observation"}
-                          </span>
-                          <span className="text-[10px] font-mono text-stone-400 dark:text-zinc-600">
-                            {ins.type || "pattern"}
-                          </span>
-                        </div>
-                        <div>
-                          <h5 className="text-xs font-sans font-semibold text-stone-900 dark:text-white tracking-tight">
-                            {ins.title}
-                          </h5>
-                          <p className="text-[11.5px] leading-relaxed text-stone-600 dark:text-zinc-300 mt-1 font-sans">
-                            {ins.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+            {/* Section: Secondary Breakdown (Series) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="secondary-dimension-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
+                  Secondary Breakdown
+                </label>
+                <span className="text-[10px] text-stone-500 dark:text-zinc-400 font-sans font-medium">
+                  {chartType === "echarts_heatmap" ? "Required for Heatmap" : "Optional"}
+                </span>
+              </div>
+              <select
+                id="secondary-dimension-select"
+                aria-label="Secondary Breakdown"
+                value={secondaryDimension}
+                onChange={(e) => setSecondaryDimension(e.target.value)}
+                className={`w-full bg-white border text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none font-mono dark:bg-[#0e1017] dark:text-slate-200 shadow-2xs ${chartType === "echarts_heatmap" && !secondaryDimension
+                    ? "border-amber-500/70"
+                    : "border-stone-300 dark:border-slate-800"
+                  }`}
+              >
+                <option value="">None (Single Series)</option>
+                {schemaColumns
+                  .filter((c) => c.name !== dimension)
+                  .map((col) => (
+                    <option key={col.name} value={col.name}>
+                      {col.name}
+                    </option>
+                  ))}
+              </select>
+              {secondaryDimension && chartType === "echarts_bar" && (
+                <div className="flex items-center justify-between pt-1.5 px-0.5">
+                  <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400">
+                    Bar Mode
+                  </span>
+                  <div className="flex items-center gap-1 bg-stone-200/80 dark:bg-[#090b10] p-0.5 rounded-lg border border-stone-300 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setBarMode("grouped")}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${barMode === "grouped"
+                          ? "bg-[#800000] text-white font-bold shadow-xs dark:bg-white dark:text-zinc-950"
+                          : "text-stone-700 hover:text-stone-950 dark:text-slate-400 dark:hover:text-white"
+                        }`}
+                    >
+                      Grouped
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBarMode("stacked")}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${barMode === "stacked"
+                          ? "bg-[#800000] text-white font-bold shadow-xs dark:bg-white dark:text-zinc-950"
+                          : "text-stone-700 hover:text-stone-950 dark:text-slate-400 dark:hover:text-white"
+                        }`}
+                    >
+                      Stacked
+                    </button>
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Main Chart or Table Canvas */}
-              <div className="flex-1 min-h-[400px] sm:min-h-[480px] rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#0c0d12] p-3.5 sm:p-5 flex flex-col relative shadow-2xs">
-                
-                {/* View Switcher & Toolbar */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200 dark:border-white/10 mb-3">
-                  <div className="flex items-center gap-1 bg-stone-100 dark:bg-[#14151c] p-0.5 rounded-lg border border-stone-200/80 dark:border-white/10">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("chart")}
-                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
-                        viewMode === "chart"
-                          ? "bg-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:text-zinc-950"
-                          : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-white"
-                      }`}
-                    >
-                      <BarChart3 className="h-3.5 w-3.5" />
-                      <span>Visual Chart</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("data")}
-                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
-                        viewMode === "data"
-                          ? "bg-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:text-zinc-950"
-                          : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-white"
-                      }`}
-                    >
-                      <Table2 className="h-3.5 w-3.5" />
-                      <span>Aggregated Data</span>
-                      <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-black/10 dark:bg-white/15 tabular-nums">
-                        {queryResult?.records?.length ?? 0}
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* Canvas Toolbar Controls */}
-                  <div className="flex items-center gap-2 flex-wrap text-xs font-sans">
-                    {/* Quick Bar Orientation Toggle */}
-                    {viewMode === "chart" && (chartType === "echarts_bar" || chartType === "echarts_horizontal_bar") && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setChartType(chartType === "echarts_bar" ? "echarts_horizontal_bar" : "echarts_bar")}
-                        className="h-7 px-2 rounded-lg text-[11px] gap-1 border-stone-200 bg-white hover:bg-stone-50 dark:border-white/10 dark:bg-[#14151c] dark:hover:bg-white/[0.08] cursor-pointer"
-                        title="Toggle Vertical Column vs Horizontal Ranking"
-                      >
-                        {chartType === "echarts_bar" ? <AlignLeft className="h-3 w-3" /> : <BarChart3 className="h-3 w-3" />}
-                        <span>{chartType === "echarts_bar" ? "Horizontal Rank" : "Vertical Column"}</span>
-                      </Button>
-                    )}
-
-                    <div className="text-xs text-stone-600 dark:text-zinc-400 font-mono truncate hidden md:inline">
-                      {queryResult?.metric_label} by {dimension}
-                      {timeGrain && <span className="text-sky-600 dark:text-sky-400 ml-1">({timeGrain})</span>}
-                    </div>
-                  </div>
+            {/* Section: Ad-Hoc Filters */}
+            <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-slate-800/80">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400">
+                  <Filter className="h-3 w-3 text-sky-600 dark:text-sky-400" />
+                  <span>Ad-Hoc Filters ({filters.length})</span>
                 </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={addFilter}
+                  className="h-6 px-2 text-[10px] font-medium text-sky-600 hover:text-sky-700 hover:bg-sky-50 dark:text-sky-400 dark:hover:text-sky-300 dark:hover:bg-sky-500/10 rounded-md gap-1 cursor-pointer"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>Add</span>
+                </Button>
+              </div>
 
-                {/* Loading Overlay */}
-                {executing && (
-                  <div className="absolute inset-0 bg-white/80 dark:bg-[#07080a]/80 backdrop-blur-xs flex flex-col items-center justify-center z-20 gap-2 rounded-2xl">
-                    <Loader2 className="h-6 w-6 animate-spin text-stone-700 dark:text-zinc-300" />
-                    <span className="text-xs font-mono text-stone-600 dark:text-zinc-400">Computing visual analytics...</span>
-                  </div>
-                )}
+              {filters.length > 0 && (
+                <div className="space-y-2">
+                  {filters.map((f) => (
+                    <div
+                      key={f.id}
+                      className="p-2 rounded-xl bg-white border border-stone-200 dark:bg-[#0e1017] dark:border-slate-800 space-y-1.5 text-xs shadow-2xs"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {/* Filter Column */}
+                        <select
+                          value={f.column}
+                          onChange={(e) => updateFilter(f.id, "column", e.target.value)}
+                          aria-label="Filter Column"
+                          className="bg-stone-50 border border-stone-300 rounded-md px-1.5 py-1 text-stone-900 text-[11px] font-mono flex-1 truncate dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200"
+                        >
+                          {schemaColumns.map((col) => (
+                            <option key={col.name} value={col.name}>
+                              {col.name}
+                            </option>
+                          ))}
+                        </select>
 
-                {/* View Mode 1: Interactive ECharts Canvas (Native Direct Render) */}
-                {viewMode === "chart" && chartType !== "table" && queryResult?.echarts_option && (
-                  <div className="flex-1 w-full min-h-[420px]">
-                    <NativeEChartsView
-                      option={queryResult.echarts_option}
-                      onChartClick={handleChartClick}
-                      onInstanceReady={handleInstanceReady}
-                      height={isFullscreen ? "72vh" : "480px"}
-                    />
-                  </div>
-                )}
+                        {/* Filter Operator */}
+                        <select
+                          value={f.operator}
+                          onChange={(e) => updateFilter(f.id, "operator", e.target.value)}
+                          aria-label="Filter Operator"
+                          className="bg-stone-50 border border-stone-300 rounded-md px-1.5 py-1 text-stone-900 text-[11px] font-mono dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200"
+                        >
+                          {FILTER_OPERATORS.map((op) => (
+                            <option key={op.id} value={op.id}>
+                              {op.label}
+                            </option>
+                          ))}
+                        </select>
 
-                {/* Empty State when no data records or query resulted in 0 rows */}
-                {viewMode === "chart" && chartType !== "table" && (!queryResult || !queryResult.echarts_option || queryResult.records?.length === 0) && !executing && (
-                  <div className="flex-1 w-full min-h-[420px] flex flex-col items-center justify-center p-8 text-center border border-dashed border-stone-300 dark:border-white/10 rounded-2xl bg-stone-100/50 dark:bg-white/[0.02]">
-                    <div className="h-12 w-12 rounded-2xl bg-stone-200 dark:bg-white/10 border border-stone-300 dark:border-white/10 flex items-center justify-center text-stone-500 dark:text-zinc-400 mb-3">
-                      <BarChart3 className="h-6 w-6 text-stone-500 dark:text-zinc-400" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-stone-900 dark:text-white">No Visual Data Available</h3>
-                    <p className="text-xs text-stone-600 dark:text-zinc-400 max-w-sm mt-1">
-                      No data records matched the selected dimension and metric filters. Try adjusting your dimension, metric, or filters on the left panel.
-                    </p>
-                  </div>
-                )}
-
-                {/* View Mode 2: Enhanced Interactive Data Table */}
-                {(viewMode === "data" || chartType === "table") && queryResult?.records && (
-                  <div className="flex-1 flex flex-col space-y-3 min-h-[420px]">
-                    
-                    {/* In-Table Search Bar & Page Size Selector */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2">
-                      <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-stone-400 dark:text-zinc-500" />
-                        <input
-                          type="text"
-                          placeholder={`Search ${dimension} or values...`}
-                          value={tableSearch}
-                          onChange={(e) => setTableSearch(e.target.value)}
-                          className="w-full pl-9 pr-3 py-1.5 text-xs bg-stone-50 dark:bg-[#14151c] border border-stone-200 dark:border-white/10 rounded-xl text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-stone-400 dark:focus:border-white/30 font-sans shadow-2xs"
+                        {/* Delete button */}
+                        <AnimatedDeleteButton
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 rounded-lg text-stone-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 shrink-0 cursor-pointer"
+                          onDelete={() => removeFilter(f.id)}
+                          title="Remove filter"
                         />
                       </div>
 
-                      <div className="flex items-center gap-2 self-end sm:self-auto">
-                        <span className="text-[11px] text-stone-500 dark:text-zinc-400 font-sans">Rows per page:</span>
-                        <select
-                          aria-label="Rows per page"
-                          value={tablePageSize}
-                          onChange={(e) => {
-                            setTablePageSize(Number(e.target.value));
-                            setTablePage(1);
-                          }}
-                          className="bg-stone-50 dark:bg-[#14151c] border border-stone-200 dark:border-white/10 rounded-lg px-2 py-1 text-xs text-stone-800 dark:text-zinc-200 font-mono shadow-2xs"
-                        >
-                          <option value={10}>10</option>
-                          <option value={25}>25</option>
-                          <option value={50}>50</option>
-                          <option value={100}>100</option>
-                        </select>
+                      {/* Value Input (unless is_null / is_not_null) */}
+                      {!f.operator.includes("null") && (
+                        <input
+                          type="text"
+                          placeholder="Comparison value..."
+                          aria-label="Filter Comparison Value"
+                          value={f.value}
+                          onChange={(e) => updateFilter(f.id, "value", e.target.value)}
+                          className="w-full bg-stone-50 border border-stone-300 rounded-md px-2 py-1 text-stone-900 text-[11px] font-mono focus:outline-none focus:border-[#800000]/50 dark:bg-[#121215] dark:border-slate-700 dark:text-slate-200 dark:focus:border-white/30"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Section: Limits & Sorting */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="space-y-1">
+                <label htmlFor="row-limit-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
+                  Row Limit
+                </label>
+                <select
+                  id="row-limit-select"
+                  aria-label="Row Limit"
+                  value={rowLimit}
+                  onChange={(e) => setRowLimit(Number(e.target.value))}
+                  className="w-full bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 font-mono shadow-2xs"
+                >
+                  <option value={5}>Top 5</option>
+                  <option value={10}>Top 10</option>
+                  <option value={15}>Top 15</option>
+                  <option value={25}>Top 25</option>
+                  <option value={50}>Top 50</option>
+                  <option value={100}>Top 100</option>
+                  <option value={250}>Top 250</option>
+                  <option value={500}>Top 500</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="sort-order-select" className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
+                  Sort Order
+                </label>
+                <select
+                  id="sort-order-select"
+                  aria-label="Sort Order"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  className="w-full bg-white border border-stone-300 text-stone-900 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#800000]/50 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-200 font-mono shadow-2xs"
+                >
+                  <option value="desc">High to Low (Desc)</option>
+                  <option value="asc">Low to High (Asc)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Section: Color Palette */}
+            <div className="space-y-1.5 pt-2 border-t border-stone-200 dark:border-slate-800/80">
+              <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.15em] text-stone-600 dark:text-zinc-400 block">
+                Color Palette
+              </span>
+              <div className="space-y-1">
+                {COLOR_PALETTES.map((pal) => (
+                  <button
+                    key={pal.id}
+                    type="button"
+                    onClick={() => setColorPalette(pal.id)}
+                    className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg border text-xs transition cursor-pointer ${colorPalette === pal.id
+                        ? "bg-[#800000] border-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:border-white dark:text-zinc-950"
+                        : "bg-white border-stone-200 text-stone-700 hover:bg-stone-100 hover:text-stone-950 dark:bg-[#0e1017] dark:border-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                      }`}
+                  >
+                    <span>{pal.label}</span>
+                    <div className="flex items-center gap-1">
+                      {pal.preview.map((c, i) => (
+                        <span key={i} className="h-2.5 w-2.5 rounded-full ring-1 ring-black/10 dark:ring-white/20" style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile Apply CTA */}
+            <div className="lg:hidden pt-3 border-t border-slate-800/80">
+              <ShimmerActionButton
+                onClick={() => setMobileTab("chart")}
+                className="w-full h-10 text-xs justify-center"
+                icon={<BarChart3 className="h-3.5 w-3.5 text-white dark:text-zinc-950" />}
+              >
+                <span>Apply & View Visual Chart</span>
+              </ShimmerActionButton>
+            </div>
+          </div>
+
+          {/* ──── RIGHT CANVAS: Live Visualization & KPIs (8 cols) ──── */}
+          <div className={`lg:col-span-8 p-3.5 sm:p-6 flex flex-col justify-between space-y-4 sm:space-y-6 bg-stone-50/70 dark:bg-[#07080a] ${mobileTab === "chart" ? "flex" : "hidden lg:flex"
+            }`}>
+
+            {/* Top: Architectural Precision Telemetry Deck */}
+            {queryResult?.kpis && (
+              <ExploreTelemetryDeck
+                queryResult={queryResult}
+                aggregate={aggregate}
+                metric={metric}
+                dimension={dimension}
+              />
+            )}
+
+            {/* Statistical & Observational Insights Strip */}
+            {queryResult?.smart_insights && queryResult.smart_insights.length > 0 && (
+              <div className="rounded-xl border border-stone-200/80 bg-white/80 dark:border-white/10 dark:bg-[#111218] p-3.5 sm:p-4 space-y-2.5 shadow-2xs">
+                <div className="flex items-center justify-between pb-1 border-b border-stone-100 dark:border-white/[0.06]">
+                  <div className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-stone-400 dark:bg-zinc-500" />
+                    <h4 className="text-[11px] font-mono uppercase tracking-[0.08em] text-stone-600 dark:text-zinc-400 font-medium">
+                      Key Observations & Patterns
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-mono text-stone-400 dark:text-zinc-500">
+                    {queryResult.smart_insights.length} observations
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {queryResult.smart_insights.map((ins: any) => (
+                    <div
+                      key={ins.id}
+                      className="group relative flex flex-col justify-between rounded-lg border border-stone-200/70 bg-stone-50/50 p-3 transition-colors hover:border-stone-300 dark:border-white/[0.05] dark:bg-white/[0.02] dark:hover:border-white/10"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-stone-500 dark:text-zinc-400">
+                          {ins.badge || "Observation"}
+                        </span>
+                        <span className="text-[10px] font-mono text-stone-400 dark:text-zinc-600">
+                          {ins.type || "pattern"}
+                        </span>
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-sans font-semibold text-stone-900 dark:text-white tracking-tight">
+                          {ins.title}
+                        </h5>
+                        <p className="text-[11.5px] leading-relaxed text-stone-600 dark:text-zinc-300 mt-1 font-sans">
+                          {ins.description}
+                        </p>
                       </div>
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-                    {/* Table Container */}
-                    <div className="flex-1 overflow-x-auto rounded-xl border border-stone-200/90 dark:border-white/10 bg-white dark:bg-[#090a0f] scrollbar-thin">
-                      <table className="w-full text-left text-xs font-sans">
-                        <thead className="bg-stone-50/90 text-stone-700 dark:bg-[#13141b] dark:text-zinc-300 uppercase text-[10.5px] font-semibold tracking-wider border-b border-stone-200 dark:border-white/10">
-                          <tr>
-                            <th className="py-2.5 px-3 w-12 text-center text-stone-400 dark:text-zinc-500">#</th>
+            {/* Main Chart or Table Canvas */}
+            <div className="flex-1 min-h-[400px] sm:min-h-[480px] rounded-xl border border-stone-200/90 bg-white/95 dark:border-white/10 dark:bg-[#0c0d12] p-3.5 sm:p-5 flex flex-col relative shadow-2xs">
+
+              {/* View Switcher & Toolbar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200 dark:border-white/10 mb-3">
+                <div className="flex items-center gap-1 bg-stone-100 dark:bg-[#14151c] p-0.5 rounded-lg border border-stone-200/80 dark:border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("chart")}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${viewMode === "chart"
+                        ? "bg-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:text-zinc-950"
+                        : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-white"
+                      }`}
+                  >
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span>Visual Chart</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("data")}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${viewMode === "data"
+                        ? "bg-[#800000] text-white shadow-xs font-semibold dark:bg-white dark:text-zinc-950"
+                        : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-white"
+                      }`}
+                  >
+                    <Table2 className="h-3.5 w-3.5" />
+                    <span>Aggregated Data</span>
+                    <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-black/10 dark:bg-white/15 tabular-nums">
+                      {queryResult?.records?.length ?? 0}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Canvas Toolbar Controls */}
+                <div className="flex items-center gap-2 flex-wrap text-xs font-sans">
+                  {/* Quick Bar Orientation Toggle */}
+                  {viewMode === "chart" && (chartType === "echarts_bar" || chartType === "echarts_horizontal_bar") && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setChartType(chartType === "echarts_bar" ? "echarts_horizontal_bar" : "echarts_bar")}
+                      className="h-7 px-2 rounded-lg text-[11px] gap-1 border-stone-200 bg-white hover:bg-stone-50 dark:border-white/10 dark:bg-[#14151c] dark:hover:bg-white/[0.08] cursor-pointer"
+                      title="Toggle Vertical Column vs Horizontal Ranking"
+                    >
+                      {chartType === "echarts_bar" ? <AlignLeft className="h-3 w-3" /> : <BarChart3 className="h-3 w-3" />}
+                      <span>{chartType === "echarts_bar" ? "Horizontal Rank" : "Vertical Column"}</span>
+                    </Button>
+                  )}
+
+                  <div className="text-xs text-stone-600 dark:text-zinc-400 font-mono truncate hidden md:inline">
+                    {queryResult?.metric_label} by {dimension}
+                    {timeGrain && <span className="text-sky-600 dark:text-sky-400 ml-1">({timeGrain})</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Loading Overlay */}
+              {executing && (
+                <div className="absolute inset-0 bg-white/80 dark:bg-[#07080a]/80 backdrop-blur-xs flex flex-col items-center justify-center z-20 gap-2 rounded-2xl">
+                  <Loader2 className="h-6 w-6 animate-spin text-stone-700 dark:text-zinc-300" />
+                  <span className="text-xs font-mono text-stone-600 dark:text-zinc-400">Computing visual analytics...</span>
+                </div>
+              )}
+
+              {/* View Mode 1: Interactive ECharts Canvas (Native Direct Render) */}
+              {viewMode === "chart" && chartType !== "table" && queryResult?.echarts_option && (
+                <div className="flex-1 w-full min-h-[420px]">
+                  <NativeEChartsView
+                    option={queryResult.echarts_option}
+                    onChartClick={handleChartClick}
+                    onInstanceReady={handleInstanceReady}
+                    height={isFullscreen ? "72vh" : "480px"}
+                  />
+                </div>
+              )}
+
+              {/* Empty State when no data records or query resulted in 0 rows */}
+              {viewMode === "chart" && chartType !== "table" && (!queryResult || !queryResult.echarts_option || queryResult.records?.length === 0) && !executing && (
+                <div className="flex-1 w-full min-h-[420px] flex flex-col items-center justify-center p-8 text-center border border-dashed border-stone-300 dark:border-white/10 rounded-2xl bg-stone-100/50 dark:bg-white/[0.02]">
+                  <div className="h-12 w-12 rounded-2xl bg-stone-200 dark:bg-white/10 border border-stone-300 dark:border-white/10 flex items-center justify-center text-stone-500 dark:text-zinc-400 mb-3">
+                    <BarChart3 className="h-6 w-6 text-stone-500 dark:text-zinc-400" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-stone-900 dark:text-white">No Visual Data Available</h3>
+                  <p className="text-xs text-stone-600 dark:text-zinc-400 max-w-sm mt-1">
+                    No data records matched the selected dimension and metric filters. Try adjusting your dimension, metric, or filters on the left panel.
+                  </p>
+                </div>
+              )}
+
+              {/* View Mode 2: Enhanced Interactive Data Table */}
+              {(viewMode === "data" || chartType === "table") && queryResult?.records && (
+                <div className="flex-1 flex flex-col space-y-3 min-h-[420px]">
+
+                  {/* In-Table Search Bar & Page Size Selector */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2">
+                    <div className="relative flex-1 max-w-sm">
+                      <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-stone-400 dark:text-zinc-500" />
+                      <input
+                        type="text"
+                        placeholder={`Search ${dimension} or values...`}
+                        value={tableSearch}
+                        onChange={(e) => setTableSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-1.5 text-xs bg-stone-50 dark:bg-[#14151c] border border-stone-200 dark:border-white/10 rounded-xl text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-stone-400 dark:focus:border-white/30 font-sans shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      <span className="text-[11px] text-stone-500 dark:text-zinc-400 font-sans">Rows per page:</span>
+                      <select
+                        aria-label="Rows per page"
+                        value={tablePageSize}
+                        onChange={(e) => {
+                          setTablePageSize(Number(e.target.value));
+                          setTablePage(1);
+                        }}
+                        className="bg-stone-50 dark:bg-[#14151c] border border-stone-200 dark:border-white/10 rounded-lg px-2 py-1 text-xs text-stone-800 dark:text-zinc-200 font-mono shadow-2xs"
+                      >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Table Container */}
+                  <div className="flex-1 overflow-x-auto rounded-xl border border-stone-200/90 dark:border-white/10 bg-white dark:bg-[#090a0f] scrollbar-thin">
+                    <table className="w-full text-left text-xs font-sans">
+                      <thead className="bg-stone-50/90 text-stone-700 dark:bg-[#13141b] dark:text-zinc-300 uppercase text-[10.5px] font-semibold tracking-wider border-b border-stone-200 dark:border-white/10">
+                        <tr>
+                          <th className="py-2.5 px-3 w-12 text-center text-stone-400 dark:text-zinc-500">#</th>
+                          <th
+                            onClick={() => handleSortClick(dimension)}
+                            className="py-2.5 px-3 cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span>{dimension}</span>
+                              <ArrowUpDown className={`h-3 w-3 ${tableSortCol === dimension ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
+                            </div>
+                          </th>
+                          {secondaryDimension && (
                             <th
-                              onClick={() => handleSortClick(dimension)}
+                              onClick={() => handleSortClick(secondaryDimension)}
                               className="py-2.5 px-3 cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
                             >
                               <div className="flex items-center gap-1.5">
-                                <span>{dimension}</span>
-                                <ArrowUpDown className={`h-3 w-3 ${tableSortCol === dimension ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
+                                <span>{secondaryDimension}</span>
+                                <ArrowUpDown className={`h-3 w-3 ${tableSortCol === secondaryDimension ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
                               </div>
                             </th>
-                            {secondaryDimension && (
-                              <th
-                                onClick={() => handleSortClick(secondaryDimension)}
-                                className="py-2.5 px-3 cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
-                              >
-                                <div className="flex items-center gap-1.5">
-                                  <span>{secondaryDimension}</span>
-                                  <ArrowUpDown className={`h-3 w-3 ${tableSortCol === secondaryDimension ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
-                                </div>
-                              </th>
-                            )}
-                            <th
-                              onClick={() => handleSortClick("value")}
-                              className="py-2.5 px-3 min-w-[200px] cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <span>{queryResult.metric_label || "Metric Value"} & Share</span>
-                                <ArrowUpDown className={`h-3 w-3 ${tableSortCol === "value" ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
-                              </div>
-                            </th>
-                            <th
-                              onClick={() => handleSortClick("count")}
-                              className="py-2.5 px-3 text-right cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
-                            >
-                              <div className="flex items-center justify-end gap-1.5">
-                                <span>Records</span>
-                                <ArrowUpDown className={`h-3 w-3 ${tableSortCol === "count" ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
-                              </div>
-                            </th>
-                            <th className="py-2.5 px-3 text-right w-16">Action</th>
-                          </tr>
-                        </thead>
-
-                        <tbody className="divide-y divide-stone-100 dark:divide-white/[0.05] text-stone-800 dark:text-zinc-200">
-                          {paginatedRecords.length > 0 ? (
-                            paginatedRecords.map((row: any, idx: number) => {
-                              const globalIdx = (tablePage - 1) * tablePageSize + idx + 1;
-                              const rowVal = typeof row.value === "number" ? row.value : 0;
-                              const pctOfTotal = totalMetricSum > 0 ? (Math.abs(rowVal) / totalMetricSum) * 100 : 0;
-                              const paletteColors = COLOR_PALETTES.find(p => p.id === colorPalette)?.preview || ["#1FA8C9"];
-
-                              return (
-                                <tr key={idx} className="hover:bg-stone-50/80 dark:hover:bg-white/[0.04] transition group">
-                                  <td className="py-2.5 px-3 text-center text-stone-400 dark:text-zinc-500 font-mono text-[11px]">
-                                    {globalIdx}
-                                  </td>
-                                  <td className="py-2.5 px-3 font-medium text-stone-900 dark:text-white">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleChartClick({ name: row[dimension] })}
-                                      className="text-left hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer flex items-center gap-1.5"
-                                      title={`Filter by ${dimension} = "${row[dimension]}"`}
-                                    >
-                                      <span>{row[dimension] ?? "—"}</span>
-                                    </button>
-                                  </td>
-                                  {secondaryDimension && (
-                                    <td className="py-2.5 px-3 text-stone-700 dark:text-zinc-300 font-mono text-[11px]">
-                                      {row[secondaryDimension] ?? "—"}
-                                    </td>
-                                  )}
-                                  <td className="py-2.5 px-3">
-                                    <div className="space-y-1">
-                                      <div className="flex items-center justify-between gap-2">
-                                        <span className="font-bold text-stone-900 dark:text-white font-mono text-[11.5px] tabular-nums">
-                                          {typeof row.value === "number"
-                                            ? row.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                                            : row.value ?? "—"}
-                                        </span>
-                                        <span className="text-[10px] text-stone-500 dark:text-zinc-400 font-mono font-medium">
-                                          {totalMetricSum > 0 ? `${pctOfTotal.toFixed(1)}%` : ""}
-                                        </span>
-                                      </div>
-                                      <div className="w-full h-1.5 bg-stone-200/70 dark:bg-white/10 rounded-full overflow-hidden">
-                                        <div
-                                          className="h-full rounded-full transition-all duration-300"
-                                          style={{
-                                            width: `${Math.min(100, Math.max(3, pctOfTotal))}%`,
-                                            backgroundColor: paletteColors[0] || "#10b981",
-                                          }}
-                                        />
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right font-mono text-[11px] text-stone-600 dark:text-zinc-400 tabular-nums">
-                                    {row.count?.toLocaleString() ?? "—"}
-                                  </td>
-                                  <td className="py-2.5 px-3 text-right">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const text = JSON.stringify(row, null, 2);
-                                        navigator.clipboard.writeText(text);
-                                        toast({ title: "Row Copied", description: "Row JSON copied to clipboard." });
-                                      }}
-                                      className="p-1 rounded-md text-stone-400 hover:text-stone-700 dark:text-zinc-500 dark:hover:text-zinc-200 hover:bg-stone-100 dark:hover:bg-white/10 transition cursor-pointer"
-                                      title="Copy row data"
-                                    >
-                                      <Copy className="h-3 w-3" />
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          ) : (
-                            <tr>
-                              <td colSpan={6} className="py-8 text-center text-stone-500 dark:text-zinc-400 font-sans">
-                                No records matching "{tableSearch}"
-                              </td>
-                            </tr>
                           )}
-                        </tbody>
+                          <th
+                            onClick={() => handleSortClick("value")}
+                            className="py-2.5 px-3 min-w-[200px] cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span>{queryResult.metric_label || "Metric Value"} & Share</span>
+                              <ArrowUpDown className={`h-3 w-3 ${tableSortCol === "value" ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
+                            </div>
+                          </th>
+                          <th
+                            onClick={() => handleSortClick("count")}
+                            className="py-2.5 px-3 text-right cursor-pointer hover:text-stone-900 dark:hover:text-white transition select-none"
+                          >
+                            <div className="flex items-center justify-end gap-1.5">
+                              <span>Records</span>
+                              <ArrowUpDown className={`h-3 w-3 ${tableSortCol === "count" ? "text-emerald-600 dark:text-emerald-400" : "opacity-40"}`} />
+                            </div>
+                          </th>
+                          <th className="py-2.5 px-3 text-right w-16">Action</th>
+                        </tr>
+                      </thead>
 
-                        {/* Summary Footer Row */}
-                        {filteredAndSortedRecords.length > 0 && (
-                          <tfoot className="bg-stone-50/90 dark:bg-[#13141b] border-t border-stone-200 dark:border-white/10 font-sans font-semibold text-[11px] text-stone-900 dark:text-white">
-                            <tr>
-                              <td className="py-2.5 px-3 text-center text-stone-500 dark:text-zinc-400">∑</td>
-                              <td className="py-2.5 px-3">
-                                Total ({filteredAndSortedRecords.length} categories)
-                              </td>
-                              {secondaryDimension && <td className="py-2.5 px-3">—</td>}
-                              <td className="py-2.5 px-3 font-mono tabular-nums">
-                                {totalMetricSum.toLocaleString(undefined, { maximumFractionDigits: 2 })} (100%)
-                              </td>
-                              <td className="py-2.5 px-3 text-right font-mono tabular-nums">
-                                {totalRowCount.toLocaleString()}
-                              </td>
-                              <td className="py-2.5 px-3 text-right">—</td>
-                            </tr>
-                          </tfoot>
+                      <tbody className="divide-y divide-stone-100 dark:divide-white/[0.05] text-stone-800 dark:text-zinc-200">
+                        {paginatedRecords.length > 0 ? (
+                          paginatedRecords.map((row: any, idx: number) => {
+                            const globalIdx = (tablePage - 1) * tablePageSize + idx + 1;
+                            const rowVal = typeof row.value === "number" ? row.value : 0;
+                            const pctOfTotal = totalMetricSum > 0 ? (Math.abs(rowVal) / totalMetricSum) * 100 : 0;
+                            const paletteColors = COLOR_PALETTES.find(p => p.id === colorPalette)?.preview || ["#1FA8C9"];
+
+                            return (
+                              <tr key={idx} className="hover:bg-stone-50/80 dark:hover:bg-white/[0.04] transition group">
+                                <td className="py-2.5 px-3 text-center text-stone-400 dark:text-zinc-500 font-mono text-[11px]">
+                                  {globalIdx}
+                                </td>
+                                <td className="py-2.5 px-3 font-medium text-stone-900 dark:text-white">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleChartClick({ name: row[dimension] })}
+                                    className="text-left hover:text-emerald-600 dark:hover:text-emerald-400 transition cursor-pointer flex items-center gap-1.5"
+                                    title={`Filter by ${dimension} = "${row[dimension]}"`}
+                                  >
+                                    <span>{row[dimension] ?? "—"}</span>
+                                  </button>
+                                </td>
+                                {secondaryDimension && (
+                                  <td className="py-2.5 px-3 text-stone-700 dark:text-zinc-300 font-mono text-[11px]">
+                                    {row[secondaryDimension] ?? "—"}
+                                  </td>
+                                )}
+                                <td className="py-2.5 px-3">
+                                  <div className="space-y-1">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="font-bold text-stone-900 dark:text-white font-mono text-[11.5px] tabular-nums">
+                                        {typeof row.value === "number"
+                                          ? row.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                          : row.value ?? "—"}
+                                      </span>
+                                      <span className="text-[10px] text-stone-500 dark:text-zinc-400 font-mono font-medium">
+                                        {totalMetricSum > 0 ? `${pctOfTotal.toFixed(1)}%` : ""}
+                                      </span>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-stone-200/70 dark:bg-white/10 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full rounded-full transition-all duration-300"
+                                        style={{
+                                          width: `${Math.min(100, Math.max(3, pctOfTotal))}%`,
+                                          backgroundColor: paletteColors[0] || "#10b981",
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-mono text-[11px] text-stone-600 dark:text-zinc-400 tabular-nums">
+                                  {row.count?.toLocaleString() ?? "—"}
+                                </td>
+                                <td className="py-2.5 px-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const text = JSON.stringify(row, null, 2);
+                                      navigator.clipboard.writeText(text);
+                                      toast({ title: "Row Copied", description: "Row JSON copied to clipboard." });
+                                    }}
+                                    className="p-1 rounded-md text-stone-400 hover:text-stone-700 dark:text-zinc-500 dark:hover:text-zinc-200 hover:bg-stone-100 dark:hover:bg-white/10 transition cursor-pointer"
+                                    title="Copy row data"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="py-8 text-center text-stone-500 dark:text-zinc-400 font-sans">
+                              No records matching "{tableSearch}"
+                            </td>
+                          </tr>
                         )}
-                      </table>
-                    </div>
+                      </tbody>
 
-                    {/* Pagination Bar */}
-                    <div className="flex items-center justify-between text-xs text-stone-600 dark:text-zinc-400 pt-1 font-sans">
-                      <span className="text-[11px]">
-                        Showing <strong className="text-stone-900 dark:text-white font-mono">{(tablePage - 1) * tablePageSize + 1}</strong> to{" "}
-                        <strong className="text-stone-900 dark:text-white font-mono">
-                          {Math.min(tablePage * tablePageSize, filteredAndSortedRecords.length)}
-                        </strong>{" "}
-                        of <strong className="text-stone-900 dark:text-white font-mono">{filteredAndSortedRecords.length}</strong> groups
-                      </span>
-
-                      <div className="flex items-center gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={tablePage <= 1}
-                          onClick={() => setTablePage(p => Math.max(1, p - 1))}
-                          className="h-7 px-2 rounded-lg text-xs gap-1 border-stone-200 bg-white hover:bg-stone-100 dark:border-white/10 dark:bg-[#14151c] dark:hover:bg-white/[0.08] cursor-pointer"
-                        >
-                          <ChevronLeft className="h-3.5 w-3.5" />
-                          <span>Prev</span>
-                        </Button>
-                        <span className="text-[11px] px-2 font-mono">
-                          {tablePage} / {totalPages}
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={tablePage >= totalPages}
-                          onClick={() => setTablePage(p => Math.min(totalPages, p + 1))}
-                          className="h-7 px-2 rounded-lg text-xs gap-1 border-stone-200 bg-white hover:bg-stone-100 dark:border-white/10 dark:bg-[#14151c] dark:hover:bg-white/[0.08] cursor-pointer"
-                        >
-                          <span>Next</span>
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-
+                      {/* Summary Footer Row */}
+                      {filteredAndSortedRecords.length > 0 && (
+                        <tfoot className="bg-stone-50/90 dark:bg-[#13141b] border-t border-stone-200 dark:border-white/10 font-sans font-semibold text-[11px] text-stone-900 dark:text-white">
+                          <tr>
+                            <td className="py-2.5 px-3 text-center text-stone-500 dark:text-zinc-400">∑</td>
+                            <td className="py-2.5 px-3">
+                              Total ({filteredAndSortedRecords.length} categories)
+                            </td>
+                            {secondaryDimension && <td className="py-2.5 px-3">—</td>}
+                            <td className="py-2.5 px-3 font-mono tabular-nums">
+                              {totalMetricSum.toLocaleString(undefined, { maximumFractionDigits: 2 })} (100%)
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono tabular-nums">
+                              {totalRowCount.toLocaleString()}
+                            </td>
+                            <td className="py-2.5 px-3 text-right">—</td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
                   </div>
-                )}
 
-              </div>
+                  {/* Pagination Bar */}
+                  <div className="flex items-center justify-between text-xs text-stone-600 dark:text-zinc-400 pt-1 font-sans">
+                    <span className="text-[11px]">
+                      Showing <strong className="text-stone-900 dark:text-white font-mono">{(tablePage - 1) * tablePageSize + 1}</strong> to{" "}
+                      <strong className="text-stone-900 dark:text-white font-mono">
+                        {Math.min(tablePage * tablePageSize, filteredAndSortedRecords.length)}
+                      </strong>{" "}
+                      of <strong className="text-stone-900 dark:text-white font-mono">{filteredAndSortedRecords.length}</strong> groups
+                    </span>
 
-              {/* Footer Metadata */}
-              <div className="flex items-center justify-between text-xs text-stone-600 dark:text-slate-400 pt-2 border-t border-stone-200 dark:border-slate-800/80 font-mono">
-                <span>
-                  {queryResult?.total_groups !== undefined ? `${queryResult.total_groups.toLocaleString()} groups computed` : "Ready"}
-                </span>
-                <span>
-                  {queryResult?.records?.length ? `Displaying top ${queryResult.records.length} records` : ""}
-                </span>
-              </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={tablePage <= 1}
+                        onClick={() => setTablePage(p => Math.max(1, p - 1))}
+                        className="h-7 px-2 rounded-lg text-xs gap-1 border-stone-200 bg-white hover:bg-stone-100 dark:border-white/10 dark:bg-[#14151c] dark:hover:bg-white/[0.08] cursor-pointer"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                        <span>Prev</span>
+                      </Button>
+                      <span className="text-[11px] px-2 font-mono">
+                        {tablePage} / {totalPages}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={tablePage >= totalPages}
+                        onClick={() => setTablePage(p => Math.min(totalPages, p + 1))}
+                        className="h-7 px-2 rounded-lg text-xs gap-1 border-stone-200 bg-white hover:bg-stone-100 dark:border-white/10 dark:bg-[#14151c] dark:hover:bg-white/[0.08] cursor-pointer"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                </div>
+              )}
 
             </div>
 
+            {/* Footer Metadata */}
+            <div className="flex items-center justify-between text-xs text-stone-600 dark:text-slate-400 pt-2 border-t border-stone-200 dark:border-slate-800/80 font-mono">
+              <span>
+                {queryResult?.total_groups !== undefined ? `${queryResult.total_groups.toLocaleString()} groups computed` : "Ready"}
+              </span>
+              <span>
+                {queryResult?.records?.length ? `Displaying top ${queryResult.records.length} records` : ""}
+              </span>
+            </div>
+
           </div>
-        </>
+
+        </div>
+      </>
 
     </div>
   );

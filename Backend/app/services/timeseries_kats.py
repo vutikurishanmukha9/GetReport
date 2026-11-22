@@ -37,49 +37,85 @@ class CUSUMChangepointDetector:
         if n < 2 * self.min_distance:
             return None
 
-        # Standardize series
-        overall_mean = float(np.mean(series))
-        overall_var = float(np.var(series))
+        # Standardize series with finite masking
+        series = np.asarray(series, dtype=np.float64)
+        finite_mask = np.isfinite(series) & (np.abs(series) < 1e12)
+        if finite_mask.sum() < 2 * self.min_distance:
+            return None
+        series = series[finite_mask]
+        n = len(series)
+
+        # Efficient downsampling for search when series is large
+        step = 1
+        sub_series = series
+        if n > 2000:
+            step = n // 2000 + 1
+            sub_series = series[::step]
+
+        m = len(sub_series)
+        sub_min_dist = max(2, self.min_distance // step)
+        if m < 2 * sub_min_dist:
+            return None
+
+        with np.errstate(all="ignore"):
+            overall_mean = float(np.mean(sub_series))
+            overall_var = float(np.var(sub_series))
         if overall_var <= 1e-10:
             return None
 
-        best_tau = None
-        max_llr = -float("inf")
-        best_stats = {}
+        # Vectorized CUSUM changepoint calculation via cumulative sums
+        with np.errstate(all="ignore"):
+            cumsum1 = np.cumsum(sub_series)
+            cumsum2 = np.cumsum(sub_series**2)
 
-        # Search across valid changepoint candidates
-        for tau in range(self.min_distance, n - self.min_distance):
-            pre = series[:tau]
-            post = series[tau:]
+        tau_arr = np.arange(sub_min_dist, m - sub_min_dist)
+        pre_len = tau_arr
+        post_len = m - tau_arr
 
+        pre_sum = cumsum1[tau_arr - 1]
+        pre_mean_arr = pre_sum / pre_len
+        pre_var_arr = np.maximum(0.0, (cumsum2[tau_arr - 1] / pre_len) - pre_mean_arr**2)
+
+        post_sum = cumsum1[-1] - pre_sum
+        post_mean_arr = post_sum / post_len
+        post_var_arr = np.maximum(0.0, ((cumsum2[-1] - cumsum2[tau_arr - 1]) / post_len) - post_mean_arr**2)
+
+        pooled_var_arr = (pre_len * pre_var_arr + post_len * post_var_arr) / m
+        valid_taus = pooled_var_arr > 1e-10
+        if not np.any(valid_taus):
+            return None
+
+        llr_arr = np.full(len(tau_arr), -np.inf)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ratio = np.maximum(1.0, overall_var / pooled_var_arr[valid_taus])
+            llr_arr[valid_taus] = (m / 2.0) * np.log(ratio)
+
+        best_idx = int(np.argmax(llr_arr))
+        max_llr = float(llr_arr[best_idx])
+        if max_llr <= 0 or np.isneginf(max_llr):
+            return None
+
+        best_tau = int(tau_arr[best_idx] * step)
+        best_tau = max(self.min_distance, min(best_tau, n - self.min_distance))
+
+        pre = series[:best_tau]
+        post = series[best_tau:]
+        with np.errstate(all="ignore"):
             pre_mean = float(np.mean(pre))
             post_mean = float(np.mean(post))
             pre_var = float(np.var(pre))
             post_var = float(np.var(post))
 
-            # Pooled variance
-            pooled_var = (len(pre) * pre_var + len(post) * post_var) / n
-            if pooled_var <= 1e-10:
-                continue
-
-            # Log-likelihood ratio: LLR = n/2 * ln(overall_var / pooled_var)
-            llr = (n / 2.0) * math.log(max(overall_var / pooled_var, 1.0))
-            if llr > max_llr:
-                max_llr = llr
-                best_tau = tau
-                best_stats = {
-                    "index": tau,
-                    "pre_mean": round(pre_mean, 4),
-                    "post_mean": round(post_mean, 4),
-                    "mean_shift": round(post_mean - pre_mean, 4),
-                    "percent_shift": round(((post_mean - pre_mean) / (abs(pre_mean) + 1e-6)) * 100.0, 2),
-                    "pre_std": round(math.sqrt(max(pre_var, 0.0)), 4),
-                    "post_std": round(math.sqrt(max(post_var, 0.0)), 4),
-                    "llr_score": round(float(llr), 4)
-                }
-
-        if best_tau is None or max_llr <= 0:
-            return None
+        best_stats = {
+            "index": best_tau,
+            "pre_mean": round(pre_mean, 4),
+            "post_mean": round(post_mean, 4),
+            "mean_shift": round(post_mean - pre_mean, 4),
+            "percent_shift": round(((post_mean - pre_mean) / (abs(pre_mean) + 1e-6)) * 100.0, 2),
+            "pre_std": round(math.sqrt(max(pre_var, 0.0)), 4),
+            "post_std": round(math.sqrt(max(post_var, 0.0)), 4),
+            "llr_score": round(max_llr, 4)
+        }
 
         # Guard: Effect size check - mean shift must exceed 0.3 standard deviations
         if abs(best_stats.get("mean_shift", 0.0)) < 0.3 * math.sqrt(overall_var):
@@ -159,6 +195,8 @@ class HoltWintersForecaster:
         horizon: int = 30,
         seasonality_period: Optional[int] = None
     ) -> Dict[str, Any]:
+        series = np.asarray(series, dtype=np.float64)
+        series = series[np.isfinite(series) & (np.abs(series) < 1e12)]
         n = len(series)
         if n < 5:
             return {"success": False, "reason": "Series too short for Holt-Winters (< 5 points)"}
@@ -203,8 +241,9 @@ class HoltWintersForecaster:
             trends.append(trend)
 
         # Residual standard error for confidence bands
-        residuals = series - np.array(fitted)
-        sigma = float(np.std(residuals)) if len(residuals) > 1 else float(np.std(series) * 0.1)
+        with np.errstate(all="ignore"):
+            residuals = series - np.array(fitted)
+            sigma = float(np.std(residuals)) if len(residuals) > 1 else float(np.std(series) * 0.1)
 
         # Extrapolate horizon
         forecasts = []
@@ -249,11 +288,11 @@ class TSFeaturesExtractor:
     """
     @staticmethod
     def extract_features(series: np.ndarray, period: int = 7) -> Dict[str, Any]:
-        n = len(series)
+        y = np.asarray(series, dtype=np.float64)
+        y = y[np.isfinite(y) & (np.abs(y) < 1e12)]
+        n = len(y)
         if n < 10:
             return {"valid": False, "reason": "Insufficient points (< 10)"}
-
-        y = np.asarray(series, dtype=np.float64)
         total_var = float(np.var(y))
         if total_var <= 1e-10:
             return {
@@ -309,7 +348,13 @@ class TSFeaturesExtractor:
         crossings = int(np.sum(np.diff(y > med) != 0))
 
         # 5. Flat spots
-        bins = np.linspace(np.min(y), np.max(y), 11)
+        with np.errstate(all="ignore"):
+            min_y = float(np.min(y))
+            max_y = float(np.max(y))
+            if np.isfinite(min_y) and np.isfinite(max_y) and min_y != max_y:
+                bins = np.linspace(min_y, max_y, 11)
+            else:
+                bins = np.array([min_y, min_y + 1.0])
         binned = np.digitize(y, bins)
         max_run = 1
         current_run = 1
@@ -362,7 +407,14 @@ def run_kats_time_series_intelligence(
         if sorted_df.height < 10:
             return {"success": False, "reason": "Insufficient records (< 10 rows)"}
 
-        y = sorted_df[value_col].to_numpy()
+        # Downsample if very large to prevent memory/CPU spikes
+        orig_height = sorted_df.height
+        if orig_height > 5000:
+            step = orig_height // 5000 + 1
+            sorted_df = sorted_df.gather_every(step)
+
+        y = sorted_df[value_col].cast(pl.Float64, strict=False).to_numpy()
+        y = np.clip(np.where(np.isfinite(y), y, 0.0), -1e12, 1e12)
         t_vals = [str(v) for v in sorted_df[time_col].to_list()]
 
         # 1. CUSUM Changepoints

@@ -59,12 +59,13 @@ class KeyDriverAnalyzer:
             # Calculate directionality
             feat_vals = X_train[:, idx]
             direction = "neutral"
-            if np.std(feat_vals) > 1e-7 and np.std(y_train) > 1e-7:
-                corr = np.corrcoef(feat_vals, y_train)[0, 1]
-                if corr > 0.08:
-                    direction = "positive"
-                elif corr < -0.08:
-                    direction = "negative"
+            with np.errstate(all="ignore"):
+                if np.std(feat_vals) > 1e-7 and np.std(y_train) > 1e-7:
+                    corr = np.corrcoef(feat_vals, y_train)[0, 1]
+                    if corr > 0.08:
+                        direction = "positive"
+                    elif corr < -0.08:
+                        direction = "negative"
 
             # Formulate impact description
             clean_feat = feat.replace("_", " ").title()

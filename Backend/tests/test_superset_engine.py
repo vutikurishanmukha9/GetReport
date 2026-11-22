@@ -362,3 +362,61 @@ def test_introspect_dataset_vectorized_and_default_chart(sample_df):
     assert cached_schema is schema
 
 
+def test_pie_chart_aggregates_high_cardinality_slices():
+    """Verify donut charts with > 7 categories cleanly aggregate into Top 6 + Other."""
+    engine = SupersetEngine()
+    df = pl.DataFrame({
+        "profession": [f"Job_{i}" for i in range(25)],
+        "count": [100 - i * 3 for i in range(25)]
+    })
+    engine.prewarm_dataset("task_pie_cardinality", "pie.parquet", df)
+    query = SupersetExploreQuery(
+        task_id="task_pie_cardinality",
+        chart_type="echarts_pie",
+        dimension="profession",
+        metric="count",
+        aggregate="SUM",
+    )
+    result = engine.execute_explore_query(query)
+    option = result["echarts_option"]
+    pie_series = option["series"][0]
+    assert pie_series["type"] == "pie"
+    # Exactly 7 slices: Top 6 + 1 aggregated Other slice
+    assert len(pie_series["data"]) == 7
+    assert pie_series["data"][-1]["name"] == "Other (19 items)"
+    # Anti-slop geometry: subtle 3px border radius, not clumsy 6px sausage wedges
+    assert pie_series["itemStyle"]["borderRadius"] == 3
+
+
+def test_id_column_exclusion_from_quantitative_metrics():
+    """Verify ID, credit card, SSN, and surrogate key columns are prioritized out of quantitative metrics."""
+    engine = SupersetEngine()
+    df = pl.DataFrame({
+        "id_no": list(range(1, 51)),
+        "user_uuid": [f"uuid-{i}" for i in range(50)],
+        "credit_card": [4532000000000000 + i for i in range(50)],
+        "ssn": [100000000 + i for i in range(50)],
+        "department": ["Eng", "Sales", "HR", "Design", "Ops"] * 10,
+        "revenue": [5000.0 + i * 100 for i in range(50)]
+    })
+    task_id = "task_id_test"
+    engine.prewarm_dataset(task_id, "id_test.parquet", df)
+    schema = engine.introspect_dataset(task_id)
+
+    assert "id_no" in schema["identifier_columns"]
+    assert "user_uuid" in schema["identifier_columns"]
+    assert "credit_card" in schema["identifier_columns"]
+    assert "ssn" in schema["identifier_columns"]
+    assert "revenue" in schema["quantitative_columns"]
+    assert "id_no" not in schema["quantitative_columns"]
+    assert "credit_card" not in schema["quantitative_columns"]
+    assert "ssn" not in schema["quantitative_columns"]
+
+    # Verify recommendations choose 'revenue' as the primary metric, NEVER 'id_no' or 'credit_card'
+    top_bar_rec = next(r for r in schema["recommendations"] if r["id"] == "rec_category_bar")
+    assert top_bar_rec["metric"] == "revenue"
+    assert "id_no" not in top_bar_rec["title"]
+    assert "credit_card" not in top_bar_rec["title"]
+
+
+

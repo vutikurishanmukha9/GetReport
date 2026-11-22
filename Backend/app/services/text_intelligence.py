@@ -245,6 +245,7 @@ def _oof_class_proba(
             continue
         model = HistGradientBoostingClassifier(
             max_iter=60, learning_rate=0.15, max_leaf_nodes=15,
+            early_stopping=False,
             categorical_features=cat_mask if cat_mask.any() else None, random_state=cfg.random_state,
         )
         model.fit(F[tr], y[tr].astype(int))

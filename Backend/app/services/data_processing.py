@@ -200,14 +200,20 @@ def _validate_gzip_bomb(file_path: str, max_uncompressed_size_mb: int | None = N
 # Extended Null Values List for Polars CSV parsing and post-processing
 EXTENDED_NULL_VALUES: list[str] = [
     "nan", "NaN", "NAN", "N/A", "n/a", "null", "NULL", "None", "none",
-    "#N/A", "#REF!", "#VALUE!", "#DIV/0!", "-", "?", "", "  ", "nil",
-    "missing", "NA", "N.A.", "<NA>", "undefined", "null_value"
+    "#N/A", "#REF!", "#VALUE!", "#DIV/0!", "-", "--", "---", "?", "??", "", "  ", "nil",
+    "missing", "NA", "N.A.", "<NA>", "<na>", "undefined", "null_value",
+    "-999", "-9999", "-999.0", "-9999.0", "<null>", "#null!", "#NULL!",
+    "(blank)", "blank", "TBD", "tbd", "unknown", "UNKNOWN", "void", "empty", "n/d", "nd", "nat", "NaT"
 ]
 _LOWER_NULL_SET: set[str] = {v.lower() for v in EXTENDED_NULL_VALUES}
 _CURRENCY_CLEAN_REGEX: str = r"[\$,€,£,₹,¥,\s]"
 _PAREN_NEG_REGEX: str = r"^\((.*)\)$"
 _PHONE_NAME_PATTERN: re.Pattern = re.compile(
     r"(?:^|_)(?:phone|mobile|cell|tel|telephone|contact|fax|call|sms|whatsapp)(?:$|_|no|num|number|numbers)",
+    re.IGNORECASE,
+)
+_IDENTIFIER_OR_TEXT_ONLY_PATTERN: re.Pattern = re.compile(
+    r"(?:^|_)(?:id|uuid|guid|zip|zipcode|zip_code|postal|postal_code|postcode|pin|pincode|ssn|social_security|card|credit_card|creditcard|cc_num|pan|account|acct|iban|routing|swift|api_key|apikey|key|token|hash|secret|password|ip|ip_address|mac|mac_address)(?:$|_)",
     re.IGNORECASE,
 )
 _FINANCIAL_METRIC_PATTERN: re.Pattern = re.compile(
@@ -374,6 +380,35 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
                 exprs.append(col_expr)
             continue
 
+        # Identifier or Postal Code Column Protection: Never coerce to float, preserve as clean string
+        is_id_or_postal = bool(_IDENTIFIER_OR_TEXT_ONLY_PATTERN.search(col_name))
+        if is_id_or_postal:
+            if dtype in (pl.Utf8, pl.Object, pl.String):
+                trimmed = col_expr.str.strip_chars()
+                null_handled = (
+                    pl.when(trimmed.str.to_lowercase().is_in(null_list) | (trimmed == ""))
+                    .then(None)
+                    .otherwise(trimmed)
+                )
+                exprs.append(null_handled.alias(col_name))
+            elif dtype in (pl.Int64, pl.Int32, pl.Int16, pl.Int8, pl.UInt64, pl.UInt32, pl.UInt16, pl.UInt8):
+                cleaned_id = (
+                    pl.when(col_expr.is_null() | col_expr.is_in([-999, -9999, 9999, 99999]))
+                    .then(None)
+                    .otherwise(col_expr.cast(pl.Utf8))
+                )
+                exprs.append(cleaned_id.alias(col_name))
+            elif dtype in (pl.Float64, pl.Float32):
+                cleaned_id = (
+                    pl.when(col_expr.is_null() | col_expr.is_nan() | col_expr.is_infinite() | col_expr.is_in([-999.0, -9999.0, 9999.0, 99999.0]))
+                    .then(None)
+                    .otherwise(col_expr.cast(pl.Int64, strict=False).cast(pl.Utf8))
+                )
+                exprs.append(cleaned_id.alias(col_name))
+            else:
+                exprs.append(col_expr)
+            continue
+
         if dtype in (pl.Utf8, pl.Object, pl.String):
             trimmed = col_expr.str.strip_chars()
             null_handled = (
@@ -407,9 +442,17 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
 
             exprs.append(null_handled.alias(col_name))
 
+        elif dtype in (pl.Int64, pl.Int32, pl.Int16, pl.Int8, pl.UInt64, pl.UInt32, pl.UInt16, pl.UInt8):
+            clean_int = (
+                pl.when(col_expr.is_in([-999, -9999, 9999, 99999]))
+                .then(None)
+                .otherwise(col_expr)
+            )
+            exprs.append(clean_int.alias(col_name))
+
         elif dtype in (pl.Float64, pl.Float32):
             clean_float = (
-                pl.when(col_expr.is_infinite() | col_expr.is_nan())
+                pl.when(col_expr.is_infinite() | col_expr.is_nan() | col_expr.is_in([-999.0, -9999.0, 9999.0, 99999.0]))
                 .then(None)
                 .otherwise(col_expr)
             )
@@ -417,7 +460,14 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
         else:
             exprs.append(col_expr)
 
-    return df.with_columns(exprs)
+    df = df.with_columns(exprs)
+
+    # Filter out rows where all cells are null (all-null-token rows + blank rows)
+    if df.height > 0 and df.width > 0:
+        not_all_null_mask = pl.any_horizontal([pl.col(c).is_not_null() for c in df.columns])
+        df = df.filter(not_all_null_mask)
+
+    return df
 
 
 
@@ -462,6 +512,22 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
         if lower_path.endswith(".csv") or lower_path.endswith(".txt"):
             encoding, sep, skip_rows = _detect_csv_parameters(file_path)
             polars_encoding = "utf8-lossy" if encoding and encoding.lower() in ("latin-1", "cp1252", "iso-8859-1") else "utf8"
+            
+            # Pre-extract headers to protect postal codes, IDs, PANs, and secrets from numeric coercion
+            schema_overrides: dict[str, Any] = {}
+            try:
+                with open(file_path, "r", encoding=encoding or "utf-8", errors="replace") as f_head:
+                    for _ in range(skip_rows):
+                        f_head.readline()
+                    header_line = f_head.readline()
+                    if header_line:
+                        raw_headers = [h.strip().strip('"').strip("'") for h in header_line.split(sep)]
+                        for h in raw_headers:
+                            if h and _IDENTIFIER_OR_TEXT_ONLY_PATTERN.search(_to_snake_case(h)):
+                                schema_overrides[h] = pl.Utf8
+            except Exception as hdr_err:
+                logger.debug("Could not extract header overrides for %s: %s", file_path, hdr_err)
+
             try:
                 lf = pl.scan_csv(
                     file_path,
@@ -469,6 +535,7 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
                     skip_rows=skip_rows,
                     encoding=polars_encoding,
                     ignore_errors=True,
+                    schema_overrides=schema_overrides if schema_overrides else None,
                     null_values=EXTENDED_NULL_VALUES,
                     truncate_ragged_lines=True,
                 )
@@ -482,6 +549,7 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
                         skip_rows=skip_rows,
                         encoding="utf8-lossy",
                         ignore_errors=True,
+                        schema_overrides=schema_overrides if schema_overrides else None,
                         null_values=EXTENDED_NULL_VALUES,
                         truncate_ragged_lines=True,
                     )
@@ -493,6 +561,7 @@ def load_dataframe(file_path: str) -> pl.DataFrame:
                         skip_rows=skip_rows,
                         encoding="latin-1",
                         ignore_errors=True,
+                        schema_overrides=schema_overrides if schema_overrides else None,
                         null_values=EXTENDED_NULL_VALUES,
                         truncate_ragged_lines=True,
                     )
@@ -1007,7 +1076,12 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
         # Check duplicates on NON-ID columns
         subset_cols = [c for c in df.columns if c not in potential_ids]
         if len(subset_cols) > 0:
-            n_dupes = df.select(subset_cols).is_duplicated().sum()
+            eval_sub = df.select(subset_cols)
+            if eval_sub.height > 50000:
+                eval_sub = eval_sub.sample(n=50000, seed=42)
+            n_dupes = eval_sub.is_duplicated().sum()
+            if eval_sub.height < df.height and n_dupes > 0:
+                n_dupes = int(round(n_dupes / eval_sub.height * df.height))
             if n_dupes > 0:
                 quality_report["issues"].append({
                     "type": "partial_duplicates",
@@ -1041,7 +1115,9 @@ def inspect_dataset(df: pl.DataFrame) -> dict[str, Any]:
             # Use numpy for histogram if available as fallback
             # We convert to numpy array (zero copy often).
             arr = df[col_name].drop_nulls().to_numpy()
-            
+            if len(arr) == 0: continue
+            # Exclude inf/-inf values to prevent "autodetected range of [-inf, inf] is not finite" warning/crash
+            arr = arr[np.isfinite(arr)]
             if len(arr) == 0: continue
             
             counts, bin_edges = np.histogram(arr, bins=15)
@@ -1104,26 +1180,30 @@ def _contextual_impute_series(
             med = s.median()
             if med is None:
                 continue
-            pred_data[c] = np.array(s.fill_null(med))
+            arr = np.array(s.fill_null(med), dtype=np.float64)
+            invalid_pred = (~np.isfinite(arr)) | (np.abs(arr) > 1e12)
+            arr[invalid_pred] = float(med) if math.isfinite(float(med)) and abs(float(med)) < 1e12 else 0.0
+            pred_data[c] = arr
 
         if not pred_data:
             return None, None
 
-        valid_target_idx = ~target_null_mask
+        valid_target_idx = (~target_null_mask) & np.isfinite(target_np) & (np.abs(target_np) < 1e12)
         y_valid = target_np[valid_target_idx].astype(np.float64)
 
         if len(y_valid) < 10:
             return None, None
 
         correlations = {}
-        for c, vals in pred_data.items():
-            x_valid = vals[valid_target_idx].astype(np.float64)
-            std_x = float(np.std(x_valid))
-            std_y = float(np.std(y_valid))
-            if std_x > 1e-9 and std_y > 1e-9:
-                corr = float(np.corrcoef(x_valid, y_valid)[0, 1])
-                if not np.isnan(corr) and abs(corr) >= 0.35:
-                    correlations[c] = abs(corr)
+        with np.errstate(all="ignore"):
+            for c, vals in pred_data.items():
+                x_valid = vals[valid_target_idx].astype(np.float64)
+                std_x = float(np.std(x_valid))
+                std_y = float(np.std(y_valid))
+                if std_x > 1e-9 and std_y > 1e-9:
+                    corr = float(np.corrcoef(x_valid, y_valid)[0, 1])
+                    if not np.isnan(corr) and abs(corr) >= 0.35:
+                        correlations[c] = abs(corr)
 
         if not correlations:
             return None, None
@@ -1134,10 +1214,10 @@ def _contextual_impute_series(
         X_train = X_selected[valid_target_idx]
         y_train = y_valid
 
-        model = Ridge(alpha=1.0)
-        model.fit(X_train, y_train)
-
-        r2 = float(model.score(X_train, y_train))
+        with np.errstate(all="ignore"):
+            model = Ridge(alpha=1.0)
+            model.fit(X_train, y_train)
+            r2 = float(model.score(X_train, y_train))
         if r2 < 0.15 or np.isnan(r2):
             return None, None
 
@@ -1813,4 +1893,4 @@ def sanitize_df_for_csv_export(df: pl.DataFrame) -> pl.DataFrame:
             exprs.append(sanitized.alias(col_name))
         else:
             exprs.append(pl.col(col_name))
-    return df.with_columns(exprs)
+    return df.with_columns(exprs)

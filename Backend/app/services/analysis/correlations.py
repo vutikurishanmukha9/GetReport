@@ -1,11 +1,3 @@
-"""
-Non-linear, Non-monotonic, and Mixed-Type Correlation Engine.
-Adapted from fg-data-profiling (Phik / phi_k framework).
-
-Unlike Pearson (linear only) and Spearman (monotonic only), Phik (phi_k)
-measures uniform, quadratic, cyclical, and categorical associations
-between any pair of variables (numeric-numeric, numeric-categorical, categorical-categorical).
-"""
 from __future__ import annotations
 
 import logging
@@ -40,13 +32,19 @@ def _discretize_series(
         if valid_series.len() < 5:
             return None, 0
 
-        unique_count = valid_series.n_unique()
+        valid_np = valid_series.to_numpy()
+        finite_mask = np.isfinite(valid_np) & (np.abs(valid_np) < 1e12)
+        if finite_mask.sum() < 5:
+            return None, 0
+        clean_valid = valid_np[finite_mask]
+
+        unique_count = len(np.unique(clean_valid))
         if unique_count <= 1:
             return None, 0
 
         # If few distinct values, label encode directly
         if unique_count <= num_bins:
-            unique_vals = sorted(valid_series.unique().to_list())
+            unique_vals = sorted(np.unique(clean_valid).tolist())
             val_to_idx = {v: i for i, v in enumerate(unique_vals)}
             # Map full series (keeping nulls as -1)
             raw_vals = series.cast(pl.Float64).to_list()
@@ -55,15 +53,21 @@ def _discretize_series(
 
         # Quantile binning for continuous distributions
         quantiles = np.linspace(0.0, 1.0, num_bins + 1)
-        try:
-            edges = np.unique(np.quantile(valid_series.to_numpy(), quantiles))
-            if len(edges) < 3:
-                # Fallback to linear spacing
-                edges = np.linspace(valid_series.min(), valid_series.max(), num_bins + 1)
-        except Exception:
-            edges = np.linspace(float(valid_series.min()), float(valid_series.max()), num_bins + 1)
+        with np.errstate(all="ignore"):
+            try:
+                edges = np.unique(np.quantile(clean_valid, quantiles))
+                if len(edges) < 3:
+                    # Fallback to linear spacing
+                    min_v = float(clean_valid.min())
+                    max_v = float(clean_valid.max())
+                    if min_v == max_v:
+                        return None, 0
+                    edges = np.linspace(min_v, max_v, num_bins + 1)
+            except Exception:
+                edges = np.linspace(float(clean_valid.min()), float(clean_valid.max()), num_bins + 1)
 
         raw_np = series.cast(pl.Float64).to_numpy()
+        raw_np = np.clip(np.where(np.isfinite(raw_np), raw_np, 0.0), -1e12, 1e12)
         # np.digitize returns 1-based bin index
         digitized = np.digitize(raw_np, edges[1:-1])
         # Mask nulls as -1
@@ -187,6 +191,10 @@ def compute_phik_matrix(
     """
     if df.height < 5 or df.width < 2:
         return {}, []
+
+    # Fast representative subsampling for large datasets (O(1) memory & ultra-fast)
+    if df.height > 10_000:
+        df = df.sample(n=10_000, seed=42)
 
     # Select target columns
     if columns is not None:

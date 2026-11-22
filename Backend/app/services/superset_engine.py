@@ -109,6 +109,53 @@ class SupersetExploreQuery(BaseModel):
     bar_mode: str = Field("grouped", description="Bar display mode for secondary dimension: grouped or stacked")
 
 
+def is_identifier_column(col_name: str, unique_values: int = 0, total_rows: int = 0, is_numeric: bool = False) -> bool:
+    """Classifies whether a column is an ID, index, surrogate key, card/phone number, or PII rather than a quantitative business metric."""
+    name = col_name.lower().strip()
+
+    # 1. High-confidence non-aggregatable identifiers, PII, and financial/contact codes
+    non_metric_terms = [
+        "card", "credit_card", "creditcard", "cc_num", "ssn", "social_security",
+        "phone", "mobile", "cell", "telephone", "fax",
+        "zip", "zipcode", "postal", "postal_code", "pincode", "pin_code",
+        "account", "acct", "iban", "routing", "swift", "cvv", "cvc", "pin",
+        "passport", "license", "aadhaar", "pan", "ein", "tin", "tax_id",
+        "ip", "ip_addr", "ip_address", "mac", "mac_address",
+        "email", "url", "uri", "token", "hash", "session", "api_key", "secret",
+        "order_id", "cust_id", "user_id", "client_id", "emp_id",
+        "batch", "sequence", "seq", "version"
+    ]
+    if any(term in name for term in non_metric_terms):
+        return True
+
+    id_patterns = [
+        r"^id$", r".*_id$", r"^id_.*", r".*_no$", r"^no_.*", r"^num$", r".*_num$",
+        r"^sn$", r"^s_no$", r".*_sn$", r"^uuid$", r".*_uuid$", r"^uuid_.*",
+        r"^guid$", r".*_guid$", r"^code$", r".*_code$", r"^index$",
+        r"^key$", r".*_key$", r"^row_.*", r"^pk$", r".*_pk$", r"^fk$", r".*_fk$"
+    ]
+    if any(re.match(pat, name) for pat in id_patterns):
+        return True
+
+    # 2. Explicit business metric keywords (checked after ID/PII patterns)
+    metric_keywords = [
+        "revenue", "sales", "price", "amount", "cost", "salary", "profit",
+        "margin", "score", "total", "subtotal", "val", "value", "rate", "ratio",
+        "qty", "quantity", "count", "units", "weight", "height", "depth", "distance",
+        "duration", "balance", "budget", "fee", "tax", "discount", "spend"
+    ]
+    if any(kw in name for kw in metric_keywords):
+        return False
+
+    # 3. High-uniqueness integer columns (>90% uniqueness) with identifier hints
+    if is_numeric and total_rows > 20:
+        if unique_values == total_rows or (unique_values / total_rows > 0.90):
+            if any(term in name for term in ("id", "no", "num", "idx", "key", "rec", "row", "code")):
+                return True
+
+    return False
+
+
 class SupersetEngine:
     """
     Executes in-process visual analytics on GetReport's uploaded datasets
@@ -250,6 +297,7 @@ class SupersetEngine:
 
             null_count = int(stats_row.get(f"__nc__{col}", 0))
             unique_values = int(stats_row.get(f"__nu__{col}", 0))
+            is_id = is_identifier_column(col, unique_values, df.height, is_numeric=is_num)
 
             col_meta = {
                 "name": col,
@@ -257,6 +305,7 @@ class SupersetEngine:
                 "type_name": sup_type.name,
                 "is_numeric": is_num,
                 "is_temporal": is_temp,
+                "is_identifier": is_id,
                 "null_count": null_count,
                 "unique_values": unique_values,
                 "sample_values": sample_vals,
@@ -270,10 +319,16 @@ class SupersetEngine:
             else:
                 categorical_cols.append(col)
 
+        # ── Prioritize Quantitative Metrics over IDs/Surrogate Keys ──────────
+        all_id_cols = [c["name"] for c in columns_meta if c.get("is_identifier")]
+        quant_numeric_cols = [c for c in numeric_cols if not is_identifier_column(c, int(stats_row.get(f"__nu__{c}", 0)), df.height, is_numeric=True)]
+        id_numeric_cols = [c for c in numeric_cols if is_identifier_column(c, int(stats_row.get(f"__nu__{c}", 0)), df.height, is_numeric=True)]
+        sorted_numeric_cols = quant_numeric_cols + id_numeric_cols
+
         # ── Auto-generate Smart Visual Recommendations ────────────────────────
         recommendations = []
-        first_num = numeric_cols[0] if numeric_cols else None
-        second_num = numeric_cols[1] if len(numeric_cols) > 1 else None
+        first_num = quant_numeric_cols[0] if quant_numeric_cols else None
+        second_num = quant_numeric_cols[1] if len(quant_numeric_cols) > 1 else None
         first_cat = categorical_cols[0] if categorical_cols else None
         second_cat = categorical_cols[1] if len(categorical_cols) > 1 else None
         first_temp = temporal_cols[0] if temporal_cols else None
@@ -293,15 +348,17 @@ class SupersetEngine:
             })
 
         # Recommendation 2: Top Categorical Breakdown
-        if first_cat and first_num:
+        if first_cat:
+            cat_unique = int(stats_row.get(f"__nu__{first_cat}", 0))
+            use_horiz = cat_unique > 6
             recommendations.append({
                 "id": "rec_category_bar",
-                "title": f"Top {first_cat} by {first_num}",
-                "description": f"Identify the highest performing categories across {first_num}",
-                "chart_type": "echarts_bar",
+                "title": f"Top {first_cat}" + (f" by {first_num}" if first_num else " Ranking"),
+                "description": f"Identify the highest performing categories across {first_num or 'records'}",
+                "chart_type": "echarts_horizontal_bar" if use_horiz else "echarts_bar",
                 "dimension": first_cat,
                 "metric": first_num,
-                "aggregate": "SUM",
+                "aggregate": "SUM" if first_num else "COUNT",
                 "row_limit": 10,
                 "badge": "Leaderboard"
             })
@@ -322,22 +379,22 @@ class SupersetEngine:
                 "badge": "Dual Axis"
             })
 
-        # Recommendation 4: Low-Cardinality Donut / Market Share
+        # Recommendation 4: Low-Cardinality Donut / Market Share (Strictly 2 to 6 unique values)
         pie_cand = None
         for col_m in columns_meta:
-            if not col_m["is_numeric"] and not col_m["is_temporal"] and 2 <= col_m["unique_values"] <= 8:
+            if not col_m["is_numeric"] and not col_m["is_temporal"] and 2 <= col_m["unique_values"] <= 6:
                 pie_cand = col_m["name"]
                 break
         if pie_cand:
             recommendations.append({
                 "id": "rec_market_pie",
-                "title": f"{pie_cand} Proportional Share",
-                "description": f"Donut slice breakdown across {pie_cand}",
+                "title": f"{pie_cand} Share",
+                "description": f"Proportional donut breakdown across {pie_cand}",
                 "chart_type": "echarts_pie",
                 "dimension": pie_cand,
                 "metric": first_num,
                 "aggregate": "SUM" if first_num else "COUNT",
-                "badge": "Distribution"
+                "badge": "Proportions"
             })
 
         # Recommendation 5: Scatter / Correlation
@@ -394,7 +451,9 @@ class SupersetEngine:
             "total_rows": len(df),
             "total_columns": len(df.columns),
             "columns": columns_meta,
-            "numeric_columns": numeric_cols,
+            "numeric_columns": sorted_numeric_cols,
+            "quantitative_columns": quant_numeric_cols,
+            "identifier_columns": all_id_cols,
             "categorical_columns": categorical_cols,
             "temporal_columns": temporal_cols,
             "time_grains": ["day", "week", "month", "quarter", "year"],
@@ -856,16 +915,47 @@ class SupersetEngine:
         total_rows = len(df)
         if metric_col != "records" and metric_col in df.columns:
             m_col = df[metric_col]
-            kpis = {
-                "metric_label": metric_label,
-                "dimension_label": query.dimension,
-                "total_rows": total_rows,
-                "sum": _sanitize_for_json(float(m_col.sum())) if m_col.dtype.is_numeric() else None,
-                "mean": _sanitize_for_json(round(float(m_col.mean()), 2)) if m_col.dtype.is_numeric() else None,
-                "max": _sanitize_for_json(float(m_col.max())) if m_col.dtype.is_numeric() else None,
-                "min": _sanitize_for_json(float(m_col.min())) if m_col.dtype.is_numeric() else None,
-                "unique_categories": df[query.dimension].n_unique(),
-            }
+            if m_col.dtype.is_numeric():
+                # Filter out nulls, non-finite values, sentinels, and extreme overflow numbers
+                clean_m = m_col.filter(
+                    m_col.is_not_null() & 
+                    m_col.is_finite() & 
+                    (m_col > -900.0) & 
+                    (m_col < 1e15)
+                )
+                if len(clean_m) > 0:
+                    kpis = {
+                        "metric_label": metric_label,
+                        "dimension_label": query.dimension,
+                        "total_rows": total_rows,
+                        "sum": _sanitize_for_json(float(clean_m.sum())),
+                        "mean": _sanitize_for_json(round(float(clean_m.mean()), 2)),
+                        "max": _sanitize_for_json(float(clean_m.max())),
+                        "min": _sanitize_for_json(float(clean_m.min())),
+                        "unique_categories": df[query.dimension].n_unique(),
+                    }
+                else:
+                    kpis = {
+                        "metric_label": metric_label,
+                        "dimension_label": query.dimension,
+                        "total_rows": total_rows,
+                        "sum": None,
+                        "mean": None,
+                        "max": None,
+                        "min": None,
+                        "unique_categories": df[query.dimension].n_unique(),
+                    }
+            else:
+                kpis = {
+                    "metric_label": metric_label,
+                    "dimension_label": query.dimension,
+                    "total_rows": total_rows,
+                    "sum": None,
+                    "mean": None,
+                    "max": None,
+                    "min": None,
+                    "unique_categories": df[query.dimension].n_unique(),
+                }
         else:
             kpis = {
                 "metric_label": "Record Count",
@@ -952,7 +1042,17 @@ class SupersetEngine:
 
         # ── 1. Pie / Donut Chart ──────────────────────────────────────────
         if chart_type in ("echarts_pie", "pie"):
-            pie_data = [{"name": str(r[dimension]), "value": r.get("value", 0)} for r in records]
+            sorted_records = sorted(records, key=lambda r: float(r.get("value", 0) or 0), reverse=True)
+            # Enforce clean visual density: maximum 7 slices (Top 6 + Other) to prevent unreadable bicycle-wheel donuts
+            if len(sorted_records) > 7:
+                top_slices = sorted_records[:6]
+                other_val = sum(float(r.get("value", 0) or 0) for r in sorted_records[6:])
+                other_count = len(sorted_records) - 6
+                pie_data = [{"name": str(r[dimension]), "value": r.get("value", 0)} for r in top_slices]
+                pie_data.append({"name": f"Other ({other_count} items)", "value": round(other_val, 2)})
+            else:
+                pie_data = [{"name": str(r[dimension]), "value": r.get("value", 0)} for r in sorted_records]
+
             return {
                 "backgroundColor": "transparent",
                 "color": palette,
@@ -980,17 +1080,24 @@ class SupersetEngine:
                     {
                         "name": metric_label,
                         "type": "pie",
-                        "radius": ["45%", "72%"],
+                        "radius": ["48%", "72%"],
                         "avoidLabelOverlap": True,
                         "itemStyle": {
-                            "borderRadius": 6,
-                            "borderColor": "#090d16",
+                            "borderRadius": 3,
+                            "borderColor": "#ffffff",
                             "borderWidth": 2,
                         },
                         "label": {
                             "show": True,
                             "formatter": "{b}: {d}%",
-                            "fontSize": 11,
+                            "fontSize": 12,
+                            "fontWeight": 500,
+                        },
+                        "labelLine": {
+                            "show": True,
+                            "length": 15,
+                            "length2": 12,
+                            "smooth": 0.2,
                         },
                         "emphasis": {
                             "label": {"show": True, "fontSize": 13, "fontWeight": "bold"},
@@ -1047,7 +1154,7 @@ class SupersetEngine:
                         "sort": "descending",
                         "gap": 3,
                         "label": {"show": True, "position": "inside", "color": "#ffffff", "fontSize": 11, "formatter": "{b}: {c}"},
-                        "itemStyle": {"borderColor": "#090d16", "borderWidth": 1.5},
+                        "itemStyle": {"borderColor": "#ffffff", "borderWidth": 1.5},
                         "emphasis": {"label": {"fontSize": 13, "fontWeight": "bold"}},
                         "data": funnel_data,
                     }
@@ -1104,7 +1211,7 @@ class SupersetEngine:
                         "data": tree_data,
                         "roam": False,
                         "label": {"show": True, "formatter": "{b}\n{c}", "color": "#ffffff"},
-                        "itemStyle": {"borderColor": "#090d16", "borderWidth": 2, "gapWidth": 2},
+                        "itemStyle": {"borderColor": "#ffffff", "borderWidth": 2, "gapWidth": 2},
                     }
                 ],
             }

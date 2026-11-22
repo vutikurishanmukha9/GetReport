@@ -18,6 +18,10 @@ PHONE_REGEX = re.compile(r"^-?\+?[0-9]{1,3}?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}
 SSN_REGEX = re.compile(r"^(?:\d{3}-\d{2}-\d{4}|\d{9})$")
 IPV4_REGEX = re.compile(r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
 CREDIT_CARD_CANDIDATE = re.compile(r"^[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{4}[-\s]?[0-9]{1,7}$")
+SECRET_KEY_REGEX = re.compile(r"^(?:sk_live_[A-Za-z0-9]{8,}|AKIA[A-Z2-7]{12,}|ghp_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_\-]{20,})$")
+INLINE_SECRET_PATTERN = re.compile(r"(?:sk_live_[A-Za-z0-9]{8,}|AKIA[A-Z2-7]{12,}|ghp_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_\-]{20,})")
+INLINE_SSN_PATTERN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
+INLINE_CARD_PATTERN = re.compile(r"\b(\d{15,16})(?:\.\d+)?\b")
 
 
 def verify_luhn_checksum(card_number_str: str) -> bool:
@@ -44,7 +48,18 @@ def mask_pii_value(val: str, pii_type: str) -> str:
 
     s = str(val).strip()
 
-    if pii_type == "EMAIL":
+    if pii_type in ("API_KEY", "SECRET"):
+        if s.startswith("sk_live_"):
+            return "sk_live_****"
+        elif s.startswith("AKIA"):
+            return "AKIA****"
+        elif s.startswith("ghp_"):
+            return "ghp_****"
+        elif s.startswith("AIza"):
+            return "AIza****"
+        return "[REDACTED_API_KEY]"
+
+    elif pii_type == "EMAIL":
         if "@" in s:
             parts = s.split("@", 1)
             user, domain = parts[0], parts[1]
@@ -76,6 +91,27 @@ def mask_pii_value(val: str, pii_type: str) -> str:
     return "[REDACTED]"
 
 
+def mask_any_pii_in_text(raw_text: str) -> str:
+    """
+    Sanitize any inline text by detecting and masking SSNs, API keys/secrets,
+    and Luhn-valid credit card numbers. Zero-leak guaranteed.
+    """
+    if not raw_text or not isinstance(raw_text, str):
+        return raw_text
+
+    text = INLINE_SECRET_PATTERN.sub("[REDACTED_API_KEY]", raw_text)
+    text = INLINE_SSN_PATTERN.sub("***-**-****", text)
+
+    def _replace_card(match: re.Match) -> str:
+        num_str = match.group(1)
+        if verify_luhn_checksum(num_str):
+            return f"****-****-****-{num_str[-4:]}"
+        return match.group(0)
+
+    text = INLINE_CARD_PATTERN.sub(_replace_card, text)
+    return text
+
+
 class PIIGuard:
     """
     High-performance PII scanner and redaction engine.
@@ -88,6 +124,8 @@ class PIIGuard:
         if not s or len(s) > 120:
             return None
 
+        if SECRET_KEY_REGEX.match(s):
+            return "API_KEY"
         if EMAIL_REGEX.match(s):
             return "EMAIL"
         if SSN_REGEX.match(s):
