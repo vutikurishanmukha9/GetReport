@@ -6,7 +6,6 @@ import math
 from typing import Any
 
 import re
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -106,13 +105,39 @@ def detect_trend(df: pl.DataFrame, time_col: str, value_col: str) -> dict[str, A
         # Chronological sorting with robust mixed-date parsing if time_col is string
         time_series = df[time_col]
         if time_series.dtype in (pl.Utf8, pl.String, pl.Object):
-            dt_s = pd.to_datetime(time_series.to_pandas(), format="mixed", errors="coerce", utc=True)
-            valid_dt = ~dt_s.isna()
-            y_raw = df[value_col].cast(pl.Float64, strict=False).to_numpy()
-            valid_mask = valid_dt & np.isfinite(y_raw) & (np.abs(y_raw) < 1e12)
-            dt_s_valid = dt_s[valid_mask]
-            sorted_idx = dt_s_valid.argsort()
-            y = np.clip(y_raw[valid_mask][sorted_idx], -1e9, 1e9)
+            # Pure Polars datetime parsing (Rust-accelerated, zero-dependency)
+            parsed_df = df.select([
+                pl.coalesce([
+                    pl.col(time_col).str.to_datetime(strict=False),
+                    pl.col(time_col).str.to_date(strict=False).cast(pl.Datetime),
+                ]).alias("__parsed_dt"),
+                pl.col(value_col).cast(pl.Float64, strict=False).alias("__val")
+            ])
+            # Fallback for non-standard date strings if standard parsing yields all nulls
+            if parsed_df["__parsed_dt"].null_count() == parsed_df.height and df.height > 0:
+                try:
+                    from dateutil.parser import parse as parse_date
+                    dates = []
+                    for val in time_series.to_list():
+                        try:
+                            dates.append(parse_date(str(val)) if val else None)
+                        except Exception:
+                            dates.append(None)
+                    parsed_df = pl.DataFrame([
+                        pl.Series("__parsed_dt", dates, dtype=pl.Datetime),
+                        df[value_col].cast(pl.Float64, strict=False).alias("__val")
+                    ])
+                except Exception:
+                    pass
+
+            clean_df = parsed_df.filter(
+                pl.col("__parsed_dt").is_not_null() &
+                pl.col("__val").is_not_null() &
+                pl.col("__val").is_finite() &
+                (pl.col("__val").abs() < 1e12)
+            ).sort("__parsed_dt")
+            y = clean_df["__val"].to_numpy()
+            y = np.clip(y[np.isfinite(y)], -1e9, 1e9)
         else:
             clean_df = df.filter(pl.col(time_col).is_not_null() & pl.col(value_col).is_not_null() & pl.col(value_col).is_finite() & (pl.col(value_col).abs() < 1e12))
             sorted_df = clean_df.select([time_col, value_col]).sort(time_col)
