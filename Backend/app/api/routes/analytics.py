@@ -11,13 +11,13 @@ Provides endpoints for:
 """
 
 import logging
+import re
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.core.auth import (
     verify_api_key,
-    validate_task_id,
     check_task_ownership,
     get_authenticated_owner_id,
 )
@@ -31,16 +31,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 ANALYTICS_QUERY_LIMIT = "60/minute"
+SAFE_TASK_ID_REGEX = re.compile(r"^[0-9a-zA-Z_-]{1,64}$")
 
 
 async def _get_authorized_analytics_job(request: Request, task_id: str) -> Any:
-    """Helper: Validate task UUID syntax and verify tenant ownership for analytics endpoints."""
-    validate_task_id(task_id)
-    job = await title_task_manager.get_job_async(task_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Dataset task not found")
+    """Helper: Validate task syntax and verify tenant ownership for analytics endpoints."""
+    if not task_id or not SAFE_TASK_ID_REGEX.match(task_id) or ".." in task_id:
+        raise HTTPException(status_code=400, detail="Invalid task ID format")
     caller_owner_id = get_authenticated_owner_id(request)
-    check_task_ownership(job.owner_id, caller_owner_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if job:
+        check_task_ownership(job.owner_id, caller_owner_id)
+    elif caller_owner_id:
+        raise HTTPException(status_code=404, detail="Dataset task not found")
     return job
 
 
