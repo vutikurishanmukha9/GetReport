@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { 
-  Upload, Search, FileDown, Cpu, 
-  CheckCircle2, Terminal, ChevronRight, ChevronLeft, 
+import {
+  Upload, Search, FileDown, Cpu,
+  CheckCircle2, Terminal, ChevronRight, ChevronLeft,
   ShieldCheck, Layers, RefreshCw, Activity, Code2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,9 +31,9 @@ const pipelineSteps: PipelineStep[] = [
     id: "ingest",
     stepNum: "01",
     icon: Upload,
-    title: "Polars Zero-Copy Ingestion",
+    title: "Polars zero-copy ingestion",
     shortDesc: "Streaming buffer parsing with automatic encoding and delimiter detection.",
-    fullDesc: "When a file is uploaded, our engine memory-maps the raw binary directly into Polars ChunkedArrays. It samples the first 1,000 lines to resolve CSV delimiters, UTF-8/CP1252 encodings, and infers strict Arrow data types without touching disk storage.",
+    fullDesc: "When a file is uploaded, the engine memory-maps the raw binary directly into Polars ChunkedArrays. It samples the first 1,000 lines to resolve CSV delimiters, UTF-8/CP1252 encodings, and infers strict Arrow data types without touching disk storage.",
     badge: "SUB-50MS STREAMING",
     codeLanguage: "python",
     codeSnippet: `import polars as pl
@@ -62,7 +62,7 @@ df = pl.read_csv(
     id: "hygiene",
     stepNum: "02",
     icon: Search,
-    title: "Hygiene Scoring & Issue Ledger",
+    title: "Data quality audit and issue ledger",
     shortDesc: "9-category quality audit with interactive human-in-the-loop approvals.",
     fullDesc: "Every column is scanned across 4 mathematical dimensions: Completeness (35%), Consistency (25%), Validity (25%), and Stability (15%). Identified quality flags are placed in the Issue Ledger where users can approve, reject, or customize transformations.",
     badge: "A-F CONFIDENCE SCORING",
@@ -95,9 +95,9 @@ if user_decisions["col_amount"] == "approve":
     id: "stats",
     stepNum: "03",
     icon: Activity,
-    title: "Statistical & Drift Auditing",
+    title: "Statistical tests and drift checks",
     shortDesc: "Pearson correlations, VIF multicollinearity, and conceptual drift checks.",
-    fullDesc: "Executes deep bivariate and multivariate statistical tests. Identifies redundant variables using Variance Inflation Factor (VIF > 5.0), flags extreme skewness with Kurtosis thresholds, and computes Kolmogorov-Smirnov distribution shifts across chronological segments.",
+    fullDesc: "Computes Pearson and Spearman correlation matrices, Variance Inflation Factors (VIF > 5.0) for redundant variables, and Kolmogorov-Smirnov tests for drift across time segments.",
     badge: "MULTIVARIATE RIGOR",
     codeLanguage: "python",
     codeSnippet: `from scipy import stats
@@ -125,9 +125,9 @@ corr_matrix = df.select(numeric_cols).corr()`,
     id: "rag",
     stepNum: "04",
     icon: Cpu,
-    title: "Domain Extraction & RAG Synthesis",
+    title: "Domain classification and insight synthesis",
     shortDesc: "Semantic business context classification and grounded insight generation.",
-    fullDesc: "Our semantic layer analyzes column taxonomy to classify the business domain (e.g. Retail, SaaS, Healthcare, Banking). Aggregated statistical summaries are sent to our RAG engine to generate plain-English executive takeaways without exposing raw row data.",
+    fullDesc: "Classifies column names into business domains such as Retail, SaaS, or Healthcare. Aggregated metrics are sent to a language model to generate executive summaries without sending raw records.",
     badge: "EPHEMERAL AI SYNTHESIS",
     codeLanguage: "json",
     codeSnippet: `// RAG payload format (Confidential: Zero raw rows transmitted)
@@ -156,9 +156,9 @@ corr_matrix = df.select(numeric_cols).corr()`,
     id: "pdf",
     stepNum: "05",
     icon: FileDown,
-    title: "Board-Ready PDF Compilation",
-    shortDesc: "High-DPI print-ready audit document generated via WeasyPrint.",
-    fullDesc: "The final audit package compiles into an executive PDF report via WeasyPrint. Includes embedded Matplotlib visual correlation galleries, executive summaries, full column confidence scorecards, and a cryptographic verification receipt.",
+    title: "PDF report compilation",
+    shortDesc: "Print-ready audit document generated via WeasyPrint.",
+    fullDesc: "Compiles findings into a PDF using WeasyPrint. The document includes Matplotlib correlation charts, summary metrics, column scorecards, and an SHA-256 verification receipt.",
     badge: "WEASYPRINT PRINT ENGINE",
     codeLanguage: "python",
     codeSnippet: `import weasyprint
@@ -196,26 +196,26 @@ export const HowItWorks = () => {
     <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-zinc-100 animate-in fade-in duration-500 relative">
       {/* Technical Background Grid & Film Grain */}
       <BackgroundGrid patternId="howitworks-grid-blueprint" />
-      <Header onReset={() => {}} showReset={false} />
+      <Header onReset={() => { }} showReset={false} />
 
       <main className="flex-1 pt-24 sm:pt-28 relative z-10">
         {/* Header */}
         <div className="border-b border-stone-300/80 bg-[#FAF8F5]/50 backdrop-blur-xs dark:border-white/[0.08] dark:bg-[#07080a]/50 py-8 sm:py-16 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl text-center space-y-3 sm:space-y-4">
-            
+
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-extrabold text-stone-900 dark:text-foreground tracking-[-0.02em] leading-[1.12]">
               Transparent data pipeline.
             </h1>
-            
+
             <p className="text-sm sm:text-base text-stone-600 dark:text-muted-foreground max-w-2xl mx-auto leading-relaxed font-sans">
-              From messy spreadsheet fields to board-level audit reports. We expose every decision, every threshold, and every mathematical operation step-by-step.
+              From raw spreadsheet fields to verified audit reports. Every step, threshold, and calculation is recorded.
             </p>
           </div>
         </div>
 
         {/* Section 1: Interactive Pipeline Stage Explorer */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 max-w-7xl space-y-6 sm:space-y-8">
-          
+
           {/* Step Pill Selector Bar */}
           <div className="flex overflow-x-auto gap-2 sm:gap-2.5 pb-2 scrollbar-none border-b border-stone-300 dark:border-border/60">
             {pipelineSteps.map((step, idx) => {
@@ -226,11 +226,10 @@ export const HowItWorks = () => {
                   key={step.id}
                   type="button"
                   onClick={() => setActiveStepIndex(idx)}
-                  className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full font-mono text-xs transition-all duration-150 shrink-0 cursor-pointer border ${
-                    isActive
-                      ? "bg-[#800000] text-white border-[#800000] shadow-sm font-bold scale-[1.02] dark:bg-white dark:text-zinc-950 dark:border-white dark:shadow-[0_2px_14px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)]"
-                      : "bg-[#FAF8F5] text-stone-700 hover:bg-[#EDE8DE] hover:text-stone-900 border-stone-300 dark:bg-[#0c0d12] dark:text-zinc-400 dark:hover:text-white dark:border-white/10 dark:hover:border-white/20"
-                  }`}
+                  className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full font-mono text-xs transition-all duration-150 shrink-0 cursor-pointer border ${isActive
+                    ? "bg-[#800000] text-white border-[#800000] shadow-sm font-bold scale-[1.02] dark:bg-white dark:text-zinc-950 dark:border-white dark:shadow-[0_2px_14px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,1)]"
+                    : "bg-[#FAF8F5] text-stone-700 hover:bg-[#EDE8DE] hover:text-stone-900 border-stone-300 dark:bg-[#0c0d12] dark:text-zinc-400 dark:hover:text-white dark:border-white/10 dark:hover:border-white/20"
+                    }`}
                 >
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? "bg-white/25 text-white dark:bg-black/10 dark:text-zinc-950" : "bg-stone-200 text-stone-700 dark:bg-white/10 dark:text-zinc-400"}`}>
                     {step.stepNum}
@@ -244,7 +243,7 @@ export const HowItWorks = () => {
 
           {/* Active Stage Deep-Dive Card */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
+
             {/* Left Column: Stage Details & Specs (Col 1-5) */}
             <div className="lg:col-span-5 space-y-4">
               <Card className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-8 shadow-sm dark:shadow-tactile space-y-6 backdrop-blur-xl">
@@ -306,7 +305,7 @@ export const HowItWorks = () => {
 
             {/* Right Column: Code & Reasoning Log Inspector (Col 6-12) */}
             <div className="lg:col-span-7 space-y-4">
-              
+
               {/* Code Terminal Mock */}
               <Card className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#08090d] text-stone-900 dark:text-zinc-100 rounded-3xl shadow-sm dark:shadow-tactile overflow-hidden font-mono text-xs">
                 <CardHeader className="bg-stone-100/90 border-b border-stone-200 dark:bg-white/[0.02] dark:border-white/[0.08] px-5 py-3.5 flex flex-row items-center justify-between">
@@ -331,7 +330,7 @@ export const HowItWorks = () => {
               <Card className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12] rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-tactile space-y-2.5 font-mono text-xs">
                 <div className="flex items-center gap-2 text-stone-900 dark:text-foreground font-semibold border-b border-stone-200 dark:border-border/60 pb-2">
                   <Terminal className="h-4 w-4 text-[#800000] dark:text-primary" />
-                  <span>Why-I-Did-X Transparency Logs</span>
+                  <span>Audit explanation logs</span>
                 </div>
                 <div className="space-y-1.5">
                   {activeStep.reasoningLogs.map((log, lIdx) => (
@@ -353,10 +352,10 @@ export const HowItWorks = () => {
           <div className="border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12]/95 rounded-3xl p-6 sm:p-10 shadow-sm dark:shadow-tactile space-y-8 backdrop-blur-xl">
             <div className="text-center max-w-2xl mx-auto space-y-1.5">
               <h2 className="text-xl sm:text-2xl font-display font-bold text-stone-900 dark:text-foreground tracking-[-0.015em]">
-                Architectural invariants &amp; safety guarantees
+                Architectural invariants and safety guarantees
               </h2>
               <p className="text-xs sm:text-sm text-stone-600 dark:text-muted-foreground font-sans">
-                Every calculation in GetReport adheres to 4 immutable engineering principles.
+                Every calculation in GetReport adheres to four engineering rules.
               </p>
             </div>
 

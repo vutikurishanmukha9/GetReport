@@ -9,6 +9,7 @@ import { FileSpreadsheet, Search, Download, Calendar, AlertCircle, ArrowRight } 
 import { Link } from "react-router-dom";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
+import { AnimatedNumber } from "@/components/motion/animated-number";
 
 interface AuditHistoryItem {
   task_id: string;
@@ -149,15 +150,21 @@ export const Dashboard = () => {
                     <div className="grid grid-cols-3 gap-2 py-2 border-y border-stone-200 dark:border-white/5 text-center">
                       <div>
                         <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400 uppercase block">Rows</span>
-                        <span className="text-xs font-semibold text-stone-900 dark:text-white">{item.rows ? item.rows.toLocaleString() : "N/A"}</span>
+                        <span className="text-xs font-semibold text-stone-900 dark:text-white tabular-nums">
+                          {item.rows ? <AnimatedNumber value={item.rows} format={(n) => Math.round(n).toLocaleString()} duration={0.8} /> : "N/A"}
+                        </span>
                       </div>
                       <div>
                         <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400 uppercase block">Columns</span>
-                        <span className="text-xs font-semibold text-stone-900 dark:text-white">{item.columns ?? "N/A"}</span>
+                        <span className="text-xs font-semibold text-stone-900 dark:text-white tabular-nums">
+                          {item.columns ? <AnimatedNumber value={item.columns} format={(n) => String(Math.round(n))} duration={0.8} /> : "N/A"}
+                        </span>
                       </div>
                       <div>
                         <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400 uppercase block">Score</span>
-                        <span className="text-xs font-semibold text-stone-900 dark:text-white">{item.score ? `${item.score}%` : "N/A"}</span>
+                        <span className="text-xs font-semibold text-stone-900 dark:text-white tabular-nums">
+                          {item.score ? <AnimatedNumber value={item.score} format={(n) => `${Math.round(n)}%`} duration={0.8} /> : "N/A"}
+                        </span>
                       </div>
                     </div>
 

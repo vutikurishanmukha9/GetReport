@@ -20,72 +20,72 @@ interface FeatureCategory {
 
 const matrixCategories: FeatureCategory[] = [
   {
-    category: "Ingestion & Schema Resolution",
+    category: "Ingestion and schema resolution",
     items: [
-      { name: "Multi-Format Parsing", description: "CSV, XLSX, XLS, Parquet, TSV, JSONL, Feather, Arrow", included: true },
-      { name: "Zero-Copy Polars Engine", description: "Memory-mapped ingestion with automatic delimiter and encoding detection", included: true },
-      { name: "Multi-Dataset Relational Joins", description: "Merge up to 5 datasets on composite primary keys with DAG lineage tracking", included: true },
-      { name: "Zip-Bomb & Memory Exhaustion Guards", description: "Enforces strict decompression bounds and payload memory safety limits", included: true },
+      { name: "Multi-format parsing", description: "CSV, XLSX, XLS, Parquet, TSV, JSONL, Feather, Arrow", included: true },
+      { name: "Zero-copy Polars engine", description: "Memory-mapped ingestion with automatic delimiter and encoding detection", included: true },
+      { name: "Relational dataset joins", description: "Merge up to 5 datasets on primary keys with lineage tracking", included: true },
+      { name: "Decompression limits", description: "Enforces strict bounds against decompression bombs and memory exhaustion", included: true },
     ]
   },
   {
-    category: "Hygiene & Issue Remediation",
+    category: "Data cleaning and remediation",
     items: [
-      { name: "A-F Column Confidence Scores", description: "Evaluates completeness (35%), consistency (25%), validity (25%), stability (15%)", included: true },
-      { name: "Interactive Issue Ledger", description: "9 quality check categories with 1-click human-in-the-loop approvals", included: true },
-      { name: "Automated Data Cleaning", description: "Winsorization capping, type coercion, missing value fill, and duplicate purging", included: true },
-      { name: "ML Readiness Scorecard", description: "Flags extreme class imbalance, constant variables, and target leakage risks", included: true },
+      { name: "Column confidence scores", description: "Evaluates completeness (35%), consistency (25%), validity (25%), and stability (15%)", included: true },
+      { name: "Interactive issue ledger", description: "9 quality check categories with user approvals before applying changes", included: true },
+      { name: "Automated data cleaning", description: "Winsorization capping, type casting, missing value fill, and duplicate removal", included: true },
+      { name: "ML readiness scorecard", description: "Checks class imbalance, constant variables, and target leakage risks", included: true },
     ]
   },
   {
-    category: "Statistical Depth & AI Synthesis",
+    category: "Statistical tests and summary generation",
     items: [
-      { name: "VIF Multicollinearity Detection", description: "Calculates Variance Inflation Factors to eliminate collinear predictors (VIF > 5)", included: true },
-      { name: "Time-Series Conceptual Drift", description: "Detects chronological mean and distribution shifts > 30%", included: true },
-      { name: "Ephemeral RAG AI Companion", description: "Contextual dataset Q&A with grounded statistical citations", included: true },
-      { name: "Deterministic Offline Rule Fallback", description: "Generates analytical insights even when external AI API keys are unset", included: true },
+      { name: "Variance inflation factors", description: "Calculates VIF to detect redundant predictors (VIF > 5.0)", included: true },
+      { name: "Time series drift detection", description: "Identifies mean and distribution shifts greater than 30%", included: true },
+      { name: "Contextual question answering", description: "Answers questions about dataset distributions and summary metrics", included: true },
+      { name: "Deterministic offline rules", description: "Generates analytical findings using local rules when API keys are unset", included: true },
     ]
   },
   {
-    category: "Executive Reporting & Export",
+    category: "Reports and exports",
     items: [
-      { name: "Executive PDF Reports", description: "High-DPI print-ready PDF reports with embedded analytical charts", included: true },
-      { name: "Multi-Format Cleaned Exports", description: "Download remediated data as CSV, Parquet, or standalone HTML", included: true },
-      { name: "Visual Insights Gallery", description: "Correlation heatmaps, distribution plots, and outlier boxplots", included: true },
-      { name: "Cryptographic Audit Receipts", description: "Verifiable transformation logs detailing every executed data operation", included: true },
+      { name: "PDF audit reports", description: "Print-ready PDF reports with embedded charts and statistical summaries", included: true },
+      { name: "Cleaned data exports", description: "Download remediated data as CSV, Parquet, or standalone HTML", included: true },
+      { name: "Visual charts", description: "Correlation heatmaps, distribution plots, and outlier boxplots", included: true },
+      { name: "Audit log", description: "Transformation logs detailing every executed data operation with an SHA-256 hash", included: true },
     ]
   },
   {
-    category: "Security & Privacy",
+    category: "Security and privacy",
     items: [
-      { name: "100% In-Memory Execution", description: "Zero raw records ever written to persistent disk storage", included: true },
-      { name: "Automated 60-Minute Session Purge", description: "All memory buffers and intermediate files wiped automatically", included: true },
-      { name: "Zero Model Training", description: "Uploaded datasets are never used to train public or proprietary LLMs", included: true },
-      { name: "TLS 1.3 & HSTS Enforcement", description: "Modern encryption standards with strict Content Security Policies", included: true },
+      { name: "In-memory processing", description: "Zero raw records written to persistent disk storage", included: true },
+      { name: "Session cleanup", description: "Memory buffers and temporary files cleared after 60 minutes or on workspace reset", included: true },
+      { name: "Zero model training", description: "Uploaded datasets are never used to train language models", included: true },
+      { name: "Encrypted transport", description: "Enforces TLS 1.3 encryption and HTTPS transport security", included: true },
     ]
   }
 ];
 
 const faqs = [
   {
-    question: "Is GetReport truly 100% free with no hidden paywalls?",
-    answer: "Yes. GetReport is 100% free and open source. All capabilities (including multi-dataset relational joins, Issue Ledger approvals, RAG companion chat, and executive PDF reports) are fully unlocked for everyone without any credit card or tier gating."
+    question: "Is GetReport free to use?",
+    answer: "Yes. GetReport is free and open source under the Apache 2.0 license. All features work without an account, credit card, or payment."
   },
   {
-    question: "How does GetReport handle data privacy and confidentiality?",
-    answer: "All processing occurs strictly inside ephemeral server memory using Polars dataframes. Raw records are never written to permanent disk storage, are never used to train AI models, and are automatically purged from RAM within 60 minutes or immediately upon clicking 'Reset Workspace'."
+    question: "How does GetReport protect data privacy?",
+    answer: "GetReport processes datasets in server memory using Polars. It never writes raw records to disk or uses them to train AI models. Buffers clear within 60 minutes or when you reset the workspace."
   },
   {
-    question: "What file formats can I audit?",
-    answer: "GetReport supports CSV (.csv), Excel workbooks (.xls, .xlsx via calamine), Apache Parquet (.parquet), TSV (.tsv), JSON Lines (.jsonl), Feather, and Arrow buffers."
+    question: "What file formats does GetReport support?",
+    answer: "GetReport supports CSV (.csv), Excel workbooks (.xls, .xlsx), Apache Parquet (.parquet), TSV (.tsv), JSON Lines (.jsonl), Feather, and Arrow files."
   },
   {
-    question: "How does the AI Companion work if my dataset contains confidential records?",
-    answer: "Our RAG engine transmits only high-level statistical summaries (such as column mean, standard deviation, anomaly counts, and domain taxonomy) to LLM endpoints. Raw row entries and personally identifiable records (PII) are completely omitted from prompt payloads."
+    question: "How does the assistant work with private datasets?",
+    answer: "GetReport sends only statistical summaries such as column means, standard deviations, and anomaly counts to the language model. Raw rows and personal identifiers are never included in prompts."
   },
   {
-    question: "Can I deploy GetReport on-premise in my own Docker cluster?",
-    answer: "Yes. Because GetReport is open source, you can clone the repository and run the full FastAPI backend and Vite React frontend locally or inside private Kubernetes/Docker infrastructure with zero external telemetry."
+    question: "Can I run GetReport locally or on-premise?",
+    answer: "Yes. GetReport is open source. You can run the FastAPI backend and React frontend locally or inside Docker containers without external telemetry."
   }
 ];
 
@@ -109,7 +109,7 @@ export const Pricing = () => {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl text-center space-y-3 sm:space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-stone-300 bg-stone-100 text-stone-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-300 text-xs font-sans font-medium">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Open Source • Free for Personal & Enterprise Use</span>
+              <span>Open source, free for personal and enterprise use</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-sans font-black text-stone-900 dark:text-white tracking-[-0.03em] leading-[1.12]">
@@ -117,7 +117,7 @@ export const Pricing = () => {
             </h1>
             
             <p className="text-sm sm:text-base text-stone-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed font-sans">
-              No subscriptions, no tiered limitations, and no credit card required. Enterprise-grade data quality scoring, multi-dataset joins, and executive PDF generation for everyone.
+              No subscriptions, tiered limitations, or credit cards. Complete data quality scoring, multi-dataset joins, and PDF reports for everyone.
             </p>
           </div>
         </div>
@@ -141,7 +141,7 @@ export const Pricing = () => {
                   GetReport Open Edition
                 </h2>
                 <p className="text-xs sm:text-sm text-stone-600 dark:text-zinc-400 font-sans">
-                  Instant in-memory dataset audits with zero account creation or setup friction.
+                  Run in-memory dataset audits without creating an account.
                 </p>
               </div>
 
@@ -157,7 +157,7 @@ export const Pricing = () => {
             {/* Core Feature Bullet Grid */}
             <div className="space-y-3">
               <span className="text-xs font-sans uppercase tracking-[0.15em] text-stone-800 dark:text-zinc-300 font-bold block">
-                Everything Unlocked Right Now:
+                Everything included:
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs sm:text-sm font-sans">

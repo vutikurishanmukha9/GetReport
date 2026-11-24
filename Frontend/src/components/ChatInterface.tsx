@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { ThinkingShimmer } from "@/components/agents/loading-states/thinking-shimmer";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -383,9 +384,11 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                         )}
                       </>
                     ) : isStreamingThis ? (
-                      <div className="flex items-center gap-2 text-muted-foreground font-mono text-xs py-0.5">
+                      <div className="flex items-center gap-2.5 text-muted-foreground font-mono text-xs py-0.5">
                         <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
-                        <span className="animate-pulse">Synthesizing response…</span>
+                        <ThinkingShimmer className="text-xs font-mono font-medium text-foreground">
+                          Synthesizing response…
+                        </ThinkingShimmer>
                       </div>
                     ) : (
                       <span className="text-muted-foreground italic text-xs">No response available.</span>

@@ -9,13 +9,13 @@ export const ComparisonSection = () => {
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center space-y-2.5 mb-8 sm:mb-12">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-200/80 border border-stone-300 text-stone-700 dark:bg-white/[0.04] dark:border-white/10 dark:text-zinc-400 text-[11px] font-sans font-semibold uppercase tracking-[0.15em]">
-            <span>Engineering Architecture</span>
+            <span>Architecture comparison</span>
           </div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-sans font-extrabold text-stone-900 dark:text-white tracking-[-0.03em] leading-tight">
-            Traditional Manual Verification vs. GetReport Automated Assurance
+            Manual desktop verification compared to automated pipelines
           </h2>
           <p className="text-xs sm:text-base text-stone-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed font-normal font-sans">
-            Replace vulnerable spreadsheet lookups, silent formula corruption, and untracked cell edits with a cryptographically audited data hygiene pipeline.
+            Replace spreadsheet lookups, silent formula errors, and untracked cell edits with an audited data pipeline.
           </p>
         </div>
 
@@ -31,12 +31,12 @@ export const ComparisonSection = () => {
                     <FileSpreadsheet className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="font-sans font-bold text-base sm:text-lg text-stone-900 dark:text-white tracking-tight">Manual Desktop Inspection</h3>
+                    <h3 className="font-sans font-bold text-base sm:text-lg text-stone-900 dark:text-white tracking-tight">Manual desktop inspection</h3>
                     <p className="text-xs font-sans text-stone-600 dark:text-zinc-400 font-medium">Standard spreadsheet applications</p>
                   </div>
                 </div>
                 <span className="px-2.5 py-1 rounded-full bg-stone-200 border border-stone-300 text-stone-800 dark:bg-zinc-800/80 dark:border-white/10 dark:text-zinc-300 text-[10px] font-sans font-bold uppercase tracking-[0.15em] shrink-0">
-                  Vulnerable
+                  Unverified
                 </span>
               </div>
 
@@ -44,37 +44,37 @@ export const ComparisonSection = () => {
                 <li className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-100/90 border border-stone-300/60 dark:bg-[#121216] dark:border-white/[0.06]">
                   <span className="h-2 w-2 rounded-full bg-zinc-500 shrink-0 mt-1.5" />
                   <div>
-                    <strong className="text-stone-900 dark:text-white block font-medium">Disk Thrashing & Memory Caps:</strong>
-                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Spreadsheet software crashes on datasets exceeding 500k rows, forcing arbitrary sampling or sluggish UI freezes.</span>
+                    <strong className="text-stone-900 dark:text-white block font-medium">Memory caps and crashes.</strong>
+                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Spreadsheets stall on files larger than 500,000 rows, forcing arbitrary sampling.</span>
                   </div>
                 </li>
                 <li className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-100/90 border border-stone-300/60 dark:bg-[#121216] dark:border-white/[0.06]">
                   <span className="h-2 w-2 rounded-full bg-zinc-500 shrink-0 mt-1.5" />
                   <div>
-                    <strong className="text-stone-900 dark:text-white block font-medium">Silent Type Coercion:</strong>
-                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Automated date conversions and stripped leading zeros silently corrupt account IDs, UPC codes, and currency fields.</span>
+                    <strong className="text-stone-900 dark:text-white block font-medium">Silent type changes.</strong>
+                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Automatic date parsing and stripped leading zeros corrupt identifiers and currency values.</span>
                   </div>
                 </li>
                 <li className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-100/90 border border-stone-300/60 dark:bg-[#121216] dark:border-white/[0.06]">
                   <span className="h-2 w-2 rounded-full bg-zinc-500 shrink-0 mt-1.5" />
                   <div>
-                    <strong className="text-stone-900 dark:text-white block font-medium">Untracked Cell Modifications:</strong>
-                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Ad-hoc cell overwrites and manual deletions leave zero lineage, making audit recreation mathematically impossible.</span>
+                    <strong className="text-stone-900 dark:text-white block font-medium">Untracked cell edits.</strong>
+                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Direct cell overwrites leave no audit log, making calculations difficult to verify.</span>
                   </div>
                 </li>
                 <li className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-100/90 border border-stone-300/60 dark:bg-[#121216] dark:border-white/[0.06]">
                   <span className="h-2 w-2 rounded-full bg-zinc-500 shrink-0 mt-1.5" />
                   <div>
-                    <strong className="text-stone-900 dark:text-white block font-medium">Unverified Slide Exports:</strong>
-                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Static chart screenshots in decks lack underlying statistical verification, confidence bounds, or reproducibility.</span>
+                    <strong className="text-stone-900 dark:text-white block font-medium">Unverified presentation charts.</strong>
+                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Static screenshots in slide decks lack data bounds and statistical repeatability.</span>
                   </div>
                 </li>
               </ul>
             </div>
 
             <div className="mt-6 pt-4 border-t border-stone-300/80 dark:border-white/10 text-xs font-sans text-stone-600 dark:text-zinc-400 flex items-center justify-between">
-              <span className="font-medium">Risk: Undetected schema drift & audit failures</span>
-              <span className="text-stone-700 bg-stone-200 border border-stone-300 dark:text-zinc-400 dark:bg-white/[0.04] dark:border-white/10 px-2 py-0.5 rounded text-[10px] font-sans font-semibold uppercase tracking-wider">No Lineage DAG</span>
+              <span className="font-medium">Risk: Undetected schema drift and calculation errors</span>
+              <span className="text-stone-700 bg-stone-200 border border-stone-300 dark:text-zinc-400 dark:bg-white/[0.04] dark:border-white/10 px-2 py-0.5 rounded text-[10px] font-sans font-semibold uppercase tracking-wider">No lineage log</span>
             </div>
           </div>
 
@@ -87,12 +87,12 @@ export const ComparisonSection = () => {
                     <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
-                    <h3 className="font-sans font-bold text-base sm:text-lg text-stone-900 dark:text-white tracking-tight">GetReport Assurance Pipeline</h3>
-                    <p className="text-xs font-sans text-stone-600 dark:text-zinc-400 font-medium">Automated Polars in-memory engine</p>
+                    <h3 className="font-sans font-bold text-base sm:text-lg text-stone-900 dark:text-white tracking-tight">GetReport assurance pipeline</h3>
+                    <p className="text-xs font-sans text-stone-600 dark:text-zinc-400 font-medium">Polars in-memory analytical engine</p>
                   </div>
                 </div>
                 <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-[10px] font-sans font-bold uppercase tracking-[0.15em] shrink-0">
-                  Certified Lineage
+                  Audited lineage
                 </span>
               </div>
 
@@ -100,29 +100,29 @@ export const ComparisonSection = () => {
                 <li className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-100/90 border border-stone-300/60 dark:bg-[#121216] dark:border-white/[0.08]">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <strong className="text-stone-900 dark:text-white block font-medium">Zero-Copy In-Memory Polars Core:</strong>
-                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Processes millions of rows in milliseconds with strict Arrow type safety and zero persistent disk retention.</span>
+                    <strong className="text-stone-900 dark:text-white block font-medium">Zero-copy Polars engine.</strong>
+                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Processes rows in memory using Apache Arrow data types without writing files to disk.</span>
                   </div>
                 </li>
                 <li className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-100/90 border border-stone-300/60 dark:bg-[#121216] dark:border-white/[0.08]">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <strong className="text-stone-900 dark:text-white block font-medium">Multivariate Anomaly & VIF Analysis:</strong>
-                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Automatically flags multicollinearity (VIF &gt; 5.0), skewness, and partial duplicates before data reaches stakeholders.</span>
+                    <strong className="text-stone-900 dark:text-white block font-medium">Multivariate anomaly and VIF checks.</strong>
+                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Detects multicollinearity with variance inflation factors above 5.0, skewness, and duplicates.</span>
                   </div>
                 </li>
                 <li className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-100/90 border border-stone-300/60 dark:bg-[#121216] dark:border-white/[0.08]">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <strong className="text-stone-900 dark:text-white block font-medium">Human-in-the-Loop Issue Ledger:</strong>
-                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Review, approve, or reject every proposed transformation in an immutable Directed Acyclic Graph (DAG).</span>
+                    <strong className="text-stone-900 dark:text-white block font-medium">Audited issue ledger.</strong>
+                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Review, approve, or reject each proposed transformation in an explicit directed graph.</span>
                   </div>
                 </li>
                 <li className="flex items-start gap-3 p-3.5 rounded-xl bg-stone-100/90 border border-stone-300/60 dark:bg-[#121216] dark:border-white/[0.08]">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <strong className="text-stone-900 dark:text-white block font-medium">Board-Ready WeasyPrint PDF & Parquet:</strong>
-                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Export clean tabular datasets alongside publication-quality PDF audit reports containing full statistical certificates.</span>
+                    <strong className="text-stone-900 dark:text-white block font-medium">Clean exports and PDF reports.</strong>
+                    <span className="text-stone-600 dark:text-zinc-400 text-xs">Export remediated tables alongside structured PDF audit summaries with verification hashes.</span>
                   </div>
                 </li>
               </ul>

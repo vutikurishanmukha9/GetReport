@@ -60,13 +60,29 @@ if settings.DATABASE_URL and any("localhost" in o for o in _cors_origins):
         "Set CORS_ORIGINS env var to restrict origins in production."
     )
 
-# Security: warn if default static SECRET_KEY is active in production
-if settings.DATABASE_URL or settings.API_KEY:
-    if settings.SECRET_KEY == "getreport-vault-secret-key-32b":
-        _logging.getLogger("security").critical(
-            "CRITICAL SECURITY WARNING: SECRET_KEY is using the default hardcoded repository secret while API_KEY/DATABASE_URL is active. "
-            "Set a cryptographically random SECRET_KEY environment variable for production deployments."
-        )
+CORS_ORIGIN_REGEX = r"^https://getreport\.onrender\.com$|^https://get-report.*\.vercel\.app$"
+
+def validate_production_secrets() -> None:
+    """Security (SEC-03): enforce random SECRET_KEY in production deployments."""
+    _is_prod = getattr(settings, "ENVIRONMENT", "").lower() == "production" or settings.REQUIRE_AUTH
+    if _is_prod:
+        if not settings.SECRET_KEY or settings.SECRET_KEY in ("getreport-vault-secret-key-32b", "replace-with-a-different-long-random-value"):
+            raise RuntimeError(
+                "PRODUCTION BOOT REFUSED: A secure, cryptographically random SECRET_KEY must be configured in environment variables."
+            )
+        if settings.SUPERSET_ENABLED and settings.SUPERSET_GUEST_TOKEN_SECRET in ("getreport-superset-secret-key-change-in-prod-2026", ""):
+            raise RuntimeError(
+                "PRODUCTION BOOT REFUSED: SUPERSET_GUEST_TOKEN_SECRET must be configured with a strong non-default secret when Superset integration is enabled."
+            )
+    elif settings.DATABASE_URL or settings.API_KEY:
+        if settings.SECRET_KEY == "getreport-vault-secret-key-32b":
+            _logging.getLogger("security").critical(
+                "CRITICAL SECURITY WARNING: SECRET_KEY is using the default hardcoded repository secret while API_KEY/DATABASE_URL is active. "
+                "Set a cryptographically random SECRET_KEY environment variable for production deployments."
+            )
+
+# Run validation on import / startup
+validate_production_secrets()
 
 # Ensure Vercel production and preview domains are permitted
 if "https://get-report.vercel.app" not in _cors_origins and "*" not in _cors_origins:
@@ -80,7 +96,12 @@ _allow_all = "*" in _cors_origins
 def _cors_rate_limit_handler(request, exc):
     response = _rate_limit_exceeded_handler(request, exc)
     origin = request.headers.get("origin")
-    if origin and (_allow_all or origin in _cors_origins or "vercel.app" in origin or "onrender.com" in origin):
+    if origin and (
+        _allow_all
+        or origin in _cors_origins
+        or origin == "https://getreport.onrender.com"
+        or (origin.startswith("https://get-report") and origin.endswith(".vercel.app"))
+    ):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "*"
@@ -93,8 +114,8 @@ app.add_exception_handler(RateLimitExceeded, _cors_rate_limit_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if _allow_all else _cors_origins,
-    # §3: Scoped to project owner's Vercel preview deploys only (not arbitrary forks)
-    allow_origin_regex=None if _allow_all else r"https://.*\.onrender\.com|https://get-report.*\.vercel\.app",
+    # §3: Scoped to project owner's official Render domain and GetReport Vercel deploys only
+    allow_origin_regex=None if _allow_all else CORS_ORIGIN_REGEX,
     allow_credentials=not _allow_all,
     allow_methods=["*"],
     allow_headers=["*"],

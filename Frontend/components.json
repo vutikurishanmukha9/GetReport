@@ -18,6 +18,7 @@
     "hooks": "@/hooks"
   },
   "registries": {
-    "@pdfcn": "https://pdfcn.dev/r/{name}.json"
+    "@pdfcn": "https://pdfcn.dev/r/{name}.json",
+    "@beui": "https://beui.dev/r/{name}.json"
   }
 }

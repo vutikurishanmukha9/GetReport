@@ -26,6 +26,7 @@ import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { MLReadinessCard } from "./MLReadinessCard";
+import { AnimatedNumber } from "@/components/motion/animated-number";
 import { HiPlotParallelCoordinates, type HiPlotPayload, type HiPlotDimension } from "./HiPlotParallelCoordinates";
 import { SupersetExploreStudio } from "./SupersetExploreStudio";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -66,7 +67,7 @@ interface ReportGenerationProps {
 const getGradeColorClass = (g: string) => {
   switch ((g || '').toUpperCase()) {
     case 'A': return 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500/30';
-    case 'B': return 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30 dark:bg-zinc-800/60 dark:text-emerald-400 dark:border-white/15';
+    case 'B': return 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500/30';
     case 'C': return 'bg-amber-500/15 text-amber-800 border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-500/30';
     case 'D': return 'bg-orange-500/15 text-orange-800 border-orange-500/30 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-500/30';
     case 'F': return 'bg-rose-500/15 text-rose-800 border-rose-500/30 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-500/30';
@@ -79,38 +80,38 @@ const getSealGradeConfig = (grade: string) => {
   switch (g) {
     case "A":
       return {
-        container: "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-400",
-        label: "text-emerald-800/80 dark:text-emerald-400/80",
-        grade: "text-emerald-800 dark:text-emerald-400",
-        score: "text-emerald-700 dark:text-emerald-300/90",
+        container: "bg-emerald-50 border-emerald-300/80 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-400",
+        label: "text-emerald-800 dark:text-emerald-400/80",
+        grade: "text-emerald-900 dark:text-emerald-400",
+        score: "text-emerald-800 dark:text-emerald-300/90",
       };
     case "B":
       return {
-        container: "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:bg-zinc-800/60 dark:border-white/15 dark:text-emerald-400",
-        label: "text-emerald-800/80 dark:text-emerald-400/80",
-        grade: "text-emerald-800 dark:text-emerald-400",
-        score: "text-emerald-700 dark:text-emerald-300/90",
+        container: "bg-emerald-50 border-emerald-300/80 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-400",
+        label: "text-emerald-800 dark:text-emerald-400/80",
+        grade: "text-emerald-900 dark:text-emerald-400",
+        score: "text-emerald-800 dark:text-emerald-300/90",
       };
     case "C":
       return {
-        container: "bg-amber-500/10 border-amber-500/30 text-amber-800 dark:bg-amber-950/40 dark:border-amber-500/30 dark:text-amber-400",
-        label: "text-amber-800/80 dark:text-amber-400/80",
-        grade: "text-amber-800 dark:text-amber-400",
-        score: "text-amber-700 dark:text-amber-300/90",
+        container: "bg-amber-50 border-amber-300/80 text-amber-900 dark:bg-amber-950/40 dark:border-amber-500/30 dark:text-amber-400",
+        label: "text-amber-800 dark:text-amber-400/80",
+        grade: "text-amber-900 dark:text-amber-400",
+        score: "text-amber-800 dark:text-amber-300/90",
       };
     case "D":
       return {
-        container: "bg-orange-500/10 border-orange-500/30 text-orange-800 dark:bg-orange-950/40 dark:border-orange-500/30 dark:text-orange-400",
-        label: "text-orange-800/80 dark:text-orange-400/80",
-        grade: "text-orange-800 dark:text-orange-400",
-        score: "text-orange-700 dark:text-orange-300/90",
+        container: "bg-orange-50 border-orange-300/80 text-orange-900 dark:bg-orange-950/40 dark:border-orange-500/30 dark:text-orange-400",
+        label: "text-orange-800 dark:text-orange-400/80",
+        grade: "text-orange-900 dark:text-orange-400",
+        score: "text-orange-800 dark:text-orange-300/90",
       };
     case "F":
       return {
-        container: "bg-rose-500/10 border-rose-500/30 text-rose-800 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-400",
-        label: "text-rose-800/80 dark:text-rose-400/80",
-        grade: "text-rose-800 dark:text-rose-400",
-        score: "text-rose-700 dark:text-rose-300/90",
+        container: "bg-rose-50 border-rose-300/80 text-rose-900 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-400",
+        label: "text-rose-800 dark:text-rose-400/80",
+        grade: "text-rose-900 dark:text-rose-400",
+        score: "text-rose-800 dark:text-rose-300/90",
       };
     default:
       return {
@@ -677,7 +678,9 @@ export const ReportGeneration = ({
                 <div className={`flex flex-col items-center justify-center h-20 w-20 sm:h-24 sm:w-24 rounded-2xl ${seal.container} border shadow-sm shrink-0 transition-colors`}>
                   <span className={`text-[9px] font-sans font-bold tracking-[0.2em] uppercase leading-none mb-1 ${seal.label}`}>GRADE</span>
                   <span className={`text-3xl sm:text-4xl font-sans font-black leading-none tracking-tight ${seal.grade}`}>{datasetGrade}</span>
-                  <span className={`text-[11px] font-sans font-bold mt-1 tabular-nums ${seal.score}`}>{datasetConfidence.toFixed(1)}%</span>
+                  <span className={`text-[11px] font-sans font-bold mt-1 tabular-nums ${seal.score}`}>
+                    <AnimatedNumber value={datasetConfidence} format={(n) => n.toFixed(1) + "%"} duration={0.8} />
+                  </span>
                 </div>
               );
             })()}
@@ -705,20 +708,20 @@ export const ReportGeneration = ({
                 )}
               </div>
               <div className="flex items-center gap-2 text-xs sm:text-[13px] text-muted-foreground font-sans font-medium flex-wrap">
-                <span><span className="font-semibold text-stone-900 dark:text-zinc-200 tabular-nums">{info.rows.toLocaleString()}</span> rows</span>
+                <span><span className="font-semibold text-stone-900 dark:text-zinc-200 tabular-nums"><AnimatedNumber value={info.rows} format={(n) => Math.round(n).toLocaleString()} duration={0.8} /></span> rows</span>
                 <span className="text-stone-400 dark:text-white/20">•</span>
-                <span><span className="font-semibold text-stone-900 dark:text-zinc-200 tabular-nums">{info.columns.length}</span> columns</span>
+                <span><span className="font-semibold text-stone-900 dark:text-zinc-200 tabular-nums"><AnimatedNumber value={info.columns.length} format={(n) => String(Math.round(n))} duration={0.8} /></span> columns</span>
                 <span className="text-stone-400 dark:text-white/20">•</span>
-                <span><span className="font-semibold text-stone-900 dark:text-zinc-200 tabular-nums">{(info.memory_usage_mb || 0).toFixed(2)} MB</span> in-memory</span>
+                <span><span className="font-semibold text-stone-900 dark:text-zinc-200 tabular-nums"><AnimatedNumber value={info.memory_usage_mb || 0} format={(n) => n.toFixed(2) + " MB"} duration={0.8} /></span> in-memory</span>
               </div>
               <div className="text-xs font-sans text-muted-foreground/85 flex items-center gap-2.5 pt-0.5 flex-wrap">
                 <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
-                  <span className="font-semibold tabular-nums">{confidence.high_confidence_count}</span> High Confidence Columns
+                  <span className="font-semibold tabular-nums"><AnimatedNumber value={confidence.high_confidence_count} format={(n) => String(Math.round(n))} duration={0.8} /></span> High Confidence Columns
                 </span>
                 <span className="text-stone-400 dark:text-white/20">•</span>
                 <span className="inline-flex items-center gap-1.5 font-medium text-stone-600 dark:text-zinc-400">
-                  <span className="font-semibold tabular-nums text-stone-900 dark:text-zinc-300">{confidence.low_confidence_count}</span> Need Attention
+                  <span className="font-semibold tabular-nums text-stone-900 dark:text-zinc-300"><AnimatedNumber value={confidence.low_confidence_count} format={(n) => String(Math.round(n))} duration={0.8} /></span> Need Attention
                 </span>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { Copy, Check } from "lucide-react";
+import { AnimatedNumber } from "@/components/motion/animated-number";
 
 export interface ExploreTelemetryDeckProps {
   queryResult: {
@@ -169,7 +170,7 @@ export const ExploreTelemetryDeck: React.FC<ExploreTelemetryDeckProps> = ({
 
           <div className="mt-3">
             <div className="text-2xl sm:text-[28px] leading-tight font-bold tracking-tight text-stone-900 dark:text-zinc-100">
-              {formatSmartCompact(kpis.total_rows)}
+              <AnimatedNumber value={kpis.total_rows} format={(n) => formatSmartCompact(n)} duration={0.8} />
             </div>
           </div>
         </div>
@@ -219,7 +220,11 @@ export const ExploreTelemetryDeck: React.FC<ExploreTelemetryDeckProps> = ({
 
           <div className="mt-3">
             <div className="text-2xl sm:text-[28px] leading-tight font-bold tracking-tight text-stone-900 dark:text-zinc-100">
-              {metricStr}
+              {typeof metricDisplayVal === "number" && isFinite(metricDisplayVal) ? (
+                <AnimatedNumber value={metricDisplayVal} format={(n) => formatSmartCompact(n)} duration={0.8} />
+              ) : (
+                metricStr
+              )}
             </div>
           </div>
         </div>
@@ -322,7 +327,7 @@ export const ExploreTelemetryDeck: React.FC<ExploreTelemetryDeckProps> = ({
 
           <div className="mt-3">
             <div className="text-2xl sm:text-[28px] leading-tight font-bold tracking-tight text-stone-900 dark:text-zinc-100">
-              {formatSmartCompact(queryResult.total_groups)}
+              <AnimatedNumber value={queryResult.total_groups} format={(n) => formatSmartCompact(n)} duration={0.8} />
             </div>
           </div>
         </div>

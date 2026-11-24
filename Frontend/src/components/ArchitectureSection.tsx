@@ -4,40 +4,40 @@ export const ArchitectureSection = () => {
   const stages = [
     {
       step: "01",
-      title: "Upload Your File",
-      engine: "Excel, CSV, or data files",
-      description: "Drag and drop your spreadsheet of any size. GetReport instantly scans your columns, verifies formats, and prepares your audit in seconds.",
-      badge: "Under 2 Seconds",
+      title: "Upload your file",
+      engine: "Excel, CSV, or Parquet",
+      description: "Upload tabular files directly in the browser. GetReport parses column schemas, validates encodings, and prepares profiling in memory.",
+      badge: "Sub-50ms ingestion",
       accentBg: "bg-stone-200 border border-stone-300 text-stone-800 dark:bg-white/[0.04] dark:border-white/10 dark:text-zinc-300",
       badgeColor: "bg-stone-200 border border-stone-300 text-stone-800 dark:bg-white/[0.04] dark:text-zinc-300 dark:border-white/10",
       icon: Cpu,
     },
     {
       step: "02",
-      title: "Spot Errors & Outliers",
-      engine: "Automated quality check",
-      description: "Automatically detects blank cells, duplicate rows, broken formats, and unusual numbers that could distort your metrics.",
-      badge: "Instant Quality Score",
+      title: "Inspect errors and anomalies",
+      engine: "Automated quality checks",
+      description: "Detects missing cells, duplicate rows, invalid formats, and statistical outliers across each column.",
+      badge: "Confidence scoring",
       accentBg: "bg-amber-100 border border-amber-300 text-amber-900 dark:bg-amber-500/10 dark:border-amber-500/25 dark:text-amber-400",
       badgeColor: "bg-amber-100 border border-amber-300 text-amber-900 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/25",
       icon: Layers,
     },
     {
       step: "03",
-      title: "Approve Fixes With 1 Click",
-      engine: "You stay in complete control",
-      description: "Review suggested fixes in an easy list. Accept recommended corrections or keep your original values. Nothing changes without your confirmation.",
-      badge: "100% Transparent",
+      title: "Review and approve fixes",
+      engine: "Directed acyclic graph",
+      description: "Inspect suggested transformations in the issue ledger. Accept recommended fixes or keep original values.",
+      badge: "Audit log",
       accentBg: "bg-purple-100 border border-purple-300 text-purple-900 dark:bg-purple-500/10 dark:border-purple-500/25 dark:text-purple-400",
       badgeColor: "bg-purple-100 border border-purple-300 text-purple-900 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/25",
       icon: Terminal,
     },
     {
       step: "04",
-      title: "Download & Present",
-      engine: "Clean Excel & PDF summaries",
-      description: "Export clean spreadsheets for your team, alongside beautifully formatted executive PDF reports ready for clients and leadership.",
-      badge: "Boardroom Ready",
+      title: "Export and report",
+      engine: "Clean datasets and PDF summaries",
+      description: "Download cleaned data as CSV or Parquet alongside publication-ready PDF reports with statistical certificates.",
+      badge: "Ready for review",
       accentBg: "bg-emerald-100 border border-emerald-300 text-emerald-900 dark:bg-emerald-500/10 dark:border-emerald-500/25 dark:text-emerald-400",
       badgeColor: "bg-emerald-100 border border-emerald-300 text-emerald-900 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/25",
       icon: ShieldCheck,
@@ -51,13 +51,13 @@ export const ArchitectureSection = () => {
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center space-y-2.5 mb-6 sm:mb-8">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-200/80 border border-stone-300 text-stone-700 dark:bg-white/[0.05] dark:border-white/10 dark:text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
-            <span>Simple 4-Step Process</span>
+            <span>Four-step process</span>
           </div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-stone-900 dark:text-white tracking-[-0.02em] leading-tight">
-            From messy spreadsheet to board-ready report in 4 steps
+            From raw spreadsheet to verified audit report
           </h2>
           <p className="text-xs sm:text-base text-stone-600 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed font-sans font-normal">
-            No coding, complex setups, or data science required. Upload your file, review clear recommendations, and export polished results in seconds.
+            Upload your dataset, review data quality recommendations, and export verified results.
           </p>
         </div>
 

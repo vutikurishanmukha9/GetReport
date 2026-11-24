@@ -17,7 +17,7 @@ import { BackgroundGrid } from "@/components/BackgroundGrid";
 // Module scope pure function for Confidence Grade calculation
 const getConfidenceGrade = (score: number) => {
   if (score >= 90) return { grade: "A", label: "Production Ready", color: "bg-emerald-50 text-emerald-950 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30" };
-  if (score >= 80) return { grade: "B", label: "Minor Issues", color: "bg-blue-50 text-blue-950 border-blue-300 dark:bg-white/10 dark:text-zinc-300 dark:border-white/20" };
+  if (score >= 80) return { grade: "B", label: "Minor Issues", color: "bg-emerald-50 text-emerald-950 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30" };
   if (score >= 70) return { grade: "C", label: "Needs Remediation", color: "bg-amber-50 text-amber-950 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30" };
   if (score >= 60) return { grade: "D", label: "High Risk", color: "bg-orange-50 text-orange-950 border-orange-300 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/30" };
   return { grade: "F", label: "Critical Anomalies", color: "bg-rose-50 text-rose-950 border-rose-300 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/30" };

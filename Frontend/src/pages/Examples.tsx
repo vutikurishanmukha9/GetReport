@@ -238,7 +238,7 @@ export const Examples = () => {
                       {/* Grade Badge */}
                       <div className="self-start sm:self-auto sm:text-right shrink-0">
                         <Badge className={`font-mono font-bold text-xs px-2.5 py-0.5 rounded-lg ${
-                          item.grade === "A" ? "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30" : "bg-stone-200 text-stone-800 border-stone-300 dark:bg-white/5 dark:text-zinc-300 dark:border-white/10"
+                          ["A", "B"].includes(item.grade) ? "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30" : "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30"
                         }`}>
                           Grade {item.grade} • {item.gradeScore}%
                         </Badge>

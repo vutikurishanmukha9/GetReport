@@ -15,9 +15,15 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from app.core.auth import verify_api_key
+from app.core.auth import (
+    verify_api_key,
+    validate_task_id,
+    check_task_ownership,
+    get_authenticated_owner_id,
+)
 from app.core.config import settings
 from app.core.limiter import limiter
+from app.services.task_manager import title_task_manager
 from app.services.superset_service import superset_service
 from app.services.superset_engine import superset_engine, SupersetExploreQuery
 
@@ -25,6 +31,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 ANALYTICS_QUERY_LIMIT = "60/minute"
+
+
+async def _get_authorized_analytics_job(request: Request, task_id: str) -> Any:
+    """Helper: Validate task UUID syntax and verify tenant ownership for analytics endpoints."""
+    validate_task_id(task_id)
+    job = await title_task_manager.get_job_async(task_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Dataset task not found")
+    caller_owner_id = get_authenticated_owner_id(request)
+    check_task_ownership(job.owner_id, caller_owner_id)
+    return job
 
 
 class GuestTokenRequest(BaseModel):
@@ -105,6 +122,7 @@ async def sync_uploaded_dataset(
     Synchronize an uploaded and audited GetReport dataset into Apache Superset.
     Exports the cleaned dataset to the analytical database and registers the table.
     """
+    await _get_authorized_analytics_job(request, task_id)
     res = await superset_service.sync_dataset_to_superset(task_id=task_id)
     if res.get("status") == "error":
         raise HTTPException(status_code=500, detail=res.get("message", "Sync failed"))
@@ -137,6 +155,8 @@ async def generate_guest_token(
     If Superset is offline, returns an informative status payload rather than raising an uncaught exception.
     """
     req_payload = payload or GuestTokenRequest()
+    if req_payload.task_id:
+        await _get_authorized_analytics_job(request, req_payload.task_id)
     user_info = {
         "username": req_payload.username or "getreport_user",
         "first_name": "GetReport",
@@ -197,16 +217,25 @@ async def list_recent_datasets(
 ):
     """
     Returns recent audited datasets from GetReport jobs for interactive BI exploration.
+    Restricts results to the authenticated tenant owner (VULN-IDOR mitigation).
     """
     from app.db import get_db_connection
     from app.services.task_manager import title_task_manager
 
+    caller_owner_id = get_authenticated_owner_id(request)
+
     try:
         with get_db_connection() as conn:
-            rows = conn.execute(
-                "SELECT task_id, filename, created_at FROM jobs WHERE status = ? ORDER BY created_at DESC LIMIT ?",
-                ("completed", limit)
-            ).fetchall()
+            if caller_owner_id:
+                rows = conn.execute(
+                    "SELECT task_id, filename, created_at FROM jobs WHERE status = ? AND owner_id = ? ORDER BY created_at DESC LIMIT ?",
+                    ("completed", caller_owner_id, limit)
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT task_id, filename, created_at FROM jobs WHERE status = ? ORDER BY created_at DESC LIMIT ?",
+                    ("completed", limit)
+                ).fetchall()
     except Exception as e:
         logger.warning(f"Unable to query jobs table in list_recent_datasets: {e}")
         return {"datasets": []}
@@ -258,6 +287,7 @@ async def aggregate_dataset_metrics(
     """
     Computes high-speed grouped aggregations over the cleaned dataset for interactive BI charts.
     """
+    await _get_authorized_analytics_job(request, task_id)
     try:
         res = superset_service.compute_aggregation(
             task_id=task_id,
@@ -286,6 +316,7 @@ async def get_superset_dataset_schema(
     """
     Introspects the uploaded dataset using Apache Superset's column and data type classification.
     """
+    await _get_authorized_analytics_job(request, task_id)
     try:
         schema = superset_engine.introspect_dataset(task_id)
         return schema
@@ -307,6 +338,9 @@ async def execute_superset_explore_query(
     Executes a Superset Explore analytical query on the uploaded dataset
     with optional filters and temporal bucketing, returning ECharts visualization options and KPIs.
     """
+    if not getattr(query, "task_id", None):
+        raise HTTPException(status_code=400, detail="Missing required task_id in explore query.")
+    await _get_authorized_analytics_job(request, query.task_id)
     try:
         result = superset_engine.execute_explore_query(query)
         return result
