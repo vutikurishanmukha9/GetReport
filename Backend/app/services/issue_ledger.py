@@ -231,7 +231,7 @@ def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
             elif head_ratio > 0.5 and head_ratio > tail_ratio * 2:
                 pattern = "concentrated at head (MAR - Missing At Random by time segment)"
                 mechanism = "MAR"
-            elif "income_declared" in col.lower() or col.lower() in ("income", "ssn"):
+            elif "income" in col.lower() or "ssn" in col.lower():
                 pattern = "sensitive field self-reporting bias (MNAR - Missing Not At Random, preserve indicator)"
                 mechanism = "MNAR"
             elif "salary" in col.lower():
@@ -243,10 +243,10 @@ def _detect_missing_value_issues(df: pl.DataFrame) -> list[Issue]:
         # ── Fix suggestion based on dtype, cardinality & mechanism ──
         dtype = df[col].dtype
         col_l = col.lower()
-        if null_pct >= 50.0 or any(p in col_l for p in ("column_44", "api_key", "credit_card", "card", "token")):
+        if any(p in col_l for p in ("column_44", "api_key", "credit_card", "token")) or (null_pct >= 50.0 and mechanism != "MNAR"):
             fix_code = f"df = df.drop({repr(col)})"
             suggested_fix = "Drop column (exceeds 50% missingness threshold or sensitive secret)"
-        elif any(p in col_l for p in ("ssn", "credit_card", "card", "pan", "api_key")):
+        elif any(p in col_l for p in ("ssn", "credit_card", "pan", "api_key")):
             fix_code = f"# Retain nulls for sensitive identifier field '{col}'"
             suggested_fix = "Preserve nulls (sensitive identity field - do not impute)"
         elif "zip" in col_l or "postal" in col_l:

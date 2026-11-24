@@ -213,7 +213,7 @@ def compute_correlation(df: pl.DataFrame, numeric_cols: list[str]):
 
                 val = 0.0
                 spearman_val = 0.0
-                if mask.sum() >= 10:
+                if mask.sum() >= 4:
                     x = arr_a[mask]
                     y = arr_b[mask]
                     with np.errstate(all="ignore"):
@@ -236,16 +236,17 @@ def compute_correlation(df: pl.DataFrame, numeric_cols: list[str]):
                 corr_dict[col_a][col_b] = round(val, 4)
                 corr_dict[col_b][col_a] = round(val, 4)
 
-                # Pearson threshold filter for strong correlations
-                if abs(val) >= CORRELATION_STRONG_THRESHOLD:
-                    is_collinear = abs(val) >= 0.90
+                # Pearson or Spearman threshold filter for strong correlations
+                eff_corr = max(abs(val), abs(spearman_val))
+                if eff_corr >= CORRELATION_STRONG_THRESHOLD:
+                    is_collinear = eff_corr >= 0.90
                     strong_pairs.append({
                         "column_a": col_a,
                         "column_b": col_b,
                         "r_value": round(val, 4),
                         "spearman_rho": round(spearman_val, 4),
-                        "direction": "positive" if val > 0 else "negative",
-                        "strength": "very strong" if abs(val) >= 0.9 else "strong",
+                        "direction": "positive" if (val > 0 or (val == 0.0 and spearman_val > 0)) else "negative",
+                        "strength": "very strong" if eff_corr >= 0.9 else "strong",
                         "is_multicollinear": is_collinear,
                     })
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import re
 import time
@@ -463,7 +464,7 @@ def _sanitize_and_coerce_df(df: pl.DataFrame) -> pl.DataFrame:
     df = df.with_columns(exprs)
 
     # Filter out rows where all cells are null (all-null-token rows + blank rows)
-    if df.height > 0 and df.width > 0:
+    if df.height > 0 and df.width > 1:
         not_all_null_mask = pl.any_horizontal([pl.col(c).is_not_null() for c in df.columns])
         df = df.filter(not_all_null_mask)
 

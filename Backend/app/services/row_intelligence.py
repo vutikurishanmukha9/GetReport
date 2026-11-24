@@ -532,7 +532,7 @@ def triage_rows(df: pl.DataFrame, config: RowTriageConfig | None = None) -> RowT
 
     # blank matrix, one bool array per column
     blanks: dict[str, np.ndarray] = {
-        c: data.select(_blank_expr(c, data[c].dtype, cfg.placeholders)).to_series().to_numpy().astype(bool) for c in cols
+        c: data.select(_blank_expr(c, data[c].dtype, cfg.placeholders if len(cols) >= 3 else None)).to_series().to_numpy().astype(bool) for c in cols
     }
     filled = np.zeros(n, dtype=np.int32)
     for c in cols:

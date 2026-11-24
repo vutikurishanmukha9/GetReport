@@ -485,6 +485,7 @@ def discover_symbolic_equations(df: pl.DataFrame, numeric_cols: list[str] | None
     # Pre-extract numpy arrays once to avoid tens of thousands of duplicate allocations in the loop
     col_arrays = {c: clean_df[c].to_numpy() for c in eval_cols}
     equations = []
+    min_points = min(20, clean_df.height)
     
     old_err = np.seterr(all="ignore")
     try:
@@ -500,7 +501,7 @@ def discover_symbolic_equations(df: pl.DataFrame, numeric_cols: list[str] | None
                     # Formula 1: C = A + B
                     sum_diff = np.abs((a_vals + b_vals) - target_series)
                     valid_mask = np.isfinite(sum_diff)
-                    if valid_mask.sum() > 20 and (sum_diff[valid_mask] < 0.05).mean() >= 0.95:
+                    if valid_mask.sum() >= min_points and (sum_diff[valid_mask] < 0.05).mean() >= 0.95:
                         equations.append({
                             "target_column": target_col,
                             "formula": f"{target_col} = {col_a} + {col_b}",
@@ -511,71 +512,71 @@ def discover_symbolic_equations(df: pl.DataFrame, numeric_cols: list[str] | None
                         continue
                     
                     # Formula 2: C = A - B
-                sub_diff_1 = np.abs((a_vals - b_vals) - target_series)
-                v1 = np.isfinite(sub_diff_1)
-                if v1.sum() > 20 and (sub_diff_1[v1] < 0.05).mean() >= 0.95:
-                    equations.append({
-                        "target_column": target_col,
-                        "formula": f"{target_col} = {col_a} - {col_b}",
-                        "equation_type": "subtraction",
-                        "variables": [col_a, col_b],
-                        "confidence": round(float((sub_diff_1[v1] < 0.05).mean()), 3)
-                    })
-                    continue
+                    sub_diff_1 = np.abs((a_vals - b_vals) - target_series)
+                    v1 = np.isfinite(sub_diff_1)
+                    if v1.sum() >= min_points and (sub_diff_1[v1] < 0.05).mean() >= 0.95:
+                        equations.append({
+                            "target_column": target_col,
+                            "formula": f"{target_col} = {col_a} - {col_b}",
+                            "equation_type": "subtraction",
+                            "variables": [col_a, col_b],
+                            "confidence": round(float((sub_diff_1[v1] < 0.05).mean()), 3)
+                        })
+                        continue
                     
-                # Formula 3: C = B - A
-                sub_diff_2 = np.abs((b_vals - a_vals) - target_series)
-                v2 = np.isfinite(sub_diff_2)
-                if v2.sum() > 20 and (sub_diff_2[v2] < 0.05).mean() >= 0.95:
-                    equations.append({
-                        "target_column": target_col,
-                        "formula": f"{target_col} = {col_b} - {col_a}",
-                        "equation_type": "subtraction",
-                        "variables": [col_b, col_a],
-                        "confidence": round(float((sub_diff_2[v2] < 0.05).mean()), 3)
-                    })
-                    continue
+                    # Formula 3: C = B - A
+                    sub_diff_2 = np.abs((b_vals - a_vals) - target_series)
+                    v2 = np.isfinite(sub_diff_2)
+                    if v2.sum() >= min_points and (sub_diff_2[v2] < 0.05).mean() >= 0.95:
+                        equations.append({
+                            "target_column": target_col,
+                            "formula": f"{target_col} = {col_b} - {col_a}",
+                            "equation_type": "subtraction",
+                            "variables": [col_b, col_a],
+                            "confidence": round(float((sub_diff_2[v2] < 0.05).mean()), 3)
+                        })
+                        continue
                     
-                # Formula 4: C = A * B
-                prod_diff = np.abs((a_vals * b_vals) - target_series)
-                vp = np.isfinite(prod_diff)
-                if vp.sum() > 20 and (prod_diff[vp] < 0.05).mean() >= 0.95:
-                    equations.append({
-                        "target_column": target_col,
-                        "formula": f"{target_col} = {col_a} * {col_b}",
-                        "equation_type": "multiplication",
-                        "variables": [col_a, col_b],
-                        "confidence": round(float((prod_diff[vp] < 0.05).mean()), 3)
-                    })
-                    continue
+                    # Formula 4: C = A * B
+                    prod_diff = np.abs((a_vals * b_vals) - target_series)
+                    vp = np.isfinite(prod_diff)
+                    if vp.sum() >= min_points and (prod_diff[vp] < 0.05).mean() >= 0.95:
+                        equations.append({
+                            "target_column": target_col,
+                            "formula": f"{target_col} = {col_a} * {col_b}",
+                            "equation_type": "multiplication",
+                            "variables": [col_a, col_b],
+                            "confidence": round(float((prod_diff[vp] < 0.05).mean()), 3)
+                        })
+                        continue
                     
-                # Formula 5: C = A / B (where B != 0 and finite)
-                if (np.abs(b_vals) > 1e-6).all():
-                    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
-                        div_diff = np.abs((a_vals / b_vals) - target_series)
-                        if np.isfinite(div_diff).all() and np.max(div_diff) < 1e-4:
-                            equations.append({
-                                "target_column": target_col,
-                                "formula": f"{target_col} = {col_a} / {col_b}",
-                                "equation_type": "division_ratio",
-                                "variables": [col_a, col_b],
-                                "confidence": 1.0
-                            })
-                            continue
+                    # Formula 5: C = A / B (where B != 0 and finite)
+                    if (np.abs(b_vals) > 1e-6).all():
+                        with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+                            div_diff = np.abs((a_vals / b_vals) - target_series)
+                            if np.isfinite(div_diff).all() and np.max(div_diff) < 1e-4:
+                                equations.append({
+                                    "target_column": target_col,
+                                    "formula": f"{target_col} = {col_a} / {col_b}",
+                                    "equation_type": "division_ratio",
+                                    "variables": [col_a, col_b],
+                                    "confidence": 1.0
+                                })
+                                continue
 
-                # Formula 5b: C = B / A (where A != 0 and finite)
-                if (np.abs(a_vals) > 1e-6).all():
-                    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
-                        div_diff_2 = np.abs((b_vals / a_vals) - target_series)
-                        if np.isfinite(div_diff_2).all() and np.max(div_diff_2) < 1e-4:
-                            equations.append({
-                                "target_column": target_col,
-                                "formula": f"{target_col} = {col_b} / {col_a}",
-                                "equation_type": "division_ratio",
-                                "variables": [col_b, col_a],
-                                "confidence": 1.0
-                            })
-                            continue
+                    # Formula 5b: C = B / A (where A != 0 and finite)
+                    if (np.abs(a_vals) > 1e-6).all():
+                        with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+                            div_diff_2 = np.abs((b_vals / a_vals) - target_series)
+                            if np.isfinite(div_diff_2).all() and np.max(div_diff_2) < 1e-4:
+                                equations.append({
+                                    "target_column": target_col,
+                                    "formula": f"{target_col} = {col_b} / {col_a}",
+                                    "equation_type": "division_ratio",
+                                    "variables": [col_b, col_a],
+                                    "confidence": 1.0
+                                })
+                                continue
     finally:
         np.seterr(**old_err)
                             

@@ -45,11 +45,15 @@ NON_DATA_ROW_KEYS = ["fully_blank_rows", "whitespace_only_rows", "repeated_mid_f
 # ----------------------------------------------------------------------------------------------
 @pytest.fixture(scope="session")
 def manifest():
+    if not MANIFEST.exists():
+        pytest.skip(f"manifest file not found: {MANIFEST}")
     return json.loads(MANIFEST.read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="session")
 def df():
+    if not CSV.exists():
+        pytest.skip(f"CSV file not found: {CSV}")
     return pd.read_csv(CSV, dtype=str, keep_default_na=False, encoding="utf-8-sig")
 
 
