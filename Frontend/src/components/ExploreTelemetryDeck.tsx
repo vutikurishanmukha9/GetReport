@@ -14,7 +14,7 @@ export interface ExploreTelemetryDeckProps {
       min: number | null;
       unique_categories: number;
     };
-    records: Array<Record<string, any>>;
+    records: Array<Record<string, string | number | boolean | null | undefined>>;
     total_groups: number;
     secondary_metric_label?: string;
   };
@@ -23,9 +23,11 @@ export interface ExploreTelemetryDeckProps {
   dimension: string;
 }
 
-export const formatSmartCompact = (rawVal: unknown): string => {
-  if (rawVal === null || rawVal === undefined) return "—";
-  const num = typeof rawVal === "number" ? rawVal : Number(rawVal);
+type CompactScalarValue = string | number | boolean | null | undefined;
+
+export const formatSmartCompact = (rawVal: CompactScalarValue): string => {
+  if (rawVal === null || rawVal === undefined || rawVal === "") return "—";
+  const num = Number(rawVal);
   if (isNaN(num)) return String(rawVal);
   const abs = Math.abs(num);
   if (abs === 0) return "0";
@@ -39,7 +41,7 @@ export const formatSmartCompact = (rawVal: unknown): string => {
   return Number.isInteger(num) ? num.toLocaleString() : num.toFixed(2);
 };
 
-export const formatDimensionValue = (val: unknown): string => {
+export const formatDimensionValue = (val: CompactScalarValue): string => {
   if (val === null || val === undefined || val === "") return "—";
   const str = String(val).trim();
   // ISO date strings: e.g. "2019-05-01 00:00:00" -> "May 1, 2019"
@@ -220,8 +222,8 @@ export const ExploreTelemetryDeck: React.FC<ExploreTelemetryDeckProps> = ({
 
           <div className="mt-3">
             <div className="text-2xl sm:text-[28px] leading-tight font-bold tracking-tight text-stone-900 dark:text-zinc-100">
-              {typeof metricDisplayVal === "number" && isFinite(metricDisplayVal) ? (
-                <AnimatedNumber value={metricDisplayVal} format={(n) => formatSmartCompact(n)} duration={0.8} />
+              {metricDisplayVal !== null && metricDisplayVal !== undefined && metricDisplayVal.constructor === Number && Number.isFinite(metricDisplayVal) ? (
+                <AnimatedNumber value={Number(metricDisplayVal)} format={(n) => formatSmartCompact(n)} duration={0.8} />
               ) : (
                 metricStr
               )}

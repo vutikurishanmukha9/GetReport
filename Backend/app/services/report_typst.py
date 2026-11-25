@@ -26,6 +26,7 @@ from typing import Any
 import typst
 
 from app.services.report_styles import ReportMetadata
+from app.services.report_normalizer import normalize_analysis_for_reports
 
 logger = logging.getLogger(__name__)
 
@@ -201,117 +202,8 @@ def generate_pdf_typst(
         # 1. Extract base64 charts to disk for Typst zero-copy image loading
         chart_list = _extract_charts(charts or {}, tmpdir)
 
-        # 1b. Deep enrichment for forensic integrity, security scan, and missing sections
-        if not analysis_results.get("pii"):
-            analysis_results["pii"] = {
-                "findings": [
-                    {"entity": "Credit Card Number (PAN)", "column": "credit_card", "risk": "Critical", "policy": "Luhn-masked (****-****-****-1234), excluded from statistics and modeling"},
-                    {"entity": "Social Security Number (SSN)", "column": "ssn", "risk": "Critical", "policy": "Redacted (***-**-****), excluded from features"},
-                    {"entity": "API Key / Secret Token", "column": "api_key", "risk": "Critical", "policy": "Redacted (sk_live_****), quarantined"}
-                ]
-            }
-
-        if not analysis_results.get("benford"):
-            analysis_results["benford"] = {
-                "threshold": 20.09,
-                "columns": [
-                    {"column": "bonus_payout", "chi_square": 40212.0, "threshold": 20.09, "anomalous": True, "conclusion": "Anomalous pattern (possible fabrication)"},
-                    {"column": "unit_price", "chi_square": 6.02, "threshold": 20.09, "anomalous": False, "conclusion": "Conforms to Benford's Law"}
-                ]
-            }
-
-        if not analysis_results.get("symbolic_equations"):
-            analysis_results["symbolic_equations"] = [
-                {"equation": "Total = Subtotal + Tax", "confidence": 99.8, "note": "Exact linear accounting identity holds across valid transaction records"}
-            ]
-
-        if not analysis_results.get("time_series"):
-            analysis_results["time_series"] = {
-                "column": "order_date",
-                "method": "Mann-Kendall monotonic trend test & Sen's slope estimator (with STL decomposition)",
-                "slope": "+0.42 / day (positive monotonic trend, p < 0.001)",
-                "notes": "Mixed date formats detected across timestamps (ISO, US mm/dd/yyyy, and EU dd/mm/yyyy). Multiple date formats normalized to UTC before trend calculation."
-            }
-
-        if not analysis_results.get("automl"):
-            analysis_results["automl"] = {
-                "target": "churned",
-                "task": "Binary Classification",
-                "model": "HistGradientBoostingClassifier (AutoML Tournament Winner)",
-                "metrics": {
-                    "ROC-AUC": 0.892,
-                    "F1-Score": 0.814,
-                    "Accuracy": 0.846
-                },
-                "drivers": [
-                    {"feature": "age", "importance": 0.38, "direction": "Positive", "narrative": "Key Driver: Higher age increases customer churn probability"},
-                    {"feature": "total", "importance": 0.29, "direction": "Negative", "narrative": "Key Driver: Higher total spend strongly reduces churn risk"}
-                ]
-            }
-
-        if not analysis_results.get("security_scan"):
-            analysis_results["security_scan"] = {
-                "findings": [
-                    {"vector": "Formula injection (CWE-1236)", "detections": 45, "severity": "High", "recommendation": "Prepend tab or apostrophe to leading =, +, -, @ symbols"},
-                    {"vector": "XSS / script payloads (<script>)", "detections": 28, "severity": "High", "recommendation": "HTML entity escaping on text outputs"},
-                    {"vector": "SQL injection strings (SQLi)", "detections": 34, "severity": "High", "recommendation": "Enforce strict parameterized prepared queries"},
-                    {"vector": "Prompt injection phrases", "detections": 22, "severity": "Medium", "recommendation": "Quarantine raw text from LLM prompt inputs"},
-                    {"vector": "Mojibake / encoding damage", "detections": 180, "severity": "Low", "recommendation": "Transcode to normalized UTF-8"}
-                ]
-            }
-
-        # Ensure collinear pair weight_kg / weight_lb is in strong_correlations
-        has_weight = any(
-            (c.get("column_a") == "weight_kg" and c.get("column_b") == "weight_lb") or
-            (c.get("column_a") == "weight_lb" and c.get("column_b") == "weight_kg")
-            for c in analysis_results.get("strong_correlations", [])
-        )
-        if not has_weight:
-            analysis_results.setdefault("strong_correlations", []).insert(0, {
-                "column_a": "weight_kg",
-                "column_b": "weight_lb",
-                "r_value": 1.000,
-                "spearman_rho": 1.000,
-                "direction": "positive",
-                "strength": "very strong",
-                "is_multicollinear": True,
-            })
-
-        # Separate weight_kg and weight_lb in confidence_scores and summary tables so they are not adjacent
-        cs_cols = analysis_results.get("confidence_scores", {}).get("columns", [])
-        w_lb_idx = next((i for i, c in enumerate(cs_cols) if c.get("column") == "weight_lb"), None)
-        if w_lb_idx is not None and w_lb_idx > 0:
-            item = cs_cols.pop(w_lb_idx)
-            cs_cols.append(item)
-
-        # Ensure all columns appear in summary statistics visible
-        summary = analysis_results.setdefault("summary", {})
-        for col in ("subtotal", "latitude", "longitude", "zero_var_num"):
-            if col not in summary:
-                summary[col] = {"mean": 0.0, "median": 0.0, "std": 0.0, "min": 0.0, "max": 0.0, "missing_pct": 0.0}
-        if "weight_lb" in summary:
-            val = summary.pop("weight_lb")
-            summary["weight_lb"] = val
-
-        # Ensure cleaning_report has row triage and before_after
-        cr = analysis_results.setdefault("cleaning_report", {})
-        cr.setdefault("duplicate_rows_removed", 1513)
-        if not cr.get("triage"):
-            cr["triage"] = [
-                {"category": "Duplicate Rows Removed", "count": 1513, "policy": "Exact duplicate bit-level records dropped (EXCLUDE)"},
-                {"category": "Fully blank rows", "count": 182, "policy": "Completely empty lines dropped (EXCLUDE)"},
-                {"category": "Whitespace-only rows", "count": 99, "policy": "Non-data whitespace lines dropped (EXCLUDE)"},
-                {"category": "Repeated header rows", "count": 12, "policy": "Mid-file repeated column headers dropped (EXCLUDE)"},
-                {"category": "Subtotal / total rows", "count": 20, "policy": "Aggregated summary rows dropped (EXCLUDE)"},
-                {"category": "Sparse footer rows", "count": 5, "policy": "Trailing metadata notes dropped (EXCLUDE)"},
-                {"category": "Near-duplicate rows", "count": 1053, "policy": "Fuzzy similar records preserved for analytical review (REVIEW)"},
-            ]
-        if not cr.get("before_after"):
-            cr["before_after"] = [
-                {"metric": "Completeness Score", "before": 87.28, "after": 86.98, "delta": -0.30},
-                {"metric": "Duplicate Rows", "before": 1513, "after": 0, "delta": -1513},
-                {"metric": "Non-Data Junk Rows", "before": 401, "after": 0, "delta": -401},
-            ]
+        # 1b. Normalize real pipeline outputs into canonical Typst report structure (zero synthetic fallbacks)
+        analysis_results = normalize_analysis_for_reports(analysis_results)
 
         # 2. Build structured context payload
         metadata = analysis_results.get("metadata", {})

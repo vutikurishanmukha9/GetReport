@@ -272,11 +272,19 @@ async def upload_and_join_files(
     if join_type not in {"inner", "left", "full", "outer", "semi", "anti"}:
         raise HTTPException(400, "Invalid join type. Note: Cartesian 'cross' joins are disabled for resource protection.")
 
-    # Parse key_mapping if provided as JSON string
+    # Parse key_mapping if provided as JSON string and align raw vs sanitized filenames
     parsed_key_mapping: dict[str, str] | None = None
     if key_mapping:
         try:
-            parsed_key_mapping = json.loads(key_mapping)
+            raw_map = json.loads(key_mapping)
+            if isinstance(raw_map, dict):
+                parsed_key_mapping = {}
+                for raw_k, raw_v in raw_map.items():
+                    key_str = str(raw_k)
+                    val_str = str(raw_v)
+                    parsed_key_mapping[key_str] = val_str
+                    safe_k = re.sub(r'[^a-zA-Z0-9_.-]', '_', os.path.basename(key_str)) or "unnamed_file.csv"
+                    parsed_key_mapping[safe_k] = val_str
         except Exception:
             parsed_key_mapping = None
 
@@ -326,6 +334,34 @@ async def upload_and_join_files(
         if joined_df.height > 500_000:
             raise HTTPException(400, f"Joined dataset produced {joined_df.height:,} rows, exceeding safety limit (500,000 rows).")
 
+        # Evaluate referential integrity between source tables when explicit keys are provided
+        fk_note = ""
+        fk_checks = []
+        try:
+            from app.services.foreign_key_integrity import detect_foreign_key_violations
+            table_names = list(dfs_map.keys())
+            if len(table_names) >= 2 and (join_key or (left_on and right_on)):
+                parent_name, child_name = table_names[0], table_names[1]
+                pk_col = join_key or left_on
+                fk_col = join_key or right_on
+                parent_df, child_df = dfs_map[parent_name], dfs_map[child_name]
+                if pk_col in parent_df.columns and fk_col in child_df.columns:
+                    fk_res = await run_in_threadpool(
+                        detect_foreign_key_violations,
+                        parent_df,
+                        child_df,
+                        pk_col,
+                        fk_col,
+                        parent_name,
+                        child_name,
+                    )
+                    fk_checks.append(fk_res)
+                    orphans = int(fk_res.get("orphan_fk_rows", 0) or 0)
+                    if orphans > 0:
+                        fk_note = f" Referential integrity notice: {orphans:,} unmatched foreign-key row(s)."
+        except Exception as fk_err:
+            logger.debug("Non-blocking FK integrity check skipped on /upload/join: %s", fk_err)
+
         # Save joined dataframe as CSV
         joined_filename = f"joined_{join_type}_{uuid.uuid4().hex[:8]}.csv"
         csv_bytes = io.BytesIO()
@@ -335,6 +371,11 @@ async def upload_and_join_files(
         file_hash = hashlib.sha256(csv_bytes.getvalue()).hexdigest()
         caller_owner_id = get_authenticated_owner_id(request)
         task_id = await title_task_manager.create_job_async(joined_filename, file_hash=file_hash, owner_id=caller_owner_id)
+        if fk_checks:
+            try:
+                await title_task_manager.update_result_async(task_id, {"fk_integrity": fk_checks})
+            except Exception:
+                pass
 
         joined_file_ref = storage.save_upload(csv_bytes, joined_filename)
         await dispatch_task("app.tasks.inspect_file", task_id, joined_file_ref, joined_filename)
@@ -342,7 +383,7 @@ async def upload_and_join_files(
         key_info = join_key or (f"{left_on} ⇄ {right_on}" if left_on and right_on else "auto-detected key")
         return TaskResponse(
             task_id=task_id,
-            message=f"Successfully joined {len(files)} files on {key_info} ({join_type} join). Inspection started."
+            message=f"Successfully joined {len(files)} files on {key_info} ({join_type} join). Inspection started.{fk_note}"
         )
 
     except KeyError as ke:

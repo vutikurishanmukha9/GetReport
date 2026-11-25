@@ -199,6 +199,21 @@ class SupersetEngine:
                     pass
         logger.info("Pre-warmed in-memory BI engine cache for task: %s (%d rows, %d cols)", task_id, df.height, df.width)
 
+    def invalidate_task(self, task_id: str, file_path: Optional[str] = None) -> None:
+        """Evict cached DataFrame and schema entries for a task (e.g. after concept derivation)."""
+        with self._cache_lock:
+            self._task_df_cache.pop(task_id, None)
+            self._schema_cache.pop(task_id, None)
+            task_marker = f"cleaned_{task_id}.parquet"
+            stale_paths = [
+                key
+                for key in self._df_cache
+                if (file_path and key == file_path) or task_marker in key
+            ]
+            for key in stale_paths:
+                del self._df_cache[key]
+        logger.info("Invalidated BI engine cache for task: %s", task_id)
+
     def resolve_dataset_df(self, task_id: str) -> pl.DataFrame:
         """Resolve and load the audited Polars DataFrame for a task ID with in-memory caching."""
         # 1. Fast path: check in-memory task cache (zero-copy handoff from main engine)

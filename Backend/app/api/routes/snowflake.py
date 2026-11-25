@@ -290,10 +290,11 @@ async def start_snowflake_import(
     # Validate that the session is still active
     creds = _resolve_session_config(payload.session_id, user_id=user_id)
     filename = f"{payload.dataset_name or 'snowflake'}_{uuid.uuid4().hex[:8]}.parquet"
+    import tempfile
     from app.services.storage import get_storage_provider
     storage = get_storage_provider()
-    base_dir = str(getattr(storage, "base_dir", "temp_uploads"))
-    output_dir = os.path.join(base_dir, "snowflake")
+    stage_root = str(getattr(storage, "base_dir", "") or tempfile.gettempdir())
+    output_dir = os.path.join(stage_root, "snowflake")
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, filename)
 

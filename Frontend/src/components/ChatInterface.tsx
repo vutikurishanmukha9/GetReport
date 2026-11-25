@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ThinkingShimmer } from "@/components/agents/loading-states/thinking-shimmer";
 import { api } from "@/services/api";
+import type { GoldenQueryItem } from "@/types/api";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -59,33 +60,60 @@ interface Message {
 
 interface ChatInterfaceProps {
   taskId: string;
+  onOpenInSqlStudio?: (sql: string) => void;
 }
 
-export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
+const createWelcomeMessage = (): Message => ({
+  id: "welcome",
+  role: "assistant",
+  content: "Hello! I’ve completed the data audit and created the full PDF report. Ask me anything about trends, quality flags, or correlation patterns you see in the dataset [1].",
+  sources: ["Data Quality Engine: Column scores calculated, VIF check completed, and outliers detected."],
+  suggested_followups: [
+    "What are the top quality issues in this dataset?",
+    "Which variables share the strongest positive correlation?",
+    "What data cleaning actions were applied?"
+  ],
+  timestamp: new Date(),
+});
+
+function extractMessageSql(msg: Message): string {
+  if (msg.sql && msg.sql.trim()) return msg.sql.trim();
+  const match = msg.content.match(/(?:<code>|```sql|```)?\s*(SELECT[\s\S]+?FROM[\s\S]+?)(?:<\/code>|```|<br|$)/i);
+  return match?.[1]?.trim() || "";
+}
+
+export const ChatInterface = ({ taskId, onOpenInSqlStudio }: ChatInterfaceProps) => {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: "Hello! I’ve completed the data audit and created the full PDF report. Ask me anything about trends, quality flags, or correlation patterns you see in the dataset [1].",
-      sources: ["Data Quality Engine: Column scores calculated, VIF check completed, and outliers detected."],
-      suggested_followups: [
-        "What are the top quality issues in this dataset?",
-        "Which variables share the strongest positive correlation?",
-        "What data cleaning actions were applied?"
-      ],
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => [createWelcomeMessage()]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
   const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
   const [highlightedSourceIdx, setHighlightedSourceIdx] = useState<number | null>(null);
   const [savedGoldenIds, setSavedGoldenIds] = useState<Set<string>>(new Set());
+  const [goldenServerIdByMsgId, setGoldenServerIdByMsgId] = useState<Record<string, string>>({});
+  const [savedGoldenQueries, setSavedGoldenQueries] = useState<GoldenQueryItem[]>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Hydrate persisted Golden KPIs for this job on mount / task switch
+  useEffect(() => {
+    if (!taskId) return;
+    let cancelled = false;
+    api.getGoldenQueries(taskId)
+      .then((list) => {
+        if (!cancelled && Array.isArray(list)) {
+          setSavedGoldenQueries(list);
+        }
+      })
+      .catch(() => {
+        // Non-blocking if golden queries store is empty/unavailable
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId]);
 
   // Auto-scroll ONLY inside the chat messages container when a user queries or the assistant streams
   useEffect(() => {
@@ -162,8 +190,28 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
         setIsLoading(false);
         setStreamingMsgId(null);
       },
-      (error) => {
-        console.error("Stream chat error:", error);
+      async (error) => {
+        console.warn("Stream chat interrupted; retrying via synchronous chat endpoint:", error);
+        try {
+          const fallbackRes = await api.chatWithJob(taskId, query, formattedHistory);
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMsgId && !msg.content.trim()
+                ? {
+                    ...msg,
+                    content: fallbackRes.answer,
+                    sources: fallbackRes.sources,
+                    suggested_followups: fallbackRes.suggested_followups,
+                  }
+                : msg
+            )
+          );
+          setIsLoading(false);
+          setStreamingMsgId(null);
+          return;
+        } catch {
+          // Both streaming and non-streaming endpoints failed
+        }
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMsgId && !msg.content.trim()
@@ -216,38 +264,80 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
     }
 
     try {
-      await api.saveGoldenQuery(taskId, userQuestion, sqlQuery, "Saved via AI Chat Interface");
+      const saved = await api.saveGoldenQuery(taskId, userQuestion, sqlQuery, "Saved via AI Chat Interface");
       setSavedGoldenIds((prev) => new Set(prev).add(msg.id));
+      if (saved?.id) {
+        setGoldenServerIdByMsgId((prev) => ({ ...prev, [msg.id]: saved.id }));
+        setSavedGoldenQueries((prev) => [saved, ...prev.filter((item) => item.id !== saved.id)]);
+      }
       toast({
         title: "Saved as Golden KPI",
         description: `Verified KPI saved: "${userQuestion.slice(0, 45)}...". Future queries will return instant ground truth.`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Failed to Save Golden KPI",
-        description: err.message || "An error occurred while saving the query.",
+        description: err instanceof Error ? err.message : "An error occurred while saving the query.",
         variant: "destructive",
       });
     }
   };
 
-  const handleDeleteGoldenKPI = (msgId: string) => {
+  const handleDeleteGoldenKPI = async (msgId: string) => {
+    const serverQueryId = goldenServerIdByMsgId[msgId];
+    if (serverQueryId) {
+      try {
+        await api.deleteGoldenQuery(taskId, serverQueryId);
+      } catch (err: unknown) {
+        toast({
+          title: "Failed to Delete Golden KPI",
+          description: err instanceof Error ? err.message : "Could not delete KPI on server.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     setSavedGoldenIds((prev) => {
       const next = new Set(prev);
       next.delete(msgId);
       return next;
     });
+    setGoldenServerIdByMsgId((prev) => {
+      const next = { ...prev };
+      delete next[msgId];
+      return next;
+    });
+    if (serverQueryId) {
+      setSavedGoldenQueries((prev) => prev.filter((item) => item.id !== serverQueryId));
+    }
     toast({
       title: "Golden KPI Removed",
-      description: "Successfully removed this query from your saved KPIs.",
+      description: "Successfully deleted this query from saved KPIs.",
     });
   };
 
+  const handleDeletePersistedGoldenQuery = async (queryId: string) => {
+    try {
+      await api.deleteGoldenQuery(taskId, queryId);
+      setSavedGoldenQueries((prev) => prev.filter((item) => item.id !== queryId));
+      toast({
+        title: "Golden KPI Deleted",
+        description: "Removed saved KPI benchmark from repository.",
+      });
+    } catch (err: unknown) {
+      toast({
+        title: "Delete Failed",
+        description: err instanceof Error ? err.message : "Could not delete Golden KPI.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleClearHistory = () => {
-    setMessages([]);
+    setMessages([createWelcomeMessage()]);
     toast({
       title: "Chat History Cleared",
-      description: "All messages in this session have been deleted.",
+      description: "Session reset to initial audit assistant prompt.",
     });
   };
 
@@ -334,6 +424,38 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
       </CardHeader>
 
       <CardContent className="p-0 flex flex-col">
+        {savedGoldenQueries.length > 0 && (
+          <div className="px-4 py-2.5 border-b border-border/60 bg-amber-500/[0.04] flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mr-1">
+              Golden KPIs ({savedGoldenQueries.length}):
+            </span>
+            {savedGoldenQueries.slice(0, 5).map((gq) => (
+              <div
+                key={gq.id}
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-background border border-border/80 text-[11px] font-sans"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleSendQuery(gq.question)}
+                  className="text-foreground hover:text-primary font-medium truncate max-w-[180px] cursor-pointer"
+                  title={gq.sql_query}
+                >
+                  {gq.question}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDeletePersistedGoldenQuery(gq.id)}
+                  className="text-muted-foreground hover:text-destructive cursor-pointer text-[10px] px-0.5"
+                  aria-label={`Delete Golden KPI ${gq.question}`}
+                  title="Delete saved Golden KPI"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Messages list */}
         <div 
           ref={chatContainerRef}
@@ -415,9 +537,37 @@ export const ChatInterface = ({ taskId }: ChatInterfaceProps) => {
                     )}
                   </div>
 
-                  {/* Bookmark Button for Assistant Analytical Queries */}
+                  {/* Bookmark Button & SQL Studio Handoff for Assistant Analytical Queries */}
                   {isBot && (msg.sql || /select\s+.+\s+from/i.test(msg.content)) && (
-                    <div className="flex items-center gap-2 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                      {(() => {
+                        const extractedSql = extractMessageSql(msg);
+                        if (!extractedSql) return null;
+                        if (onOpenInSqlStudio) {
+                          return (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onOpenInSqlStudio(extractedSql)}
+                              className="h-7 px-2.5 text-[11px] font-medium gap-1.5 rounded-full border-stone-300 dark:border-white/15 cursor-pointer"
+                            >
+                              <Terminal className="h-3 w-3 text-[#800000] dark:text-emerald-400" />
+                              <span>Run in SQL Studio</span>
+                            </Button>
+                          );
+                        }
+                        return (
+                          <a
+                            href={`/analytics?taskId=${encodeURIComponent(taskId)}&studio=sql&sql=${encodeURIComponent(extractedSql)}`}
+                            className="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium rounded-full border border-stone-300 dark:border-white/15 hover:bg-stone-200/70 dark:hover:bg-white/10 transition-colors"
+                          >
+                            <Terminal className="h-3 w-3 text-[#800000] dark:text-emerald-400" />
+                            <span>Open in SQL Studio</span>
+                          </a>
+                        );
+                      })()}
+
                       {savedGoldenIds.has(msg.id) ? (
                         <>
                           <SaveKpiButton

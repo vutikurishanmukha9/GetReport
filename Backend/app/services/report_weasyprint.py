@@ -143,22 +143,24 @@ def generate_pdf_weasyprint(
 
     # ── 1. Render HTML from template ────────────────────────────────────────
     # Security: autoescape=True to prevent HTML injection from user data
+    from app.services.report_normalizer import normalize_analysis_for_reports
+    normalized_analysis = normalize_analysis_for_reports(analysis_results)
     template = _JINJA_ENV.get_template("report.html")
 
     # Build template context
-    metadata = analysis_results.get("metadata", {})
+    metadata = normalized_analysis.get("metadata", {})
     context = {
         "filename": filename,
         "generated_at": datetime.now().strftime("%B %d, %Y at %I:%M %p"),
         "metadata": metadata,
-        "analysis": analysis_results,
+        "analysis": normalized_analysis,
         "charts": charts or {},
     }
 
     html_content = template.render(**context)
 
     # Track which sections are present
-    _track_sections(analysis_results, charts, meta)
+    _track_sections(normalized_analysis, charts, meta)
 
     # ── 2. Convert HTML → PDF via WeasyPrint ────────────────────────────────
     try:

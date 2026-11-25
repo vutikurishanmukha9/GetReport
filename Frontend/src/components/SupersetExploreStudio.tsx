@@ -22,14 +22,10 @@ import {
   Copy,
   Check,
   Activity,
-  Sparkles,
-  AlertTriangle,
   Search,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Trophy,
-  Hash,
 } from "lucide-react";
 import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +62,8 @@ interface SupersetExploreStudioProps {
     rows?: number;
     preview?: any[];
     missing_values?: Record<string, { count: number; percentage: number }>;
+    numeric_columns?: string[];
+    categorical_columns?: string[];
   };
 }
 
@@ -127,16 +125,64 @@ const COLOR_PALETTES = [
 // NATIVE APACHE ECHARTS CANVAS (Direct DOM Mount & Zero-Latency ResizeObserver)
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface EChartsStyleRecord {
+  color?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  fontWeight?: number;
+  width?: number;
+  type?: string;
+  borderRadius?: number;
+  borderColor?: string;
+  borderWidth?: number;
+  textBorderColor?: string;
+  textBorderWidth?: number;
+}
+
+interface EChartsAxisDraft {
+  type?: string;
+  name?: string;
+  axisLabel?: EChartsStyleRecord;
+  nameTextStyle?: EChartsStyleRecord;
+  axisLine?: { lineStyle?: EChartsStyleRecord };
+  splitLine?: { show?: boolean; lineStyle?: EChartsStyleRecord };
+}
+
+interface EChartsPieDatum {
+  name?: string;
+  value?: number | string | null;
+}
+
+interface EChartsSeriesDraft {
+  type?: string;
+  label?: EChartsStyleRecord;
+  data?: Array<EChartsPieDatum | number | string | null>;
+  radius?: string | string[];
+  avoidLabelOverlap?: boolean;
+  labelLine?: { show?: boolean; length?: number; length2?: number; smooth?: number; lineStyle?: EChartsStyleRecord };
+  itemStyle?: EChartsStyleRecord;
+}
+
+interface EChartsDataZoomDraft {
+  textStyle?: EChartsStyleRecord;
+  borderColor?: string;
+  handleStyle?: EChartsStyleRecord;
+}
+
+interface ChartClickPayload {
+  name?: string | number | boolean | null | undefined;
+}
+
 interface NativeEChartsViewProps {
-  option: Record<string, any>;
-  onChartClick?: (params: any) => void;
+  option: echarts.EChartsCoreOption;
+  onChartClick?: (params: ChartClickPayload) => void;
   onInstanceReady?: (instance: echarts.ECharts) => void;
   height?: string | number;
   className?: string;
 }
 
-const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
-  if (!opt || typeof opt !== 'object') return opt;
+const sanitizeEChartsOption = (opt: echarts.EChartsCoreOption, isDark: boolean = true): echarts.EChartsCoreOption => {
+  if (!(opt instanceof Object)) return opt;
   const clone = JSON.parse(JSON.stringify(opt));
 
   // High-contrast, theme-calibrated typography and hairline colors
@@ -149,9 +195,9 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
   const splitLineColor = isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.08)";
   const labelHaloColor = isDark ? "rgba(9, 13, 22, 0.95)" : "rgba(255, 255, 255, 0.95)";
 
-  const sanitizeAxis = (axis: any) => {
-    if (!axis || typeof axis !== 'object') return axis;
-    const clean = { ...axis };
+  const sanitizeAxis = (axis: EChartsAxisDraft): EChartsAxisDraft => {
+    if (!(axis instanceof Object)) return axis;
+    const clean: EChartsAxisDraft = { ...axis };
     if (clean.type === 'linear') {
       clean.type = 'value';
     }
@@ -159,7 +205,7 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
       fontSize: 11,
       fontFamily: "inherit",
       fontWeight: 500,
-      ...(clean.axisLabel || {}),
+      ...clean.axisLabel,
       color: axisLabelColor, // Always enforce high-contrast theme color
     };
     if (clean.name) {
@@ -167,23 +213,23 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
         fontSize: 11,
         fontFamily: "inherit",
         fontWeight: 600,
-        ...(clean.nameTextStyle || {}),
+        ...clean.nameTextStyle,
         color: primaryTextColor,
       };
     }
     clean.axisLine = {
-      ...(clean.axisLine || {}),
+      ...clean.axisLine,
       lineStyle: {
-        ...(clean.axisLine?.lineStyle || {}),
+        ...clean.axisLine?.lineStyle,
         color: axisLineColor,
       },
     };
     if (clean.splitLine && clean.splitLine.show !== false) {
       clean.splitLine = {
-        ...(clean.splitLine || {}),
+        ...clean.splitLine,
         lineStyle: {
           type: "dashed",
-          ...(clean.splitLine?.lineStyle || {}),
+          ...clean.splitLine?.lineStyle,
           color: splitLineColor,
         },
       };
@@ -212,7 +258,7 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
       fontSize: 12,
       fontWeight: 500,
       fontFamily: "inherit",
-      ...(origTooltip.textStyle || {}),
+      ...origTooltip.textStyle,
       color: isDark ? "#f4f4f5" : "#18181b", // ALWAYS enforce high-contrast theme color
     },
     extraCssText: isDark
@@ -237,31 +283,39 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
       pageTextStyle: {
         fontSize: 10,
         fontWeight: 600,
-        ...(origLegend.pageTextStyle || {}),
+        ...origLegend.pageTextStyle,
         color: secondaryTextColor, // Always enforce visible page text (e.g. 1/7)
       },
       textStyle: {
         fontSize: 11,
         fontWeight: 500,
         fontFamily: "inherit",
-        ...(origLegend.textStyle || {}),
+        ...origLegend.textStyle,
         color: primaryTextColor, // Always enforce visible legend item text
       },
     };
     delete clone.legend.bottom;
     if (clone.grid) {
+      const gridTop = clone.grid.top;
+      const numericTop =
+        gridTop !== null && gridTop !== undefined && gridTop.constructor === Number && Number.isFinite(gridTop)
+          ? Number(gridTop)
+          : parseInt(String(gridTop ?? "8"), 10);
       clone.grid = {
         ...clone.grid,
-        top: Math.max(typeof clone.grid.top === "number" ? clone.grid.top : parseInt(clone.grid.top || "8", 10), 45),
+        top: Math.max(numericTop, 45),
       };
     }
   }
 
   // Ensure series labels (pie slice callouts, bar values, line markers) are high-contrast with halo outline
   if (Array.isArray(clone.series)) {
-    clone.series = clone.series.map((s: any) => {
-      if (!s || typeof s !== 'object') return s;
-      const cleanSeries = { ...s };
+    const datumValue = (item: EChartsPieDatum | number | string | null): number =>
+      item instanceof Object ? Number(item.value) || 0 : Number(item) || 0;
+
+    clone.series = clone.series.map((s: EChartsSeriesDraft) => {
+      if (!(s instanceof Object)) return s;
+      const cleanSeries: EChartsSeriesDraft = { ...s };
 
       // High-visibility label formatting with 3px halo outline
       if (cleanSeries.label) {
@@ -280,9 +334,9 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
       if (cleanSeries.type === "pie") {
         // Defensive aggregation if pie has more than 7 slices to prevent unreadable bicycle-wheel visual slop
         if (Array.isArray(cleanSeries.data) && cleanSeries.data.length > 7) {
-          const sorted = [...cleanSeries.data].sort((a: any, b: any) => (Number(b.value) || 0) - (Number(a.value) || 0));
+          const sorted = [...cleanSeries.data].sort((a, b) => datumValue(b) - datumValue(a));
           const top6 = sorted.slice(0, 6);
-          const restVal = sorted.slice(6).reduce((acc: number, cur: any) => acc + (Number(cur.value) || 0), 0);
+          const restVal = sorted.slice(6).reduce<number>((acc, cur) => acc + datumValue(cur), 0);
           const restCount = sorted.length - 6;
           cleanSeries.data = [
             ...top6,
@@ -298,15 +352,15 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
           length: 15,
           length2: 12,
           smooth: 0.2,
-          ...(cleanSeries.labelLine || {}),
+          ...cleanSeries.labelLine,
           lineStyle: {
             width: 1.2,
-            ...(cleanSeries.labelLine?.lineStyle || {}),
+            ...cleanSeries.labelLine?.lineStyle,
             color: isDark ? "rgba(255, 255, 255, 0.45)" : "rgba(15, 23, 42, 0.45)",
           },
         };
         cleanSeries.itemStyle = {
-          ...(cleanSeries.itemStyle || {}),
+          ...cleanSeries.itemStyle,
           borderRadius: 3, // Sleek, non-slop minimal radius overriding any clumsy 6px sausage corners
           borderColor: isDark ? "#07080a" : "#ffffff",
           borderWidth: 2,
@@ -316,7 +370,7 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
       // Bar charts: ensure clean crisp borders without dark outlines
       if (cleanSeries.type === "bar") {
         cleanSeries.itemStyle = {
-          ...(cleanSeries.itemStyle || {}),
+          ...cleanSeries.itemStyle,
           borderColor: "transparent",
           borderWidth: 0,
         };
@@ -333,7 +387,7 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
       textStyle: {
         fontSize: 13,
         fontWeight: 600,
-        ...(clone.title.textStyle || {}),
+        ...clone.title.textStyle,
         color: primaryTextColor,
       },
     };
@@ -341,19 +395,19 @@ const sanitizeEChartsOption = (opt: any, isDark: boolean = true): any => {
 
   // Ensure dataZoom slider text and borders are high-contrast
   if (Array.isArray(clone.dataZoom)) {
-    clone.dataZoom = clone.dataZoom.map((dz: any) => ({
+    clone.dataZoom = clone.dataZoom.map((dz: EChartsDataZoomDraft) => ({
       ...dz,
       textStyle: {
         fontSize: 10,
         fontWeight: 500,
-        ...(dz.textStyle || {}),
+        ...dz.textStyle,
         color: secondaryTextColor,
       },
       borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.12)",
       handleStyle: {
         color: isDark ? "#38bdf8" : "#800000",
         borderColor: isDark ? "#0284c7" : "#550000",
-        ...(dz.handleStyle || {}),
+        ...dz.handleStyle,
       },
     }));
   }
@@ -376,7 +430,7 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
 
   // Dynamic theme state that reacts to both useTheme hook and document root classList
   const [effectiveDark, setEffectiveDark] = useState<boolean>(() => {
-    if (typeof document !== "undefined") {
+    if ("document" in globalThis) {
       return document.documentElement.classList.contains("dark");
     }
     return theme === "dark";
@@ -384,7 +438,7 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
 
   useEffect(() => {
     const updateThemeState = () => {
-      if (typeof document !== "undefined") {
+      if ("document" in globalThis) {
         setEffectiveDark(document.documentElement.classList.contains("dark"));
       } else {
         setEffectiveDark(theme === "dark");
@@ -401,7 +455,7 @@ const NativeEChartsView: React.FC<NativeEChartsViewProps> = ({
       }
     });
 
-    if (typeof document !== "undefined") {
+    if ("document" in globalThis) {
       observer.observe(document.documentElement, { attributes: true });
     }
 
@@ -522,11 +576,24 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const { toast } = useToast();
   const nativeChartInstanceRef = useRef<echarts.ECharts | null>(null);
   const lastExecutedKeyRef = useRef<string>("");
+  const lastQueryResultRef = useRef<any>(null);
 
   // Dataset Selection State
   const [availableDatasets, setAvailableDatasets] = useState<DatasetItem[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(initialTaskId);
-  const [activeDatasetMeta, setActiveDatasetMeta] = useState<DatasetItem | null>(null);
+  const [activeDatasetMeta, setActiveDatasetMeta] = useState<DatasetItem | null>(() => {
+    if (!initialInfo || !initialTaskId) return null;
+    return {
+      task_id: initialTaskId,
+      filename: initialDatasetName || "Active Dataset",
+      rows: initialInfo.rows ?? 0,
+      columns_count: Array.isArray(initialInfo.columns) ? initialInfo.columns.length : 0,
+      columns: initialInfo.columns || [],
+      numeric_columns: initialInfo.numeric_columns || [],
+      categorical_columns: initialInfo.categorical_columns || [],
+      created_at: "",
+    };
+  });
 
   // Schema & Explore Options
   const [loadingSchema, setLoadingSchema] = useState<boolean>(true);
@@ -584,7 +651,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const totalMetricSum = useMemo(() => {
     if (!queryResult?.records || !Array.isArray(queryResult.records)) return 0;
     return queryResult.records.reduce(
-      (acc: number, r: any) => acc + (typeof r.value === "number" ? Math.abs(r.value) : 0),
+      (acc: number, r) => acc + (r?.value !== null && r?.value !== undefined && r.value.constructor === Number && Number.isFinite(r.value) ? Math.abs(Number(r.value)) : 0),
       0
     );
   }, [queryResult?.records]);
@@ -592,7 +659,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   const totalRowCount = useMemo(() => {
     if (!queryResult?.records || !Array.isArray(queryResult.records)) return 0;
     return queryResult.records.reduce(
-      (acc: number, r: any) => acc + (typeof r.count === "number" ? r.count : 0),
+      (acc: number, r) => acc + (r?.count !== null && r?.count !== undefined && r.count.constructor === Number && Number.isFinite(r.count) ? Number(r.count) : 0),
       0
     );
   }, [queryResult?.records]);
@@ -613,8 +680,17 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     list.sort((a, b) => {
       const aVal = a[tableSortCol];
       const bVal = b[tableSortCol];
-      if (typeof aVal === "number" && typeof bVal === "number") {
-        return tableSortDir === "asc" ? aVal - bVal : bVal - aVal;
+      if (
+        aVal !== null &&
+        bVal !== null &&
+        aVal !== undefined &&
+        bVal !== undefined &&
+        aVal.constructor === Number &&
+        bVal.constructor === Number &&
+        Number.isFinite(aVal) &&
+        Number.isFinite(bVal)
+      ) {
+        return tableSortDir === "asc" ? Number(aVal) - Number(bVal) : Number(bVal) - Number(aVal);
       }
       const strA = String(aVal ?? "");
       const strB = String(bVal ?? "");
@@ -659,34 +735,38 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
     };
   }, [mobileTab, isFullscreen, viewMode]);
 
-  // 1. Load available datasets (skip if embedded with dedicated taskId)
+  // 1. Load available datasets once when dataset switching is enabled
   useEffect(() => {
     if (!allowDatasetSwitching && initialTaskId) {
       return;
     }
+    let cancelled = false;
     api.listRecentDatasets(20)
       .then(res => {
+        if (cancelled) return;
         if (res && res.datasets && res.datasets.length > 0) {
           setAvailableDatasets(res.datasets);
-          if (!selectedTaskId) {
-            setSelectedTaskId(res.datasets[0].task_id);
-            setActiveDatasetMeta(res.datasets[0]);
-          } else {
-            const match = res.datasets.find(d => d.task_id === selectedTaskId);
+          setSelectedTaskId(prev => {
+            const targetId = prev || initialTaskId || res.datasets[0].task_id;
+            const match = res.datasets.find(d => d.task_id === targetId);
             if (match) setActiveDatasetMeta(match);
-          }
+            return targetId;
+          });
         }
       })
       .catch(err => {
         console.warn("Could not load recent datasets:", err);
       });
-  }, [selectedTaskId, allowDatasetSwitching, initialTaskId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [allowDatasetSwitching, initialTaskId]);
 
   useEffect(() => {
-    if (initialTaskId && initialTaskId !== selectedTaskId) {
+    if (initialTaskId && !allowDatasetSwitching && initialTaskId !== selectedTaskId) {
       setSelectedTaskId(initialTaskId);
     }
-  }, [initialTaskId, selectedTaskId]);
+  }, [initialTaskId, allowDatasetSwitching, selectedTaskId]);
 
   // 2. Fetch schema whenever selectedTaskId changes
   useEffect(() => {
@@ -746,6 +826,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         if (res.default_query_result) {
           const prewarmedKey = `${selectedTaskId}|${targetChartType}|${targetDim}|${targetMetric}|${targetAgg}|${topRec?.secondary_dimension || ''}|${topRec?.secondary_metric || ''}|${topRec?.time_grain || ''}|[]|25|desc|supersetColors|grouped`;
           lastExecutedKeyRef.current = prewarmedKey;
+          lastQueryResultRef.current = res.default_query_result;
           setQueryResult(res.default_query_result);
         }
       })
@@ -763,7 +844,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   }, [selectedTaskId, toast]);
 
   // 3. Execute Explore Query
-  const executeQuery = useCallback(async (signal?: AbortSignal) => {
+  const executeQuery = useCallback(async (signal?: AbortSignal, force: boolean = false) => {
     if (!selectedTaskId || !dimension) return;
 
     const activeFilters = filters
@@ -776,8 +857,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
 
     const currentKey = `${selectedTaskId}|${chartType}|${dimension}|${metric}|${aggregate}|${secondaryDimension || ''}|${secondaryMetric || ''}|${timeGrain || ''}|${JSON.stringify(activeFilters)}|${rowLimit}|${sortOrder}|${colorPalette}|${barMode}`;
 
-    if (lastExecutedKeyRef.current === currentKey && queryResult) {
-      // Query is identical to what is already displayed, skip redundant execution
+    if (!force && lastExecutedKeyRef.current === currentKey && lastQueryResultRef.current) {
+      // Query is identical to what is already displayed, skip redundant auto-execution
       return;
     }
     lastExecutedKeyRef.current = currentKey;
@@ -800,15 +881,16 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
         row_limit: rowLimit,
         sort_order: sortOrder,
         color_palette: colorPalette,
-      });
+      }, signal);
       if (signal?.aborted) return;
+      lastQueryResultRef.current = res;
       setQueryResult(res);
-    } catch (err: any) {
-      if (signal?.aborted) return;
+    } catch (err: unknown) {
+      if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) return;
       console.error("Explore query execution failed:", err);
       toast({
         title: "Query Failed",
-        description: err.message || "Could not execute analytical aggregation.",
+        description: err instanceof Error ? err.message : "Could not execute analytical aggregation.",
         variant: "destructive",
       });
     } finally {
@@ -915,7 +997,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
   };
 
   // Click-to-filter on chart element
-  const handleChartClick = React.useCallback((params: any) => {
+  const handleChartClick = React.useCallback((params: ChartClickPayload) => {
     if (params && params.name && dimension) {
       const clickedVal = String(params.name);
       setFilters(prev => {
@@ -1019,7 +1101,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                   >
                     {availableDatasets.map((d) => (
                       <option key={d.task_id} value={d.task_id}>
-                        {d.filename} ({typeof d.rows === "number" ? d.rows.toLocaleString() : d.rows || 0} rows)
+                        {d.filename} ({d.rows !== undefined && Number.isFinite(d.rows) ? d.rows.toLocaleString() : d.rows || 0} rows)
                       </option>
                     ))}
                   </select>
@@ -1029,7 +1111,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                   <Database className="h-3.5 w-3.5 text-stone-500 dark:text-slate-400" />
                   <span className="text-stone-800 dark:text-slate-200 font-medium">{displayName}</span>
                   {activeDatasetMeta?.rows !== undefined && activeDatasetMeta?.rows !== null && (
-                    <span>• {typeof activeDatasetMeta.rows === "number" ? activeDatasetMeta.rows.toLocaleString() : activeDatasetMeta.rows} rows</span>
+                    <span>• {activeDatasetMeta.rows !== undefined && Number.isFinite(activeDatasetMeta.rows) ? activeDatasetMeta.rows.toLocaleString() : activeDatasetMeta.rows} rows</span>
                   )}
                 </div>
               )}
@@ -1053,7 +1135,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => void executeQuery()}
+            onClick={() => void executeQuery(undefined, true)}
             disabled={executing || loadingSchema}
             className="h-8 rounded-lg border-stone-300 bg-white hover:bg-stone-100 text-xs text-stone-800 dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-200 gap-1.5 shadow-2xs cursor-pointer"
           >
@@ -1772,7 +1854,7 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                         {paginatedRecords.length > 0 ? (
                           paginatedRecords.map((row: any, idx: number) => {
                             const globalIdx = (tablePage - 1) * tablePageSize + idx + 1;
-                            const rowVal = typeof row.value === "number" ? row.value : 0;
+                            const rowVal = row.value !== null && row.value !== undefined && row.value.constructor === Number && Number.isFinite(row.value) ? Number(row.value) : 0;
                             const pctOfTotal = totalMetricSum > 0 ? (Math.abs(rowVal) / totalMetricSum) * 100 : 0;
                             const paletteColors = COLOR_PALETTES.find(p => p.id === colorPalette)?.preview || ["#1FA8C9"];
 
@@ -1800,8 +1882,8 @@ export const SupersetExploreStudio: React.FC<SupersetExploreStudioProps> = ({
                                   <div className="space-y-1">
                                     <div className="flex items-center justify-between gap-2">
                                       <span className="font-bold text-stone-900 dark:text-white font-mono text-[11.5px] tabular-nums">
-                                        {typeof row.value === "number"
-                                          ? row.value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                        {row.value !== null && row.value !== undefined && row.value.constructor === Number && Number.isFinite(row.value)
+                                          ? Number(row.value).toLocaleString(undefined, { maximumFractionDigits: 2 })
                                           : row.value ?? "—"}
                                       </span>
                                       <span className="text-[10px] text-stone-500 dark:text-zinc-400 font-mono font-medium">

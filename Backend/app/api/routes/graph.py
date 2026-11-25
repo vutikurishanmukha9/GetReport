@@ -46,17 +46,38 @@ async def _resolve_graph_store(task_id: str, request: Request) -> DatasetGraphSt
     cache_dir = _get_cache_dir()
     graph_path = os.path.join(cache_dir, f"{task_id}_graph.json")
 
-    # 1. Try loading from cache
+    # 1. Try loading from local cache, then shared StorageProvider
     store = DatasetGraphStore.load_from_file(task_id, graph_path)
     if store and store.graph and store.graph.number_of_nodes() > 0:
         return store
 
+    graph_file_ref = job.result.get("graph_file_ref") if isinstance(job.result, dict) else None
+    if graph_file_ref:
+        try:
+            from app.services.storage import get_storage_provider
+            resolved_graph = get_storage_provider().get_absolute_path(graph_file_ref)
+            if os.path.exists(resolved_graph):
+                store = DatasetGraphStore.load_from_file(task_id, resolved_graph)
+                if store and store.graph and store.graph.number_of_nodes() > 0:
+                    store.save_to_file(graph_path)
+                    return store
+        except Exception as err:
+            logger.debug("Could not restore graph from StorageProvider (%s): %s", graph_file_ref, err)
+
     # 2. Build dynamically from job result
     if job.result and isinstance(job.result, dict):
         try:
-            ledger_issues = job.result.get("ledger_issues", job.result.get("issues", []))
+            from app.services.report_normalizer import extract_ledger_issues
+            ledger_issues = extract_ledger_issues(job.result)
             store = build_dataset_graph(task_id, job.result, ledger_issues)
             store.save_to_file(graph_path)
+            try:
+                from app.services.storage import get_storage_provider
+                with open(graph_path, "rb") as gf:
+                    job.result["graph_file_ref"] = get_storage_provider().save_upload(gf, f"{task_id}_graph.json")
+                    await title_task_manager.update_result_async(task_id, job.result)
+            except Exception as st_err:
+                logger.debug("Could not persist graph to StorageProvider: %s", st_err)
             # Generate HTML view
             html_path = os.path.join(cache_dir, f"{task_id}_graph.html")
             store.generate_html(html_path)

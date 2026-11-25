@@ -28,8 +28,10 @@ from app.services.data_processing import (
     clean_data,
     get_dataset_info,
     ParseError,
+    _to_snake_case,
 )
-from app.services.issue_ledger import detect_issues
+from app.services.issue_ledger import IssueLedger, detect_issues, apply_remediation_with_audit
+from app.services.transformation_dag import create_dag
 from app.services.analysis import analyze_dataset, build_empty_dataset_analysis, EmptyDatasetError
 from app.services.analysis_config import AnalysisConfig
 from app.services.dataset_versioning import build_schema_profile, build_historical_comparison
@@ -121,7 +123,10 @@ def build_rag_narrative(filename: str, analysis: dict, cleaning: dict, insights_
     # 5. Data quality and confidence
     confidence = analysis.get("confidence_scores", {})
     if confidence and isinstance(confidence, dict):
-        quality_score = confidence.get("dataset_confidence", confidence.get("overall_score", ""))
+        quality_score = confidence.get(
+            "dataset_confidence",
+            confidence.get("dataset_overall", confidence.get("overall_score", "")),
+        )
         grade = confidence.get("dataset_grade", confidence.get("grade", ""))
         if quality_score:
             sections.append(
@@ -213,6 +218,8 @@ async def inspect_file_task(ctx: Optional[dict], task_id: str, file_ref: str, fi
         logger.info("Task %s: Detected %d data issues.", task_id, issue_count)
 
         # 4. Build partial result and pause for user input
+        existing_job = await title_task_manager.get_job_async(task_id)
+        existing_fk = existing_job.result.get("fk_integrity") if existing_job and isinstance(existing_job.result, dict) else None
         partial_result = {
             "filename": filename,
             "quality_report": quality_report,
@@ -220,6 +227,8 @@ async def inspect_file_task(ctx: Optional[dict], task_id: str, file_ref: str, fi
             "_file_ref": file_ref,
             "stage": "INSPECTION",
         }
+        if existing_fk:
+            partial_result["fk_integrity"] = existing_fk
 
         title_task_manager.update_status(task_id, TaskStatus.WAITING_FOR_USER, partial_result)
         title_task_manager.update_progress(task_id, 40, f"Review {issue_count} detected issues")
@@ -260,7 +269,7 @@ async def resume_analysis_pipeline_task(
     logger.info("Starting resume_analysis_pipeline_task for task_id=%s", task_id)
 
     # 1. Load Job
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         logger.error("Task %s invalid for resumption: job or job.result missing.", task_id)
         title_task_manager.fail_job(task_id, "Job state invalid for resumption.")
@@ -268,6 +277,12 @@ async def resume_analysis_pipeline_task(
 
     file_ref = job.result.get("_file_ref") or job.result.get("_temp_path")
     filename = job.result.get("filename", "unknown")
+    reviewed_ledger_data = job.result.get("issue_ledger")
+    reviewed_ledger = (
+        IssueLedger.from_dict(reviewed_ledger_data)
+        if isinstance(reviewed_ledger_data, dict)
+        else None
+    )
 
     if not file_ref:
         title_task_manager.fail_job(task_id, "Source file reference missing.")
@@ -283,11 +298,38 @@ async def resume_analysis_pipeline_task(
         df = await asyncio.to_thread(load_dataframe, file_path)
 
         def _clean_and_compare_worker():
-            cleaned_df, cleaning_report, transformation_dag = clean_data(df, rules, None, filename)
-            comp_report = comparison_service.compare(df, cleaned_df)
-            return cleaned_df, cleaning_report, transformation_dag, comp_report
+            effective_rules: Dict[str, Any] = dict(rules or {})
+            remediation_audit: Dict[str, Any] = {}
+            dag = create_dag(df, filename)
+            pre_clean_df = df
 
-        cleaned_df, cleaning_report, transformation_dag, comparison_report = await asyncio.to_thread(_clean_and_compare_worker)
+            if reviewed_ledger and reviewed_ledger.issues:
+                pre_clean_df, remediation_audit = apply_remediation_with_audit(df, reviewed_ledger, dag=dag)
+                for col_name in remediation_audit.get("applied_columns", []):
+                    if col_name:
+                        effective_rules.setdefault(col_name, {"action": "skip"})
+                for rej in remediation_audit.get("rejected", []):
+                    if rej.get("issue_type") == "duplicates":
+                        effective_rules.setdefault("skip_duplicates", True)
+                    elif rej.get("column"):
+                        effective_rules.setdefault(rej["column"], {"action": "skip"})
+
+            cleaned_df, cleaning_report, transformation_dag = clean_data(
+                pre_clean_df, effective_rules, dag, filename
+            )
+            if remediation_audit:
+                ledger_dups = int(remediation_audit.get("duplicates_removed", 0) or 0)
+                if ledger_dups > 0:
+                    cleaning_report.duplicate_rows_removed += ledger_dups
+                    cleaning_report.finalize()
+                cleaning_report.remediation_audit = remediation_audit
+
+            comp_report = comparison_service.compare(df, cleaned_df)
+            return cleaned_df, cleaning_report, transformation_dag, comp_report, remediation_audit
+
+        cleaned_df, cleaning_report, transformation_dag, comparison_report, remediation_audit = await asyncio.to_thread(
+            _clean_and_compare_worker
+        )
         del df
         gc.collect()
 
@@ -364,6 +406,24 @@ async def resume_analysis_pipeline_task(
 
         config_snapshot = analysis_config.snapshot()
 
+        # Propagate rejected issue decisions so residual scans preserve explicit rejections
+        if reviewed_ledger and reviewed_ledger.issues and issue_ledger:
+            rejected_lookup = {
+                (iss.issue_type, _to_snake_case(iss.column) if iss.column else None): iss.user_note
+                for iss in reviewed_ledger.issues
+                if iss.status == "rejected"
+            }
+            for post_issue in issue_ledger.issues:
+                key = (post_issue.issue_type, _to_snake_case(post_issue.column) if post_issue.column else None)
+                if key in rejected_lookup:
+                    post_issue.status = "rejected"
+                    if rejected_lookup[key] and not post_issue.user_note:
+                        post_issue.user_note = rejected_lookup[key]
+
+        issue_ledger_dict = issue_ledger.to_dict() if hasattr(issue_ledger, "to_dict") else issue_ledger
+        if isinstance(issue_ledger_dict, dict) and remediation_audit:
+            issue_ledger_dict["remediation_audit"] = remediation_audit
+
         # Step 3: Parallel Execution of Visualizations & LLM Insights
         title_task_manager.update_progress(task_id, 75, "Generating charts and AI insights concurrently...")
 
@@ -395,8 +455,8 @@ async def resume_analysis_pipeline_task(
             analysis_data["cleaning_report"] = cleaning_report.to_dict()
         if comparison_report:
             analysis_data["comparison_report"] = comparison_report.to_dict()
-        if issue_ledger:
-            analysis_data["issue_ledger"] = issue_ledger.to_dict()
+        if issue_ledger_dict:
+            analysis_data["issue_ledger"] = issue_ledger_dict
 
         title_task_manager.update_progress(task_id, 95, "Rendering PDF...")
 
@@ -406,15 +466,21 @@ async def resume_analysis_pipeline_task(
                 charts_res,
                 filename,
             )
+            pdf_raw = pdf_buf.getvalue()
             out_dir = os.path.join(os.getcwd(), "outputs")
             os.makedirs(out_dir, exist_ok=True)
             out_name = f"{task_id}_{filename}.pdf"
             out_path = os.path.join(out_dir, out_name)
             with open(out_path, "wb") as f_out:
-                f_out.write(pdf_buf.getbuffer())
-            return out_path
+                f_out.write(pdf_raw)
+            report_file_ref = None
+            try:
+                report_file_ref = storage.save_upload(BytesIO(pdf_raw), out_name)
+            except Exception as store_err:
+                logger.warning("Could not persist PDF to StorageProvider for task %s: %s", task_id, store_err)
+            return out_path, report_file_ref
 
-        pdf_path = await asyncio.to_thread(_compile_pdf)
+        pdf_path, report_file_ref = await asyncio.to_thread(_compile_pdf)
 
         # Assemble final result
         final_result = {
@@ -430,15 +496,27 @@ async def resume_analysis_pipeline_task(
             "comparison_report": (
                 comparison_report.to_dict() if hasattr(comparison_report, "to_dict") else comparison_report
             ),
-            "issue_ledger": issue_ledger.to_dict() if hasattr(issue_ledger, "to_dict") else issue_ledger,
+            "issue_ledger": issue_ledger_dict,
+            "reviewed_issue_ledger": (
+                reviewed_ledger.to_dict() if reviewed_ledger and reviewed_ledger.issues else None
+            ),
             "analysis_config": config_snapshot,
             "schema_profile": schema_profile,
             "historical_comparison": historical_comparison,
             "cleaned_file_ref": cleaned_file_ref,
             "report_path": pdf_path,
+            "report_file_ref": report_file_ref,
         }
 
-        # Step 5: Trigger RAG Ingestion asynchronously in background
+        # Propagate PII & data_quality from analysis into top-level job result for graph/API visibility
+        if isinstance(analysis_result, dict):
+            if analysis_result.get("pii"):
+                final_result["pii"] = analysis_result["pii"]
+            if analysis_result.get("data_quality"):
+                final_result["data_quality"] = analysis_result["data_quality"]
+        existing_fk = job.result.get("fk_integrity") if isinstance(job.result, dict) else None
+        if existing_fk:
+            final_result["fk_integrity"] = existing_fk
         try:
             raw_insights_text = ""
             if isinstance(insights_res, dict):
@@ -496,7 +574,7 @@ async def generate_pdf_task(ctx: Optional[dict], task_id: str):
     Generate PDF for download (Standalone / Re-generation).
     """
     logger.info("Starting generate_pdf_task for task_id=%s", task_id)
-    job = title_task_manager.get_job(task_id)
+    job = await title_task_manager.get_job_async(task_id)
     if not job or not job.result:
         logger.error("Job %s not ready for PDF generation.", task_id)
         return
@@ -529,10 +607,18 @@ async def generate_pdf_task(ctx: Optional[dict], task_id: str):
                 result.get("charts", {}),
                 filename,
             )
+            pdf_raw = pdf_buffer.getvalue()
             with open(pdf_path, "wb") as f:
-                f.write(pdf_buffer.getbuffer())
+                f.write(pdf_raw)
+            try:
+                return storage.save_upload(BytesIO(pdf_raw), pdf_name)
+            except Exception as store_err:
+                logger.warning("Could not persist PDF to StorageProvider for task %s: %s", task_id, store_err)
+                return None
 
-        await asyncio.to_thread(_render)
+        report_file_ref = await asyncio.to_thread(_render)
+        if report_file_ref and isinstance(job.result, dict):
+            job.result["report_file_ref"] = report_file_ref
         title_task_manager.complete_job(task_id, job.result, report_path=pdf_path)
         logger.info("generate_pdf_task successfully finished for %s at %s", task_id, pdf_path)
 
@@ -553,43 +639,62 @@ async def rag_ingest_task(ctx: Optional[dict], task_id: str, text: str):
     """
     logger.info("Starting rag_ingest_task for task_id=%s (text length: %d chars)", task_id, len(text))
     try:
-        await asyncio.to_thread(rag_service.ingest_report_blocking, task_id, text)
+        ingest_res = await asyncio.to_thread(rag_service.ingest_report_blocking, task_id, text)
+        vector_file_ref = ingest_res.get("vector_file_ref") if isinstance(ingest_res, dict) else None
 
         # Wire TableSemanticChunker for structured profiling entity chunks
-        job = title_task_manager.get_job(task_id)
+        job = await title_task_manager.get_job_async(task_id)
         if job and job.result:
             try:
                 from app.core.rag_utils import TableSemanticChunker
+                from app.services.report_normalizer import extract_ledger_issues
                 chunker = TableSemanticChunker()
-                ledger_issues = job.result.get("ledger_issues", job.result.get("issues", []))
+                ledger_issues = extract_ledger_issues(job.result)
                 structured_chunks = chunker.chunk_dataset_profile(job.result, ledger_issues)
                 if structured_chunks:
                     combined_structured = "\n\n".join(c["content"] for c in structured_chunks)
-                    await asyncio.to_thread(
+                    chunk_ingest_res = await asyncio.to_thread(
                         rag_service.ingest_report_blocking,
                         task_id,
                         combined_structured,
                         {"source": "semantic_profile"}
                     )
+                    if isinstance(chunk_ingest_res, dict) and chunk_ingest_res.get("vector_file_ref"):
+                        vector_file_ref = chunk_ingest_res["vector_file_ref"]
                     logger.info("Indexed %d structured profile entity chunks for task %s", len(structured_chunks), task_id)
             except Exception as chunk_err:
                 logger.warning("Could not index semantic profile chunks: %s", chunk_err)
 
-        # Build and persist Dataset Knowledge Graph
+        # Build and persist Dataset Knowledge Graph (local cache + shared StorageProvider)
         def _graph_worker():
             job = title_task_manager.get_job(task_id)
             if job and job.result:
                 from app.services.dataset_graph_builder import build_dataset_graph
+                from app.services.report_normalizer import extract_ledger_issues
                 base_dir = Path(__file__).resolve().parent.parent
                 cache_dir = os.path.join(base_dir, "temp_cache")
                 os.makedirs(cache_dir, exist_ok=True)
                 graph_path = os.path.join(cache_dir, f"{task_id}_graph.json")
-                ledger_issues = job.result.get("ledger_issues", job.result.get("issues", []))
+                ledger_issues = extract_ledger_issues(job.result)
                 graph_store = build_dataset_graph(task_id, job.result, ledger_issues)
                 graph_store.save_to_file(graph_path)
                 logger.info("Dataset Knowledge Graph constructed and saved to disk: %s", graph_path)
+                try:
+                    with open(graph_path, "rb") as gf:
+                        return storage.save_upload(gf, f"{task_id}_graph.json")
+                except Exception as st_err:
+                    logger.debug("Could not mirror knowledge graph to StorageProvider: %s", st_err)
+            return None
 
-        await asyncio.to_thread(_graph_worker)
+        graph_file_ref = await asyncio.to_thread(_graph_worker)
+        if graph_file_ref or vector_file_ref:
+            latest_job = await title_task_manager.get_job_async(task_id)
+            if latest_job and isinstance(latest_job.result, dict):
+                if graph_file_ref:
+                    latest_job.result["graph_file_ref"] = graph_file_ref
+                if vector_file_ref:
+                    latest_job.result["vector_file_ref"] = vector_file_ref
+                await title_task_manager.update_result_async(task_id, latest_job.result)
 
     except Exception as e:
         logger.error("RAG Ingestion Task failed for task %s: %s", task_id, e, exc_info=True)
@@ -651,13 +756,25 @@ async def import_snowflake_task(
         profile = await asyncio.to_thread(profile_parquet_out_of_core, output_path)
 
         filename = os.path.basename(output_path)
-        file_ref = output_path
+
+        def _persist_snowflake_parquet() -> str:
+            with open(output_path, "rb") as pq_stream:
+                ref = storage.save_upload(pq_stream, filename)
+            try:
+                resolved = storage.get_absolute_path(ref)
+                if os.path.abspath(output_path) != os.path.abspath(resolved) and os.path.exists(output_path):
+                    os.remove(output_path)
+            except Exception as cleanup_err:
+                logger.debug("Could not remove staging Snowflake parquet %s: %s", output_path, cleanup_err)
+            return ref
+
+        file_ref = await asyncio.to_thread(_persist_snowflake_parquet)
 
         # Transition into inspection pipeline for data health scoring & review gate
         await inspect_file_task(ctx, task_id, file_ref, filename)
 
         # Append Snowflake extraction metadata to job result
-        job = title_task_manager.get_job(task_id)
+        job = await title_task_manager.get_job_async(task_id)
         if job and job.result:
             job.result["snowflake_meta"] = {
                 "query_id": extract_summary.get("query_id"),
@@ -666,7 +783,7 @@ async def import_snowflake_task(
                 "truncated": extract_summary.get("truncated", False),
                 "profile": profile,
             }
-            title_task_manager.update_status(task_id, job.status, job.result)
+            await title_task_manager.update_status_async(task_id, job.status, job.result)
 
     except Exception as e:
         logger.error("Snowflake ingestion failed for task %s: %s", task_id, e, exc_info=True)

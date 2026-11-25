@@ -202,6 +202,15 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
         return "Dataset details are currently loading or unavailable. Please try asking again in a moment."
 
     q_lower = question.lower()
+    from app.services.report_normalizer import (
+        extract_column_profiles,
+        extract_dataset_confidence_summary,
+        extract_domain_info,
+        extract_ledger_issues,
+        extract_strong_correlations,
+        flatten_recommendations,
+    )
+
     cleaning_report = job_result.get("cleaning_report", {})
     analysis = job_result.get("analysis", {})
     filename = html.escape(str(job_result.get("filename", "Dataset")))
@@ -209,14 +218,19 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
     # 1. Quality issues & dataset health
     if any(k in q_lower for k in ["quality", "issue", "health", "problem", "bad", "error", "top quality"]):
         data_issues = (
-            job_result.get("ledger_issues") 
-            or job_result.get("issues") 
-            or analysis.get("data_issues") 
-            or analysis.get("issues") 
+            extract_ledger_issues(job_result)
+            or analysis.get("data_issues")
+            or analysis.get("issues")
             or []
         )
-        quality_score = analysis.get("quality_score", 100)
-        grade = "A" if quality_score >= 90 else "B" if quality_score >= 80 else "C"
+        conf_summary = extract_dataset_confidence_summary(job_result, analysis)
+        quality_score = conf_summary.get("dataset_confidence")
+        if quality_score is None:
+            miss_pct = float((analysis.get("metadata") or {}).get("missing_value_pct", 0.0) or 0.0)
+            quality_score = round(max(0.0, 100.0 - miss_pct), 1)
+        grade = conf_summary.get("dataset_grade") or (
+            "A" if quality_score >= 90 else "B" if quality_score >= 80 else "C"
+        )
         
         lines = [f"<h3>Dataset Quality & Health Report for {filename}</h3>"]
         lines.append(f"• <b>Overall Quality Score</b>: <b>{quality_score}%</b> (Grade <b>{grade}</b>)<br/>")
@@ -286,18 +300,15 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
 
     # 4. Recommendations & Action Items
     if any(k in q_lower for k in ["recommend", "suggestion", "suggest", "next step", "advice", "guidance", "action item"]):
-        recs = analysis.get("recommendations", [])
+        recs = flatten_recommendations(analysis.get("recommendations"))
         lines = [f"<h3>AI Dataset Recommendations for {filename}</h3>"]
-        if recs and isinstance(recs, list):
-            for i, r in enumerate(recs[:4], 1):
-                if isinstance(r, dict):
-                    title = html.escape(str(r.get("title", r.get("action", f"Recommendation {i}"))))
-                    desc = html.escape(str(r.get("description", r.get("details", ""))))
-                    prio = html.escape(str(r.get("priority", "")))
-                    prio_badge = f" [<b>{prio.upper()}</b>]" if prio else ""
-                    lines.append(f"• <b>{title}</b>{prio_badge}: {desc}")
-                else:
-                    lines.append(f"• {html.escape(str(r))}")
+        if recs:
+            for i, r in enumerate(recs[:6], 1):
+                title = html.escape(str(r.get("title", r.get("action", f"Recommendation {i}"))))
+                desc = html.escape(str(r.get("description", r.get("details", ""))))
+                prio = html.escape(str(r.get("priority", "")))
+                prio_badge = f" [<b>{prio.upper()}</b>]" if prio else ""
+                lines.append(f"• <b>{title}</b>{prio_badge}: {desc}")
         else:
             lines.append("• <b>Schema Normalization</b>: Ensure standard data types across numeric and categorical features.")
             lines.append("• <b>Feature Scaling</b>: Standardize high-variance numeric columns prior to modeling.")
@@ -307,9 +318,7 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
     # 5. Correlation & relationships
     if any(k in q_lower for k in ["correlation", "relationship", "depend", "pair", "associate", "variable", "positive correlation"]):
         summary = analysis.get("summary", {})
-        corrs = analysis.get("strong_correlations", [])
-        if not corrs:
-            corrs = analysis.get("correlation", {}).get("strong_correlations", [])
+        corrs = extract_strong_correlations(analysis)
         if not corrs:
             corrs = analysis.get("correlation", {}).get("top_correlations", [])
             
@@ -355,22 +364,24 @@ def _generate_smart_dataset_answer(question: str, job_result: Optional[Dict[str,
 
     # 6. Default / General dataset overview
     summary = analysis.get("summary", {})
-    cols = list(summary.keys()) if isinstance(summary, dict) else []
-    domain = analysis.get("domain", "General Data")
+    col_profiles = extract_column_profiles(analysis, job_result.get("info"))
+    cols = list(summary.keys()) or list(col_profiles.keys())
+    domain, _ = extract_domain_info(analysis)
     
     lines = [f"<h3>Dataset Analysis Summary ({filename})</h3>"]
-    lines.append(f"• <b>Detected Domain</b>: <code>{domain.replace('_', ' ').title()}</code>")
+    lines.append(f"• <b>Detected Domain</b>: <code>{html.escape(domain.replace('_', ' ').title())}</code>")
     lines.append(f"• <b>Evaluated Features</b>: <b>{len(cols)}</b> columns analyzed.")
     if cols:
-        sample_cols = ", ".join([f"<code>{c}</code>" for c in cols[:6]])
+        sample_cols = ", ".join([f"<code>{html.escape(str(c))}</code>" for c in cols[:6]])
         lines.append(f"• <b>Key Evaluated Columns</b>: {sample_cols}<br/>")
     
-    recs = analysis.get("recommendations", [])
+    recs = flatten_recommendations(analysis.get("recommendations"))
     if recs:
         lines.append("<b>Key Recommendations</b>:")
         for r in recs[:3]:
-            rec_title = r.get("title", r.get("action", "Recommendation"))
-            lines.append(f"• <b>{rec_title}</b>: {r.get('description', '')}")
+            rec_title = html.escape(str(r.get("title", r.get("action", "Recommendation"))))
+            rec_desc = html.escape(str(r.get("description", "")))
+            lines.append(f"• <b>{rec_title}</b>: {rec_desc}")
             
     return "<br/>".join(lines)
 
@@ -415,16 +426,22 @@ def _extract_targeted_structured_context(question: str, job_result: Dict[str, An
     if not job_result:
         return ""
         
+    from app.services.report_normalizer import (
+        extract_column_profiles,
+        extract_dataset_confidence_summary,
+        extract_strong_correlations,
+    )
+
     analysis = job_result.get("analysis", {})
     insights = job_result.get("insights", {})
-    confidence = job_result.get("confidence", {})
+    confidence = extract_dataset_confidence_summary(job_result, analysis)
     
     q_low = question.lower()
     extracted_lines = []
     
     # 1. Check for specific column mentions
     summary_dict = analysis.get("summary", {})
-    cols_dict = analysis.get("columns", {})
+    cols_dict = extract_column_profiles(analysis, job_result.get("info"))
     
     all_col_names = set(list(summary_dict.keys()) + list(cols_dict.keys()))
     mentioned_cols = [c for c in all_col_names if c.lower() in q_low or c.lower().replace('_', ' ') in q_low]
@@ -441,20 +458,23 @@ def _extract_targeted_structured_context(question: str, job_result: Dict[str, An
                 
     # 2. Check for correlation queries
     if any(w in q_low for w in ["correlation", "relate", "relationship", "depend", "assoc", "link"]):
-        corr = analysis.get("correlation", {})
-        if corr:
+        top_corr = extract_strong_correlations(analysis)
+        if not top_corr:
+            top_corr = analysis.get("correlation", {}).get("top_correlations", [])
+        if top_corr:
             extracted_lines.append("\n--- CORRELATION & FEATURE RELATIONSHIPS ---")
-            top_corr = corr.get("strong_correlations", corr.get("top_correlations", []))
-            if top_corr:
-                extracted_lines.append(f"Top Correlations: {json.dumps(top_corr[:6])}")
+            extracted_lines.append(f"Top Correlations: {json.dumps(top_corr[:6])}")
                 
     # 3. Check for quality, confidence, missing or audit queries
     if any(w in q_low for w in ["quality", "grade", "confidence", "missing", "null", "clean", "issue"]):
         extracted_lines.append("\n--- DATA INTEGRITY & CONFIDENCE AUDIT ---")
-        if confidence:
-            extracted_lines.append(f"Overall Dataset Confidence: {confidence.get('dataset_confidence', 'N/A')}% (Grade: {confidence.get('dataset_grade', 'N/A')})")
-            if "critical_issues" in confidence:
-                extracted_lines.append(f"Critical Issues: {json.dumps(confidence.get('critical_issues'))}")
+        if confidence.get("dataset_confidence") is not None or confidence.get("dataset_grade") is not None:
+            extracted_lines.append(
+                f"Overall Dataset Confidence: {confidence.get('dataset_confidence', 'N/A')}% "
+                f"(Grade: {confidence.get('dataset_grade', 'N/A')})"
+            )
+            if confidence.get("critical_issues"):
+                extracted_lines.append(f"Critical Issues: {json.dumps(confidence['critical_issues'])}")
                 
     # 4. Check for time-series or trend queries
     if any(w in q_low for w in ["time", "date", "trend", "seasonality", "drift"]):
@@ -779,6 +799,18 @@ class EnhancedRAGService:
         os.makedirs(temp_cache_dir, exist_ok=True)
         return os.path.join(temp_cache_dir, f"{task_id}_graph.json")
 
+    def invalidate_task_cache(self, task_id: str) -> None:
+        """Evict cached knowledge graph objects and disk graph cache for a task."""
+        if hasattr(self, "_graph_cache"):
+            self._graph_cache.pop(task_id, None)
+        graph_path = self._get_graph_path(task_id)
+        for path in (graph_path, graph_path.replace(".json", ".html")):
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except Exception as err:
+                    logger.debug("Could not remove stale graph cache %s: %s", path, err)
+
     def _get_or_load_graph_store(self, task_id: str, job_result: Optional[Dict[str, Any]] = None) -> Optional[DatasetGraphStore]:
         """Load or build the Dataset Knowledge Graph for the task (LightRAG Pattern)."""
         if hasattr(self, "_graph_cache") and task_id in self._graph_cache:
@@ -796,7 +828,8 @@ class EnhancedRAGService:
 
         if job_result:
             try:
-                ledger_issues = job_result.get("ledger_issues", job_result.get("issues", []))
+                from app.services.report_normalizer import extract_ledger_issues
+                ledger_issues = extract_ledger_issues(job_result)
                 store = build_dataset_graph(task_id, job_result, ledger_issues)
                 store.save_to_file(graph_path)
                 try:
@@ -972,7 +1005,7 @@ class EnhancedRAGService:
             logger.error(f"Embedding generation failed: {e}")
             raise
 
-    def _save_local_vector_store(self, task_id: str, store: Any):
+    def _save_local_vector_store(self, task_id: str, store: Any) -> Optional[str]:
         try:
             # Absolute path reference based on project directory (Issue 3)
             temp_cache_dir = os.path.join(BASE_DIR, "temp_cache")
@@ -987,13 +1020,33 @@ class EnhancedRAGService:
             with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(store_data, f)
             logger.info(f"Saved local vector store to disk cache: {cache_path}")
+            try:
+                from app.services.storage import get_storage_provider
+                from io import BytesIO
+                payload_bytes = json.dumps(store_data).encode("utf-8")
+                return get_storage_provider().save_upload(BytesIO(payload_bytes), f"{task_id}_vector_store.json")
+            except Exception as st_err:
+                logger.debug("Could not mirror vector store to StorageProvider: %s", st_err)
         except Exception as e:
             logger.error(f"Failed to save local vector store to disk: {e}")
+        return None
 
     def _load_local_vector_store(self, task_id: str) -> Optional[Any]:
         try:
             # Absolute path reference based on project directory (Issue 3)
             cache_path = os.path.join(BASE_DIR, "temp_cache", f"{task_id}_vector_store.json")
+            if not os.path.exists(cache_path):
+                try:
+                    from app.services.task_manager import title_task_manager
+                    from app.services.storage import get_storage_provider
+                    job = title_task_manager.get_job(task_id)
+                    v_ref = (job.result or {}).get("vector_file_ref") if job and isinstance(job.result, dict) else None
+                    if v_ref:
+                        resolved = get_storage_provider().get_absolute_path(v_ref)
+                        if os.path.exists(resolved):
+                            cache_path = resolved
+                except Exception:
+                    pass
             if os.path.exists(cache_path):
                 with open(cache_path, "r", encoding="utf-8") as f:
                     store_data = json.load(f)
@@ -1026,10 +1079,11 @@ class EnhancedRAGService:
                 store = TFIDFVectorStore()
                 store.add_texts(chunks, metadatas)
                 await self.cache.set(task_id, store)
-                self._save_local_vector_store(task_id, store)
-                return {"success": True, "num_chunks": len(chunks), "mode": "tfidf_offline"}
+                vector_ref = self._save_local_vector_store(task_id, store)
+                return {"success": True, "num_chunks": len(chunks), "mode": "tfidf_offline", "vector_file_ref": vector_ref}
 
             # Embed (Try API embeddings first, fallback to TF-IDF if credits exhausted)
+            vector_ref = None
             try:
                 embeddings = await self._get_embeddings(chunks)
                 if settings.DATABASE_URL:
@@ -1040,14 +1094,15 @@ class EnhancedRAGService:
                     store = SimpleVectorStore()
                     store.add_texts(chunks, embeddings, metadatas)
                     await self.cache.set(task_id, store)
-                    self._save_local_vector_store(task_id, store)
+                    vector_ref = self._save_local_vector_store(task_id, store)
             except Exception as embed_err:
                 logger.warning(f"API Embeddings failed ({embed_err}) — falling back to TFIDFVectorStore for task {task_id}")
                 store = TFIDFVectorStore()
                 store.add_texts(chunks, metadatas)
                 await self.cache.set(task_id, store)
+                vector_ref = self._save_local_vector_store(task_id, store)
 
-            return {"success": True, "num_chunks": len(chunks)}
+            return {"success": True, "num_chunks": len(chunks), "vector_file_ref": vector_ref}
         except Exception as e:
             logger.error(f"Ingest failed: {e}")
             return {"success": False, "error": str(e)}
@@ -1069,10 +1124,11 @@ class EnhancedRAGService:
             if not self.enabled:
                 store = TFIDFVectorStore()
                 store.add_texts(chunks, metadatas)
-                self._save_local_vector_store(task_id, store)
-                return {"success": True, "num_chunks": len(chunks), "mode": "tfidf_offline"}
+                vector_ref = self._save_local_vector_store(task_id, store)
+                return {"success": True, "num_chunks": len(chunks), "mode": "tfidf_offline", "vector_file_ref": vector_ref}
 
             # Embed (Sync) - Try API embeddings first, fallback to TF-IDF if credits exhausted
+            vector_ref = None
             try:
                 embeddings = self._get_embeddings_sync(chunks)
                 if settings.DATABASE_URL:
@@ -1082,16 +1138,16 @@ class EnhancedRAGService:
                 else:
                      store = SimpleVectorStore()
                      store.add_texts(chunks, embeddings, metadatas)
-                     self._save_local_vector_store(task_id, store)
+                     vector_ref = self._save_local_vector_store(task_id, store)
                      logger.info(f"Report {task_id} ingested into Local File Vector Store (Sync)")
             except Exception as embed_err:
                 logger.warning(f"Sync API Embeddings failed ({embed_err}) — falling back to TFIDFVectorStore for task {task_id}")
                 store = TFIDFVectorStore()
                 store.add_texts(chunks, metadatas)
                 # Store in local file cache as TF-IDF
-                self._save_local_vector_store(task_id, store)
+                vector_ref = self._save_local_vector_store(task_id, store)
 
-            return {"success": True, "num_chunks": len(chunks)}
+            return {"success": True, "num_chunks": len(chunks), "vector_file_ref": vector_ref}
         except Exception as e:
             logger.error(f"Ingest (Blocking) failed: {e}")
             return {"success": False, "error": str(e)}

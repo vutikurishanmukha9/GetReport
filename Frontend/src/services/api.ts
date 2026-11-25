@@ -1,5 +1,9 @@
 import type {
     IssueLedgerData,
+    IssueMutationResponse,
+    ExportFormat,
+    RecentDatasetItem,
+    GoldenQueryItem,
     ApiResponse,
     InspectionResult,
     CleaningRulesMap,
@@ -15,7 +19,7 @@ import type {
 } from "@/types/api";
 
 function normalizeApiBaseUrl(rawUrl?: string): string {
-    const isProd = import.meta.env.PROD || (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1");
+    const isProd = import.meta.env.PROD || ("window" in globalThis && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1");
     const fallback = isProd ? "https://getreport.onrender.com/api" : "http://localhost:8000/api";
     let url = (rawUrl || fallback).trim().replace(/\/+$/, "");
     if (!url.endsWith("/api")) {
@@ -75,16 +79,32 @@ async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Prom
 
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const callerSignal = options.signal;
+    const onCallerAbort = () => controller.abort();
+    if (callerSignal) {
+        if (callerSignal.aborted) {
+            controller.abort();
+        } else {
+            callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+        }
+    }
+
     let response: Response;
     try {
-        response = await fetch(url, { ...options, headers, signal: options.signal || controller.signal });
+        response = await fetch(url, { ...options, headers, signal: controller.signal });
     } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
+            if (callerSignal?.aborted) {
+                throw error;
+            }
             throw new Error("The request timed out. Please check the service and try again.");
         }
         throw new Error("Unable to reach the analysis service. Please check your connection and try again.");
     } finally {
         window.clearTimeout(timeout);
+        if (callerSignal) {
+            callerSignal.removeEventListener("abort", onCallerAbort);
+        }
     }
 
     if (!response.ok) {
@@ -136,14 +156,14 @@ export const api = {
                 try {
                     const data = await response.json();
                     errorMessage = data.detail || errorMessage;
-                } catch {}
+                } catch { }
             } else {
                 try {
                     const text = await response.text();
                     if (text && text.length < 200) {
                         errorMessage = text;
                     }
-                } catch {}
+                } catch { }
             }
             throw new Error(errorMessage);
         }
@@ -158,7 +178,7 @@ export const api = {
      * Chat with the processed report (RAG).
      */
     chatWithJob: async (
-        taskId: string, 
+        taskId: string,
         question: string,
         chatHistory?: { role: string; content: string }[]
     ): Promise<{ answer: string; sources: string[]; suggested_followups?: string[] }> => {
@@ -203,8 +223,10 @@ export const api = {
                 buffer = lines.pop() || "";
 
                 for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (!trimmed) continue;
+                    const rawLine = line.trim();
+                    if (!rawLine || rawLine.startsWith(":")) continue;
+                    const trimmed = rawLine.startsWith("data:") ? rawLine.slice(5).trim() : rawLine;
+                    if (!trimmed || trimmed === "[DONE]") continue;
                     try {
                         const parsed = JSON.parse(trimmed);
                         if (parsed.type === "metadata") {
@@ -258,6 +280,17 @@ export const api = {
         const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/report`, {
             headers: getAuthHeaders(),
         });
+        const contentType = (response.headers.get("content-type") || "").toLowerCase();
+        if (response.status === 202 || contentType.includes("application/json")) {
+            let pendingMsg = "Report is still generating. Try again shortly.";
+            try {
+                const payload = await response.json();
+                pendingMsg = payload.message || payload.detail || pendingMsg;
+            } catch {
+                // ignore JSON parse failure
+            }
+            throw new Error(pendingMsg);
+        }
         if (!response.ok) throw new Error("Failed to download report");
         return response.blob();
     },
@@ -292,7 +325,7 @@ export const api = {
             try {
                 const data = await response.json();
                 errorMessage = data.detail || errorMessage;
-            } catch {}
+            } catch { }
             throw new Error(errorMessage);
         }
         return response.json();
@@ -316,20 +349,29 @@ export const api = {
             try {
                 const data = await response.json();
                 errorMessage = data.detail || errorMessage;
-            } catch {}
+            } catch { }
             throw new Error(errorMessage);
         }
         return response.json();
     },
 
     /**
-     * Download multi-format export (CSV, Parquet, HTML).
+     * Download multi-format export (CSV, Parquet, Excel, HTML).
      */
-    downloadExportBlob: async (taskId: string, format: "csv" | "parquet" | "html"): Promise<Blob> => {
+    downloadExportBlob: async (taskId: string, format: ExportFormat): Promise<Blob> => {
         const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/export/${format}`, {
             headers: getAuthHeaders(),
         });
-        if (!response.ok) throw new Error(`Failed to export ${format.toUpperCase()} file`);
+        if (!response.ok) {
+            let msg = `Failed to export ${format.toUpperCase()} file`;
+            try {
+                const data = await response.json();
+                msg = data.detail || data.message || msg;
+            } catch {
+                // ignore parse errors
+            }
+            throw new Error(msg);
+        }
         return response.blob();
     },
 
@@ -353,8 +395,8 @@ export const api = {
     /**
      * Approve a single issue.
      */
-    approveIssue: async (taskId: string, issueId: string): Promise<IssueLedgerData> => {
-        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/${issueId}/approve`, {
+    approveIssue: async (taskId: string, issueId: string): Promise<IssueMutationResponse> => {
+        return fetchClient<IssueMutationResponse>(`/jobs/${taskId}/issues/${issueId}/approve`, {
             method: "POST",
             body: JSON.stringify({}),
         });
@@ -363,18 +405,33 @@ export const api = {
     /**
      * Reject a single issue.
      */
-    rejectIssue: async (taskId: string, issueId: string): Promise<IssueLedgerData> => {
-        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/${issueId}/reject`, {
+    rejectIssue: async (taskId: string, issueId: string): Promise<IssueMutationResponse> => {
+        return fetchClient<IssueMutationResponse>(`/jobs/${taskId}/issues/${issueId}/reject`, {
             method: "POST",
             body: JSON.stringify({}),
         });
     },
 
     /**
+     * Modify the suggested remediation fix_code for an issue.
+     */
+    modifyIssue: async (
+        taskId: string,
+        issueId: string,
+        fixCode: string,
+        note?: string
+    ): Promise<IssueMutationResponse> => {
+        return fetchClient<IssueMutationResponse>(`/jobs/${taskId}/issues/${issueId}/modify`, {
+            method: "POST",
+            body: JSON.stringify({ fix_code: fixCode, note }),
+        });
+    },
+
+    /**
      * Approve all pending issues.
      */
-    approveAllIssues: async (taskId: string): Promise<IssueLedgerData> => {
-        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/approve-all`, {
+    approveAllIssues: async (taskId: string): Promise<IssueMutationResponse> => {
+        return fetchClient<IssueMutationResponse>(`/jobs/${taskId}/issues/approve-all`, {
             method: "POST",
         });
     },
@@ -382,8 +439,8 @@ export const api = {
     /**
      * Reject all pending issues.
      */
-    rejectAllIssues: async (taskId: string): Promise<IssueLedgerData> => {
-        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/reject-all`, {
+    rejectAllIssues: async (taskId: string): Promise<IssueMutationResponse> => {
+        return fetchClient<IssueMutationResponse>(`/jobs/${taskId}/issues/reject-all`, {
             method: "POST",
         });
     },
@@ -391,8 +448,8 @@ export const api = {
     /**
      * Lock the issue ledger.
      */
-    lockIssues: async (taskId: string): Promise<IssueLedgerData> => {
-        return fetchClient<IssueLedgerData>(`/jobs/${taskId}/issues/lock`, {
+    lockIssues: async (taskId: string): Promise<IssueMutationResponse> => {
+        return fetchClient<IssueMutationResponse>(`/jobs/${taskId}/issues/lock`, {
             method: "POST",
         });
     },
@@ -491,18 +548,7 @@ export const api = {
     /**
      * Get all verified Golden KPI queries for a dataset.
      */
-    getGoldenQueries: async (
-        taskId: string
-    ): Promise<
-        Array<{
-            id: string;
-            task_id: string;
-            question: string;
-            sql_query: string;
-            description: string;
-            created_at: string;
-        }>
-    > => {
+    getGoldenQueries: async (taskId: string): Promise<GoldenQueryItem[]> => {
         return fetchClient(`/jobs/${taskId}/golden-queries`);
     },
 
@@ -536,50 +582,6 @@ export const api = {
             method: "POST",
             body: JSON.stringify({ code, timeout_seconds: timeoutSeconds }),
         });
-    },
-
-    /**
-     * Derive and synthesize a virtual analytical concept/metric into the dataset.
-     */
-    deriveVirtualConcept: async (
-        taskId: string,
-        conceptName: string,
-        formulaOrIntent: string,
-        description?: string
-    ): Promise<{
-        status: string;
-        concept_name: string;
-        node: Record<string, PrimitiveValue>;
-        total_columns: number;
-        total_rows: number;
-    }> => {
-        return fetchClient(`/jobs/${taskId}/concepts/derive`, {
-            method: "POST",
-            body: JSON.stringify({
-                concept_name: conceptName,
-                formula_or_intent: formulaOrIntent,
-                description,
-            }),
-        });
-    },
-
-    /**
-     * Get list of all derived virtual concepts for a dataset.
-     */
-    getDerivedConcepts: async (
-        taskId: string
-    ): Promise<
-        Array<{
-            concept_name: string;
-            formula_or_intent: string;
-            description: string;
-            node_id: string;
-            timestamp: string;
-            duration_ms: number;
-            expression?: string;
-        }>
-    > => {
-        return fetchClient(`/jobs/${taskId}/concepts`);
     },
 
     /**
@@ -699,7 +701,7 @@ export const api = {
      * Get the WebSocket URL for real-time status updates.
      */
     getWebSocketUrl: (taskId: string): string => {
-        const isSecure = API_BASE_URL.startsWith("https:") || (typeof window !== "undefined" && window.location.protocol === "https:");
+        const isSecure = API_BASE_URL.startsWith("https:") || ("window" in globalThis && window.location.protocol === "https:");
         const protocol = isSecure ? "wss:" : "ws:";
         const hostAndPath = API_BASE_URL.replace(/^https?:\/\//, "").replace(/\/+$/, "");
         return `${protocol}//${hostAndPath}/ws/status/${encodeURIComponent(taskId)}`;
@@ -714,7 +716,7 @@ export const api = {
         taskId: string,
         callbacks: {
             onOpen?: () => void;
-            onMessage?: (data: StatusResponse | { type: string; [key: string]: unknown }) => void;
+            onMessage?: (data: StatusResponse | { type: string; message?: string }) => void;
             onError?: (error: Event) => void;
             onClose?: () => void;
         }
@@ -855,18 +857,41 @@ export const api = {
      * Lists recent audited datasets for interactive Superset Explore analytics.
      */
     listRecentDatasets: (limit = 10): Promise<{
-        datasets: Array<{
-            task_id: string;
-            filename: string;
-            rows: number;
-            columns_count: number;
-            columns: string[];
-            numeric_columns: string[];
-            categorical_columns: string[];
-            created_at: string;
-        }>;
+        datasets: RecentDatasetItem[];
     }> => {
         return fetchClient(`/analytics/datasets?limit=${limit}`);
+    },
+
+    /**
+     * Fetches sampled multi-dimensional HiPlot parallel-coordinates data for an audited task.
+     */
+    getHiPlotData: (
+        taskId: string,
+        maxRows: number = 2000,
+        columns?: string[]
+    ): Promise<{
+        total_rows: number;
+        sampled_rows: number;
+        is_sampled?: boolean;
+        dimensions: Array<{
+            name: string;
+            display_name: string;
+            type: string;
+            is_numeric: boolean;
+            min?: number;
+            max?: number;
+            mean?: number;
+            p5?: number;
+            p95?: number;
+            categories?: string[];
+        }>;
+        datapoints: DataRow[];
+    }> => {
+        const params = new URLSearchParams({ max_rows: String(maxRows) });
+        if (columns && columns.length > 0) {
+            params.set("columns", columns.join(","));
+        }
+        return fetchClient(`/analytics/explore/${encodeURIComponent(taskId)}/hiplot?${params.toString()}`);
     },
 
     /**
@@ -998,12 +1023,12 @@ export const api = {
         filters?: Array<{
             column: string;
             operator: string;
-            value?: any;
+            value?: PrimitiveValue | null;
         }>;
         row_limit: number;
         sort_order: string;
         color_palette: string;
-    }): Promise<{
+    }, signal?: AbortSignal): Promise<{
         task_id: string;
         chart_type: string;
         dimension: string;
@@ -1018,7 +1043,7 @@ export const api = {
         filters?: Array<{
             column: string;
             operator: string;
-            value?: any;
+            value?: PrimitiveValue | null;
         }>;
         metric_label: string;
         row_limit: number;
@@ -1041,13 +1066,14 @@ export const api = {
             description: string;
         }>;
         secondary_metric_label?: string;
-        records: Array<Record<string, any>>;
+        records: Array<Record<string, PrimitiveValue | null>>;
         total_groups: number;
-        echarts_option: Record<string, any>;
+        echarts_option: import("echarts").EChartsCoreOption;
     }> => {
         return fetchClient("/analytics/explore/query", {
             method: "POST",
             body: JSON.stringify(query),
+            signal,
         });
     },
 };

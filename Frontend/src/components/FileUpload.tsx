@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import Papa from "papaparse";
 import {
   Upload, FileSpreadsheet, Shield, Lock, Database,
   ArrowRightLeft, ArrowRight, Link2, AlertCircle
@@ -11,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ApiResponse, InspectionResult, CleaningRulesMap } from "@/types/api";
 import { api } from "@/services/api";
+import { buildSuggestedRules } from "@/lib/cleaning-rules";
 import { DataHealthCheck } from "./DataHealthCheck";
 import { IssueLedger } from "./IssueLedger";
 import { ProcessPipeline } from "./ProcessPipeline";
@@ -37,7 +39,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const SAMPLE_DATASETS: Record<string, { filename: string; csv: string }> = {
+const SAMPLE_DATASETS = {
   sales_retail: {
     filename: "ecommerce_sales_ledger.csv",
     csv: `order_id,customer_name,category,revenue_usd,order_date,customer_tier,shipping_lead_days
@@ -86,8 +88,45 @@ INV-007,Marketing,Meta Ads,$18000.00,$22000.00,Q1,Over Budget
 INV-008,Operations,WeWork,$30000.00,$30000.00,Q1,Approved
 INV-009,Engineering,GitHub Enterprise,$6000.00,$6000.00,Q1,Approved
 INV-010,Security,CrowdStrike,$14000.00,$14000.00,Q1,Approved`
+  },
+  education_perf: {
+    filename: "university_academic_cohort.csv",
+    csv: `student_id,department,term_gpa,credits_earned,attendance_pct,status
+1001,Computer Science,3.82,124,94,Active
+1002,Engineering,3.41,118,89,Active
+1003,Mathematics,2.65,92,68,Probation
+1004,Physics,3.95,128,97,Graduated
+1005,Economics,3.12,106,82,Active
+1006,Computer Science,3.68,210,91,Graduated
+1007,Biology,,84,74,Probation
+1008,History,3.25,98,86,Active`
+  },
+  saas_churn: {
+    filename: "saas_retention_telemetry.csv",
+    csv: `account_id,account_name,plan_tier,mrr_usd,active_seats,ticket_hours,churn_risk
+ACC-01, Acme Systems ,Enterprise,4200,85,12,0.12
+ACC-02,Beacon Health,Pro,890,14,54,0.78
+ACC-03,Cinder Cloud,Enterprise,6500,120,8,0.06
+ACC-04,Delta Ops,Starter,-120,4,62,0.89
+ACC-05,Evergreen AI,Pro,1250,22,26,0.31
+ACC-06,Falcon Pay,Enterprise,5100,96,15,0.14`
+  },
+  hr_attrition: {
+    filename: "workforce_compensation_attrition.csv",
+    csv: `employee_id,department,job_title,salary_band,annual_salary_usd,tenure_months,performance_score
+EMP-201,Engineering,Senior Engineer,L5,168000,46,4.7
+EMP-202,Engineering,,L4,132000,19,4.1
+EMP-203,Sales,Account Executive,L4,118000,28,4.3
+EMP-204,Product,Product Manager,L5,154000,52,4.6
+EMP-205,Operations,Ops Specialist,L3,79000,11,3.5
+EMP-206,Engineering,Staff Engineer,L6,245000,74,4.9`
   }
-};
+} satisfies Record<string, { filename: string; csv: string }>;
+
+function sanitizeBackendFilename(rawName: string): string {
+  const baseName = rawName.split(/[\\/]/).pop() || rawName;
+  return baseName.replace(/[^a-zA-Z0-9_.-]/g, "_") || "unnamed_file.csv";
+}
 
 interface FileUploadProps {
   onFileUploaded: (data: ApiResponse, taskId: string) => void;
@@ -113,7 +152,11 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
   // New States for Interactive Cleaning
   const [taskId, setTaskId] = useState<string | null>(null);
   const [inspectionData, setInspectionData] = useState<InspectionResult | null>(null);
+  const [healthRules, setHealthRules] = useState<CleaningRulesMap>({});
+  const [isSnowflakeImport, setIsSnowflakeImport] = useState(false);
+  const [isCancellingSnowflake, setIsCancellingSnowflake] = useState(false);
   const [isSnowflakeModalOpen, setIsSnowflakeModalOpen] = useState(false);
+  const loadedSampleRef = useRef<string | null>(null);
 
   // Track what we are waiting for
   const [expectedPhase, setExpectedPhase] = useState<'INSPECTION' | 'ANALYSIS' | null>(null);
@@ -133,7 +176,9 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     if (expectedPhase === 'INSPECTION') {
       if ((normalizedStatus === 'WAITING_FOR_USER' || normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS') && isInspectionResult(taskResult)) {
         setInspectionData(taskResult);
+        setHealthRules(buildSuggestedRules(taskResult.quality_report));
         setIsProcessing(false);
+        setIsSnowflakeImport(false);
         setExpectedPhase(null); // Stop waiting
         toast({ title: "Data Inspection Complete", description: "Please review the detected issues found." });
         return;
@@ -142,6 +187,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
       // If inspection was bypassed or analysis returned directly
       if ((normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS') && isApiResponse(taskResult)) {
         setIsProcessing(false);
+        setIsSnowflakeImport(false);
         setInspectionData(null);
         setExpectedPhase(null);
         onFileUploaded(taskResult, taskId);
@@ -155,6 +201,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
       if (normalizedStatus === 'COMPLETED' || normalizedStatus === 'SUCCESS' || normalizedStatus === 'DONE') {
         if (isApiResponse(taskResult)) {
           setIsProcessing(false);
+          setIsSnowflakeImport(false);
           setInspectionData(null);
           setExpectedPhase(null);
           onFileUploaded(taskResult, taskId);
@@ -167,6 +214,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     // CASE 3: Failure
     if (normalizedStatus === 'FAILED' || normalizedStatus === 'ERROR') {
       setIsProcessing(false);
+      setIsSnowflakeImport(false);
       setExpectedPhase(null);
       toast({ title: "Processing Failed", description: taskError || "An error occurred.", variant: "destructive" });
     }
@@ -230,7 +278,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
   }, [validateFile, toast]);
 
   const handleLoadSample = useCallback((sampleKey: string) => {
-    const sample = SAMPLE_DATASETS[sampleKey] || SAMPLE_DATASETS["sales_retail"];
+    const sample = Object.entries(SAMPLE_DATASETS).find(([key]) => key === sampleKey)?.[1] ?? SAMPLE_DATASETS.sales_retail;
     if (!sample) return;
     const blob = new Blob([sample.csv], { type: "text/csv;charset=utf-8;" });
     const file = new File([blob], sample.filename, { type: "text/csv" });
@@ -238,7 +286,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
   }, [addFilesToStaging]);
 
   useEffect(() => {
-    if (initialSampleId) {
+    if (initialSampleId && loadedSampleRef.current !== initialSampleId) {
+      loadedSampleRef.current = initialSampleId;
       handleLoadSample(initialSampleId);
     }
   }, [initialSampleId, handleLoadSample]);
@@ -249,15 +298,19 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
       const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
       if (ext === ".csv" || ext === ".tsv" || ext === ".txt") {
         const slice = file.slice(0, 32768);
-        const text = await slice.text();
-        const firstLine = text.split(/\r?\n/)[0];
+        const text =
+          "text" in slice && slice.text instanceof Function
+            ? await slice.text()
+            : await new Response(slice).text();
+        const firstLine = text.split(/\r?\n/).find(line => line.trim().length > 0);
         if (firstLine) {
           const sep = ext === ".tsv" || firstLine.includes("\t") ? "\t" : (firstLine.includes(";") ? ";" : ",");
-          const cols = firstLine
-            .split(sep)
-            .map(c => c.trim().replace(/^["']|["']$/g, ""))
-            .filter(Boolean);
-          if (cols.length > 0) return cols;
+          const parsed = Papa.parse<string[]>(firstLine, { delimiter: sep, header: false });
+          const rawRow = parsed.data?.[0];
+          if (Array.isArray(rawRow)) {
+            const cols = rawRow.map(c => String(c ?? "").trim()).filter(Boolean);
+            if (cols.length > 0) return cols;
+          }
         }
       }
     } catch (err) {
@@ -396,6 +449,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     setFileHeaders({});
     setKeyMapping({});
     setInspectionData(null);
+    setHealthRules({});
+    setIsSnowflakeImport(false);
     setExpectedPhase(null);
     setTaskId(null);
   };
@@ -404,6 +459,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     if (stagedFiles.length === 0) return;
 
     setIsProcessing(true);
+    setIsSnowflakeImport(false);
     setInspectionData(null);
 
     try {
@@ -413,7 +469,15 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
         const { task_id } = await api.uploadFile(fileToProcess);
         setTaskId(task_id);
       } else {
-        if (joinMode === "asymmetric" && stagedFiles.length === 2) {
+        const sanitizedKeyMapping: Record<string, string> = {};
+        for (const f of stagedFiles) {
+          const mappedKey = keyMapping[f.name] || joinKey;
+          if (mappedKey) {
+            sanitizedKeyMapping[sanitizeBackendFilename(f.name)] = mappedKey;
+          }
+        }
+
+        if (joinMode === "asymmetric") {
           const leftFile = stagedFiles[0];
           const rightFile = stagedFiles[1];
           const leftKey = keyMapping[leftFile.name] || joinKey;
@@ -421,15 +485,17 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
           toast({
             title: "Joining Datasets...",
-            description: `Merging '${leftFile.name}' (${leftKey}) and '${rightFile.name}' (${rightKey}) via ${joinType} join...`
+            description: stagedFiles.length === 2
+              ? `Merging '${leftFile.name}' (${leftKey}) and '${rightFile.name}' (${rightKey}) via ${joinType} join...`
+              : `Merging ${stagedFiles.length} datasets via mapped keys (${joinType} join)...`
           });
           const { task_id } = await api.uploadJoinedFiles(
             stagedFiles,
             undefined,
             joinType,
-            leftKey,
-            rightKey,
-            { [leftFile.name]: leftKey, [rightFile.name]: rightKey }
+            stagedFiles.length === 2 ? leftKey : undefined,
+            stagedFiles.length === 2 ? rightKey : undefined,
+            Object.keys(sanitizedKeyMapping).length > 0 ? sanitizedKeyMapping : undefined
           );
           setTaskId(task_id);
         } else {
@@ -437,7 +503,14 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             title: "Joining Datasets...",
             description: `Merging ${stagedFiles.length} datasets on '${joinKey}' (${joinType} join)...`
           });
-          const { task_id } = await api.uploadJoinedFiles(stagedFiles, joinKey, joinType);
+          const { task_id } = await api.uploadJoinedFiles(
+            stagedFiles,
+            joinKey,
+            joinType,
+            undefined,
+            undefined,
+            Object.keys(sanitizedKeyMapping).length > 0 ? sanitizedKeyMapping : undefined
+          );
           setTaskId(task_id);
         }
       }
@@ -454,7 +527,33 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
   const handleCleaningRules = async (rules: CleaningRulesMap) => {
     if (!taskId) return;
-    setIsProcessing(true);
+
+    const ledger = inspectionData?.issue_ledger;
+    if (ledger && ledger.issues && ledger.issues.length > 0 && !ledger.locked) {
+      const pendingCount = ledger.issues.filter(i => i.status === "pending").length;
+      if (pendingCount > 0) {
+        toast({
+          title: "Pending Issue Ledger Review",
+          description: `Please approve, modify, or reject all ${pendingCount} remaining issue(s) in the Issue Ledger before starting analysis.`,
+          variant: "destructive",
+        });
+        document.getElementById("issue-ledger-gate")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+
+      setIsProcessing(true);
+      try {
+        const lockedRes = await api.lockIssues(taskId);
+        setInspectionData(prev => prev ? { ...prev, issue_ledger: lockedRes } : prev);
+      } catch (lockErr) {
+        setIsProcessing(false);
+        const msg = lockErr instanceof Error ? lockErr.message : "Failed to lock Issue Ledger.";
+        toast({ title: "Ledger Lock Failed", description: msg, variant: "destructive" });
+        return;
+      }
+    } else {
+      setIsProcessing(true);
+    }
 
     try {
       await api.startAnalysis(taskId, rules);
@@ -500,21 +599,31 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
       }
     };
 
+    const pendingLedgerCount = issueLedgerData && !issueLedgerData.locked
+      ? (issueLedgerData.issues || []).filter(i => i.status === "pending").length
+      : 0;
+
     return (
       <div className="space-y-8 max-w-7xl mx-auto">
         {issueLedgerData && issueLedgerData.issues && issueLedgerData.issues.length > 0 && (
-          <IssueLedger
-            taskId={taskId!}
-            data={issueLedgerData}
-            onRefresh={refreshIssues}
-            onProceed={() => handleCleaningRules({})}
-          />
+          <div id="issue-ledger-gate">
+            <IssueLedger
+              taskId={taskId!}
+              data={issueLedgerData}
+              onRefresh={refreshIssues}
+              onProceed={() => void handleCleaningRules(healthRules)}
+            />
+          </div>
         )}
 
         <DataHealthCheck
           report={inspectionData.quality_report}
-          onContinue={handleCleaningRules}
+          rules={healthRules}
+          onRulesChange={setHealthRules}
+          onContinue={(submittedRules) => void handleCleaningRules(submittedRules)}
           isProcessing={isProcessing}
+          pendingLedgerCount={pendingLedgerCount}
+          onReviewLedgerClick={() => document.getElementById("issue-ledger-gate")?.scrollIntoView({ behavior: "smooth", block: "start" })}
         />
       </div>
     );
@@ -531,12 +640,46 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
       {/* Process Pipeline: shown when processing is active */}
       <AnimatePresence>
         {isProcessing && taskId && (
-          <ProcessPipeline
-            taskStatus={taskStatus}
-            message={taskMessage}
-            progress={taskProgress}
-            isActive={isProcessing}
-          />
+          <div className="space-y-3">
+            <ProcessPipeline
+              taskStatus={taskStatus}
+              message={taskMessage}
+              progress={taskProgress}
+              isActive={isProcessing}
+            />
+            {isSnowflakeImport && (
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isCancellingSnowflake}
+                  onClick={async () => {
+                    setIsCancellingSnowflake(true);
+                    try {
+                      await api.cancelSnowflakeQuery(taskId);
+                      setIsProcessing(false);
+                      setIsSnowflakeImport(false);
+                      setExpectedPhase(null);
+                      setTaskId(null);
+                      toast({
+                        title: "Snowflake Import Cancelled",
+                        description: "Cancelled active warehouse query and reset workspace.",
+                      });
+                    } catch (err) {
+                      const msg = err instanceof Error ? err.message : "Could not cancel extraction.";
+                      toast({ title: "Cancel Failed", description: msg, variant: "destructive" });
+                    } finally {
+                      setIsCancellingSnowflake(false);
+                    }
+                  }}
+                  className="text-xs border-rose-500/40 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                >
+                  {isCancellingSnowflake ? "Cancelling..." : "Cancel Snowflake Extraction"}
+                </Button>
+              </div>
+            )}
+          </div>
         )}
       </AnimatePresence>
 
@@ -607,7 +750,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                   <input
                     type="file"
                     multiple
-                    accept=".csv,.xlsx,.xls,.parquet,.json,.jsonl,.tsv"
+                    accept=".csv,.xlsx,.xls,.parquet,.json,.jsonl,.ndjson,.tsv,.feather,.arrow,.gz"
                     onChange={handleFileSelect}
                     className="sr-only"
                   />
@@ -810,8 +953,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                             type="button"
                             onClick={() => setJoinMode("common")}
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${joinMode === "common"
-                                ? "bg-[#800000] text-white shadow-sm dark:bg-white/10 dark:text-white"
-                                : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                              ? "bg-[#800000] text-white shadow-sm dark:bg-white/10 dark:text-white"
+                              : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
                               }`}
                           >
                             Single Key
@@ -820,8 +963,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                             type="button"
                             onClick={() => setJoinMode("asymmetric")}
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all flex items-center gap-1 cursor-pointer ${joinMode === "asymmetric"
-                                ? "bg-[#800000] text-white shadow-sm dark:bg-white/[0.12] dark:text-white dark:border dark:border-white/20"
-                                : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+                              ? "bg-[#800000] text-white shadow-sm dark:bg-white/[0.12] dark:text-white dark:border dark:border-white/20"
+                              : "text-stone-600 hover:text-stone-900 dark:text-zinc-400 dark:hover:text-zinc-200"
                               }`}
                           >
                             <Link2 className="h-3 w-3 text-stone-600 dark:text-zinc-300" />
@@ -933,7 +1076,12 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                               id="join-strategy-select"
                               aria-label="Join Strategy"
                               value={joinType}
-                              onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
+                              onChange={(e) => {
+                                const nextJoin = e.target.value;
+                                if (nextJoin === "inner" || nextJoin === "left" || nextJoin === "outer") {
+                                  setJoinType(nextJoin);
+                                }
+                              }}
                               className="w-full px-3 py-1.5 rounded-lg border border-stone-300 bg-[#FAF8F5] text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:border-white/10 dark:bg-[#0d0f17] dark:text-white dark:focus:border-white/40 font-sans text-xs cursor-pointer"
                             >
                               <option value="inner">Inner Join (Matched Rows Only)</option>
@@ -991,7 +1139,12 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                               id="join-strategy-select-common"
                               aria-label="Join Strategy"
                               value={joinType}
-                              onChange={(e) => setJoinType(e.target.value as "inner" | "left" | "outer")}
+                              onChange={(e) => {
+                                const nextJoin = e.target.value;
+                                if (nextJoin === "inner" || nextJoin === "left" || nextJoin === "outer") {
+                                  setJoinType(nextJoin);
+                                }
+                              }}
                               className="w-full px-3 py-1.5 rounded-lg border border-stone-300 bg-[#FAF8F5] text-stone-900 focus:outline-none focus:border-[#800000]/50 dark:border-white/10 dark:bg-[#0d0f17] dark:text-white dark:focus:border-white/40 font-sans text-xs cursor-pointer"
                             >
                               <option value="inner">Inner Join (Matched Rows)</option>
@@ -1135,6 +1288,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
         onClose={() => setIsSnowflakeModalOpen(false)}
         onImportStarted={(importedTaskId) => {
           setTaskId(importedTaskId);
+          setIsSnowflakeImport(true);
           setIsProcessing(true);
           setExpectedPhase('INSPECTION');
           toast({

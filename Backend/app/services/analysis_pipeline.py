@@ -203,6 +203,36 @@ class TextSecurityStep:
             logger.info("Text security audit: Found %d total hazards", hazards["total_hazards_count"])
 
 
+class PIIStep:
+    """Scan columns for sensitive PII/credentials and mask summaries for governance reporting."""
+    name = "pii"
+
+    def __call__(self, df: pl.DataFrame, result: dict[str, Any]) -> None:
+        if df.height == 0 or df.width == 0:
+            return
+        from app.services.pii_guard import PIIGuard
+        pii_report = PIIGuard.scan_dataframe(df)
+        if pii_report.get("has_pii"):
+            result["pii"] = pii_report
+            logger.info(
+                "PII audit: Flagged %d column(s) at %s risk",
+                pii_report.get("total_pii_columns", 0),
+                pii_report.get("risk_level"),
+            )
+
+
+class DataQualityStep:
+    """Execute baseline OpenMetadata-style data quality assertions across profiled columns."""
+    name = "data_quality"
+
+    def __call__(self, df: pl.DataFrame, result: dict[str, Any]) -> None:
+        if df.height == 0 or df.width == 0:
+            return
+        from app.services.data_quality_suite import generate_baseline_test_suite
+        suite = generate_baseline_test_suite(df, result.get("summary"))
+        result["data_quality"] = suite.run(df)
+
+
 # ─── Default Pipeline ───────────────────────────────────────────────────────
 
 DEFAULT_STEPS: Sequence[AnalysisStep] = [
@@ -215,6 +245,8 @@ DEFAULT_STEPS: Sequence[AnalysisStep] = [
     UnsupervisedStep(),
     SupervisedStep(),
     TextSecurityStep(),
+    PIIStep(),
+    DataQualityStep(),
 ]
 
 

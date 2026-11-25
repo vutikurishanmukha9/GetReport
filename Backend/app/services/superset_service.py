@@ -160,6 +160,28 @@ class SupersetService:
             logger.warning(f"Could not connect or write to Superset PostgreSQL ({e}). Dataset saved locally.")
             return False
 
+    async def _resolve_superset_database_id(self, client: httpx.AsyncClient, headers: Dict[str, str]) -> int:
+        """Discover matching Superset database connection ID dynamically instead of hardcoding."""
+        try:
+            db_resp = await client.get(f"{self.base_url}/api/v1/database/", headers=headers)
+            if db_resp.status_code == 200:
+                items = db_resp.json().get("result", [])
+                if isinstance(items, list) and items:
+                    target_db_name = self.db_url.rsplit("/", 1)[-1].split("?")[0] if self.db_url else ""
+                    for item in items:
+                        if not isinstance(item, dict):
+                            continue
+                        uri = str(item.get("sqlalchemy_uri") or "")
+                        name = str(item.get("database_name") or "")
+                        if target_db_name and (target_db_name in uri or target_db_name.lower() in name.lower()):
+                            return int(item.get("id", 1))
+                    first_id = items[0].get("id")
+                    if first_id is not None:
+                        return int(first_id)
+        except Exception as db_err:
+            logger.debug("Could not resolve Superset database ID dynamically: %s", db_err)
+        return 1
+
     async def sync_dataset_to_superset(
         self,
         task_id: str,
@@ -177,7 +199,7 @@ class SupersetService:
             if not file_path:
                 from app.services.task_manager import title_task_manager
                 from app.services.storage import get_storage_provider
-                job = title_task_manager.get_job(task_id)
+                job = await title_task_manager.get_job_async(task_id)
                 if job and job.result:
                     file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
                     if file_ref:
@@ -220,12 +242,13 @@ class SupersetService:
             try:
                 dataset_url = f"{self.base_url}/api/v1/dataset/"
                 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-                payload = {
-                    "database": 1,
-                    "schema": "public",
-                    "table_name": table_name,
-                }
                 async with httpx.AsyncClient(timeout=5.0) as client:
+                    database_id = await self._resolve_superset_database_id(client, headers)
+                    payload = {
+                        "database": database_id,
+                        "schema": "public",
+                        "table_name": table_name,
+                    }
                     resp = await client.post(dataset_url, json=payload, headers=headers)
                     if resp.status_code in (200, 201):
                         api_registered = True

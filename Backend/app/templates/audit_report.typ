@@ -346,7 +346,6 @@
     "Scoring reconciliation",
     [
       Overall grade is *#grade* with a quality index of #fmt-pct(dqi). #fmt-num(a-count) high-confidence columns reached Grade A.
-      Zero-variance and constant column exclusions: constant_col, zero_var_num.
       #if excluded.len() > 0 [ All non-analytical columns excluded from analysis: #excluded.join(", "). ]
     ],
   )
@@ -459,9 +458,9 @@
       (2fr, 1.2fr, 2.8fr),
       ("Feature pair", "Relationship", "Rationale"),
       pairs.slice(0, calc.min(pairs.len(), 6)).map(p => (
-        [#b(p.at("col1", default: p.at("column_1", default: "—"))) #text(fill: c-faint)[×] #b(p.at("col2", default: p.at("column_2", default: "—")))],
-        p.at("relationship_type", default: "Association"),
-        text(fill: c-mute)[#p.at("rationale", default: "—")],
+        [#b(p.at("col1", default: p.at("column_1", default: p.at("col_a", default: "—")))) #text(fill: c-faint)[×] #b(p.at("col2", default: p.at("column_2", default: p.at("col_b", default: "—"))))],
+        p.at("relationship_type", default: p.at("type", default: "Association")),
+        text(fill: c-mute)[#p.at("rationale", default: p.at("reason", default: "—"))],
       )),
     )
   }
@@ -485,8 +484,8 @@
     (2.2fr, 1fr, 3.8fr),
     ("Module", "Status", "Precondition and rationale"),
     listify(dec, key: "decisions").map(r => (
-      b(r.at("module", default: "—")),
-      tag(r.at("status", default: "RAN"), color: status-color(r.at("status", default: "RAN"))),
+      b(r.at("module", default: r.at("analysis", default: "—"))),
+      tag(r.at("status", default: r.at("decision", default: "RAN")), color: status-color(r.at("status", default: r.at("decision", default: "RAN")))),
       text(fill: c-mute)[#r.at("reason", default: "—")],
     )),
   )
@@ -539,35 +538,39 @@
 #if cr != none {
   section("Data Cleaning", sub: "Row triage, renamed identifiers and measured quality change.")
 
-  let dupes = cr.at("duplicate_rows_removed", default: 1513)
+  let dupes = nz(cr.at("duplicate_rows_removed", default: none), 0)
   v(4pt)
   text(size: 8.5pt, fill: c-ink)[*Duplicate Rows Removed:* #b(fmt-num(dupes)) exact duplicate rows removed before profiling.]
   v(8pt)
 
   let triage = listify(field(cr, "triage"))
-  let triage-items = if triage.len() > 0 { triage } else {
+  let triage-norm = cr.at("triage_normalized", default: none)
+  let triage-items = if triage.len() > 0 {
+    triage
+  } else if type(triage-norm) == dictionary and triage-norm.len() > 0 {
     (
-      (category: "Duplicate Rows Removed", count: dupes, policy: "Exact duplicate bit-level records dropped (EXCLUDE)"),
-      (category: "Fully blank rows", count: 182, policy: "Completely empty lines dropped (EXCLUDE)"),
-      (category: "Whitespace-only rows", count: 99, policy: "Non-data whitespace lines dropped (EXCLUDE)"),
-      (category: "Repeated header rows", count: 12, policy: "Mid-file repeated column headers dropped (EXCLUDE)"),
-      (category: "Subtotal / total rows", count: 20, policy: "Aggregated summary rows dropped (EXCLUDE)"),
-      (category: "Sparse footer rows", count: 5, policy: "Trailing metadata notes dropped (EXCLUDE)"),
-      (category: "Near-duplicate rows", count: 1053, policy: "Fuzzy similar records preserved for analytical review (REVIEW)"),
+      (category: "Duplicate Rows Removed", count: nz(triage-norm.at("duplicate_rows_removed", default: none), dupes), policy: "Exact duplicate bit-level records dropped (EXCLUDE)"),
+      (category: "Blank / whitespace rows", count: nz(triage-norm.at("blank_whitespace_rows", default: none), 0), policy: "Completely empty / whitespace lines dropped (EXCLUDE)"),
+      (category: "Repeated header rows", count: nz(triage-norm.at("repeated_headers", default: none), 0), policy: "Mid-file repeated column headers dropped (EXCLUDE)"),
+      (category: "Subtotal / total rows", count: nz(triage-norm.at("subtotal_grand_total_rows", default: none), 0), policy: "Aggregated summary rows dropped (EXCLUDE)"),
+      (category: "Sparse footer rows", count: nz(triage-norm.at("footer_rows", default: none), 0), policy: "Trailing metadata notes dropped (EXCLUDE)"),
+      (category: "Sparse low-density rows", count: nz(triage-norm.at("sparse_rows", default: none), 0), policy: "High-sparsity records protected from imputation (REVIEW)"),
+    )
+  } else { () }
+
+  if triage-items.len() > 0 {
+    eyebrow("Structural row triage")
+    tbl(
+      (2.6fr, 1fr, 3fr),
+      ("Category", "Count", "Policy"),
+      triage-items.map(r => (
+        b(r.at("category", default: "—")),
+        fmt-num(r.at("count", default: none)),
+        text(fill: c-mute)[#r.at("policy", default: "—")],
+      )),
+      right: (1,),
     )
   }
-
-  eyebrow("Structural row triage")
-  tbl(
-    (2.6fr, 1fr, 3fr),
-    ("Category", "Count", "Policy"),
-    triage-items.map(r => (
-      b(r.at("category", default: "—")),
-      fmt-num(r.at("count", default: none)),
-      text(fill: c-mute)[#r.at("policy", default: "—")],
-    )),
-    right: (1,),
-  )
 
   let ren = cr.at("columns_renamed", default: none)
   let ren-pairs = if type(ren) == dictionary { ren.pairs() } else if type(ren) == array { ren } else { () }
@@ -582,19 +585,12 @@
   }
 
   let ba = listify(field(cr, "before_after"))
-  let ba-items = if ba.len() > 0 { ba } else {
-    (
-      (metric: "Completeness Score", before: 87.28, after: 86.98, delta: -0.30),
-      (metric: "Duplicate Rows", before: 1513, after: 0, delta: -1513),
-      (metric: "Non-Data Junk Rows", before: 401, after: 0, delta: -401),
-    )
-  }
-
-  eyebrow("Quality change, before versus after")
-  tbl(
-    (2.4fr, 1fr, 1fr, 1fr),
-    ("Metric", "Before", "After", "Change"),
-    ba-items.map(r => {
+  if ba.len() > 0 {
+    eyebrow("Quality change, before versus after")
+    tbl(
+      (2.4fr, 1fr, 1fr, 1fr),
+      ("Metric", "Before", "After", "Change"),
+      ba.map(r => {
       let delta = r.at("delta", default: 0)
       let is-pct = r.at("metric", default: "").contains("Score")
       let dtxt = if type(delta) not in (int, float) {
@@ -606,15 +602,16 @@
       } else {
         text(fill: c-mute)[—]
       }
-      (
-        b(r.at("metric", default: "—")),
-        if is-pct { fmt-pct(r.at("before", default: none)) } else { fmt-num(r.at("before", default: none)) },
-        if is-pct { fmt-pct(r.at("after", default: none)) } else { fmt-num(r.at("after", default: none)) },
-        dtxt
-      )
-    }),
-    right: (1, 2, 3),
-  )
+        (
+          b(r.at("metric", default: "—")),
+          if is-pct { fmt-pct(r.at("before", default: none)) } else { fmt-num(r.at("before", default: none)) },
+          if is-pct { fmt-pct(r.at("after", default: none)) } else { fmt-num(r.at("after", default: none)) },
+          dtxt
+        )
+      }),
+      right: (1, 2, 3),
+    )
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -678,42 +675,44 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 #let corrs = listify(field(analysis, "strong_correlations"))
-#if corrs.len() > 0 {
+#let eqs = listify(field(analysis, "symbolic_equations"))
+#if corrs.len() > 0 or eqs.len() > 0 {
   section(
     "Correlation & Multicollinearity",
     sub: "Pearson associations between numeric features and any exact arithmetic relationships.",
   )
 
-  let get-r(p) = p.at("r_value", default: p.at("value", default: 0))
-  let get-a(p) = p.at("column_a", default: p.at("col_a", default: "—"))
-  let get-b(p) = p.at("column_b", default: p.at("col_b", default: "—"))
-  let collinear = corrs.filter(p => calc.abs(get-r(p)) >= 0.90)
+  if corrs.len() > 0 {
+    let get-r(p) = p.at("r_value", default: p.at("value", default: 0))
+    let get-a(p) = p.at("column_a", default: p.at("col_a", default: "—"))
+    let get-b(p) = p.at("column_b", default: p.at("col_b", default: "—"))
+    let collinear = corrs.filter(p => calc.abs(get-r(p)) >= 0.90)
 
-  if collinear.len() > 0 {
-    note(
-      "Redundant features",
-      [
-        #fmt-num(collinear.len()) feature pair(s) have |r| ≥ 0.90:
-        #collinear.slice(0, calc.min(collinear.len(), 5)).map(p => [#get-a(p) (collinear, redundant r = 1.00 with #get-b(p))]).join("; ").
-        Near-duplicate columns inflate variance in linear models; consider dropping one of each pair.
-      ],
-      tone: c-bad,
+    if collinear.len() > 0 {
+      note(
+        "Redundant features",
+        [
+          #fmt-num(collinear.len()) feature pair(s) have |r| ≥ 0.90:
+          #collinear.slice(0, calc.min(collinear.len(), 5)).map(p => [#get-a(p) (collinear, redundant r = #fmt-num(get-r(p), digits: 2) with #get-b(p))]).join("; ").
+          Near-duplicate columns inflate variance in linear models; consider dropping one of each pair.
+        ],
+        tone: c-bad,
+      )
+      v(8pt)
+    }
+
+    tbl(
+      (1.8fr, 1.8fr, 0.9fr, 1.6fr),
+      ("Feature A", "Feature B", "Pearson r", "Relationship"),
+      corrs.slice(0, calc.min(corrs.len(), 10)).map(p => {
+        let r = get-r(p)
+        let rel = if calc.abs(r) >= 0.90 { tag("Collinear", color: c-bad) } else if r > 0 { tag("Positive", color: c-good) } else { tag("Negative", color: c-warn) }
+        (b(get-a(p)), b(get-b(p)), fmt-num(r, digits: 3), rel)
+      }),
+      right: (2,),
     )
-    v(8pt)
   }
 
-  tbl(
-    (1.8fr, 1.8fr, 0.9fr, 1.6fr),
-    ("Feature A", "Feature B", "Pearson r", "Relationship"),
-    corrs.slice(0, calc.min(corrs.len(), 10)).map(p => {
-      let r = get-r(p)
-      let rel = if calc.abs(r) >= 0.90 { tag("Collinear", color: c-bad) } else if r > 0 { tag("Positive", color: c-good) } else { tag("Negative", color: c-warn) }
-      (b(get-a(p)), b(get-b(p)), fmt-num(r, digits: 3), rel)
-    }),
-    right: (2,),
-  )
-
-  let eqs = listify(field(analysis, "symbolic_equations"))
   if eqs.len() > 0 {
     eyebrow("Discovered arithmetic relationships")
     tbl(
@@ -735,17 +734,32 @@
 
 #let ts = field(analysis, "time_series")
 #if ts != none {
-  section("Time-Series Analysis", sub: "Monotonic trend testing and date-format robustness.")
+  if type(ts) == array and ts.len() > 0 {
+    section("Time-Series Analysis", sub: "Monotonic trend testing and date-format robustness.")
+    tbl(
+      (1.5fr, 1.3fr, 1.1fr, 2.5fr),
+      ("Measure", "Direction", "Slope", "Notes"),
+      ts.slice(0, calc.min(ts.len(), 8)).map(r => (
+        b(r.at("column", default: "—")),
+        r.at("direction", default: "—"),
+        if type(r.at("slope", default: none)) in (int, float) { fmt-num(r.at("slope"), digits: 4) } else { str(r.at("slope", default: "—")) },
+        text(fill: c-mute)[#r.at("notes", default: r.at("method", default: "—"))],
+      )),
+      right: (2,),
+    )
+  } else if type(ts) == dictionary {
+    section("Time-Series Analysis", sub: "Monotonic trend testing and date-format robustness.")
 
-  spec((
-    ("Time dimension", ts.at("column", default: "—")),
-    ("Trend method", ts.at("method", default: "—")),
-    ("Slope estimate", ts.at("slope", default: "—")),
-  ))
-  let notes = ts.at("notes", default: none)
-  if notes != none {
-    v(8pt)
-    note("Data integrity note", notes, tone: c-warn)
+    spec((
+      ("Time dimension", ts.at("column", default: "—")),
+      ("Trend method", ts.at("method", default: "—")),
+      ("Slope estimate", ts.at("slope", default: "—")),
+    ))
+    let notes = ts.at("notes", default: none)
+    if notes != none {
+      v(8pt)
+      note("Data integrity note", notes, tone: c-warn)
+    }
   }
 }
 

@@ -59,18 +59,25 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
   const applyStatusUpdate = useCallback((data: StatusResponse) => {
     if (!data) return;
 
-    if (data.status) {
-      const upper = data.status.toUpperCase();
-      if (isValidTaskStatus(upper)) {
-        setTaskStatus(upper);
-      }
+    const prevStatus = statusRef.current;
+    const upper = data.status ? data.status.toUpperCase() : undefined;
+    if (upper && isValidTaskStatus(upper)) {
+      setTaskStatus(upper);
     }
-    if (data.progress !== undefined) setProgress((prev) => Math.max(prev, data.progress));
-    if (data.message) setMessage(data.message);
-    if (data.result) setResult(data.result);
-    if (data.error) setError(data.error);
 
-    if (['COMPLETED', 'FAILED'].includes(data.status?.toUpperCase())) {
+    if (data.progress !== undefined) {
+      // Allow reset if returning from WAITING_FOR_USER into a fresh processing stage or a new connection
+      const resetWatermark =
+        (prevStatus === 'WAITING_FOR_USER' && upper === 'PROCESSING') ||
+        prevStatus === 'CONNECTING' ||
+        prevStatus === 'DISCONNECTED';
+      setProgress((prev) => (resetWatermark ? data.progress : Math.max(prev, data.progress)));
+    }
+    if (data.message !== undefined) setMessage(data.message);
+    if (data.result !== undefined) setResult(data.result);
+    if (data.error !== undefined) setError(data.error);
+
+    if (upper && ['COMPLETED', 'FAILED'].includes(upper)) {
       stopPolling();
       clearWatchdog();
       if (eventSourceUnsubRef.current) {
@@ -142,11 +149,62 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
     }
     clearWatchdog();
     stopPolling();
+    taskIdRef.current = null;
     setIsConnected(false);
     retryCountRef.current = 0;
     pollFailureCountRef.current = 0;
+    setProgress(0);
+    setMessage('');
+    setResult(null);
+    setError(null);
     setTaskStatus('DISCONNECTED');
   }, [setTaskStatus, stopPolling, clearWatchdog]);
+
+  const startWebSocketChannel = useCallback((taskId: string) => {
+    if (wsUnsubRef.current) {
+      wsUnsubRef.current();
+      wsUnsubRef.current = null;
+    }
+    try {
+      startPolling(taskId);
+      const unsubWs = api.subscribeWebSocketStatus(taskId, {
+        onOpen: () => {
+          setIsConnected(true);
+          retryCountRef.current = 0;
+          resetWatchdog(taskId);
+        },
+        onMessage: (data) => {
+          resetWatchdog(taskId);
+          if ("status" in data) {
+            applyStatusUpdate(data);
+          }
+        },
+        onError: () => {
+          console.warn("WebSocket status channel unavailable; HTTP polling active.");
+        },
+        onClose: () => {
+          setIsConnected(false);
+          wsUnsubRef.current = null;
+          clearWatchdog();
+
+          if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
+            const attempt = retryCountRef.current;
+            retryCountRef.current += 1;
+            const delay = Math.min(30000, 1000 * Math.pow(1.5, attempt)) + Math.random() * 500;
+
+            reconnectTimeoutRef.current = setTimeout(() => {
+              if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
+                startWebSocketChannel(taskId);
+              }
+            }, delay);
+          }
+        }
+      });
+      wsUnsubRef.current = unsubWs;
+    } catch (e) {
+      console.warn("WebSocket init error; active HTTP polling handling status:", e);
+    }
+  }, [startPolling, resetWatchdog, clearWatchdog, applyStatusUpdate]);
 
   const connect = useCallback((taskId: string) => {
     disconnect();
@@ -176,13 +234,15 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
             stopPolling();
           },
           onError: (err) => {
-            console.warn("SSE stream interrupted or unavailable; falling back to WebSocket/polling.", err);
-            // Teardown the SSE stream to prevent continuous background reconnection loops
+            console.warn("SSE stream interrupted or unavailable; falling back to WebSocket & polling.", err);
+            // Teardown SSE and upgrade into WebSocket + HTTP polling resilience
             if (eventSourceUnsubRef.current) {
               eventSourceUnsubRef.current();
               eventSourceUnsubRef.current = null;
             }
-            startPolling(taskId);
+            if (taskIdRef.current === taskId && !['COMPLETED', 'FAILED'].includes(statusRef.current)) {
+              startWebSocketChannel(taskId);
+            }
           }
         });
 
@@ -193,46 +253,9 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
       }
     }
 
-    // ── 2. Fallback Strategy: WebSocket ──────────────────────────────
-    try {
-      startPolling(taskId);
-      const unsubWs = api.subscribeWebSocketStatus(taskId, {
-        onOpen: () => {
-          setIsConnected(true);
-          retryCountRef.current = 0;
-          setTaskStatus('PROCESSING');
-          resetWatchdog(taskId);
-        },
-        onMessage: (data) => {
-          resetWatchdog(taskId);
-          applyStatusUpdate(data as StatusResponse);
-        },
-        onError: () => {
-          console.warn("WebSocket status channel unavailable; HTTP polling active.");
-        },
-        onClose: () => {
-          setIsConnected(false);
-          wsUnsubRef.current = null;
-          clearWatchdog();
-
-          if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
-            const attempt = retryCountRef.current;
-            retryCountRef.current += 1;
-            const delay = Math.min(30000, 1000 * Math.pow(1.5, attempt)) + Math.random() * 500;
-
-            reconnectTimeoutRef.current = setTimeout(() => {
-              if (taskIdRef.current === taskId && statusRef.current !== 'COMPLETED' && statusRef.current !== 'FAILED') {
-                connect(taskId);
-              }
-            }, delay);
-          }
-        }
-      });
-      wsUnsubRef.current = unsubWs;
-    } catch (e) {
-      console.warn("WebSocket init error; active HTTP polling handling status:", e);
-    }
-  }, [disconnect, setTaskStatus, startPolling, stopPolling, resetWatchdog, clearWatchdog, applyStatusUpdate, pollStatus]);
+    // ── 2. Fallback Strategy: WebSocket + Polling ────────────────────
+    startWebSocketChannel(taskId);
+  }, [disconnect, setTaskStatus, stopPolling, resetWatchdog, applyStatusUpdate, pollStatus, startWebSocketChannel]);
 
   // Auto-connect and ensure full lifecycle cleanup of timers, SSE, and sockets
   useEffect(() => {

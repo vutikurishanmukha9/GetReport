@@ -232,15 +232,26 @@ class TableSemanticChunker(TextSplitter):
         Directly chunk structured profiling results and Issue Ledger records
         into self-contained semantic entity chunks with rich metadata.
         """
+        from app.services.report_normalizer import (
+            extract_column_profiles,
+            extract_dataset_confidence_summary,
+            extract_domain_info,
+            extract_ledger_issues,
+            extract_strong_correlations,
+        )
+
         chunks = []
         filename = profiling_result.get("filename", "Dataset")
         analysis = profiling_result.get("analysis", {})
         metadata = analysis.get("metadata", {})
         summary = analysis.get("summary", {})
-        columns_info = analysis.get("columns", {})
-        confidence = profiling_result.get("confidence", {})
-        correlations = analysis.get("correlation", {}).get("strong_correlations", [])
+        columns_info = extract_column_profiles(analysis, profiling_result.get("info"))
+        confidence = extract_dataset_confidence_summary(profiling_result, analysis)
+        domain_primary, _ = extract_domain_info(analysis)
+        correlations = extract_strong_correlations(analysis)
         cleaning_report = profiling_result.get("cleaning_report", {})
+        if ledger_issues is None:
+            ledger_issues = extract_ledger_issues(profiling_result)
         
         # 1. Dataset Overview Document
         overview_lines = [
@@ -250,7 +261,7 @@ class TableSemanticChunker(TextSplitter):
             f"- Total Columns: {metadata.get('total_columns', 'Unknown')}",
             f"- Completeness Rate: {100 - metadata.get('missing_value_pct', 0):.2f}%",
             f"- Overall Confidence: {confidence.get('dataset_confidence', 'N/A')}% (Grade: {confidence.get('dataset_grade', 'N/A')})",
-            f"- Domain Classification: {analysis.get('domain', 'General Data')}",
+            f"- Domain Classification: {domain_primary}",
             f"- Total Cleaning Operations: {cleaning_report.get('total_changes', 0)}",
         ]
         chunks.append({
@@ -263,28 +274,31 @@ class TableSemanticChunker(TextSplitter):
         })
 
         # 2. Group Issue Ledger by column
+        all_col_names = set(summary.keys()) | set(columns_info.keys())
         issues_by_col = defaultdict(list)
         general_issues = []
         if ledger_issues:
             for iss in ledger_issues:
                 col = iss.get("column")
-                if col and col in summary:
+                if col and col in all_col_names:
                     issues_by_col[col].append(iss)
                 else:
                     general_issues.append(iss)
 
         # 3. Column-Level Semantic Documents (RAGFlow Table Pattern)
-        for col_name, stats in summary.items():
+        ordered_cols = list(summary.keys()) + [c for c in columns_info.keys() if c not in summary]
+        for col_name in ordered_cols:
+            stats = summary.get(col_name, {}) if isinstance(summary.get(col_name), dict) else {}
             info = columns_info.get(col_name, {})
             col_issues = issues_by_col.get(col_name, [])
             
             lines = [
                 f"[Entity: Column Profile - {col_name}]",
                 f"- Column Name: {col_name}",
-                f"- Physical Type: {info.get('data_type', stats.get('data_type', 'Unknown'))}",
+                f"- Physical Type: {info.get('data_type', info.get('dtype', stats.get('data_type', 'Unknown')))}",
                 f"- Semantic Category: {info.get('semantic_type', 'General')}",
-                f"- Null Count: {stats.get('null_count', 0)} ({stats.get('null_percentage', 0.0):.2f}%)",
-                f"- Unique Values: {stats.get('unique_count', 'N/A')}",
+                f"- Null Count: {stats.get('null_count', 0)} ({stats.get('null_percentage', info.get('missing_pct', 0.0)):.2f}%)",
+                f"- Unique Values: {stats.get('unique_count', info.get('stats', {}).get('unique_count', 'N/A') if isinstance(info.get('stats'), dict) else 'N/A')}",
             ]
             if "mean" in stats and stats["mean"] is not None:
                 lines.extend([
@@ -298,7 +312,7 @@ class TableSemanticChunker(TextSplitter):
 
             if col_issues:
                 issue_bullets = [
-                    f"{iss.get('issue_type', 'Issue')}: {iss.get('description', '')} (Action: {iss.get('suggested_action', 'Review')})"
+                    f"{iss.get('issue_type', 'Issue')}: {iss.get('description', '')} (Action: {iss.get('suggested_action', iss.get('suggested_fix', 'Review'))})"
                     for iss in col_issues
                 ]
                 lines.append(f"- Active Quality Alerts: {'; '.join(issue_bullets)}")
@@ -342,7 +356,7 @@ class TableSemanticChunker(TextSplitter):
                 col = iss.get("column", "Dataset")
                 itype = iss.get("issue_type", "QualityAlert")
                 desc = iss.get("description", "")
-                action = iss.get("suggested_action", "Remediated")
+                action = iss.get("suggested_action", iss.get("suggested_fix", "Remediated"))
                 status = iss.get("status", "pending")
                 ledger_lines.append(f"- [{status.upper()}] Column '{col}': {itype} -> {desc} | Recommended Action: {action}")
             

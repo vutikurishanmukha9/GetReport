@@ -162,7 +162,7 @@ console.log("Audit Confidence:", report.dataset_confidence_score);`,
   -H "Content-Type: application/json" \\
   -d '{
     "sql": "SELECT category, COUNT(*) as cnt, ROUND(AVG(amount), 2) as avg_spend FROM dataset GROUP BY category ORDER BY avg_spend DESC LIMIT 10",
-    "max_rows": 100
+    "limit": 100
   }'`,
     pythonExample: `import requests
 
@@ -173,37 +173,35 @@ FROM dataset
 GROUP BY category
 ORDER BY avg_amt DESC
 """
-res = requests.post(url, json={"sql": query, "max_rows": 50})
+res = requests.post(url, json={"sql": query, "limit": 50})
 results = res.json()
-print("Execution Time:", results["duration_ms"], "ms")
-for row in results["data"]:
+print("Execution Time:", results["execution_ms"], "ms")
+for row in results["records"]:
     print(row)`,
     tsExample: `const res = await fetch("/api/jobs/job_9481ad2b/query-sql", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    sql: "SELECT * FROM dataset WHERE amount > {{ min_val }}",
-    params: { min_val: 500 }
+    sql: "SELECT * FROM dataset WHERE amount > 500",
+    limit: 500
   })
 });
-const { data, duration_ms } = await res.json();
-console.log(\`Fetched \${data.length} records in \${duration_ms}ms\`);`,
+const { records, execution_ms } = await res.json();
+console.log(\`Fetched \${records.length} records in \${execution_ms}ms\`);`,
     requestBody: `{
-  "sql": "SELECT category, AVG(amount) as avg_amt FROM dataset WHERE category = {{ target_cat }} GROUP BY category",
-  "params": {
-    "target_cat": "Electronics"
-  },
-  "max_rows": 1000
+  "sql": "SELECT category, AVG(amount) as avg_amt FROM dataset WHERE category = 'Electronics' GROUP BY category",
+  "limit": 500
 }`,
     responseBody: `{
-  "success": true,
-  "duration_ms": 2.14,
-  "row_count": 1,
+  "task_id": "job_9481ad2b",
+  "sql": "SELECT category, AVG(amount) as avg_amt FROM dataset WHERE category = 'Electronics' GROUP BY category",
   "columns": ["category", "avg_amt"],
-  "column_types": ["VARCHAR", "DOUBLE"],
-  "data": [
+  "records": [
     { "category": "Electronics", "avg_amt": 412.85 }
-  ]
+  ],
+  "total_returned": 1,
+  "capped": false,
+  "execution_ms": 2.14
 }`
   },
   {
@@ -387,10 +385,10 @@ console.log("Generated GX Suite:", gxSuite.expectation_suite_name);`,
     id: "export-report",
     category: "export",
     method: "GET",
-    path: "/api/jobs/{task_id}/export/{format}",
-    title: "Multi-Format Audit Export Engine",
-    description: "Downloads the compiled audit dossier in requested format (pdf, html, xlsx, or json) with executive summary tables and provenance metadata.",
-    curlExample: `curl -X GET https://getreport.onrender.com/api/jobs/job_9481ad2b/export/pdf \\
+    path: "/api/jobs/{task_id}/report & /api/jobs/{task_id}/export/{format}",
+    title: "Multi-Format PDF & Dataset Export Engine",
+    description: "Downloads the compiled Typst/ReportLab PDF dossier via /api/jobs/{task_id}/report, or exports cleaned data and standalone HTML briefings via /api/jobs/{task_id}/export/{format} (csv, parquet, excel, xlsx, or html).",
+    curlExample: `curl -X GET https://getreport.onrender.com/api/jobs/job_9481ad2b/report \\
   -o executive_audit_report.pdf`,
     pythonExample: `import requests
 
@@ -398,16 +396,18 @@ res = requests.get("https://getreport.onrender.com/api/jobs/job_9481ad2b/export/
 with open("cleaned_audit.xlsx", "wb") as f:
     f.write(res.content)
 print("Exported Excel dossier successfully")`,
-    tsExample: `const format = "pdf";
-const response = await fetch(\`/api/jobs/job_9481ad2b/export/\${format}\`);
-const blob = await response.blob();
+    tsExample: `const pdfRes = await fetch("/api/jobs/job_9481ad2b/report");
+const pdfBlob = await pdfRes.blob();
+const format = "xlsx";
+const dataRes = await fetch(\`/api/jobs/job_9481ad2b/export/\${format}\`);
+const blob = await dataRes.blob();
 const downloadUrl = window.URL.createObjectURL(blob);
 const a = document.createElement("a");
 a.href = downloadUrl;
-a.download = \`audit_report.\${format}\`;
+a.download = \`cleaned_audit.\${format}\`;
 a.click();`,
     responseBody: `// Binary file stream returned with Content-Disposition attachment:
-Content-Type: application/pdf | text/html | application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | application/json`
+Content-Type: application/pdf | text/html | text/csv | application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | application/octet-stream`
   }
 ];
 

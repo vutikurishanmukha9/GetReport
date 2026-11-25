@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FileSpreadsheet, Search, Download, Calendar, AlertCircle, ArrowRight } from "lucide-react";
+import { FileSpreadsheet, Search, Download, Calendar, AlertCircle, BarChart3, Loader2, ExternalLink, Terminal } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
@@ -20,39 +20,77 @@ interface AuditHistoryItem {
   grade?: string;
   score?: number;
   status: string;
-  isDemo?: boolean;
 }
 
 export const Dashboard = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [historyItems, setHistoryItems] = useState<AuditHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load audit history from localStorage cache or fallback
-    try {
-      const cached = localStorage.getItem("getreport_audit_history");
-      if (cached) {
-        setHistoryItems(JSON.parse(cached));
-      } else {
-        // Sample preview record
-        setHistoryItems([
-          {
-            task_id: "demo_audit_01",
-            filename: "Q3_Financial_Ledger.xlsx",
-            created_at: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-            rows: 14250,
-            columns: 18,
-            grade: "A-",
-            score: 91,
-            status: "COMPLETED",
-            isDemo: true
+    let active = true;
+
+    const loadHistory = async () => {
+      const localMap = new Map<string, AuditHistoryItem>();
+      try {
+        const cached = localStorage.getItem("getreport_audit_history");
+        if (cached) {
+          const parsed: AuditHistoryItem[] = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((item) => {
+              if (item && item.task_id && item.task_id !== "demo_audit_01") {
+                localMap.set(item.task_id, item);
+              }
+            });
           }
-        ]);
+        }
+      } catch (e) {
+        console.error("Failed to read cached audit history:", e);
       }
-    } catch (e) {
-      console.error("Failed to load audit history:", e);
-    }
+
+      try {
+        const remote = await api.listRecentDatasets(20);
+        if (!active) return;
+
+        const merged = new Map<string, AuditHistoryItem>();
+        (remote?.datasets || []).forEach((ds) => {
+          const cachedMeta = localMap.get(ds.task_id);
+          merged.set(ds.task_id, {
+            task_id: ds.task_id,
+            filename: ds.filename,
+            created_at: ds.created_at
+              ? new Date(ds.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              : cachedMeta?.created_at || "Recent",
+            rows: ds.rows ?? cachedMeta?.rows,
+            columns: ds.columns_count ?? (Array.isArray(ds.columns) ? ds.columns.length : cachedMeta?.columns),
+            grade: cachedMeta?.grade,
+            score: cachedMeta?.score,
+            status: "COMPLETED",
+          });
+        });
+
+        localMap.forEach((item, id) => {
+          if (!merged.has(id)) {
+            merged.set(id, item);
+          }
+        });
+
+        setHistoryItems(Array.from(merged.values()));
+      } catch (e) {
+        console.warn("Could not fetch remote recent datasets; falling back to local history:", e);
+        if (active) {
+          setHistoryItems(Array.from(localMap.values()));
+        }
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    void loadHistory();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const filteredItems = historyItems.filter(item =>
@@ -109,7 +147,14 @@ export const Dashboard = () => {
           </div>
 
           {/* Audit Cards List */}
-          {filteredItems.length === 0 ? (
+          {isLoading ? (
+            <Card className="border border-stone-200 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12]/80 rounded-3xl p-12 text-center shadow-sm backdrop-blur-md">
+              <Loader2 className="h-8 w-8 text-primary mx-auto mb-3 animate-spin" />
+              <p className="text-xs font-mono text-stone-600 dark:text-zinc-400">
+                Loading recent dataset audits...
+              </p>
+            </Card>
+          ) : filteredItems.length === 0 ? (
             <Card className="border border-stone-200 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12]/80 rounded-3xl p-12 text-center shadow-sm backdrop-blur-md">
               <AlertCircle className="h-10 w-10 text-stone-400 dark:text-zinc-500 mx-auto mb-3" />
               <h3 className="text-base font-display font-semibold text-stone-900 dark:text-white">No Audits Found</h3>
@@ -129,11 +174,6 @@ export const Dashboard = () => {
                       <div>
                         <CardTitle className="text-sm sm:text-base font-display font-bold text-stone-900 dark:text-white flex items-center gap-2">
                           <span>{item.filename}</span>
-                          {item.isDemo && (
-                            <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 border-stone-300 text-stone-600 bg-stone-100 dark:border-white/10 dark:text-zinc-400 dark:bg-white/[0.04]">
-                              Demo
-                            </Badge>
-                          )}
                         </CardTitle>
                         <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400">ID: {item.task_id.slice(0, 16)}</span>
                       </div>
@@ -151,19 +191,19 @@ export const Dashboard = () => {
                       <div>
                         <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400 uppercase block">Rows</span>
                         <span className="text-xs font-semibold text-stone-900 dark:text-white tabular-nums">
-                          {item.rows ? <AnimatedNumber value={item.rows} format={(n) => Math.round(n).toLocaleString()} duration={0.8} /> : "N/A"}
+                          {item.rows !== undefined ? <AnimatedNumber value={item.rows} format={(n) => Math.round(n).toLocaleString()} duration={0.8} /> : "N/A"}
                         </span>
                       </div>
                       <div>
                         <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400 uppercase block">Columns</span>
                         <span className="text-xs font-semibold text-stone-900 dark:text-white tabular-nums">
-                          {item.columns ? <AnimatedNumber value={item.columns} format={(n) => String(Math.round(n))} duration={0.8} /> : "N/A"}
+                          {item.columns !== undefined ? <AnimatedNumber value={item.columns} format={(n) => String(Math.round(n))} duration={0.8} /> : "N/A"}
                         </span>
                       </div>
                       <div>
                         <span className="text-[10px] font-mono text-stone-500 dark:text-zinc-400 uppercase block">Score</span>
                         <span className="text-xs font-semibold text-stone-900 dark:text-white tabular-nums">
-                          {item.score ? <AnimatedNumber value={item.score} format={(n) => `${Math.round(n)}%`} duration={0.8} /> : "N/A"}
+                          {item.score !== undefined ? <AnimatedNumber value={item.score} format={(n) => `${Math.round(n)}%`} duration={0.8} /> : "N/A"}
                         </span>
                       </div>
                     </div>
@@ -174,41 +214,59 @@ export const Dashboard = () => {
                         {item.created_at}
                       </span>
 
-                      <div className="flex items-center gap-2">
-                        {item.isDemo ? (
-                          <Link to="/workspace">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 text-xs gap-1.5 rounded-lg border-stone-300 bg-stone-200/80 text-stone-800 hover:bg-stone-300 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08]"
-                            >
-                              <span>Run Audit</span>
-                              <ArrowRight className="h-3 w-3" />
-                            </Button>
-                          </Link>
-                        ) : (
+                      <div className="flex items-center gap-1.5">
+                        <Link to={`/workspace?taskId=${encodeURIComponent(item.task_id)}`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs gap-1.5 rounded-lg border-stone-300 bg-white text-stone-800 hover:bg-stone-100 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08]"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Workspace
+                          </Button>
+                        </Link>
+                        <Link to={`/analytics?taskId=${encodeURIComponent(item.task_id)}`}>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-8 text-xs gap-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/80 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.06] rounded-lg"
-                            onClick={async () => {
-                              try {
-                                const blob = await api.downloadReportBlob(item.task_id);
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement("a");
-                                a.href = url;
-                                a.download = `${item.task_id}_${item.filename}.pdf`;
-                                a.click();
-                                URL.revokeObjectURL(url);
-                              } catch {
-                                toast({ title: "Session Expired", description: "Audit data in ephemeral RAM has expired. Please run a new audit.", variant: "destructive" });
-                              }
-                            }}
                           >
-                            <Download className="h-3.5 w-3.5" />
-                            PDF
+                            <BarChart3 className="h-3.5 w-3.5" />
+                            BI
                           </Button>
-                        )}
+                        </Link>
+                        <Link to={`/analytics?taskId=${encodeURIComponent(item.task_id)}&studio=sql`}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs gap-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/80 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.06] rounded-lg"
+                          >
+                            <Terminal className="h-3.5 w-3.5" />
+                            SQL
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs gap-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/80 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.06] rounded-lg"
+                          onClick={async () => {
+                            try {
+                              const blob = await api.downloadReportBlob(item.task_id);
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = `${item.task_id}_${item.filename.replace(/\.[^/.]+$/, "")}.pdf`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            } catch (err) {
+                              const msg = err instanceof Error ? err.message : "Audit data in ephemeral RAM has expired. Please run a new audit.";
+                              toast({ title: "Report Unavailable", description: msg, variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          PDF
+                        </Button>
                       </div>
                     </div>
                   </CardContent>

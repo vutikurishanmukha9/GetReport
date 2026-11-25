@@ -49,7 +49,7 @@ export function LocaleProvider({ locale, messages = NO_MESSAGES, children }: Loc
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
 
-export function useLocale(): { locale?: string } {
+export function useLocale() {
   return { locale: useContext(LocaleContext).locale };
 }
 
@@ -69,10 +69,11 @@ export function useMessages<T extends Messages>(
   // keeps `t` one identity until a label changes, so effects and memos that
   // depend on `t` don't re-run per render, and render-time reads never lag.
   const labelsKey = labels ? JSON.stringify(labels) : "";
-  const stableLabels = useMemo(
-    () => (labelsKey ? (JSON.parse(labelsKey) as Partial<T>) : undefined),
-    [labelsKey],
-  );
+  const stableLabels = useMemo(() => {
+    if (!labelsKey) return undefined;
+    // SAFETY: labelsKey was serialized from the caller's Partial<T> translation labels object.
+    return JSON.parse(labelsKey) as Partial<T>;
+  }, [labelsKey]);
 
   return useCallback(
     (key: keyof T & string, values?: Record<string, string | number>) => {
@@ -81,7 +82,9 @@ export function useMessages<T extends Messages>(
       return template.replace(/\{(\w+)\}/g, (match, name: string) => {
         const value = values[name];
         if (value === undefined) return match;
-        return typeof value === "number" ? formatNumber(value, locale) : value;
+        return value.constructor === Number && Number.isFinite(value)
+          ? formatNumber(Number(value), locale)
+          : String(value);
       });
     },
     [defaults, stableLabels, locale, provided],

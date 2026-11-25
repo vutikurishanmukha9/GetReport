@@ -58,7 +58,7 @@ export interface IssueLedgerData {
 export interface IssueLedgerProps {
     taskId: string;
     data: IssueLedgerData;
-    onRefresh: () => void;
+    onRefresh: () => void | Promise<void>;
     onProceed: () => void;
 }
 
@@ -86,7 +86,7 @@ const severityConfig = {
     },
 };
 
-const issueTypeLabels: Record<string, string> = {
+const issueTypeLabels = {
     missing_values: 'Missing Values',
     duplicates: 'Duplicates',
     type_mismatch: 'Type Mismatch',
@@ -97,11 +97,12 @@ const issueTypeLabels: Record<string, string> = {
     empty_column: 'Empty Column',
     constant_column: 'Constant Column',
     encoding_issue: 'Encoding Issue',
-};
+} satisfies Record<string, string>;
 
 function formatIssueType(type: string): string {
-    if (type in issueTypeLabels) {
-        return issueTypeLabels[type];
+    const matched = Object.entries(issueTypeLabels).find(([key]) => key === type);
+    if (matched) {
+        return matched[1];
     }
     return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
@@ -115,32 +116,38 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
     const [loading, setLoading] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [optimisticIssues, setOptimisticIssues] = useState<Issue[] | null>(null);
-    const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'modified'>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [expandedCodeId, setExpandedCodeId] = useState<string | null>(null);
+    const [editingIssueId, setEditingIssueId] = useState<string | null>(null);
+    const [editedFixCode, setEditedFixCode] = useState<string>('');
+    const [editedNote, setEditedNote] = useState<string>('');
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageSize, setPageSize] = useState<number>(15);
 
     // Sync optimistic state with incoming props
-    const issuesList = optimisticIssues || data?.issues || [];
+    const issuesList = useMemo(
+        () => optimisticIssues ?? data?.issues ?? [],
+        [optimisticIssues, data?.issues]
+    );
 
     // Derived summary counts for instant UI reactivity
     const summary = useMemo(() => {
-        const approved = (issuesList || []).filter(i => i.status === 'approved').length;
-        const rejected = (issuesList || []).filter(i => i.status === 'rejected').length;
-        const modified = (issuesList || []).filter(i => i.status === 'modified').length;
-        const pending = (issuesList || []).filter(i => i.status === 'pending').length;
+        const approved = issuesList.filter(i => i.status === 'approved').length;
+        const rejected = issuesList.filter(i => i.status === 'rejected').length;
+        const modified = issuesList.filter(i => i.status === 'modified').length;
+        const pending = issuesList.filter(i => i.status === 'pending').length;
         return {
             approved,
             rejected,
             modified,
             pending,
-            total: (issuesList || []).length
+            total: issuesList.length
         };
     }, [issuesList]);
 
-    const reviewedCount = summary.approved + summary.rejected;
+    const reviewedCount = summary.approved + summary.rejected + summary.modified;
     const progressPct = summary.total > 0 ? Math.round((reviewedCount / summary.total) * 100) : 100;
     const hasPending = summary.pending > 0;
     const locked = data?.locked ?? false;
@@ -189,7 +196,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         try {
             await api.approveIssue(taskId, issueId);
-            onRefresh();
+            await onRefresh();
+            setOptimisticIssues(null);
         } catch (e) {
             setOptimisticIssues(previous);
             setError(e instanceof Error ? e.message : String(e));
@@ -210,7 +218,40 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         try {
             await api.rejectIssue(taskId, issueId);
-            onRefresh();
+            await onRefresh();
+            setOptimisticIssues(null);
+        } catch (e) {
+            setOptimisticIssues(previous);
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setLoading(null);
+        }
+    };
+
+    // Handle inline issue fix_code modification
+    const handleSaveModify = async (issueId: string) => {
+        if (!editedFixCode.trim()) {
+            setError("Fix code cannot be empty.");
+            return;
+        }
+        setLoading(issueId);
+        setError(null);
+
+        const previous = issuesList;
+        setOptimisticIssues(prev =>
+            (prev || data?.issues || []).map(i => (
+                i.id === issueId
+                    ? { ...i, fix_code: editedFixCode.trim(), user_note: editedNote.trim() || i.user_note, status: /* // SAFETY: literal status narrow */ 'modified' as const }
+                    : i
+            ))
+        );
+
+        try {
+            await api.modifyIssue(taskId, issueId, editedFixCode.trim(), editedNote.trim() || undefined);
+            await onRefresh();
+            setOptimisticIssues(null);
+            setEditingIssueId(null);
+            setEditedNote('');
         } catch (e) {
             setOptimisticIssues(previous);
             setError(e instanceof Error ? e.message : String(e));
@@ -231,7 +272,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         try {
             await api.approveAllIssues(taskId);
-            onRefresh();
+            await onRefresh();
+            setOptimisticIssues(null);
         } catch (e) {
             setOptimisticIssues(previous);
             setError(e instanceof Error ? e.message : String(e));
@@ -252,7 +294,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
 
         try {
             await api.rejectAllIssues(taskId);
-            onRefresh();
+            await onRefresh();
+            setOptimisticIssues(null);
         } catch (e) {
             setOptimisticIssues(previous);
             setError(e instanceof Error ? e.message : String(e));
@@ -267,6 +310,8 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
         setError(null);
         try {
             await api.lockIssues(taskId);
+            await onRefresh();
+            setOptimisticIssues(null);
             onProceed();
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
@@ -400,19 +445,20 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                 <div className="bg-stone-50/60 dark:bg-white/[0.02] border-b border-stone-200 dark:border-white/[0.06] px-5 sm:px-7 py-3.5">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
                         {/* Segmented Filter Tabs */}
-                        <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-stone-200/70 dark:bg-zinc-900/80 border border-stone-300/80 dark:border-white/10 shadow-inner text-xs font-medium self-start">
-                            {[
+                        <div className="inline-flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-stone-200/70 dark:bg-zinc-900/80 border border-stone-300/80 dark:border-white/10 shadow-inner text-xs font-medium self-start">
+                            {([
                                 { key: 'all', label: 'All Issues', count: summary.total },
                                 { key: 'pending', label: 'Pending', count: summary.pending, alert: summary.pending > 0 },
                                 { key: 'approved', label: 'Approved', count: summary.approved },
+                                { key: 'modified', label: 'Modified', count: summary.modified },
                                 { key: 'rejected', label: 'Rejected', count: summary.rejected },
-                            ].map(tab => {
+                            ] as const).map(tab => {
                                 const isActive = filterStatus === tab.key;
                                 return (
                                     <button
                                         key={tab.key}
                                         type="button"
-                                        onClick={() => setFilterStatus(/* // SAFETY: tab.key matches 'all' | 'pending' | 'approved' | 'rejected' */ tab.key as typeof filterStatus)}
+                                        onClick={() => setFilterStatus(tab.key)}
                                         className={cn(
                                             "relative px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all duration-150 cursor-pointer select-none border",
                                             isActive
@@ -420,7 +466,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                 : "bg-transparent text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-800/60 border-transparent"
                                         )}
                                     >
-                                        {tab.alert && tab.key === 'pending' && (
+                                        {'alert' in tab && tab.alert && tab.key === 'pending' && (
                                             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse shrink-0" />
                                         )}
                                         <span className="font-sans">{tab.label}</span>
@@ -509,6 +555,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         paginatedIssues.map((issue) => {
                             const sev = severityConfig[issue.severity];
                             const isApproved = issue.status === 'approved';
+                            const isModified = issue.status === 'modified';
                             const isRejected = issue.status === 'rejected';
                             const isPending = issue.status === 'pending';
                             const isBusy = loading === issue.id;
@@ -637,6 +684,27 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                 </div>
                                             )}
 
+                                            {/* ─── MODIFIED STATE BADGE ─── */}
+                                            {isModified && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-500/15 border border-sky-500/35 text-sky-700 dark:text-sky-300 text-xs font-semibold shadow-[0_0_12px_-3px_rgba(14,165,233,0.3)]">
+                                                        <Code2 className="w-3.5 h-3.5 stroke-[2.2]" />
+                                                        <span>Modified</span>
+                                                    </span>
+                                                    {!locked && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleReject(issue.id)}
+                                                            disabled={loading !== null}
+                                                            className="text-[11px] text-stone-500 hover:text-stone-800 dark:text-zinc-500 dark:hover:text-zinc-300 underline transition-colors cursor-pointer"
+                                                            title="Change decision to Reject"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {/* ─── REJECTED STATE BADGE ─── */}
                                             {isRejected && (
                                                 <div className="flex items-center gap-2">
@@ -676,28 +744,79 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                 transition={{ duration: 0.2 }}
                                                 className="overflow-hidden mt-3"
                                             >
-                                                <div className="p-3 rounded-xl bg-stone-100 dark:bg-zinc-950 border border-stone-200 dark:border-white/[0.08] shadow-inner flex items-center justify-between gap-3">
-                                                    <div className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar flex-1 font-mono text-xs text-emerald-700 dark:text-emerald-300">
-                                                        <span className="text-stone-500 dark:text-zinc-500 select-none"># Polars Transformation</span>
-                                                        <code className="text-stone-800 dark:text-zinc-200">{issue.fix_code}</code>
+                                                <div className="p-3 rounded-xl bg-stone-100 dark:bg-zinc-950 border border-stone-200 dark:border-white/[0.08] shadow-inner space-y-2.5">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="flex items-center gap-2.5 overflow-x-auto custom-scrollbar flex-1 font-mono text-xs text-emerald-700 dark:text-emerald-300">
+                                                            <span className="text-stone-500 dark:text-zinc-500 select-none"># Polars Transformation</span>
+                                                            <code className="text-stone-800 dark:text-zinc-200">{issue.fix_code}</code>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                            {!locked && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (editingIssueId === issue.id) {
+                                                                            setEditingIssueId(null);
+                                                                        } else {
+                                                                            setEditingIssueId(issue.id);
+                                                                            setEditedFixCode(issue.fix_code);
+                                                                            setEditedNote(issue.user_note || '');
+                                                                        }
+                                                                    }}
+                                                                    className="px-2.5 py-1 rounded-lg text-[11px] font-sans font-medium bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30 transition-colors cursor-pointer"
+                                                                >
+                                                                    {editingIssueId === issue.id ? 'Cancel Edit' : 'Edit Fix'}
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleCopyCode(issue.id, issue.fix_code)}
+                                                                className="px-2.5 py-1 rounded-lg text-[11px] font-sans font-medium bg-stone-200/70 hover:bg-stone-200 dark:bg-white/[0.05] dark:hover:bg-white/[0.1] text-stone-700 dark:text-zinc-300 border border-stone-300 dark:border-white/10 flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
+                                                            >
+                                                                {copiedId === issue.id ? (
+                                                                    <>
+                                                                        <CheckIcon className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                                                        <span className="text-emerald-700 dark:text-emerald-300">Copied</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Copy className="w-3 h-3" />
+                                                                        <span>Copy</span>
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleCopyCode(issue.id, issue.fix_code)}
-                                                        className="px-2.5 py-1 rounded-lg text-[11px] font-sans font-medium bg-stone-200/70 hover:bg-stone-200 dark:bg-white/[0.05] dark:hover:bg-white/[0.1] text-stone-700 dark:text-zinc-300 border border-stone-300 dark:border-white/10 flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
-                                                    >
-                                                        {copiedId === issue.id ? (
-                                                            <>
-                                                                <CheckIcon className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                                                                <span className="text-emerald-700 dark:text-emerald-300">Copied</span>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Copy className="w-3 h-3" />
-                                                                <span>Copy</span>
-                                                            </>
-                                                        )}
-                                                    </button>
+
+                                                    {editingIssueId === issue.id && !locked && (
+                                                        <div className="pt-2 border-t border-stone-200 dark:border-white/[0.08] space-y-2">
+                                                            <textarea
+                                                                value={editedFixCode}
+                                                                onChange={(e) => setEditedFixCode(e.target.value)}
+                                                                rows={2}
+                                                                aria-label="Custom Polars remediation code"
+                                                                className="w-full p-2 rounded-lg text-xs font-mono bg-white dark:bg-zinc-900 border border-stone-300 dark:border-white/15 text-stone-900 dark:text-zinc-100 focus:outline-none focus:border-sky-500"
+                                                            />
+                                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={editedNote}
+                                                                    onChange={(e) => setEditedNote(e.target.value)}
+                                                                    placeholder="Optional review note..."
+                                                                    aria-label="Modification note"
+                                                                    className="flex-1 px-2.5 py-1 rounded-lg text-xs bg-white dark:bg-zinc-900 border border-stone-300 dark:border-white/15 text-stone-900 dark:text-zinc-100 focus:outline-none focus:border-sky-500"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={isBusy || !editedFixCode.trim()}
+                                                                    onClick={() => void handleSaveModify(issue.id)}
+                                                                    className="px-3 py-1 rounded-lg text-xs font-semibold bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50 cursor-pointer shrink-0"
+                                                                >
+                                                                    {isBusy ? 'Saving...' : 'Save Modification'}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </motion.div>
                                         )}

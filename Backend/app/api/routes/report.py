@@ -114,8 +114,9 @@ async def get_report_status(
     Returns: { status: 'generating' | 'ready' | 'not_started', path?: string }
     """
     job = await _get_authorized_job(request, task_id)
+    report_file_ref = job.result.get("report_file_ref") if isinstance(job.result, dict) else None
     
-    if job.report_path and os.path.exists(job.report_path):
+    if (job.report_path and os.path.exists(job.report_path)) or report_file_ref:
         return {"status": "ready", "download_url": f"/api/jobs/{task_id}/report"}
     elif job.report_status == "generating":
         return {"status": "generating"}
@@ -136,20 +137,35 @@ async def download_report(
     Returns 202 if still generating, 200 + file if ready.
     """
     job = await _get_authorized_job(request, task_id)
-    if not job.report_path:
+    report_file_ref = job.result.get("report_file_ref") if isinstance(job.result, dict) else None
+    if not job.report_path and not report_file_ref:
         raise HTTPException(404, "Report not found. Generate it first.")
-    
-    # Path traversal guard (VULN-05)
-    safe_path = _validate_report_path(job.report_path)
-    
-    if not os.path.exists(safe_path):
-        return JSONResponse(status_code=202, content={"message": "Report is still generating. Try again shortly."})
-        
-    return FileResponse(
-        safe_path, 
-        media_type="application/pdf", 
-        filename=_sanitize_download_filename(os.path.basename(safe_path))
-    )
+
+    safe_path = None
+    if job.report_path:
+        # Path traversal guard (VULN-05)
+        safe_path = _validate_report_path(job.report_path)
+        if os.path.exists(safe_path):
+            return FileResponse(
+                safe_path,
+                media_type="application/pdf",
+                filename=_sanitize_download_filename(os.path.basename(safe_path)),
+            )
+
+    if report_file_ref:
+        try:
+            stored_pdf = storage.get_absolute_path(report_file_ref)
+            if os.path.exists(stored_pdf):
+                dl_name = os.path.basename(safe_path) if safe_path else f"{task_id}_report.pdf"
+                return FileResponse(
+                    stored_pdf,
+                    media_type="application/pdf",
+                    filename=_sanitize_download_filename(dl_name),
+                )
+        except Exception as err:
+            logger.warning("Failed to resolve PDF from StorageProvider (%s): %s", report_file_ref, err)
+
+    return JSONResponse(status_code=202, content={"message": "Report is still generating. Try again shortly."})
 
 
 # ─── Comprehensive PDF (Full Report Generator) ──────────────────────────────
@@ -178,6 +194,14 @@ async def download_full_report_pdf(
     params["cleaning_report"] = analysis.get("cleaning_report")
     params["metadata"] = raw_analysis.get("metadata") or analysis.get("info")
     params["comparison_report"] = analysis.get("comparison_report")
+    if analysis.get("issue_ledger") and "issue_ledger" not in params:
+        params["issue_ledger"] = analysis.get("issue_ledger")
+    if analysis.get("insights") and "insights" not in params:
+        params["insights"] = analysis.get("insights")
+    if analysis.get("pii") and "pii" not in params:
+        params["pii"] = analysis.get("pii")
+    if analysis.get("data_quality") and "data_quality" not in params:
+        params["data_quality"] = analysis.get("data_quality")
     
     charts = analysis.get("charts", {})
     filename = analysis.get("filename", "report.pdf")
@@ -820,6 +844,13 @@ async def derive_virtual_concept(
     job.result["cleaned_file_ref"] = updated_file_ref
     job.result["transformation_dag"] = dag.to_dict()
 
+    # Refresh dataset metadata info so column lists/dtypes stay consistent
+    try:
+        from app.services.data_processing import get_dataset_info
+        job.result["info"] = await run_in_threadpool(get_dataset_info, new_df)
+    except Exception as info_err:
+        logger.warning("Failed to refresh dataset info after concept derivation: %s", info_err)
+
     # Track concept list in job result for convenience
     concepts = job.result.setdefault("derived_concepts", [])
     concepts.append({
@@ -833,6 +864,48 @@ async def derive_virtual_concept(
     })
 
     await title_task_manager.update_result_async(task_id, job.result)
+
+    # Invalidate & prewarm BI engine cache + invalidate knowledge graph & RAG index
+    try:
+        from app.services.superset_engine import superset_engine
+        new_abs_path = storage.get_absolute_path(updated_file_ref)
+        superset_engine.invalidate_task(task_id, new_abs_path)
+        superset_engine.prewarm_dataset(
+            task_id=task_id,
+            file_ref=updated_file_ref,
+            df=new_df,
+            file_path=new_abs_path,
+        )
+    except Exception as bi_err:
+        logger.warning("BI cache refresh after concept derivation failed: %s", bi_err)
+
+    try:
+        from app.services.rag_service import rag_service
+        stale_graph_ref = job.result.pop("graph_file_ref", None)
+        if stale_graph_ref:
+            try:
+                storage.delete(stale_graph_ref)
+                await title_task_manager.update_result_async(task_id, job.result)
+            except Exception:
+                pass
+        rag_service.invalidate_task_cache(task_id)
+        import asyncio
+        concept_text = (
+            f"[Derived Virtual Concept - {body.concept_name}]\n"
+            f"- Formula / Intent: {body.formula_or_intent}\n"
+            f"- Expression: {node.parameters.get('expression', '')}\n"
+            f"- Description: {body.description or 'Derived analytical metric'}"
+        )
+        asyncio.create_task(
+            asyncio.to_thread(
+                rag_service.ingest_report_blocking,
+                task_id,
+                concept_text,
+                {"source": "derived_concept", "concept_name": body.concept_name},
+            )
+        )
+    except Exception as rag_err:
+        logger.warning("RAG/Graph cache refresh after concept derivation failed: %s", rag_err)
 
     return {
         "status": "success",

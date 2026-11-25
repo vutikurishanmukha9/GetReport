@@ -32,8 +32,11 @@ describe("Toast Component Solid Opacity & Theme Architecture", () => {
     // Verify solid backing plate
     const backingPlate = toastElement.querySelector('[aria-hidden="true"]');
     expect(backingPlate).toBeInTheDocument();
-    expect((backingPlate as HTMLElement).style.backgroundColor).toBe("rgb(255, 255, 255)");
-    expect((backingPlate as HTMLElement).style.opacity).toBe("1");
+    if (!(backingPlate instanceof HTMLElement)) {
+      throw new Error("Expected backingPlate to be an HTMLElement");
+    }
+    expect(backingPlate.style.backgroundColor).toBe("rgb(255, 255, 255)");
+    expect(backingPlate.style.opacity).toBe("1");
   });
 
   it("renders dark mode toast with solid zinc obsidian background and opaque plate", () => {
@@ -58,7 +61,10 @@ describe("Toast Component Solid Opacity & Theme Architecture", () => {
 
     const backingPlate = toastElement.querySelector('[aria-hidden="true"]');
     expect(backingPlate).toBeInTheDocument();
-    expect((backingPlate as HTMLElement).style.backgroundColor).toBe("rgb(24, 24, 27)");
+    if (!(backingPlate instanceof HTMLElement)) {
+      throw new Error("Expected backingPlate to be an HTMLElement");
+    }
+    expect(backingPlate.style.backgroundColor).toBe("rgb(24, 24, 27)");
   });
 
   it("renders dark mode destructive toast with solid rose obsidian background", () => {

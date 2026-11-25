@@ -77,19 +77,40 @@ async def chat_stream_with_job(
     if len(sanitized_question) > settings.MAX_CHAT_QUESTION_LENGTH:
         sanitized_question = sanitized_question[:settings.MAX_CHAT_QUESTION_LENGTH]
 
+    accept_header = (request.headers.get("accept") or "").lower()
+    wants_sse = "text/event-stream" in accept_header
+
+    raw_stream = rag_service.chat_stream_with_report(
+        task_id,
+        sanitized_question,
+        job_result=job.result,
+        chat_history=body.chat_history,
+    )
+
+    if wants_sse:
+        async def _sse_frames():
+            async for chunk in raw_stream:
+                payload = chunk.strip()
+                if payload:
+                    yield f"data: {payload}\n\n"
+
+        return StreamingResponse(
+            _sse_frames(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
+        )
+
     return StreamingResponse(
-        rag_service.chat_stream_with_report(
-            task_id,
-            sanitized_question,
-            job_result=job.result,
-            chat_history=body.chat_history
-        ),
-        media_type="text/event-stream",
+        raw_stream,
+        media_type="application/x-ndjson",
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
-            "Connection": "keep-alive",
-        }
+        },
     )
 
 

@@ -5,7 +5,6 @@ import {
     Play,
     ShieldAlert,
     Trash2,
-    Wrench,
     BarChart2,
     Hash,
     Calendar,
@@ -27,6 +26,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { buildSuggestedRules, normalizeRuleAction } from "@/lib/cleaning-rules";
 import {
     Select,
     SelectContent,
@@ -43,7 +43,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { InspectionReport, CleaningRulesMap, CleaningRule, QualityIssue } from "@/types/api";
+import type { InspectionReport, CleaningRulesMap, QualityIssue } from "@/types/api";
 
 const KNOWN_ACTIONS = new Set([
     "default",
@@ -219,66 +219,56 @@ interface DataHealthCheckProps {
     report: InspectionReport;
     onContinue: (rules: CleaningRulesMap) => void;
     isProcessing: boolean;
+    rules?: CleaningRulesMap;
+    onRulesChange?: (rules: CleaningRulesMap) => void;
+    pendingLedgerCount?: number;
+    onReviewLedgerClick?: () => void;
 }
 
 
-export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealthCheckProps) => {
+export const DataHealthCheck = ({
+    report,
+    onContinue,
+    isProcessing,
+    rules: controlledRules,
+    onRulesChange,
+    pendingLedgerCount = 0,
+    onReviewLedgerClick,
+}: DataHealthCheckProps) => {
     const { toast } = useToast();
     const [activePreset, setActivePreset] = useState<"all" | "high" | "conservative" | "raw" | "custom">("all");
 
-    // Automatically pre-populate rules with dynamic suggestions from the backend engine
-    const [rules, setRules] = useState<CleaningRulesMap>(() => {
-        const initial: CleaningRulesMap = {};
-        (report?.issues || []).forEach(issue => {
-            if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
-                const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
-                    ? "cap_outliers"
-                    : issue.action;
-                initial[issue.column] = {
-                    // SAFETY: normalizedAction is validated from issue.action
-                    action: normalizedAction as CleaningRule["action"],
-                    value: normalizedAction === "fill_value" ? "Unknown" : undefined
-                };
-            }
-        });
-        return initial;
-    });
+    // Automatically pre-populate rules with dynamic suggestions when uncontrolled
+    const [localRules, setLocalRules] = useState<CleaningRulesMap>(() => buildSuggestedRules(report));
+    const rules = controlledRules ?? localRules;
 
-    // Synchronize rules if report issues load or update
+    const updateRules = (updater: CleaningRulesMap | ((prev: CleaningRulesMap) => CleaningRulesMap)) => {
+        const next = updater instanceof Function ? updater(rules) : updater;
+        if (controlledRules === undefined) {
+            setLocalRules(next);
+        }
+        onRulesChange?.(next);
+    };
+
+    // Synchronize uncontrolled rules if report issues load asynchronously
     useEffect(() => {
-        if (!report?.issues || report.issues.length === 0) return;
-        setRules(prev => {
+        if (controlledRules !== undefined || !report?.issues || report.issues.length === 0) return;
+        setLocalRules(prev => {
             if (Object.keys(prev).length > 0) return prev;
-            const initial: CleaningRulesMap = {};
-            (report.issues || []).forEach(issue => {
-                if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
-                    const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
-                        ? "cap_outliers"
-                        : issue.action;
-                    initial[issue.column] = {
-                        // SAFETY: normalizedAction is validated from issue.action
-                        action: normalizedAction as CleaningRule["action"],
-                        value: normalizedAction === "fill_value" ? "Unknown" : undefined
-                    };
-                }
-            });
-            return initial;
+            return buildSuggestedRules(report);
         });
-    }, [report]);
+    }, [controlledRules, report]);
 
     const activeRulesCount = useMemo(() => {
         return Object.values(rules).filter(r => r?.action && r.action !== "default").length;
     }, [rules]);
 
     const handleActionChange = (column: string, action: string) => {
-        const normalizedAction = (action === "replace_outliers_median" || action === "winsorize")
-            ? "cap_outliers"
-            : action;
-        setRules(prev => ({
+        const normalizedAction = normalizeRuleAction(action);
+        updateRules(prev => ({
             ...prev,
             [column]: {
-                // SAFETY: normalizedAction is validated from action selection
-                action: normalizedAction as CleaningRule["action"],
+                action: normalizedAction,
                 value: normalizedAction === "fill_value" ? "Unknown" : undefined
             }
         }));
@@ -286,22 +276,9 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
     };
 
     const handleApplyAllSuggestions = () => {
-        const updated: CleaningRulesMap = {};
-        let count = 0;
-        (report?.issues || []).forEach(issue => {
-            if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
-                const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
-                    ? "cap_outliers"
-                    : issue.action;
-                updated[issue.column] = {
-                    // SAFETY: normalizedAction is validated from issue.action
-                    action: normalizedAction as CleaningRule["action"],
-                    value: normalizedAction === "fill_value" ? "Unknown" : undefined
-                };
-                count += 1;
-            }
-        });
-        setRules(updated);
+        const updated = buildSuggestedRules(report);
+        const count = Object.keys(updated).length;
+        updateRules(updated);
         setActivePreset("all");
         toast({
             title: "Applied All Suggestions",
@@ -317,12 +294,9 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
                 const conf = issue.confidence_score ?? 100;
                 if (conf >= 90) {
-                    const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
-                        ? "cap_outliers"
-                        : issue.action;
+                    const normalizedAction = normalizeRuleAction(issue.action);
                     updated[issue.column] = {
-                        // SAFETY: normalizedAction is validated from issue.action
-                        action: normalizedAction as CleaningRule["action"],
+                        action: normalizedAction,
                         value: normalizedAction === "fill_value" ? "Unknown" : undefined
                     };
                     appliedCount += 1;
@@ -331,7 +305,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
                 }
             }
         });
-        setRules(updated);
+        updateRules(updated);
         setActivePreset("high");
         toast({
             title: "Applied High-Confidence Suggestions",
@@ -348,14 +322,11 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
 
         (report?.issues || []).forEach(issue => {
             if (issue.column && issue.column !== "Multiple" && issue.action && issue.action !== "default") {
-                const normalizedAction = (issue.action === "replace_outliers_median" || issue.action === "winsorize")
-                    ? "cap_outliers"
-                    : issue.action;
+                const normalizedAction = normalizeRuleAction(issue.action);
 
                 if (!DESTRUCTIVE_ACTIONS.has(normalizedAction)) {
                     updated[issue.column] = {
-                        // SAFETY: normalizedAction is validated and verified non-destructive
-                        action: normalizedAction as CleaningRule["action"],
+                        action: normalizedAction,
                         value: normalizedAction === "fill_value" ? "Unknown" : undefined
                     };
                     safeApplied += 1;
@@ -365,7 +336,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             }
         });
 
-        setRules(updated);
+        updateRules(updated);
         setActivePreset("conservative");
         toast({
             title: "Conservative Preset Applied",
@@ -376,7 +347,7 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
     };
 
     const handleResetAllToIgnore = () => {
-        setRules({});
+        updateRules({});
         setActivePreset("raw");
         toast({
             title: "Reset to Raw Data",
@@ -1035,7 +1006,19 @@ export const DataHealthCheck = ({ report, onContinue, isProcessing }: DataHealth
             )}
 
             {/* Action Bar */}
-            <div className="flex justify-center pt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+                {pendingLedgerCount > 0 && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="lg"
+                        onClick={onReviewLedgerClick}
+                        className="w-full sm:w-auto rounded-xl border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 font-semibold text-xs py-6 px-5 cursor-pointer"
+                    >
+                        <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" />
+                        Review {pendingLedgerCount} Pending Ledger Issue{pendingLedgerCount > 1 ? "s" : ""} Above
+                    </Button>
+                )}
                 <Button
                     size="lg"
                     onClick={handleSubmit}

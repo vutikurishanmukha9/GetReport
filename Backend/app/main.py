@@ -27,8 +27,11 @@ async def lifespan(app: FastAPI):
     # Startup storage purge (VULN-01: clean up stale files from previous server runs)
     try:
         from app.services.cleanup import cleanup_old_files
+        from app.services.storage import get_storage_provider
         cleanup_old_files("temp_uploads", max_age_seconds=86400)
         cleanup_old_files("outputs", max_age_seconds=86400)
+        cleanup_old_files("temp_cache", max_age_seconds=86400)
+        get_storage_provider().purge_stale_files(max_age_seconds=86400)
     except Exception as e:
         import logging
         logging.getLogger("uvicorn").warning(f"Startup storage cleanup failed: {e}")

@@ -11,6 +11,13 @@ export default defineConfig(() => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
   plugins: [react()].filter(Boolean),
   resolve: {
@@ -23,7 +30,16 @@ export default defineConfig(() => ({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (id.includes("recharts") || id.includes("d3")) {
+            if (id.includes("echarts") || id.includes("zrender")) {
+              return "vendor-echarts";
+            }
+            if (id.includes("@radix-ui")) {
+              return "vendor-radix";
+            }
+            if (id.includes("framer-motion") || id.includes("\\motion\\") || id.includes("/motion/")) {
+              return "vendor-motion";
+            }
+            if (id.includes("d3")) {
               return "vendor-charts";
             }
             if (id.includes("xlsx") || id.includes("papaparse")) {

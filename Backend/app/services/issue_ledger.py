@@ -1,20 +1,9 @@
-"""
-Issue Ledger System
-
-"Jira for Dirty Data" - Tracks all detected data quality issues and allows
-users to approve, reject, or modify suggested fixes before cleaning.
-
-Features:
-1. Issue detection from multiple sources (confidence, schema, outliers)
-2. Approve/reject/modify workflow
-3. Lock mechanism before execution
-4. Audit trail of decisions
-"""
 from __future__ import annotations
 
 import ast
 import logging
 import re
+import time
 import uuid
 import warnings
 from dataclasses import dataclass, field
@@ -176,6 +165,58 @@ class IssueLedger:
             "locked_at": self.locked_at.isoformat() if self.locked_at else None,
             "created_at": self.created_at.isoformat(),
         }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> "IssueLedger":
+        """Reconstruct an IssueLedger (including user approvals/modifications) from persisted dict."""
+        if not isinstance(data, dict):
+            return cls()
+
+        issues: list[Issue] = []
+        for raw in data.get("issues", []) or []:
+            if not isinstance(raw, dict):
+                continue
+            try:
+                issues.append(
+                    Issue(
+                        id=str(raw.get("id") or _generate_id()),
+                        issue_type=raw.get("issue_type", "missing_values"),
+                        severity=raw.get("severity", "medium"),
+                        column=raw.get("column"),
+                        affected_rows=int(raw.get("affected_rows", 0) or 0),
+                        affected_pct=float(raw.get("affected_pct", 0.0) or 0.0),
+                        description=str(raw.get("description", "")),
+                        suggested_fix=str(raw.get("suggested_fix", "")),
+                        fix_code=str(raw.get("fix_code", "")),
+                        status=raw.get("status", "pending"),
+                        user_note=str(raw.get("user_note", "") or ""),
+                    )
+                )
+            except Exception as err:
+                logger.warning("Skipping malformed persisted issue entry: %s", err)
+
+        created_at = datetime.now()
+        raw_created = data.get("created_at")
+        if isinstance(raw_created, str) and raw_created:
+            try:
+                created_at = datetime.fromisoformat(raw_created)
+            except ValueError:
+                pass
+
+        locked_at = None
+        raw_locked = data.get("locked_at")
+        if isinstance(raw_locked, str) and raw_locked:
+            try:
+                locked_at = datetime.fromisoformat(raw_locked)
+            except ValueError:
+                pass
+
+        return cls(
+            issues=issues,
+            created_at=created_at,
+            locked=bool(data.get("locked", False)),
+            locked_at=locked_at,
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1662,6 +1703,221 @@ def detect_issues(
     return ledger
 
 
+_REMEDIATION_ISSUE_TO_OP: dict[str, str] = {
+    "duplicates": "remove_duplicates",
+    "type_mismatch": "type_conversion",
+    "outliers": "replace_outliers",
+    "contextual_imputation": "contextual_imputation",
+}
+
+
+class _SafeDateTime:
+    now = staticmethod(datetime.now)
+
+
+_SAFE_REMEDIATION_BUILTINS: dict[str, Any] = {
+    "abs": abs,
+    "all": all,
+    "any": any,
+    "bool": bool,
+    "dict": dict,
+    "enumerate": enumerate,
+    "filter": filter,
+    "float": float,
+    "int": int,
+    "isinstance": isinstance,
+    "len": len,
+    "list": list,
+    "map": map,
+    "max": max,
+    "min": min,
+    "print": print,
+    "range": range,
+    "round": round,
+    "set": set,
+    "sorted": sorted,
+    "str": str,
+    "sum": sum,
+    "zip": zip,
+    "True": True,
+    "False": False,
+    "None": None,
+}
+
+_FORBIDDEN_REMEDIATION_ATTRS = frozenset({
+    "sys", "modules", "os", "subprocess", "builtins", "eval", "exec", "open", "compile",
+    "__import__", "globals", "locals", "pipe", "map_elements", "read_csv", "write_csv",
+    "read_excel", "write_excel", "read_parquet", "write_parquet", "scan_parquet", "scan_csv",
+    "read_database", "read_database_uri", "read_ipc", "write_ipc", "read_avro", "write_avro",
+    "ctypes", "ctypeslib", "shutil", "io", "pathlib", "posix", "socket", "urllib", "requests",
+})
+
+_ALLOWED_REMEDIATION_NAMES = set(_SAFE_REMEDIATION_BUILTINS.keys()) | {"df", "pl", "datetime"}
+
+_FORBIDDEN_REMEDIATION_AST_NODES = (
+    ast.Import, ast.ImportFrom,
+    ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Lambda,
+    ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp,
+    ast.While, ast.For, ast.AsyncFor,
+    ast.With, ast.AsyncWith,
+    ast.Try,
+    ast.Global, ast.Nonlocal, ast.Delete,
+)
+
+
+def _validate_and_exec_issue_fix(df: pl.DataFrame, issue: Issue) -> tuple[pl.DataFrame, bool, str | None]:
+    """Validate an issue's fix_code AST safely and execute it against df."""
+    if not issue.fix_code or issue.fix_code.startswith("#"):
+        return df, False, "no executable fix_code"
+
+    safe_globals = {
+        "__builtins__": _SAFE_REMEDIATION_BUILTINS,
+        "pl": pl,
+        "datetime": _SafeDateTime,
+    }
+    loc_env: dict[str, Any] = {"df": df, "pl": pl}
+    try:
+        tree = ast.parse(issue.fix_code, mode="exec")
+        for node in ast.walk(tree):
+            if isinstance(node, _FORBIDDEN_REMEDIATION_AST_NODES):
+                raise ValueError(f"Construct '{type(node).__name__}' is prohibited in remediation code.")
+            if isinstance(node, ast.Attribute):
+                if node.attr.startswith("__") or node.attr in _FORBIDDEN_REMEDIATION_ATTRS:
+                    raise ValueError(f"Accessing attribute '{node.attr}' is prohibited in remediation code.")
+            elif isinstance(node, ast.Name):
+                if node.id not in _ALLOWED_REMEDIATION_NAMES:
+                    raise ValueError(f"Identifier '{node.id}' is prohibited in remediation code.")
+            elif isinstance(node, ast.Subscript):
+                if (
+                    isinstance(node.slice, ast.Constant)
+                    and isinstance(node.slice.value, str)
+                    and node.slice.value.startswith("__")
+                ):
+                    raise ValueError("Accessing private dictionary key is prohibited in remediation code.")
+
+        exec(issue.fix_code, safe_globals, loc_env)
+        new_df = loc_env.get("df")
+        if isinstance(new_df, pl.DataFrame):
+            return new_df, True, None
+        return df, False, "fix_code did not produce a Polars DataFrame"
+    except Exception as exc:
+        logger.warning("Failed to apply remediation fix for issue %s: %s", issue.id, exc)
+        return df, False, str(exc)
+
+
+def _count_changed_values(df_before: pl.DataFrame, df_after: pl.DataFrame, column: str | None) -> int:
+    """Estimate changed cell count safely for TransformationDAG audit metadata."""
+    if df_before.shape == df_after.shape and column and column in df_before.columns and column in df_after.columns:
+        try:
+            changed = (
+                df_before[column].cast(pl.Utf8, strict=False).fill_null("__NULL__")
+                != df_after[column].cast(pl.Utf8, strict=False).fill_null("__NULL__")
+            ).sum()
+            return int(changed or 0)
+        except Exception:
+            return 0
+    return abs(df_before.height - df_after.height)
+
+
+def apply_remediation_with_audit(
+    df: pl.DataFrame,
+    ledger: IssueLedger,
+    dag: Any | None = None,
+    selected_ids: list[str] | None = None,
+) -> tuple[pl.DataFrame, dict[str, Any]]:
+    """
+    Apply approved/modified/selected IssueLedger fixes with TransformationDAG audit tracking.
+
+    Returns (remediated_df, audit_summary).
+    """
+    if not isinstance(df, pl.DataFrame):
+        raise TypeError(f"Expected pl.DataFrame, got {type(df)}")
+
+    selected_set = set(selected_ids) if selected_ids is not None else None
+    issues_to_apply: list[Issue] = []
+    rejected_issues: list[dict[str, Any]] = []
+
+    for issue in ledger.issues:
+        if selected_set is not None:
+            if issue.id in selected_set:
+                issues_to_apply.append(issue)
+        elif issue.status in ("approved", "modified"):
+            issues_to_apply.append(issue)
+        elif issue.status == "rejected":
+            rejected_issues.append({
+                "id": issue.id,
+                "issue_type": issue.issue_type,
+                "column": issue.column,
+                "user_note": issue.user_note,
+            })
+
+    audit: dict[str, Any] = {
+        "applied": [],
+        "failed": [],
+        "rejected": rejected_issues,
+        "applied_columns": [],
+        "duplicates_removed": 0,
+    }
+
+    if not issues_to_apply:
+        return df, audit
+
+    applied_cols_seen: set[str] = set()
+    for issue in issues_to_apply:
+        step_start = time.perf_counter()
+        df_before = df.clone()
+        df, ok, err = _validate_and_exec_issue_fix(df, issue)
+        if not ok:
+            if err and err != "no executable fix_code":
+                audit["failed"].append({
+                    "id": issue.id,
+                    "issue_type": issue.issue_type,
+                    "column": issue.column,
+                    "error": err,
+                })
+            continue
+
+        rows_delta = df_before.height - df.height
+        values_changed = _count_changed_values(df_before, df, issue.column)
+        if issue.issue_type == "duplicates" and rows_delta > 0:
+            audit["duplicates_removed"] += rows_delta
+        if issue.column:
+            applied_cols_seen.add(issue.column)
+
+        audit["applied"].append({
+            "id": issue.id,
+            "issue_type": issue.issue_type,
+            "column": issue.column,
+            "status": issue.status,
+            "rows_delta": rows_delta,
+            "values_changed": values_changed,
+        })
+        logger.info("Applied remediation fix for issue %s (%s: %s)", issue.id, issue.issue_type, issue.column)
+
+        if dag is not None and (
+            df_before.shape != df.shape or values_changed > 0
+        ):
+            op_name = _REMEDIATION_ISSUE_TO_OP.get(issue.issue_type, "custom")
+            dag.add_node(
+                operation=op_name,
+                df_before=df_before,
+                df_after=df,
+                target_column=issue.column,
+                parameters={
+                    "source": "issue_ledger",
+                    "issue_id": issue.id,
+                    "issue_type": issue.issue_type,
+                    "status": issue.status,
+                    "suggested_fix": issue.suggested_fix,
+                },
+                duration_ms=(time.perf_counter() - step_start) * 1000,
+                values_changed=values_changed,
+            )
+
+    audit["applied_columns"] = sorted(applied_cols_seen)
+    return df, audit
+
+
 def apply_remediation(
     df: pl.DataFrame,
     ledger: IssueLedger,
@@ -1678,102 +1934,6 @@ def apply_remediation(
     Returns:
         Remediated Polars DataFrame
     """
-    if not isinstance(df, pl.DataFrame):
-        raise TypeError(f"Expected pl.DataFrame, got {type(df)}")
-
-    issues_to_apply = []
-    for issue in ledger.issues:
-        if selected_ids is not None:
-            if issue.id in selected_ids:
-                issues_to_apply.append(issue)
-        elif issue.status in ("approved", "modified"):
-            issues_to_apply.append(issue)
-
-    if not issues_to_apply:
-        return df
-
-    class SafeDateTime:
-        now = staticmethod(datetime.now)
-
-    safe_builtins = {
-        "abs": abs,
-        "all": all,
-        "any": any,
-        "bool": bool,
-        "dict": dict,
-        "enumerate": enumerate,
-        "filter": filter,
-        "float": float,
-        "int": int,
-        "isinstance": isinstance,
-        "len": len,
-        "list": list,
-        "map": map,
-        "max": max,
-        "min": min,
-        "print": print,
-        "range": range,
-        "round": round,
-        "set": set,
-        "sorted": sorted,
-        "str": str,
-        "sum": sum,
-        "zip": zip,
-        "True": True,
-        "False": False,
-        "None": None,
-    }
-    safe_globals = {
-        "__builtins__": safe_builtins,
-        "pl": pl,
-        "datetime": SafeDateTime,
-    }
-
-    forbidden_remediation_attrs = frozenset({
-        "sys", "modules", "os", "subprocess", "builtins", "eval", "exec", "open", "compile",
-        "__import__", "globals", "locals", "pipe", "map_elements", "read_csv", "write_csv",
-        "read_excel", "write_excel", "read_parquet", "write_parquet", "scan_parquet", "scan_csv",
-        "read_database", "read_database_uri", "read_ipc", "write_ipc", "read_avro", "write_avro",
-        "ctypes", "ctypeslib", "shutil", "io", "pathlib", "posix", "socket", "urllib", "requests",
-    })
-
-    allowed_names = set(safe_builtins.keys()) | {"df", "pl", "datetime"}
-    forbidden_ast_nodes = (
-        ast.Import, ast.ImportFrom,
-        ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Lambda,
-        ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp,
-        ast.While, ast.For, ast.AsyncFor,
-        ast.With, ast.AsyncWith,
-        ast.Try,
-        ast.Global, ast.Nonlocal, ast.Delete,
-    )
-
-    loc_env = {"df": df, "pl": pl}
-    for issue in issues_to_apply:
-        try:
-            if issue.fix_code and not issue.fix_code.startswith("#"):
-                # Validate fix_code AST to ensure no unauthorized imports, dunders, loops, comprehensions, or builtins
-                tree = ast.parse(issue.fix_code, mode="exec")
-                for node in ast.walk(tree):
-                    if isinstance(node, forbidden_ast_nodes):
-                        raise ValueError(f"Construct '{type(node).__name__}' is prohibited in remediation code.")
-                    elif isinstance(node, ast.Attribute):
-                        if node.attr.startswith("__") or node.attr in forbidden_remediation_attrs:
-                            raise ValueError(f"Accessing attribute '{node.attr}' is prohibited in remediation code.")
-                    elif isinstance(node, ast.Name):
-                        if node.id not in allowed_names:
-                            raise ValueError(f"Identifier '{node.id}' is prohibited in remediation code.")
-                    elif isinstance(node, ast.Subscript):
-                        if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str) and node.slice.value.startswith("__"):
-                            raise ValueError("Accessing private dictionary key is prohibited in remediation code.")
-
-                exec(issue.fix_code, safe_globals, loc_env)
-                new_df = loc_env.get("df")
-                if isinstance(new_df, pl.DataFrame):
-                    df = new_df
-                logger.info("Applied remediation fix for issue %s (%s: %s)", issue.id, issue.issue_type, issue.column)
-        except Exception as e:
-            logger.warning("Failed to apply remediation fix for issue %s: %s", issue.id, e)
-
-    return df
+    remediated_df, _ = apply_remediation_with_audit(df, ledger, dag=None, selected_ids=selected_ids)
+    return remediated_df
 

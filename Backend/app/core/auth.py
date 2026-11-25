@@ -24,9 +24,36 @@ UUID_PATTERN = re.compile(
     re.IGNORECASE
 )
 
-# In-memory single-use stream tickets: ticket -> expiry timestamp (VULN-02: prevent query param API key leakage)
+# Shared Redis stream-ticket prefix + process-local fallback when Redis is unconfigured/unavailable
+_STREAM_TICKET_PREFIX = "getreport:stream_ticket:"
 _stream_tickets: dict[str, float] = {}
 _ticket_lock = threading.Lock()
+_ticket_redis_client = None
+_ticket_redis_checked = False
+
+
+def _get_ticket_redis():
+    """Return a short-timeout Redis client for shared multi-worker stream tickets if configured."""
+    global _ticket_redis_client, _ticket_redis_checked
+    if _ticket_redis_checked:
+        return _ticket_redis_client
+    _ticket_redis_checked = True
+    if not settings.REDIS_URL:
+        return None
+    try:
+        import redis
+        client = redis.from_url(
+            settings.REDIS_URL,
+            decode_responses=True,
+            socket_connect_timeout=0.5,
+            socket_timeout=0.5,
+        )
+        client.ping()
+        _ticket_redis_client = client
+    except Exception as err:
+        logger.debug("Redis unavailable for stream tickets, falling back to local store: %s", err)
+        _ticket_redis_client = None
+    return _ticket_redis_client
 
 
 def create_stream_ticket(ttl_seconds: int = 60) -> str:
@@ -36,6 +63,17 @@ def create_stream_ticket(ttl_seconds: int = 60) -> str:
     """
     now = time.time()
     ticket = secrets.token_urlsafe(32)
+    if ttl_seconds <= 0:
+        return ticket
+
+    r_client = _get_ticket_redis()
+    if r_client is not None:
+        try:
+            r_client.setex(f"{_STREAM_TICKET_PREFIX}{ticket}", int(ttl_seconds), "1")
+            return ticket
+        except Exception as err:
+            logger.debug("Redis setex failed for stream ticket, falling back locally: %s", err)
+
     with _ticket_lock:
         # Clean expired tickets
         expired = [k for k, exp in _stream_tickets.items() if exp < now]
@@ -52,6 +90,23 @@ def consume_stream_ticket(ticket: str | None) -> bool:
     """
     if not ticket:
         return False
+
+    r_client = _get_ticket_redis()
+    if r_client is not None:
+        key = f"{_STREAM_TICKET_PREFIX}{ticket}"
+        try:
+            if hasattr(r_client, "getdel"):
+                val = r_client.getdel(key)
+            else:
+                pipe = r_client.pipeline()
+                pipe.get(key)
+                pipe.delete(key)
+                val, _ = pipe.execute()
+            if val is not None:
+                return True
+        except Exception as err:
+            logger.debug("Redis consume failed for stream ticket, checking local store: %s", err)
+
     now = time.time()
     with _ticket_lock:
         exp = _stream_tickets.pop(ticket, None)

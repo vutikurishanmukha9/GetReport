@@ -48,7 +48,8 @@ export function applyTheme(theme: Theme): void {
  * falling back to synchronous atomic application without main-thread jank.
  */
 function transitionTheme(nextTheme: Theme): void {
-  const doc = typeof document !== "undefined" ? (document as Document & { startViewTransition?: (cb: () => void) => void }) : null;
+  const doc: (Document & { startViewTransition?: (cb: () => void) => void }) | null =
+    "document" in globalThis ? document : null;
   if (doc?.startViewTransition) {
     doc.startViewTransition(() => {
       applyTheme(nextTheme);

@@ -23,7 +23,7 @@ export interface CleaningReport {
   categorical_nans_filled: number;
   columns_renamed: Record<string, string>;
   filesize_reduced_mb?: number;
-  row_triage?: Record<string, any>;
+  row_triage?: Record<string, PrimitiveValue>;
 }
 
 export interface AnalysisSummary {
@@ -147,7 +147,7 @@ export interface AnalysisResult {
     drift_detected?: Array<{ column: string; shift_pct: number; mean_p1: number; mean_p2: number }>;
     has_time_series?: boolean;
     time_column?: string;
-    analyses?: Record<string, PrimitiveValue>;
+    analyses?: Record<string, { trend?: { direction?: string; strength?: string } }>;
   };
   confidence_scores?: ConfidenceScores;
   ml_readiness?: MLReadiness;
@@ -160,7 +160,7 @@ export interface AnalysisResult {
     total_bytes?: number;
     truncated?: boolean;
     sampled?: boolean;
-    profile?: Record<string, unknown>;
+    profile?: Record<string, PrimitiveValue>;
   };
 }
 
@@ -402,6 +402,35 @@ export interface SnowflakeImportResponse {
   filename: string;
   status: string;
   message: string;
+}
+
+export type ExportFormat = "csv" | "parquet" | "excel" | "xlsx" | "html";
+
+export interface IssueMutationResponse extends IssueLedgerData {
+  message?: string;
+  issue_id?: string;
+  fix_code?: string;
+  count?: number;
+}
+
+export interface RecentDatasetItem {
+  task_id: string;
+  filename: string;
+  rows: number;
+  columns_count: number;
+  columns: string[];
+  numeric_columns: string[];
+  categorical_columns: string[];
+  created_at: string;
+}
+
+export interface GoldenQueryItem {
+  id: string;
+  task_id: string;
+  question: string;
+  sql_query: string;
+  description: string;
+  created_at: string;
 }
 
 export interface SnowflakeDeleteResponse {

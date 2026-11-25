@@ -24,12 +24,22 @@ def build_dataset_graph(
     analysis = job_result.get("analysis", {})
     metadata = analysis.get("metadata", {})
     summary = analysis.get("summary", {})
-    columns_info = analysis.get("columns", {})
-    confidence = job_result.get("confidence", {})
     cleaning_report = job_result.get("cleaning_report", {})
-    correlations = analysis.get("correlation", {}).get("strong_correlations", [])
-    if not correlations:
-        correlations = analysis.get("strong_correlations", [])
+
+    from app.services.report_normalizer import (
+        extract_column_profiles,
+        extract_dataset_confidence_summary,
+        extract_domain_info,
+        extract_ledger_issues,
+        extract_strong_correlations,
+    )
+
+    columns_info = extract_column_profiles(analysis, job_result.get("info"))
+    confidence = extract_dataset_confidence_summary(job_result, analysis)
+    domain_primary, _ = extract_domain_info(analysis)
+    correlations = extract_strong_correlations(analysis)
+    if ledger_issues is None:
+        ledger_issues = extract_ledger_issues(job_result)
 
     # 1. Add Dataset Root Node
     dataset_node_id = f"dataset:{filename}"
@@ -44,24 +54,30 @@ def build_dataset_graph(
             "completeness_pct": round(100 - metadata.get("missing_value_pct", 0), 2),
             "confidence_score": confidence.get("dataset_confidence"),
             "confidence_grade": confidence.get("dataset_grade"),
-            "domain": analysis.get("domain", "General"),
+            "domain": domain_primary,
             "cleaning_operations": cleaning_report.get("total_changes", 0),
         }
     )
 
-    # 2. Add Feature Column Nodes & CONTAINS_COLUMN Edges
-    for col_name, stats in summary.items():
+    # 2. Add Feature Column Nodes & CONTAINS_COLUMN Edges (numeric summary + categorical/info profiles)
+    seen_cols: list[str] = list(summary.keys())
+    for col_name in columns_info.keys():
+        if col_name not in summary:
+            seen_cols.append(col_name)
+
+    for col_name in seen_cols:
+        stats = summary.get(col_name, {}) if isinstance(summary.get(col_name), dict) else {}
         col_node_id = f"col:{col_name}"
         info = columns_info.get(col_name, {})
-        
+
         col_attrs = {
             "name": col_name,
             "column_name": col_name,
-            "data_type": info.get("data_type", stats.get("data_type", "Unknown")),
+            "data_type": info.get("data_type", info.get("dtype", stats.get("data_type", "Unknown"))),
             "semantic_type": info.get("semantic_type", "General"),
             "null_count": stats.get("null_count", 0),
-            "null_percentage": round(stats.get("null_percentage", 0.0), 2),
-            "unique_count": stats.get("unique_count"),
+            "null_percentage": round(stats.get("null_percentage", info.get("missing_pct", 0.0)), 2),
+            "unique_count": stats.get("unique_count", info.get("stats", {}).get("unique_count") if isinstance(info.get("stats"), dict) else None),
         }
         if "mean" in stats and stats["mean"] is not None:
             col_attrs["mean"] = round(float(stats["mean"]), 4) if isinstance(stats["mean"], (int, float)) else stats["mean"]
@@ -104,7 +120,7 @@ def build_dataset_graph(
         issue_type = iss.get("issue_type", iss.get("issue", "DataQualityIssue"))
         severity = iss.get("severity", "medium")
         desc = iss.get("description", str(iss))
-        action = iss.get("suggested_action", iss.get("remediation", "Review"))
+        action = iss.get("suggested_action", iss.get("suggested_fix", iss.get("remediation", "Review")))
         status = iss.get("status", "identified")
 
         store.add_entity(
@@ -197,9 +213,9 @@ def build_dataset_graph(
                     attributes={"description": f"Renamed header from '{orig}' to standardized '{new_name}'"}
                 )
 
-    # 6. Add Kats Time Series Changepoints (Structural Shift Topology)
-    ts_analysis = analysis.get("time_series", {})
-    changepoint_dict = ts_analysis.get("changepoints", {})
+    # 6. Add Time Series Changepoints (Structural Shift Topology)
+    ts_analysis = analysis.get("time_series_analysis") or analysis.get("time_series") or {}
+    changepoint_dict = ts_analysis.get("changepoints", {}) if isinstance(ts_analysis, dict) else {}
     for col_name, cps in changepoint_dict.items():
         col_node = f"col:{col_name}"
         if store.graph.has_node(col_node) and isinstance(cps, list):
@@ -229,19 +245,30 @@ def build_dataset_graph(
                     }
                 )
 
-    # 7. Add OpenMetadata PII Findings (Security & Compliance Topology)
-    pii_findings = job_result.get("pii", {}).get("findings", {})
-    for col_name, pii_info in pii_findings.items():
+    # 7. Add PII Findings (Security & Compliance Topology)
+    pii_payload = job_result.get("pii") or analysis.get("pii") or {}
+    pii_findings = pii_payload.get("findings", {}) if isinstance(pii_payload, dict) else {}
+    pii_items: list[tuple[str, dict[str, Any]]] = []
+    if isinstance(pii_findings, dict):
+        pii_items = [(str(k), v) for k, v in pii_findings.items() if isinstance(v, dict)]
+    elif isinstance(pii_findings, list):
+        pii_items = [
+            (str(v.get("column")), v)
+            for v in pii_findings
+            if isinstance(v, dict) and v.get("column")
+        ]
+
+    for col_name, pii_info in pii_items:
         col_node = f"col:{col_name}"
         if store.graph.has_node(col_node):
-            pii_type = pii_info.get("pii_type", "PII")
+            pii_type = pii_info.get("pii_type", pii_info.get("entity", "PII"))
             pii_node_id = f"pii:{col_name}"
             store.add_entity(
                 entity_id=pii_node_id,
                 entity_type="SecurityRisk",
                 attributes={
                     "pii_type": pii_type,
-                    "confidence": pii_info.get("confidence"),
+                    "confidence": pii_info.get("confidence", pii_info.get("risk")),
                     "sample_masked": pii_info.get("sample_masked")
                 }
             )
@@ -255,7 +282,8 @@ def build_dataset_graph(
             )
 
     # 8. Add Data Quality Test Failures (Governance Topology)
-    dq_results = job_result.get("data_quality", {}).get("results", [])
+    dq_payload = job_result.get("data_quality") or analysis.get("data_quality") or {}
+    dq_results = dq_payload.get("results", []) if isinstance(dq_payload, dict) else []
     for dq in dq_results:
         if not dq.get("success") and dq.get("column"):
             col_name = dq["column"]

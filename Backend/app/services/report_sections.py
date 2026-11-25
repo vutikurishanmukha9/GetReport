@@ -25,6 +25,7 @@ from reportlab.platypus import (
 from reportlab.platypus.flowables import Flowable
 
 from app.services.theme import Brand
+from app.services.report_normalizer import extract_triage_summary
 from app.services.report_styles import (
     ReportMetadata,
     _decode_image,
@@ -202,18 +203,17 @@ def _build_cleaning_section(
 
     table_data = [["Cleaning & Row Triage Action", "Count / Status"]]
     
-    # 1. Deduplication count
-    dup_count = report.get("duplicate_rows_removed", 1513)
+    # 1. Deduplication count (zero fallback if absent)
+    dup_count = int(report.get("duplicate_rows_removed", 0) or 0)
     table_data.append(["Duplicate Rows Removed", f"{dup_count:,}"])
 
-    # 2. Structural row triage breakdowns (blank, repeated header, subtotals, footers, near-duplicates)
-    triage = report.get("row_triage", {})
-    by_reason = triage.get("summary", {}).get("by_reason", {}) if isinstance(triage, dict) else {}
-    blank_rows = by_reason.get("fully_blank_rows", 182) + by_reason.get("whitespace_only_rows", 99)
-    header_rows = by_reason.get("repeated_mid_file_header_rows", 12)
-    subtotal_rows = by_reason.get("subtotal_summary_rows", 19) + by_reason.get("grand_total_rows", 1)
-    footer_rows = by_reason.get("sparse_footer_rows", 5)
-    near_dups = by_reason.get("near_duplicate_rows", 0)
+    # 2. Structural row triage breakdowns using canonical row_intelligence codes (plus legacy aliases)
+    triage_norm = extract_triage_summary(report)
+    blank_rows = triage_norm.get("blank_whitespace_rows", 0)
+    header_rows = triage_norm.get("repeated_headers", 0)
+    subtotal_rows = triage_norm.get("subtotal_grand_total_rows", 0)
+    footer_rows = triage_norm.get("footer_rows", 0)
+    near_dups = triage_norm.get("exact_duplicate", 0)
 
     table_data.append(["Blank Rows Pruned (structural blanks)", f"{blank_rows:,}"])
     table_data.append(["Repeated Mid-File Header Rows Pruned", f"{header_rows:,}"])
@@ -814,6 +814,19 @@ def _build_visualizations(
             else:
                 story.append(Paragraph(f"Pie chart for '{col_label}' could not be rendered.", styles["Body"]))
 
+    if "donut_chart" in charts and charts["donut_chart"]:
+        donut = charts["donut_chart"]
+        if not ("pie_charts" in charts and charts["pie_charts"]):
+            story.append(Paragraph("Composition Analysis", styles["SectionHeading"]))
+        col_label = donut.get("column", "Category Share") if isinstance(donut, dict) else "Category Share"
+        img_src = donut.get("image", "") if isinstance(donut, dict) else str(donut)
+        img = _decode_image(img_src, 4.5 * inch, 2.5 * inch, f"Donut: {col_label}", meta)
+        if img:
+            story.append(Paragraph(f"Category Composition: {col_label}", styles["SubHeading"]))
+            story.append(img)
+            story.append(Spacer(1, 0.1 * inch))
+            has_any_chart = True
+
     if has_any_chart:
         story.extend(_divider())
         meta.sections_included.append("Visualizations")
@@ -911,47 +924,56 @@ def _build_time_series_section(
     story.append(Paragraph("Time-Series Analysis", styles["SectionHeading"]))
     story.append(Spacer(1, 0.1 * inch))
 
-    time_col = time_series.get("time_column", "order_date")
-    story.append(Paragraph(f"<b>Primary Time Dimension:</b> {time_col}", styles["Body"]))
-    
-    # Flag mixed date formats if detected
-    if time_series.get("mixed_date_formats") or time_col.lower() in ("order_date", "signup_date"):
+    time_col = time_series.get("time_column") or "—"
+    story.append(Paragraph(f"<b>Primary Time Dimension:</b> {_esc(time_col)}", styles["Body"]))
+
+    # Flag mixed date formats only if explicitly detected by the analyzer
+    if time_series.get("mixed_date_formats"):
         story.append(Paragraph(
-            "<b>Data Integrity Alert:</b> Mixed-date-format detected in chronological dimension (multiple date formats). "
+            "<b>Data Integrity Alert:</b> Mixed date formats detected in chronological dimension. "
             "ISO 8601 normalization applied for sequence sorting.",
-            styles["Body"]
+            styles["Body"],
         ))
     story.append(Spacer(1, 0.1 * inch))
 
-    trends_data = time_series.get("trends", {})
-    seasonality_data = time_series.get("seasonality", {})
-    analyses = time_series.get("analyses", {})
+    trends_data = time_series.get("trends") or {}
+    seasonality_data = time_series.get("seasonality") or {}
+    analyses = time_series.get("analyses") or {}
 
     cols_to_render = list(trends_data.keys()) or list(analyses.keys())
     if cols_to_render:
         table_data = [["Measure", "Trend Direction", "Sen's slope", "Mann-Kendall Stat", "Seasonality / STL"]]
         for col in cols_to_render[:6]:
-            t_info = trends_data.get(col, {}) or analyses.get(col, {}).get("trend", {})
-            s_info = seasonality_data.get(col, {}) or analyses.get(col, {}).get("seasonality", {})
-            
-            direction = t_info.get("direction", "Upward").capitalize()
-            s_slope = t_info.get("sens_slope", t_info.get("slope", 0.0012))
-            mk = t_info.get("mann_kendall", {})
-            z_score = mk.get("z_score", 1.96) if isinstance(mk, dict) else 1.96
-            p_val = mk.get("p_value", 0.04) if isinstance(mk, dict) else 0.04
-            
-            mk_str = f"Z={z_score:.2f} (p={p_val:.3f})"
-            season_str = s_info.get("primary_period", "Weekly (lag 7)") if s_info.get("detected") else "None detected"
+            t_info = trends_data.get(col) or analyses.get(col, {}).get("trend") or {}
+            s_info = seasonality_data.get(col) or analyses.get(col, {}).get("seasonality") or {}
 
-            table_data.append([
-                col, direction, f"{s_slope:.4f}", mk_str, season_str
-            ])
+            direction = str(t_info.get("direction", "—")).capitalize()
+            s_slope = t_info.get("sens_slope")
+            if s_slope is None:
+                s_slope = t_info.get("slope")
+            slope_str = f"{float(s_slope):.4f}" if isinstance(s_slope, (int, float)) else "—"
+
+            mk = t_info.get("mann_kendall") if isinstance(t_info.get("mann_kendall"), dict) else {}
+            z_score = mk.get("z_score") if mk.get("z_score") is not None else t_info.get("z_score")
+            p_val = mk.get("p_value") if mk.get("p_value") is not None else t_info.get("p_value")
+            if isinstance(z_score, (int, float)) and isinstance(p_val, (int, float)):
+                mk_str = f"Z={float(z_score):.2f} (p={float(p_val):.3f})"
+            elif isinstance(p_val, (int, float)):
+                mk_str = f"p={float(p_val):.3f}"
+            else:
+                mk_str = "—"
+
+            season_str = (
+                str(s_info.get("primary_period") or "Detected")
+                if s_info.get("detected")
+                else "None detected"
+            )
+
+            table_data.append([col, direction, slope_str, mk_str, season_str])
         story.append(_build_styled_table(table_data, col_widths=[1.5 * inch, 1.2 * inch, 1.1 * inch, 1.6 * inch, 1.6 * inch]))
 
     story.extend(_divider())
     meta.sections_included.append("Time Series")
-    return story
-    meta.sections_included.append("Time-Series Analysis")
     return story
 
 

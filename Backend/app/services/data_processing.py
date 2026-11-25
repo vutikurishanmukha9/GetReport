@@ -58,6 +58,7 @@ class CleaningReport:
     total_changes:            int                              = 0
     timing_ms:                float                            = 0.0
     row_triage:               dict[str, Any]                   = field(default_factory=dict)
+    remediation_audit:        dict[str, Any]                   = field(default_factory=dict)
 
     def finalize(self) -> None:
         self.total_changes = (
@@ -86,6 +87,7 @@ class CleaningReport:
             "total_changes":            self.total_changes,
             "timing_ms":                round(self.timing_ms, 2),
             "row_triage":               self.row_triage,
+            "remediation_audit":        self.remediation_audit,
         }
 
 # ─── Utility: Snake Case Conversion ──────────────────────────────────────────
@@ -1335,6 +1337,8 @@ def clean_data(
     rules_applied_cols: set[str] = set()
     if rules:
         for original_col, rule in rules.items():
+            if not isinstance(rule, dict):
+                continue
             target_col = _to_snake_case(original_col)
             if target_col not in df.columns: 
                 continue
@@ -1343,7 +1347,10 @@ def clean_data(
             action = rule.get("action")
             step_start = time.perf_counter()
             df_before = df.clone()
-            
+
+            if action == "skip":
+                continue
+
             if action == "drop_rows":
                 df = df.filter(pl.col(target_col).is_not_null())
                 dag.add_node(
@@ -1541,21 +1548,23 @@ def clean_data(
                     logger.warning("Failed executing rule %s on %s: %s", action, target_col, ex)
 
     # ─── Step 3: Remove Duplicates ───────────────────────────────────────────
-    step_start = time.perf_counter()
-    df_before = df.clone()
-    init_rows = df.height
-    df = df.unique(maintain_order=True)
-    dups_removed = init_rows - df.height
-    report.duplicate_rows_removed = dups_removed
-    
-    if dups_removed > 0:
-        dag.add_node(
-            operation="remove_duplicates",
-            df_before=df_before,
-            df_after=df,
-            parameters={"duplicates_removed": dups_removed},
-            duration_ms=(time.perf_counter() - step_start) * 1000,
-        )
+    skip_duplicates = bool(rules.get("skip_duplicates", False)) if isinstance(rules, dict) else False
+    if not skip_duplicates:
+        step_start = time.perf_counter()
+        df_before = df.clone()
+        init_rows = df.height
+        df = df.unique(maintain_order=True)
+        dups_removed = init_rows - df.height
+        report.duplicate_rows_removed = dups_removed
+        
+        if dups_removed > 0:
+            dag.add_node(
+                operation="remove_duplicates",
+                df_before=df_before,
+                df_after=df,
+                parameters={"duplicates_removed": dups_removed},
+                duration_ms=(time.perf_counter() - step_start) * 1000,
+            )
     
     # ─── Step 4: Automated Smart Cleaning & Safe Imputation ─────────────────────
     masked_placeholders = ["n/a", "na", "-999", "null", "?", "-", "missing", "unknown", "none"]

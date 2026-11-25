@@ -218,7 +218,7 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="h-auto min-h-12 bg-[#EDE8DE] dark:bg-white/[0.03] border border-[#DCD6C9] dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-xs flex flex-wrap items-center gap-1.5">
+        <TabsList className="h-auto min-h-12 bg-[#EDE8DE] dark:bg-white/[0.03] border border-[#DCD6C9] dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-xs flex flex-wrap items-center justify-start gap-1.5">
           <TabsTrigger
             value="preview"
             className="group rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.06] dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white transition-all shrink-0 cursor-pointer"

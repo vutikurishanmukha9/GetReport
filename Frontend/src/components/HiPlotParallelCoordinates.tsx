@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Sliders, RefreshCw, Filter, Eye, Layers, Download } from 'lucide-react';
-import type { DataRow } from '@/types/api';
+import type { DataRow, PrimitiveValue } from '@/types/api';
 import { Button } from '@/components/ui/button';
 
 export interface HiPlotDimension {
@@ -48,6 +48,10 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
 
   // Available numeric columns for coloring
   const numericDims = useMemo(() => dimensions.filter(d => d.is_numeric), [dimensions]);
+  const activeColorColumn = useMemo(
+    () => (numericDims.some(d => d.name === colorColumn) ? colorColumn : (numericDims[0]?.name ?? dimensions[0]?.name ?? '')),
+    [colorColumn, numericDims, dimensions]
+  );
 
   // Determine active/filtered datapoints
   const filteredIndices = useMemo(() => {
@@ -113,7 +117,7 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
     const axisPositions = dimensions.map((_, i) => leftMargin + i * axisSpacing);
 
     // Compute Y coordinate for a given value on a dimension
-    const getY = (dim: HiPlotDimension, val: any): number => {
+    const getY = (dim: HiPlotDimension, val: PrimitiveValue | undefined): number => {
       if (val === null || val === undefined) return height - bottomMargin;
       if (dim.is_numeric) {
         const min = dim.min ?? 0;
@@ -131,7 +135,7 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
     };
 
     // Color scaling dimension bounds
-    const colorDim = dimensions.find(d => d.name === colorColumn);
+    const colorDim = dimensions.find(d => d.name === activeColorColumn);
     const cMin = colorDim?.min ?? 0;
     const cMax = colorDim?.max ?? 1;
     const cSpan = cMax - cMin || 1;
@@ -154,7 +158,7 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
     // 2. Draw active (brushed) lines with vibrant color
     datapoints.forEach((row, i) => {
       if (!filteredIndices.has(i)) return;
-      const cVal = Number(row[colorColumn]);
+      const cVal = Number(row[activeColorColumn]);
       const ratio = !isNaN(cVal) ? Math.max(0, Math.min(1, (cVal - cMin) / cSpan)) : 0.5;
 
       ctx.lineWidth = filteredIndices.size < 500 ? 1.5 : 1;
@@ -217,12 +221,12 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
       }
     });
 
-  }, [dimensions, datapoints, brushes, colorColumn, filteredIndices]);
+  }, [dimensions, datapoints, brushes, activeColorColumn, filteredIndices]);
 
   // Handle axis drag brush selection
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || dimensions.length < 2) return;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -296,6 +300,17 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
     setDragCurrentY(null);
   };
 
+  useEffect(() => {
+    if (!draggingDim) return;
+    const onWindowMouseUp = () => {
+      setDraggingDim(null);
+      setDragStartY(null);
+      setDragCurrentY(null);
+    };
+    window.addEventListener('mouseup', onWindowMouseUp);
+    return () => window.removeEventListener('mouseup', onWindowMouseUp);
+  }, [draggingDim]);
+
   const resetAllBrushes = () => {
     setBrushes({});
   };
@@ -367,7 +382,7 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
               <select
                 id="hiplot-color-column-select"
                 aria-label="Color lines by dimension"
-                value={colorColumn}
+                value={activeColorColumn}
                 onChange={e => setColorColumn(e.target.value)}
                 className="bg-transparent text-stone-800 dark:text-slate-200 border-none outline-none cursor-pointer text-xs"
               >

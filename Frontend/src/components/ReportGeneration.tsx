@@ -1,35 +1,27 @@
-import React, { useState, useEffect, useMemo, memo } from "react";
+import React, { useState, useEffect, useMemo, memo, lazy, Suspense, useRef } from "react";
 import {
   Download, RefreshCw, Loader2, FileText, ChevronRight,
-  AlertTriangle, AlertCircle, ArrowRight, BarChart3, PieChart, Activity,
+  AlertTriangle, ArrowRight, BarChart3, PieChart, Activity,
   FileSpreadsheet, TrendingUp, ChevronDown, ChevronUp, ShieldCheck,
-  BookOpen, Table2, Grid, Cpu, Terminal, Play, Sliders, Search,
-  Copy, Check, Trash2, Database,
-  History, ArrowUpDown, Code2, PanelLeftClose, PanelLeftOpen
+  BookOpen, Table2, Grid, Cpu, Terminal, Sliders, Search,
+  Database
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button, AnimatedDeleteButton, ShimmerActionButton, SaveKpiButton } from "@/components/ui/button";
+import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { AppStep } from "@/pages/Workspace";
-import type { AnalysisResult, Charts, InsightResult, DatasetInfo, DataRow } from "@/types/api";
+import type { AnalysisResult, Charts, InsightResult, DatasetInfo, ExportFormat } from "@/types/api";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
-import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { MLReadinessCard } from "./MLReadinessCard";
 import { AnimatedNumber } from "@/components/motion/animated-number";
 import { HiPlotParallelCoordinates, type HiPlotPayload, type HiPlotDimension } from "./HiPlotParallelCoordinates";
 import { SupersetExploreStudio } from "./SupersetExploreStudio";
 import { ErrorBoundary } from "./ErrorBoundary";
+
+const DuckDBSqlStudio = lazy(() => import("./DuckDBSqlStudio"));
 
 // Safe, memoized image container to prevent expensive base64 re-renders
 const SafeChartImage = memo(({ base64Src, alt, className }: { base64Src: string; alt: string; className?: string }) => {
@@ -62,6 +54,8 @@ interface ReportGenerationProps {
   insights: InsightResult;
   onComplete: () => void;
   onReset: () => void;
+  requestedTab?: { tab: string; nonce: number } | null;
+  requestedSql?: { sql: string; nonce: number } | null;
 }
 
 const getGradeColorClass = (g: string) => {
@@ -123,6 +117,27 @@ const getSealGradeConfig = (grade: string) => {
   }
 };
 
+const VALID_MAIN_TABS = new Set([
+  "overview",
+  "charts",
+  "ledger",
+  "stats",
+  "sql",
+  "bi_analytics",
+  "export",
+]);
+
+const MAIN_TAB_TRIGGER_CLASS =
+  "group flex-auto justify-center min-h-[38px] rounded-xl text-xs px-3 py-2 font-sans font-semibold data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-all inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer border border-transparent";
+
+const TAB_COUNT_BADGE_CLASS =
+  "tab-count-badge inline-flex items-center justify-center h-[18px] min-w-[18px] px-1.5 rounded-full text-[10px] leading-none font-sans font-bold tabular-nums bg-stone-300 text-stone-900 border border-stone-400/40 group-data-[state=active]:bg-white group-data-[state=active]:text-[#800000] group-data-[state=active]:border-transparent dark:bg-white/10 dark:text-zinc-300 dark:group-data-[state=active]:bg-zinc-950 dark:group-data-[state=active]:text-white";
+
+function normalizeMainTab(tab?: string | null): string {
+  if (tab && VALID_MAIN_TABS.has(tab)) return tab;
+  return "overview";
+}
+
 export const ReportGeneration = ({
   step,
   taskId,
@@ -132,7 +147,9 @@ export const ReportGeneration = ({
   charts,
   insights: _insights,
   onComplete,
-  onReset
+  onReset,
+  requestedTab,
+  requestedSql,
 }: ReportGenerationProps) => {
   const { toast } = useToast();
 
@@ -140,7 +157,8 @@ export const ReportGeneration = ({
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("Initializing report engine…");
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const startedGenerationRef = useRef<string | null>(null);
+  const [remoteHiplotPayload, setRemoteHiplotPayload] = useState<HiPlotPayload | null>(null);
 
   useEffect(() => {
     return () => {
@@ -151,7 +169,15 @@ export const ReportGeneration = ({
   }, [downloadUrl]);
 
   // Top-level Command Center tab
-  const [activeMainTab, setActiveMainTab] = useState<string>("overview");
+  const [activeMainTab, setActiveMainTab] = useState<string>(() =>
+    normalizeMainTab(requestedTab?.tab),
+  );
+
+  useEffect(() => {
+    if (requestedTab?.tab) {
+      setActiveMainTab(normalizeMainTab(requestedTab.tab));
+    }
+  }, [requestedTab]);
 
   // Visual Insights Sub-tabs
   const [activeChartTab, setActiveChartTab] = useState<string>("correlation");
@@ -164,168 +190,127 @@ export const ReportGeneration = ({
   const [ledgerSearch, setLedgerSearch] = useState<string>("");
   const [ledgerGradeFilter, setLedgerGradeFilter] = useState<string>("all");
 
-  // In-Browser DuckDB SQL Studio state
-  const [sqlQuery, setSqlQuery] = useState<string>("SELECT * FROM dataset LIMIT 15;");
-  const [sqlRunning, setSqlRunning] = useState<boolean>(false);
-  const [sqlResult, setSqlResult] = useState<{
-    columns: string[];
-    records: DataRow[];
-    total_returned: number;
-    latency_ms: number;
-  } | null>(null);
-  const [sqlError, setSqlError] = useState<string | null>(null);
-  const [hasCopiedSql, setHasCopiedSql] = useState<boolean>(false);
-  const [isSavedSql, setIsSavedSql] = useState<boolean>(false);
-
-  // Schema & Inspector State
-  const [sqlSchema, setSqlSchema] = useState<{
-    engine: string;
-    total_tables: number;
-    tables: Array<{
-      table_name: string;
-      row_count: number;
-      column_count: number;
-      columns: Array<{
-        name: string;
-        type: string;
-        nullable: boolean;
-        sample_values: string[];
-      }>;
-    }>;
-  } | null>(null);
-  const [loadingSchema, setLoadingSchema] = useState<boolean>(false);
-  const [schemaSearch, setSchemaSearch] = useState<string>("");
-  const [schemaTypeFilter, setSchemaTypeFilter] = useState<"all" | "numeric" | "text" | "temporal">("all");
-  const [showSchemaSidebar, setShowSchemaSidebar] = useState<boolean>(true);
-  const [expandedSchemaCol, setExpandedSchemaCol] = useState<string | null>(null);
-
-  // Results interactive UX
-  const [resultsFilter, setResultsFilter] = useState<string>("");
-  const [resultsSortCol, setResultsSortCol] = useState<string | null>(null);
-  const [resultsSortAsc, setResultsSortAsc] = useState<boolean>(true);
-  const [resultsPage, setResultsPage] = useState<number>(1);
-  const [resultsPerPage] = useState<number>(15);
-
-  // Query History
-  const [queryHistory, setQueryHistory] = useState<string[]>([
-    "SELECT * FROM dataset LIMIT 15;",
-  ]);
-  const [showHistory, setShowHistory] = useState<boolean>(false);
-
-  const handleSaveSqlQuery = async () => {
-    if (!taskId || !sqlQuery.trim()) return;
-    try {
-      await api.saveGoldenQuery(taskId, "Verified Analytical Query", sqlQuery, "Saved from In-Process SQL Studio");
-      setIsSavedSql(true);
-      toast({
-        title: "Query Saved as Golden KPI",
-        description: "Successfully added this query to verified golden benchmarks.",
-      });
-    } catch (err: any) {
-      toast({
-        title: "Save Failed",
-        description: err?.message || "Could not save query.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const toggleColumnExpand = (colName: string) => {
     setExpandedColumns(prev => ({ ...prev, [colName]: !prev[colName] }));
   };
 
-  // Real-time task tracking via hook
-  const { status: taskStatus, progress: taskProgress, message: taskMessage } = useTaskStatus(taskId || undefined);
-
+  // Fetch full multi-dimensional HiPlot sample from backend (avoiding 10-row preview cap)
   useEffect(() => {
-    let mounted = true;
+    if (step !== "complete" || !taskId) return;
+    let cancelled = false;
+    api.getHiPlotData(taskId, 2000)
+      .then((res) => {
+        if (cancelled || !res || !Array.isArray(res.dimensions) || res.dimensions.length < 2) return;
+        setRemoteHiplotPayload({
+          total_rows: res.total_rows,
+          sampled_rows: res.sampled_rows,
+          is_sampled: Boolean(res.is_sampled ?? res.total_rows > res.sampled_rows),
+          dimensions: res.dimensions,
+          datapoints: res.datapoints,
+        });
+      })
+      .catch(() => {
+        // Silently keep preview fallback if analytics endpoint unavailable
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [step, taskId]);
+
+  // Persistent PDF Generation & /report/status polling (single source of truth; avoids HTTP 202 corruption & premature URL revoke)
+  useEffect(() => {
+    if (step !== "generating" || !taskId) return;
+    if (startedGenerationRef.current === taskId) return;
+    startedGenerationRef.current = taskId;
+
+    let cancelled = false;
+
+    const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
     const runGeneration = async () => {
-      if (step === "generating" && !isGenerating && !downloadUrl && taskId) {
-        setIsGenerating(true);
-        setStatus("Initializing report engine…");
-        setProgress(10);
+      setStatus("Checking compiled report cache…");
+      setProgress(15);
 
-        try {
-          // Check if report was already pre-compiled during Stage 2 analysis pipeline
-          const repStatus = await api.getReportStatus(taskId);
-          if (repStatus.status === "ready") {
-            if (!mounted) return;
-            setStatus("Downloading PDF…");
-            setProgress(100);
+      try {
+        let repStatus = await api.getReportStatus(taskId);
+        if (cancelled) return;
 
-            const blob = await api.downloadReportBlob(taskId);
-            if (!mounted) return;
-            const url = window.URL.createObjectURL(blob);
-            setDownloadUrl(url);
-            setStatus("Report ready!");
-            onComplete();
-            toast({ title: "Report Ready", description: "PDF loaded from compiled cache." });
-            setIsGenerating(false);
-            return;
+        if (repStatus.status !== "ready") {
+          setStatus("Compiling publication PDF report…");
+          setProgress(30);
+          await api.generatePersistentReport(taskId);
+
+          for (let attempt = 0; attempt < 60 && !cancelled; attempt += 1) {
+            await sleep(1500);
+            if (cancelled) return;
+            repStatus = await api.getReportStatus(taskId);
+            if (repStatus.status === "ready") break;
+            if (repStatus.status === "failed") {
+              throw new Error("Server report compilation failed.");
+            }
+            setProgress((prev) => Math.min(92, Math.max(prev, 30 + attempt * 2)));
           }
 
-          await api.generatePersistentReport(taskId);
-        } catch (error) {
-          if (!mounted) return;
-          console.error("Report generation trigger failed:", error);
-          setStatus("Failed to start generation.");
-          toast({ title: "Error", description: "Could not start report generation.", variant: "destructive" });
-          setIsGenerating(false);
+          if (repStatus.status !== "ready") {
+            throw new Error("Timed out waiting for PDF compilation.");
+          }
         }
+
+        if (cancelled) return;
+        setStatus("Downloading PDF…");
+        setProgress(96);
+
+        const blob = await api.downloadReportBlob(taskId);
+        if (cancelled) return;
+
+        const url = window.URL.createObjectURL(blob);
+        setDownloadUrl(url);
+        setProgress(100);
+        setStatus("Report ready!");
+        onComplete();
+        toast({ title: "Report Ready", description: "PDF compiled and ready for download." });
+      } catch (error) {
+        if (cancelled) return;
+        startedGenerationRef.current = null;
+        console.error("Report generation failed:", error);
+        const errMsg = error instanceof Error ? error.message : "Could not generate PDF report.";
+        setStatus("Report generation failed.");
+        toast({ title: "PDF Generation Error", description: errMsg, variant: "destructive" });
       }
     };
 
-    runGeneration();
+    void runGeneration();
 
-    if (step === "generating" && taskId) {
-      if (taskStatus === 'PROCESSING') {
-        if (taskMessage) setStatus(taskMessage);
-        else setStatus("Generating PDF report…");
-        setProgress(Math.min(95, Math.max(taskProgress, 10)));
-      } else if (taskStatus === 'COMPLETED') {
-        if (mounted && !downloadUrl) {
-          setStatus("Downloading PDF…");
-          setProgress(100);
+    return () => {
+      cancelled = true;
+    };
+  }, [step, taskId, onComplete, toast]);
 
-          api.downloadReportBlob(taskId)
-            .then(blob => {
-              if (!mounted) return;
-              const url = window.URL.createObjectURL(blob);
-              setDownloadUrl(url);
-              setStatus("Report ready!");
-              onComplete();
-              toast({ title: "Report Ready", description: "PDF compiled and cached successfully." });
-            })
-            .catch(e => {
-              if (!mounted) return;
-              console.error("Download failed:", e);
-              setStatus("Download failed.");
-            })
-            .finally(() => {
-              if (mounted) setIsGenerating(false);
-            });
-        }
-      } else if (taskStatus === 'FAILED') {
-        setStatus("Report generation failed.");
-        setIsGenerating(false);
-        toast({ title: "Failed", description: "Check server logs.", variant: "destructive" });
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  const downloadFile = async () => {
+    let targetUrl = downloadUrl;
+    if (!targetUrl && taskId) {
+      setIsDownloadingPdf(true);
+      try {
+        const blob = await api.downloadReportBlob(taskId);
+        targetUrl = window.URL.createObjectURL(blob);
+        setDownloadUrl(targetUrl);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Report is still generating.";
+        toast({ title: "Not Ready", description: msg });
+        setIsDownloadingPdf(false);
+        return;
+      } finally {
+        setIsDownloadingPdf(false);
       }
     }
 
-    return () => {
-      mounted = false;
-      if (downloadUrl) {
-        window.URL.revokeObjectURL(downloadUrl);
-      }
-    };
-  }, [step, taskId, taskStatus, taskProgress, taskMessage, isGenerating, downloadUrl, onComplete, toast]);
-
-  const downloadFile = () => {
-    if (downloadUrl) {
+    if (targetUrl) {
       const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename ? `${filename.replace('.csv', '')}_Report.pdf` : 'Analysis_Report.pdf';
+      link.href = targetUrl;
+      const baseName = filename ? filename.replace(/\.[^/.]+$/, "") : 'Analysis';
+      link.download = `${baseName}_Report.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -334,7 +319,7 @@ export const ReportGeneration = ({
     }
   };
 
-  const downloadExport = async (format: "csv" | "parquet" | "html") => {
+  const downloadExport = async (format: ExportFormat) => {
     if (!taskId) return;
     try {
       toast({ title: "Preparing Export", description: `Packaging ${format.toUpperCase()} export file...` });
@@ -343,7 +328,8 @@ export const ReportGeneration = ({
       const link = document.createElement("a");
       link.href = url;
       const safeName = filename ? filename.replace(/\.[^/.]+$/, "") : "dataset";
-      link.download = format === "html" ? `Report_${safeName}.html` : `Cleaned_${safeName}.${format}`;
+      const fileExt = format === "excel" ? "xlsx" : format;
+      link.download = format === "html" ? `Report_${safeName}.html` : `Cleaned_${safeName}.${fileExt}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -376,184 +362,11 @@ export const ReportGeneration = ({
     }
   };
 
-  // Load DuckDB schema introspection when tab is active
-  useEffect(() => {
-    if (activeMainTab === "sql" && taskId && !sqlSchema && !loadingSchema) {
-      setLoadingSchema(true);
-      api.getSqlSchema(taskId)
-        .then(data => {
-          if (data && data.success) {
-            setSqlSchema(data);
-          }
-        })
-        .catch(err => {
-          console.warn("Could not load SQL schema metadata:", err);
-        })
-        .finally(() => {
-          setLoadingSchema(false);
-        });
-    }
-  }, [activeMainTab, taskId, sqlSchema, loadingSchema]);
-
-  // Execute DuckDB analytical query
-  const executeSql = async (overrideQuery?: string) => {
-    if (!taskId) return;
-    const query = (overrideQuery || sqlQuery).trim();
-    if (!query) return;
-
-    setSqlRunning(true);
-    setSqlError(null);
-    const start = performance.now();
-
-    try {
-      const res = await api.querySql(taskId, query, 500);
-      const elapsed = res.execution_ms ?? Math.round(performance.now() - start);
-      setSqlResult({
-        columns: res.columns,
-        records: res.records,
-        total_returned: res.total_returned,
-        latency_ms: elapsed,
-      });
-      setResultsPage(1);
-      setResultsFilter("");
-      setQueryHistory(prev => [query, ...prev.filter(q => q !== query)].slice(0, 10));
-      setIsSavedSql(false);
-      toast({
-        title: "Query Executed",
-        description: `Returned ${res.total_returned} rows in ${elapsed}ms`,
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Query execution failed";
-      setSqlError(msg);
-      toast({
-        title: "SQL Error",
-        description: msg,
-        variant: "destructive",
-      });
-    } finally {
-      setSqlRunning(false);
-    }
-  };
-
-  const formatSqlQuery = () => {
-    if (!sqlQuery.trim()) return;
-    let formatted = sqlQuery.trim();
-    const clauses = ["FROM", "WHERE", "GROUP BY", "HAVING", "ORDER BY", "LIMIT"];
-    clauses.forEach(clause => {
-      const reg = new RegExp(`\\s+(${clause})\\b`, "gi");
-      formatted = formatted.replace(reg, `\n$1`);
-    });
-    setSqlQuery(formatted);
-  };
-
-  const insertTextIntoQuery = (snippet: string) => {
-    setSqlQuery(prev => {
-      const trimmed = prev.trim();
-      if (!trimmed) return snippet;
-      if (trimmed.endsWith(",") || trimmed.endsWith("(") || trimmed.endsWith("=")) {
-        return `${trimmed} ${snippet}`;
-      }
-      return `${trimmed} ${snippet}`;
-    });
-  };
-
-  // Export current SQL query results to CSV
-  const downloadSqlCsv = () => {
-    if (!sqlResult || sqlResult.records.length === 0) return;
-    const cols = sqlResult.columns;
-    const sanitizeCsvCell = (val: unknown): string => {
-      if (val === null || val === undefined) return '""';
-      let str = String(val);
-      // Neutralize spreadsheet formula injection (CWE-1236)
-      if (/^[=+\-@\t\r]/.test(str)) {
-        str = "'" + str;
-      }
-      return `"${str.replace(/"/g, '""')}"`;
-    };
-    const lines = [cols.map(sanitizeCsvCell).join(",")];
-    for (const row of sqlResult.records) {
-      const rowLine = cols.map(c => sanitizeCsvCell(row[c])).join(",");
-      lines.push(rowLine);
-    }
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `duckdb_query_result_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast({ title: "Export Ready", description: "Downloaded SQL query result as CSV." });
-  };
-
-  const activeTableMeta = sqlSchema?.tables?.[0];
-
-  const filteredSchemaColumns = useMemo(() => {
-    if (!activeTableMeta || !activeTableMeta.columns) return [];
-    return (activeTableMeta.columns || []).filter(col => {
-      const matchesSearch = !schemaSearch.trim() ||
-        col.name.toLowerCase().includes(schemaSearch.toLowerCase().trim()) ||
-        col.type.toLowerCase().includes(schemaSearch.toLowerCase().trim());
-
-      if (!matchesSearch) return false;
-
-      const typeUpper = (col.type || "").toUpperCase();
-      if (schemaTypeFilter === "numeric") {
-        return typeUpper.includes("INT") || typeUpper.includes("DOUBLE") || typeUpper.includes("FLOAT") || typeUpper.includes("DECIMAL") || typeUpper.includes("NUMERIC");
-      }
-      if (schemaTypeFilter === "text") {
-        return typeUpper.includes("VARCHAR") || typeUpper.includes("TEXT") || typeUpper.includes("STRING") || typeUpper.includes("CHAR");
-      }
-      if (schemaTypeFilter === "temporal") {
-        return typeUpper.includes("DATE") || typeUpper.includes("TIME") || typeUpper.includes("TIMESTAMP");
-      }
-      return true;
-    });
-  }, [activeTableMeta, schemaSearch, schemaTypeFilter]);
-
-  const filteredAndSortedRecords = useMemo(() => {
-    if (!sqlResult) return [];
-    let list = [...sqlResult.records];
-
-    if (resultsFilter.trim()) {
-      const term = resultsFilter.toLowerCase().trim();
-      list = list.filter(row =>
-        sqlResult.columns.some(col => {
-          const val = row[col];
-          return val !== null && val !== undefined && String(val).toLowerCase().includes(term);
-        })
-      );
-    }
-
-    if (resultsSortCol) {
-      list.sort((a, b) => {
-        const valA = a[resultsSortCol];
-        const valB = b[resultsSortCol];
-        if (valA === valB) return 0;
-        if (valA === null || valA === undefined) return 1;
-        if (valB === null || valB === undefined) return -1;
-
-        if (typeof valA === "number" && typeof valB === "number") {
-          return resultsSortAsc ? valA - valB : valB - valA;
-        }
-        const strA = String(valA);
-        const strB = String(valB);
-        return resultsSortAsc ? strA.localeCompare(strB) : strB.localeCompare(strA);
-      });
-    }
-
-    return list;
-  }, [sqlResult, resultsFilter, resultsSortCol, resultsSortAsc]);
-
-  const totalResultsPages = Math.max(1, Math.ceil(filteredAndSortedRecords.length / resultsPerPage));
-  const paginatedRecords = useMemo(() => {
-    const start = (resultsPage - 1) * resultsPerPage;
-    return filteredAndSortedRecords.slice(start, start + resultsPerPage);
-  }, [filteredAndSortedRecords, resultsPage, resultsPerPage]);
-
-  // Construct Parallel Coordinates Payload
+  // Construct Parallel Coordinates Payload (prefer backend /hiplot 2000-row sample over 10-row preview)
   const hiplotPayload = useMemo<HiPlotPayload | null>(() => {
+    if (remoteHiplotPayload && remoteHiplotPayload.dimensions.length >= 2) {
+      return remoteHiplotPayload;
+    }
     if (!info?.preview || info.preview.length < 2) return null;
 
     const candidateCols = (info?.columns || []).filter(col => {
@@ -590,7 +403,7 @@ export const ReportGeneration = ({
       dimensions,
       datapoints: info.preview,
     };
-  }, [info.columns, info.dtypes, info.preview, info.rows, info.summary]);
+  }, [info.columns, info.dtypes, info.preview, info.rows, info.summary, remoteHiplotPayload]);
 
   // Fallback confidence scores if backend didn't supply them
   const fallbackConfidenceScores = useMemo(() => {
@@ -627,8 +440,8 @@ export const ReportGeneration = ({
   const confidence = (analysis?.confidence_scores && Array.isArray(analysis.confidence_scores.columns))
     ? analysis.confidence_scores
     : fallbackConfidenceScores;
-  const datasetGrade = confidence?.dataset_grade || "B";
-  const datasetConfidence = confidence?.dataset_confidence || 82.5;
+  const datasetGrade = confidence?.dataset_grade ?? "B";
+  const datasetConfidence = confidence?.dataset_confidence ?? 82.5;
 
   // Filter columns in the ledger
   const filteredLedgerColumns = useMemo(() => {
@@ -666,7 +479,7 @@ export const ReportGeneration = ({
 
   if (step === "complete") {
     return (
-      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-400">
+      <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-400">
 
         {/* ─── Top Command Center Hero Bar ─── */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-6 sm:p-8 bg-card border border-border/80 rounded-3xl shadow-premium relative overflow-hidden">
@@ -730,12 +543,13 @@ export const ReportGeneration = ({
           {/* Primary & Quick Export Actions */}
           <div className="flex flex-wrap items-center gap-2.5 z-10 w-full md:w-auto">
             <ShimmerActionButton
-              onClick={downloadFile}
+              onClick={() => void downloadFile()}
+              disabled={isDownloadingPdf}
               className="flex-1 md:flex-none"
               icon={<Download className="h-4 w-4 text-white dark:text-black stroke-[2.5]" />}
               trailingIcon={<ChevronRight className="h-4 w-4 text-white dark:text-black stroke-[2.5]" />}
             >
-              <span>Download PDF</span>
+              <span>{isDownloadingPdf ? "Downloading…" : "Download PDF"}</span>
             </ShimmerActionButton>
 
             <Button
@@ -777,68 +591,47 @@ export const ReportGeneration = ({
 
         {/* ─── Main Command Center Tabs ─── */}
         <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-          <TabsList className="h-auto min-h-12 w-full bg-[#EDE8DE] border border-[#DCD6C9] dark:bg-[#0c0d12]/95 dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-sm flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap">
-            <TabsTrigger
-              value="overview"
-              className="group rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-semibold data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer border border-transparent"
-            >
-              <FileText className="h-4 w-4" />
+          <TabsList className="h-auto w-full bg-[#EDE8DE] border border-[#DCD6C9] dark:bg-[#0c0d12]/95 dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-sm flex flex-wrap items-stretch justify-between gap-1.5">
+            <TabsTrigger value="overview" className={MAIN_TAB_TRIGGER_CLASS}>
+              <FileText className="h-3.5 w-3.5 shrink-0" />
               <span>Overview</span>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="charts"
-              className="group rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-semibold data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer border border-transparent"
-            >
-              <TrendingUp className="h-4 w-4" />
+            <TabsTrigger value="charts" className={MAIN_TAB_TRIGGER_CLASS}>
+              <TrendingUp className="h-3.5 w-3.5 shrink-0" />
               <span>Visual Analytics</span>
               {chartTabsList.length > 0 && (
-                <span className="tab-count-badge text-[10px] font-sans font-bold tabular-nums px-1.5 py-0.2 rounded-full bg-stone-300 text-stone-900 border border-stone-400/40 group-data-[state=active]:bg-white group-data-[state=active]:text-[#800000] group-data-[state=active]:border-transparent dark:bg-white/10 dark:text-zinc-300 dark:group-data-[state=active]:bg-zinc-950 dark:group-data-[state=active]:text-white">
+                <span className={TAB_COUNT_BADGE_CLASS}>
                   {chartTabsList.length}
                 </span>
               )}
             </TabsTrigger>
 
-            <TabsTrigger
-              value="ledger"
-              className="group rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-semibold data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer border border-transparent"
-            >
-              <ShieldCheck className="h-4 w-4" />
+            <TabsTrigger value="ledger" className={MAIN_TAB_TRIGGER_CLASS}>
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
               <span>Trust Ledger</span>
-              <span className="tab-count-badge text-[10px] font-sans font-bold tabular-nums px-1.5 py-0.2 rounded-full bg-stone-300 text-stone-900 border border-stone-400/40 group-data-[state=active]:bg-white group-data-[state=active]:text-[#800000] group-data-[state=active]:border-transparent dark:bg-white/10 dark:text-zinc-300 dark:group-data-[state=active]:bg-zinc-950 dark:group-data-[state=active]:text-white">
+              <span className={TAB_COUNT_BADGE_CLASS}>
                 {confidence.columns.length}
               </span>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="stats"
-              className="group rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-semibold data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer border border-transparent"
-            >
-              <Activity className="h-4 w-4" />
+            <TabsTrigger value="stats" className={MAIN_TAB_TRIGGER_CLASS}>
+              <Activity className="h-3.5 w-3.5 shrink-0" />
               <span>Statistical Audit</span>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="sql"
-              className="group rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-semibold data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer border border-transparent"
-            >
-              <Terminal className="h-4 w-4" />
+            <TabsTrigger value="sql" className={MAIN_TAB_TRIGGER_CLASS}>
+              <Terminal className="h-3.5 w-3.5 shrink-0" />
               <span>DuckDB SQL Studio</span>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="bi_analytics"
-              className="group rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-semibold data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer border border-transparent"
-            >
-              <BarChart3 className="h-4 w-4" />
+            <TabsTrigger value="bi_analytics" className={MAIN_TAB_TRIGGER_CLASS}>
+              <BarChart3 className="h-3.5 w-3.5 shrink-0" />
               <span>Interactive BI</span>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="export"
-              className="group rounded-xl text-xs sm:text-[13px] px-3.5 py-2 font-sans font-semibold data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] transition-all flex items-center gap-2 shrink-0 whitespace-nowrap cursor-pointer border border-transparent"
-            >
-              <Download className="h-4 w-4" />
+            <TabsTrigger value="export" className={MAIN_TAB_TRIGGER_CLASS}>
+              <Download className="h-3.5 w-3.5 shrink-0" />
               <span>Export Hub</span>
             </TabsTrigger>
           </TabsList>
@@ -1541,7 +1334,7 @@ export const ReportGeneration = ({
                   </CardHeader>
                   <CardContent className="pt-4">
                     <div className="grid gap-3 sm:grid-cols-2 font-mono text-xs">
-                      {analysis.time_series_analysis.analyses && Object.entries(analysis.time_series_analysis.analyses).map(([col, data]: [string, any]) => (
+                      {analysis.time_series_analysis.analyses && Object.entries(analysis.time_series_analysis.analyses).map(([col, data]) => (
                         <div key={col} className="p-3 bg-muted/10 border border-border rounded-xl space-y-1.5">
                           <span className="font-bold text-foreground block truncate">{col}</span>
                           <div className="flex justify-between items-center text-[11px]">
@@ -1562,620 +1355,23 @@ export const ReportGeneration = ({
           {/* ──── TAB 5: DUCKDB SQL STUDIO ──── */}
           <TabsContent value="sql" className="space-y-6 animate-in fade-in duration-300">
             <ErrorBoundary fallbackTitle="DuckDB SQL Studio Encountered an Error">
-            <Card className="border border-border bg-card shadow-premium rounded-3xl p-6 space-y-6">
-              {/* Studio Header Bar */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border pb-5">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                      <Terminal className="h-4 w-4" />
-                    </div>
-                    <h3 className="text-lg font-display font-bold text-foreground">
-                      In-Process DuckDB Analytical Studio
-                    </h3>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      DuckDB OLAP (C++ / Arrow)
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-mono bg-secondary text-secondary-foreground border border-border">
-                      table: <code className="font-bold">dataset</code>
+              <Suspense
+                fallback={
+                  <div className="flex flex-col items-center justify-center p-12 space-y-3 rounded-2xl border border-border bg-card">
+                    <Loader2 className="h-7 w-7 text-primary animate-spin" />
+                    <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                      Loading DuckDB SQL Studio...
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Execute high-speed vectorized analytical queries directly against the in-memory cleaned dataset ({activeTableMeta && typeof activeTableMeta.row_count === "number" ? activeTableMeta.row_count.toLocaleString() : (info?.rows ? info.rows.toLocaleString() : "0")} rows, {activeTableMeta && Array.isArray(activeTableMeta.columns) ? activeTableMeta.columns.length : (info?.columns ? info.columns.length : 0)} columns)
-                  </p>
-                </div>
-
-                {/* Toolbar Buttons */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs font-medium border-border/80 bg-secondary/40 hover:bg-secondary text-foreground gap-1.5 transition-colors cursor-pointer"
-                    onClick={() => setShowSchemaSidebar(!showSchemaSidebar)}
-                    title="Toggle Schema Inspector sidebar"
-                  >
-                    {showSchemaSidebar ? <PanelLeftClose className="h-3.5 w-3.5 text-muted-foreground" /> : <PanelLeftOpen className="h-3.5 w-3.5 text-primary" />}
-                    <span>{showSchemaSidebar ? "Hide Schema" : "Show Schema"}</span>
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs font-medium border-border/80 bg-secondary/40 hover:bg-secondary text-foreground gap-1.5 transition-colors cursor-pointer"
-                    onClick={() => setShowHistory(!showHistory)}
-                    title="View recent queries"
-                  >
-                    <History className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>History ({queryHistory.length})</span>
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs font-medium border-border/80 bg-secondary/40 hover:bg-secondary text-foreground gap-1.5 transition-colors cursor-pointer"
-                    onClick={formatSqlQuery}
-                    title="Format and beautify SQL keywords"
-                  >
-                    <Code2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>Format</span>
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 border-border/80 gap-1.5 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setSqlQuery("");
-                      setSqlResult(null);
-                      setSqlError(null);
-                      setIsSavedSql(false);
-                    }}
-                    title="Clear SQL query"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <span>Clear</span>
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs font-medium border-border/80 bg-secondary/40 hover:bg-secondary text-foreground gap-1.5 transition-colors cursor-pointer"
-                    onClick={() => {
-                      navigator.clipboard.writeText(sqlQuery);
-                      setHasCopiedSql(true);
-                      setTimeout(() => setHasCopiedSql(false), 2000);
-                      toast({ title: "Copied", description: "Query copied to clipboard" });
-                    }}
-                  >
-                    {hasCopiedSql ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
-                    <span>{hasCopiedSql ? "Copied" : "Copy"}</span>
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="h-8 text-xs font-semibold gap-1.5 px-3.5 shadow-sm cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
-                    disabled={sqlRunning}
-                    onClick={() => executeSql()}
-                  >
-                    {sqlRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5 fill-current" />}
-                    <span>Run Query</span>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Collapsible History Drawer */}
-              {showHistory && (
-                <div className="p-3 bg-muted/40 border border-border rounded-2xl space-y-2 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-                    <span className="font-semibold text-foreground flex items-center gap-1.5">
-                      <History className="h-3.5 w-3.5 text-primary" />
-                      Recent Query History (Click to Load)
-                    </span>
-                    <button
-                      type="button"
-                      className="text-[11px] hover:text-foreground cursor-pointer underline"
-                      onClick={() => setShowHistory(false)}
-                    >
-                      Close
-                    </button>
-                  </div>
-                  <div className="grid gap-1.5 max-h-36 overflow-y-auto">
-                    {queryHistory.map((q) => (
-                      <button
-                        type="button"
-                        key={`history-query-${q}`}
-                        className="flex items-center justify-between gap-2 p-2 rounded-xl bg-card border border-border/60 hover:border-primary/50 text-xs font-mono transition-colors group cursor-pointer text-left w-full"
-                        onClick={() => {
-                          setSqlQuery(q);
-                          setShowHistory(false);
-                          toast({ title: "Query Loaded", description: "Restored query from history" });
-                        }}
-                      >
-                        <span className="truncate text-foreground/90 group-hover:text-primary">{q}</span>
-                        <span className="text-[10px] text-muted-foreground shrink-0 uppercase">Load</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Main Studio Grid: Left Sidebar (Schema Inspector) + Right (Editor & Results) */}
-              <div className={`grid gap-6 ${showSchemaSidebar ? "lg:grid-cols-[290px_1fr]" : "grid-cols-1"}`}>
-                {/* ──── LEFT SIDEBAR: SCHEMA & COLUMN INSPECTOR ──── */}
-                {showSchemaSidebar && (
-                  <div className="border border-border/80 bg-muted/20 rounded-2xl p-4 flex flex-col space-y-3.5 self-start h-full max-h-[780px]">
-                    <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-                      <div className="flex items-center gap-2">
-                        <Database className="h-4 w-4 text-primary" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-                          Schema Inspector
-                        </span>
-                      </div>
-                      <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 bg-background">
-                        {activeTableMeta && Array.isArray(activeTableMeta.columns) ? `${activeTableMeta.columns.length} cols` : `${info?.columns?.length || 0} cols`}
-                      </Badge>
-                    </div>
-
-                    {/* Table overview badge */}
-                    <div className="p-2.5 rounded-xl bg-background border border-border/60 text-xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold text-foreground">dataset</span>
-                        <span className="text-[10px] font-mono text-muted-foreground">
-                          {activeTableMeta && typeof activeTableMeta.row_count === "number" ? activeTableMeta.row_count.toLocaleString() : (info?.rows ? info.rows.toLocaleString() : "0")} rows
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-muted-foreground flex items-center justify-between">
-                        <span>Click column to insert</span>
-                        <span className="text-emerald-500 font-mono text-[10px]">active view</span>
-                      </div>
-                    </div>
-
-                    {/* Search Column Input */}
-                    <div className="relative">
-                      <Search className="h-3.5 w-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
-                      <Input
-                        type="text"
-                        placeholder="Search columns or types..."
-                        value={schemaSearch}
-                        onChange={(e) => setSchemaSearch(e.target.value)}
-                        className="h-8 pl-8 text-xs font-mono bg-background"
-                      />
-                    </div>
-
-                    {/* Type Filter Pills */}
-                    <div className="flex items-center gap-1 border-b border-border/60 pb-2">
-                      {(["all", "numeric", "text", "temporal"] as const).map((filterKey) => (
-                        <button
-                          key={filterKey}
-                          type="button"
-                          onClick={() => setSchemaTypeFilter(filterKey)}
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-medium transition-colors cursor-pointer ${schemaTypeFilter === filterKey
-                              ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                            }`}
-                        >
-                          {filterKey.toUpperCase()}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Column List */}
-                    <div className="overflow-y-auto space-y-1.5 pr-1 flex-1 max-h-[500px]">
-                      {loadingSchema ? (
-                        <div className="py-8 text-center text-xs text-muted-foreground space-y-2">
-                          <Loader2 className="h-4 w-4 animate-spin mx-auto text-primary" />
-                          <span>Introspecting DuckDB schema…</span>
-                        </div>
-                      ) : filteredSchemaColumns.length === 0 ? (
-                        <div className="py-6 text-center text-xs text-muted-foreground">
-                          No matching columns found
-                        </div>
-                      ) : (
-                        filteredSchemaColumns.map((col) => {
-                          const typeUp = (col.type || "").toUpperCase();
-                          const isNum = typeUp.includes("INT") || typeUp.includes("DOUBLE") || typeUp.includes("FLOAT") || typeUp.includes("DECIMAL") || typeUp.includes("NUMERIC");
-                          const isTxt = typeUp.includes("VARCHAR") || typeUp.includes("TEXT") || typeUp.includes("STRING");
-                          const isDate = typeUp.includes("DATE") || typeUp.includes("TIME");
-                          const isExpanded = expandedSchemaCol === col.name;
-
-                          return (
-                            <div
-                              key={`schema-col-${col.name}`}
-                              className="rounded-xl border border-border/60 bg-background/80 hover:bg-background hover:border-primary/40 transition-all text-xs overflow-hidden"
-                            >
-                              <div className="w-full p-2 flex items-center justify-between gap-1.5">
-                                <button
-                                  type="button"
-                                  className="flex items-center gap-1.5 min-w-0 text-left cursor-pointer bg-transparent border-0 p-0"
-                                  onClick={() => insertTextIntoQuery(`"${col.name}"`)}
-                                  title={`Click to insert "${col.name}"`}
-                                >
-                                  <span
-                                    className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase shrink-0 ${isNum
-                                        ? "bg-sky-500/15 text-sky-800 border border-sky-500/30 dark:bg-white/10 dark:text-zinc-300 dark:border-white/20"
-                                        : isTxt
-                                          ? "bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
-                                          : isDate
-                                            ? "bg-amber-500/15 text-amber-800 border border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20"
-                                            : "bg-stone-200 text-stone-700 border border-stone-300 dark:bg-muted dark:text-muted-foreground"
-                                      }`}
-                                  >
-                                    {isNum ? "NUM" : isTxt ? "TXT" : isDate ? "DATE" : "DATA"}
-                                  </span>
-                                  <span className="font-mono text-xs font-medium text-foreground truncate">
-                                    {col.name}
-                                  </span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setExpandedSchemaCol(isExpanded ? null : col.name);
-                                  }}
-                                  className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer shrink-0"
-                                  title="Expand column details and quick queries"
-                                >
-                                  {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                </button>
-                              </div>
-
-                              {/* Expanded Column Info & Quick Actions */}
-                              {isExpanded && (
-                                <div className="px-2.5 pb-2.5 pt-1 border-t border-border/40 bg-muted/20 space-y-2 text-[11px]">
-                                  <div className="flex items-center justify-between text-muted-foreground font-mono text-[10px]">
-                                    <span>Type: {col.type}</span>
-                                    <span>{col.nullable ? "Nullable" : "NOT NULL"}</span>
-                                  </div>
-
-                                  {col.sample_values && col.sample_values.length > 0 && (
-                                    <div className="space-y-1">
-                                      <span className="text-[10px] text-muted-foreground font-sans">Sample Values:</span>
-                                      <div className="flex flex-wrap gap-1">
-                                        {col.sample_values.slice(0, 3).map((val, vIdx) => (
-                                          <span
-                                            key={`sample-${col.name}-${vIdx}`}
-                                            className="px-1.5 py-0.5 rounded bg-muted font-mono text-[10px] text-foreground/80 truncate max-w-[120px]"
-                                          >
-                                            {val}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  <div className="flex items-center gap-1 pt-1 flex-wrap">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const q = `SELECT "${col.name}", COUNT(*) AS count FROM dataset GROUP BY "${col.name}" ORDER BY count DESC LIMIT 10;`;
-                                        setSqlQuery(q);
-                                        executeSql(q);
-                                      }}
-                                      className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer"
-                                    >
-                                      Group & Count
-                                    </button>
-
-                                    {isNum && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const q = `SELECT MIN("${col.name}") AS min_val, AVG("${col.name}") AS mean_val, MAX("${col.name}") AS max_val, STDDEV_SAMP("${col.name}") AS std_val FROM dataset;`;
-                                          setSqlQuery(q);
-                                          executeSql(q);
-                                        }}
-                                        className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer"
-                                      >
-                                        Summary Stats
-                                      </button>
-                                    )}
-
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const q = `SELECT COUNT(*) AS total_records, COUNT("${col.name}") AS non_null_count, COUNT(*) - COUNT("${col.name}") AS missing_count FROM dataset;`;
-                                        setSqlQuery(q);
-                                        executeSql(q);
-                                      }}
-                                      className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer"
-                                    >
-                                      Missing Count
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* ──── RIGHT COLUMN: QUERY CONSOLE & RESULTS ──── */}
-                <div className="space-y-4">
-                  {/* Analytical Query Recipes & Presets */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-                    <span className="text-[10px] font-mono text-muted-foreground uppercase mr-1 shrink-0 flex items-center gap-1">
-                      <Sliders className="h-3 w-3" /> Recipes:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const q = "SELECT * FROM dataset LIMIT 20;";
-                        setSqlQuery(q);
-                        executeSql(q);
-                      }}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/60 hover:border-border transition-colors cursor-pointer shrink-0"
-                    >
-                      Preview 20 Rows
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const q = "SELECT COUNT(*) AS total_rows FROM dataset;";
-                        setSqlQuery(q);
-                        executeSql(q);
-                      }}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/60 hover:border-border transition-colors cursor-pointer shrink-0"
-                    >
-                      Count Rows
-                    </button>
-
-                    {/* Category Distribution Recipe */}
-                    {(() => {
-                      const catCol = activeTableMeta?.columns?.find(c => (c.type || "").toUpperCase().includes("VARCHAR") || (c.type || "").toUpperCase().includes("TEXT"))?.name || info?.categorical_columns?.[0];
-                      if (!catCol) return null;
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const q = `SELECT "${catCol}", COUNT(*) AS count, ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM dataset), 2) AS pct_of_total FROM dataset GROUP BY "${catCol}" ORDER BY count DESC LIMIT 10;`;
-                            setSqlQuery(q);
-                            executeSql(q);
-                          }}
-                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/60 hover:border-border transition-colors cursor-pointer shrink-0"
-                        >
-                          Top Categories ({catCol})
-                        </button>
-                      );
-                    })()}
-
-                    {/* Numeric Summary Recipe */}
-                    {(() => {
-                      const numCol = activeTableMeta?.columns?.find(c => (c.type || "").toUpperCase().includes("INT") || (c.type || "").toUpperCase().includes("DOUBLE") || (c.type || "").toUpperCase().includes("FLOAT"))?.name || info?.numeric_columns?.[0];
-                      if (!numCol) return null;
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const q = `SELECT MIN("${numCol}") AS min_val, QUANTILE_CONT("${numCol}", 0.25) AS p25, MEDIAN("${numCol}") AS median, QUANTILE_CONT("${numCol}", 0.75) AS p75, MAX("${numCol}") AS max_val FROM dataset;`;
-                            setSqlQuery(q);
-                            executeSql(q);
-                          }}
-                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/60 hover:border-border transition-colors cursor-pointer shrink-0"
-                        >
-                          Quantiles ({numCol})
-                        </button>
-                      );
-                    })()}
-
-                    {/* Outlier Filter Recipe */}
-                    {(() => {
-                      const numCol = activeTableMeta?.columns?.find(c => (c.type || "").toUpperCase().includes("INT") || (c.type || "").toUpperCase().includes("DOUBLE") || (c.type || "").toUpperCase().includes("FLOAT"))?.name || info?.numeric_columns?.[0];
-                      if (!numCol) return null;
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const q = `SELECT * FROM dataset WHERE "${numCol}" > (SELECT AVG("${numCol}") + 2 * STDDEV_SAMP("${numCol}") FROM dataset) LIMIT 15;`;
-                            setSqlQuery(q);
-                            executeSql(q);
-                          }}
-                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground border border-border/60 hover:border-border transition-colors cursor-pointer shrink-0"
-                        >
-                          Outliers ({numCol})
-                        </button>
-                      );
-                    })()}
-                  </div>
-
-                  {/* SQL Query Editor Textarea */}
-                  <div className="relative rounded-2xl border border-border/80 overflow-hidden bg-zinc-950 font-mono text-xs shadow-inner">
-                    <div className="flex items-center justify-between px-3.5 py-2.5 bg-zinc-900 border-b border-zinc-800 text-[11px] text-zinc-400">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
-                        <div className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
-                        <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
-                        <span className="ml-1.5 font-mono text-[10px] text-zinc-400 font-semibold">duckdb-in-process</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-[10px] text-zinc-500">
-                        <span>{sqlQuery.length} chars</span>
-                        <span className="text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded font-mono">Ctrl+Enter to Execute</span>
-                      </div>
-                    </div>
-                    <textarea
-                      aria-label="SQL Query Input"
-                      value={sqlQuery}
-                      onChange={(e) => setSqlQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                          e.preventDefault();
-                          executeSql();
-                        }
-                      }}
-                      rows={5}
-                      className="w-full p-4 bg-transparent text-emerald-400 font-mono text-xs outline-none resize-y leading-relaxed selection:bg-emerald-500/20"
-                      placeholder="SELECT * FROM dataset WHERE ..."
-                      spellCheck={false}
-                    />
-                  </div>
-
-                  {/* Error Output with DuckDB Diagnostic Hints */}
-                  {sqlError && (
-                    <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-2xl text-xs font-mono text-destructive flex items-start gap-3 animate-in fade-in">
-                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <span className="font-bold block text-sm">Query Evaluation Failed</span>
-                        <span className="block leading-relaxed">{sqlError}</span>
-                        <span className="text-[11px] text-muted-foreground block font-sans pt-1">
-                          Tip: Click column names in the Schema Inspector to safely insert exact quoted references. Only read queries (SELECT, WITH, DESCRIBE, EXPLAIN) are permitted.
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* SQL Result Table */}
-                  {sqlResult && (
-                    <div className="space-y-3 pt-2">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs font-mono text-muted-foreground">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20 font-mono">
-                            {sqlResult.latency_ms}ms
-                          </span>
-                          <span>
-                            Returned <strong>{sqlResult.total_returned}</strong> rows across <strong>{sqlResult.columns.length}</strong> columns
-                          </span>
-                          {sqlResult.records.length !== filteredAndSortedRecords.length && (
-                            <span className="text-[11px] text-primary">
-                              (filtered to {filteredAndSortedRecords.length} rows)
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* Search in results input */}
-                          <div className="relative">
-                            <Search className="h-3 w-3 absolute left-2 top-2 text-muted-foreground" />
-                            <Input
-                              type="text"
-                              placeholder="Filter results..."
-                              value={resultsFilter}
-                              onChange={(e) => {
-                                setResultsFilter(e.target.value);
-                                setResultsPage(1);
-                              }}
-                              className="h-7 w-36 pl-7 text-[11px] font-mono bg-card"
-                            />
-                          </div>
-
-                          <SaveKpiButton
-                            isSaved={isSavedSql}
-                            onToggleSave={handleSaveSqlQuery}
-                            savedLabel="Saved as KPI"
-                            defaultLabel="Save KPI"
-                            className="h-7 px-2.5 text-xs rounded-lg"
-                          />
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs font-medium rounded-lg bg-secondary/50 hover:bg-secondary text-foreground border-border/80 px-2.5 cursor-pointer gap-1.5"
-                            onClick={downloadSqlCsv}
-                          >
-                            <Download className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span>Export CSV</span>
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Interactive Results Table */}
-                      <div className="border border-border/80 rounded-2xl overflow-hidden shadow-2xs bg-card">
-                        <div className="w-full overflow-x-auto max-h-[380px]">
-                          <Table className="border-collapse">
-                            <TableHeader className="bg-muted/40 sticky top-0 z-10">
-                              <TableRow className="border-b border-border/60">
-                                {sqlResult.columns.map((col) => {
-                                  const isSorted = resultsSortCol === col;
-                                  return (
-                                    <TableHead
-                                      key={col}
-                                      onClick={() => {
-                                        if (resultsSortCol === col) {
-                                          setResultsSortAsc(!resultsSortAsc);
-                                        } else {
-                                          setResultsSortCol(col);
-                                          setResultsSortAsc(true);
-                                        }
-                                      }}
-                                      className="font-mono text-[11px] font-bold uppercase text-foreground px-3.5 py-2.5 whitespace-nowrap border-r border-border/60 last:border-r-0 cursor-pointer hover:bg-muted/60 transition-colors select-none"
-                                      title="Click to sort by this column"
-                                    >
-                                      <div className="flex items-center justify-between gap-1.5">
-                                        <span>{col}</span>
-                                        <ArrowUpDown className={`h-3 w-3 ${isSorted ? "text-primary" : "text-muted-foreground/40"}`} />
-                                      </div>
-                                    </TableHead>
-                                  );
-                                })}
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody className="divide-y divide-border/60 bg-card">
-                              {paginatedRecords.length === 0 ? (
-                                <TableRow>
-                                  <TableCell colSpan={sqlResult.columns.length} className="text-center py-8 text-xs text-muted-foreground font-mono">
-                                    No records match current filter
-                                  </TableCell>
-                                </TableRow>
-                              ) : (
-                                paginatedRecords.map((r, rowIdx) => (
-                                  <TableRow key={`sql-row-${rowIdx}`} className="hover:bg-primary/[0.02]">
-                                    {sqlResult.columns.map((col) => (
-                                      <TableCell key={`sql-cell-${rowIdx}-${col}`} className="font-mono text-xs text-foreground/90 whitespace-nowrap px-3.5 py-2 border-r border-border/60 last:border-r-0">
-                                        {r[col] === null || r[col] === undefined ? (
-                                          <span className="text-muted-foreground/50 italic font-sans text-[11px]">null</span>
-                                        ) : (
-                                          String(r[col])
-                                        )}
-                                      </TableCell>
-                                    ))}
-                                  </TableRow>
-                                ))
-                              )}
-                            </TableBody>
-                          </Table>
-                        </div>
-
-                        {/* Pagination Bar */}
-                        {filteredAndSortedRecords.length > resultsPerPage && (
-                          <div className="flex items-center justify-between px-4 py-2 border-t border-border/60 bg-muted/20 text-xs font-mono text-muted-foreground">
-                            <span>
-                              Showing {((resultsPage - 1) * resultsPerPage) + 1} to {Math.min(resultsPage * resultsPerPage, filteredAndSortedRecords.length)} of {filteredAndSortedRecords.length}
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-6 px-2 text-[11px] cursor-pointer"
-                                disabled={resultsPage <= 1}
-                                onClick={() => setResultsPage(prev => Math.max(1, prev - 1))}
-                              >
-                                Prev
-                              </Button>
-                              <span className="text-[11px] px-1">
-                                {resultsPage} / {totalResultsPages}
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-6 px-2 text-[11px] cursor-pointer"
-                                disabled={resultsPage >= totalResultsPages}
-                                onClick={() => setResultsPage(prev => Math.min(totalResultsPages, prev + 1))}
-                              >
-                                Next
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
+                }
+              >
+                <DuckDBSqlStudio
+                  taskId={taskId}
+                  datasetName={filename}
+                  info={info}
+                  externalSqlRequest={requestedSql}
+                />
+              </Suspense>
             </ErrorBoundary>
           </TabsContent>
 
@@ -2198,10 +1394,11 @@ export const ReportGeneration = ({
                 <div className="pt-6">
                   <Button
                     className="w-full rounded-xl bg-primary text-primary-foreground font-semibold text-xs shadow-2xs gap-2"
-                    onClick={downloadFile}
+                    disabled={isDownloadingPdf}
+                    onClick={() => void downloadFile()}
                   >
                     <Download className="h-3.5 w-3.5" />
-                    <span>Download PDF</span>
+                    <span>{isDownloadingPdf ? "Downloading..." : "Download PDF"}</span>
                   </Button>
                 </div>
               </Card>
@@ -2227,6 +1424,31 @@ export const ReportGeneration = ({
                   >
                     <Download className="h-3.5 w-3.5" />
                     <span>Download HTML</span>
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Excel Workbook */}
+              <Card className="border border-border/80 bg-card shadow-premium rounded-3xl p-6 flex flex-col justify-between hover:border-primary/40 transition-all">
+                <div className="space-y-3">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                    <FileSpreadsheet className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-display font-bold text-base text-foreground">Excel Workbook (.xlsx)</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Spreadsheet workbook export of the cleaned, type-standardized dataset ready for Excel and BI tools.
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-6">
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl border-border/80 bg-secondary/80 hover:bg-secondary text-foreground font-semibold text-xs shadow-xs gap-2 transition-all"
+                    onClick={() => downloadExport("xlsx")}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Export Excel (.xlsx)</span>
                   </Button>
                 </div>
               </Card>
@@ -2316,7 +1538,8 @@ export const ReportGeneration = ({
               </Card>
             </div>
           </TabsContent>
-                  {/* ──── TAB 7: SUPERSET INTERACTIVE BI ──── */}
+
+          {/* ──── TAB 7: SUPERSET INTERACTIVE BI ──── */}
           <TabsContent value="bi_analytics" className="space-y-6 animate-in fade-in duration-300">
             <ErrorBoundary fallbackTitle="Interactive BI Studio Encountered an Error">
               <SupersetExploreStudio

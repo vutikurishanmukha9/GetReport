@@ -1,16 +1,16 @@
-import { useState, lazy, Suspense, useCallback, useEffect } from "react";
+import { useState, Suspense, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FileUpload } from "@/components/FileUpload";
 import { DataPreview } from "@/components/DataPreview";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import type { ApiResponse } from "@/types/api";
+import { api } from "@/services/api";
 import { ChatInterface } from "@/components/ChatInterface";
-import { ProcessPipeline } from "@/components/ProcessPipeline";
-import { useTaskStatus } from "@/hooks/useTaskStatus";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import { useToast } from "@/hooks/use-toast";
 
 // Lazy-load heavy ReportGeneration component with deployment auto-recovery
 const ReportGeneration = lazyWithRetry(
@@ -20,12 +20,45 @@ const ReportGeneration = lazyWithRetry(
 
 export type AppStep = "upload" | "preview" | "generating" | "complete";
 
+interface AuditHistoryEntry {
+  task_id: string;
+  filename: string;
+  created_at: string;
+  rows?: number;
+  columns?: number;
+  grade?: string;
+  score?: number;
+  status: string;
+}
+
+function saveAuditToHistory(entry: AuditHistoryEntry): void {
+  try {
+    const raw = localStorage.getItem("getreport_audit_history");
+    const parsed: AuditHistoryEntry[] = raw ? JSON.parse(raw) : [];
+    const filtered = Array.isArray(parsed)
+      ? parsed.filter((item) => item.task_id !== entry.task_id)
+      : [];
+    const next = [entry, ...filtered].slice(0, 25);
+    localStorage.setItem("getreport_audit_history", JSON.stringify(next));
+  } catch {
+    // ignore storage quota errors
+  }
+}
+
 export const Workspace = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
   const sampleParam = searchParams.get("sample") || undefined;
+  const urlTaskId = searchParams.get("taskId") || undefined;
+  const initialTabParam = searchParams.get("tab") || undefined;
   const [step, setStep] = useState<AppStep>("upload");
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(urlTaskId || null);
+  const [isHydratingTask, setIsHydratingTask] = useState<boolean>(Boolean(urlTaskId));
+  const [requestedTab, setRequestedTab] = useState<{ tab: string; nonce: number } | null>(() =>
+    initialTabParam ? { tab: initialTabParam, nonce: 1 } : null,
+  );
+  const [requestedSql, setRequestedSql] = useState<{ sql: string; nonce: number } | null>(null);
 
   // Scroll to top on every workspace step transition (upload -> preview -> generating -> complete)
   useEffect(() => {
@@ -34,20 +67,70 @@ export const Workspace = () => {
     document.body.scrollTop = 0;
   }, [step]);
 
-  // Pipeline status tracking for generating/complete phases
-  const {
-    status: pipelineStatus,
-    progress: pipelineProgress,
-    message: pipelineMessage,
-  } = useTaskStatus(
-    step === "generating" && taskId ? taskId : undefined
-  );
+  // Restore completed workspace state on page refresh or ?taskId= deep-link
+  useEffect(() => {
+    if (!urlTaskId || apiData) {
+      setIsHydratingTask(false);
+      return;
+    }
 
-  const handleFileUploaded = useCallback((data: ApiResponse, taskId: string) => {
+    let cancelled = false;
+    setIsHydratingTask(true);
+    api.getTaskStatus(urlTaskId)
+      .then((res) => {
+        if (cancelled) return;
+        const resultPayload = res.result;
+        if (
+          res.status?.toUpperCase() === "COMPLETED" &&
+          resultPayload instanceof Object &&
+          "analysis" in resultPayload &&
+          "info" in resultPayload
+        ) {
+          // SAFETY: structural check verifies resultPayload is ApiResponse
+          const restored = resultPayload as ApiResponse;
+          setApiData(restored);
+          setTaskId(urlTaskId);
+          setStep(res.report_download_url ? "complete" : "preview");
+        } else {
+          setIsHydratingTask(false);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        toast({
+          title: "Session Not Restored",
+          description: "The previous workspace session could not be restored from ephemeral storage.",
+          variant: "destructive",
+        });
+        setSearchParams({}, { replace: true });
+        setTaskId(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIsHydratingTask(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [urlTaskId, apiData, setSearchParams, toast]);
+
+  const handleFileUploaded = useCallback((data: ApiResponse, newTaskId: string) => {
     setApiData(data);
-    setTaskId(taskId);
+    setTaskId(newTaskId);
     setStep("preview");
-  }, []);
+    setSearchParams({ taskId: newTaskId }, { replace: true });
+
+    saveAuditToHistory({
+      task_id: newTaskId,
+      filename: data.filename,
+      created_at: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      rows: data.info?.rows,
+      columns: Array.isArray(data.info?.columns) ? data.info.columns.length : undefined,
+      grade: data.analysis?.confidence_scores?.dataset_grade,
+      score: data.analysis?.confidence_scores?.dataset_confidence,
+      status: "COMPLETED",
+    });
+  }, [setSearchParams]);
 
   const handleGenerateReport = useCallback(() => {
     setStep("generating");
@@ -61,7 +144,8 @@ export const Workspace = () => {
     setStep("upload");
     setApiData(null);
     setTaskId(null);
-  }, []);
+    setSearchParams({}, { replace: true });
+  }, [setSearchParams]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F2EB] text-stone-900 dark:bg-[#07080a] dark:text-zinc-100 relative">
@@ -71,7 +155,16 @@ export const Workspace = () => {
       <Header onReset={handleReset} showReset={step !== "upload"} />
 
       <main className="flex-1 pt-20 sm:pt-24 relative z-10">
-        {step === "upload" && (
+        {isHydratingTask && !apiData && (
+          <div className="flex flex-col items-center justify-center p-16 space-y-4">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+              Restoring dataset session...
+            </span>
+          </div>
+        )}
+
+        {step === "upload" && !isHydratingTask && (
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 max-w-6xl space-y-8 animate-in fade-in duration-300">
             <div className="text-center space-y-3">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-200/60 border border-stone-300 text-stone-700 dark:bg-white/[0.04] dark:border-white/10 dark:text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
@@ -102,19 +195,6 @@ export const Workspace = () => {
 
         {(step === "generating" || step === "complete") && apiData && (
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12 space-y-12">
-            {/* Process Pipeline: visible during report generation */}
-            {step === "generating" && taskId && (
-              <div className="max-w-6xl mx-auto">
-                <ProcessPipeline
-                  taskStatus={pipelineStatus}
-                  message={pipelineMessage}
-                  progress={pipelineProgress}
-                  isActive={true}
-                  minCompletedStage={4}
-                />
-              </div>
-            )}
-
             <ErrorBoundary fallbackTitle="Data Report & Analytics Error">
               <Suspense fallback={
                 <div className="flex flex-col items-center justify-center p-12 space-y-4">
@@ -132,6 +212,8 @@ export const Workspace = () => {
                   insights={apiData.insights}
                   onComplete={handleReportComplete}
                   onReset={handleReset}
+                  requestedTab={requestedTab}
+                  requestedSql={requestedSql}
                 />
               </Suspense>
             </ErrorBoundary>
@@ -139,7 +221,15 @@ export const Workspace = () => {
             {/* Show Chat Interface ONLY when analysis is complete */}
             {step === "complete" && taskId && (
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-                <ChatInterface taskId={taskId} />
+                <ChatInterface
+                  taskId={taskId}
+                  onOpenInSqlStudio={(sql) => {
+                    const nonce = Date.now();
+                    setRequestedTab({ tab: "sql", nonce });
+                    setRequestedSql({ sql, nonce });
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                />
               </div>
             )}
           </div>

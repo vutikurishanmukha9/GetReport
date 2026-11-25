@@ -246,7 +246,7 @@ async def list_recent_datasets(
     datasets = []
     for r in rows:
         item = dict(r) if hasattr(r, "keys") else {"task_id": r[0], "filename": r[1], "created_at": r[2]}
-        job = title_task_manager.get_job(item["task_id"])
+        job = await title_task_manager.get_job_async(item["task_id"])
         if job and job.result and isinstance(job.result, dict):
             info = job.result.get("info", {}) if isinstance(job.result.get("info"), dict) else {}
             metadata = job.result.get("metadata", {}) if isinstance(job.result.get("metadata"), dict) else {}
@@ -352,3 +352,33 @@ async def execute_superset_explore_query(
     except Exception as e:
         logger.error(f"Error executing Superset Explore query: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Explore query failed: {e}")
+
+
+@router.get("/explore/{task_id}/hiplot")
+@limiter.limit(ANALYTICS_QUERY_LIMIT)
+async def get_hiplot_exploration_data(
+    request: Request,
+    task_id: str,
+    max_rows: int = 2000,
+    columns: Optional[str] = None,
+    _auth: None = Depends(verify_api_key),
+):
+    """
+    Returns HiPlot parallel-coordinates exploration payload for high-dimensional visual inspection.
+    """
+    await _get_authorized_analytics_job(request, task_id)
+    try:
+        from app.services.hiplot_service import HiPlotDataService
+        df = superset_engine.resolve_dataset_df(task_id)
+        bounded_rows = max(10, min(max_rows, 5000))
+        selected_cols = [c.strip() for c in columns.split(",") if c.strip()] if columns else None
+        return HiPlotDataService.prepare_hiplot_payload(
+            df,
+            max_rows=bounded_rows,
+            selected_columns=selected_cols,
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        logger.error("Error preparing HiPlot payload for task %s: %s", task_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"HiPlot preparation failed: {e}")
