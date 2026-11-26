@@ -36,9 +36,6 @@ export default defineConfig(() => ({
             if (id.includes("@codemirror") || id.includes("@lezer") || id.includes("@uiw")) {
               return "vendor-codemirror";
             }
-            if (id.includes("@radix-ui")) {
-              return "vendor-radix";
-            }
             if (id.includes("framer-motion") || id.includes("\\motion\\") || id.includes("/motion/")) {
               return "vendor-motion";
             }
