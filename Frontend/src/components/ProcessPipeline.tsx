@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
     Upload,
     Search,
@@ -152,7 +152,7 @@ export const ProcessPipeline = ({
         || (isComplete ? stages[stages.length - 1] : stages[0]);
 
     return (
-        <motion.div
+        <m.div
             className="w-full mb-8"
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -225,7 +225,7 @@ export const ProcessPipeline = ({
                 </div>
  
             </div>
-        </motion.div>
+        </m.div>
     );
 };
 
@@ -244,7 +244,7 @@ function SaaSStepper({ stages }: { stages: PipelineStage[] }) {
                         {!isLast && (
                             <div className="flex-1 shrink-0 px-3">
                                 <div className="h-[2px] w-full rounded-full bg-muted/40 relative overflow-hidden">
-                                    <motion.div
+                                    <m.div
                                         className="absolute inset-y-0 left-0 w-full bg-primary origin-left"
                                         initial={{ scaleX: 0 }}
                                         animate={{
@@ -254,7 +254,7 @@ function SaaSStepper({ stages }: { stages: PipelineStage[] }) {
                                     />
                                     {/* Shimmer pulse for active running line */}
                                     {stage.status === "active" && stages[i + 1]?.status !== "active" && (
-                                        <motion.div
+                                        <m.div
                                             className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent"
                                             animate={{ x: ["-100%", "300%"] }}
                                             transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
@@ -283,17 +283,17 @@ function StepNode({ stage }: { stage: PipelineStage }) {
             <div className="relative flex items-center justify-center w-6 h-6 shrink-0">
                 <AnimatePresence mode="popLayout">
                     {isCompleted && (
-                        <motion.div
+                        <m.div
                             key="completed"
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             className="text-emerald-500 bg-emerald-500/10 rounded-full p-0.5"
                         >
                             <CheckCircle2 className="w-4 h-4" />
-                        </motion.div>
+                        </m.div>
                     )}
                     {isActive && (
-                        <motion.div
+                        <m.div
                             key="active"
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -301,10 +301,10 @@ function StepNode({ stage }: { stage: PipelineStage }) {
                         >
                             <div className="absolute inset-0 rounded-full bg-primary/20 blur-sm" />
                             <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,255,255,0.4)] relative z-10" />
-                        </motion.div>
+                        </m.div>
                     )}
                     {isError && (
-                        <motion.div
+                        <m.div
                             key="error"
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -312,7 +312,7 @@ function StepNode({ stage }: { stage: PipelineStage }) {
                         />
                     )}
                     {stage.status === "pending" && (
-                        <motion.div
+                        <m.div
                             key="pending"
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -385,7 +385,7 @@ function VerticalStepper({ stages }: { stages: PipelineStage[] }) {
                         {/* Fill line for mobile */}
                         {!isLast && (
                             <div className="ml-[11px] h-6 w-[2px] relative -mt-2 -mb-2 z-0 overflow-hidden">
-                                <motion.div
+                                <m.div
                                     className="absolute inset-x-0 top-0 h-full bg-primary origin-top"
                                     initial={{ scaleY: 0 }}
                                     animate={{ scaleY: getConnectorScale(stage.status, stages[i + 1]?.status) }}

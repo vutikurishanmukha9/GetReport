@@ -50,6 +50,27 @@ export interface ReportStatusResponse {
     download_url?: string;
 }
 
+export interface SqlExplainNodeDto {
+    name: string;
+    children?: SqlExplainNodeDto[];
+    extra_info?: Record<string, PrimitiveValue | string[]>;
+}
+
+export interface SqlColumnProfileDto {
+    task_id: string;
+    success: boolean;
+    column: string;
+    column_type: string;
+    total_records: number;
+    non_null_count: number;
+    null_count: number;
+    approx_distinct: number;
+    min_value: PrimitiveValue;
+    max_value: PrimitiveValue;
+    mean_value: number | null;
+    std_deviation: number | null;
+}
+
 export interface ChatStreamMetadata {
     sources: string[];
     suggested_followups?: string[];
@@ -460,20 +481,80 @@ export const api = {
     querySql: async (
         taskId: string,
         sql: string,
-        limit: number = 500
+        limit: number = 500,
+        options?: { params?: DataRow; signal?: AbortSignal }
     ): Promise<{
         task_id: string;
         sql: string;
         columns: string[];
+        column_types?: string[];
         records: DataRow[];
         total_returned: number;
         capped: boolean;
         execution_ms?: number;
     }> => {
+        const payload = options?.params ? { sql, limit, params: options.params } : { sql, limit };
         return fetchClient(`/jobs/${taskId}/query-sql`, {
             method: "POST",
-            body: JSON.stringify({ sql, limit }),
+            body: JSON.stringify(payload),
+            signal: options?.signal,
         });
+    },
+
+    /**
+     * Execute EXPLAIN (FORMAT JSON) to inspect the DuckDB physical execution plan.
+     */
+    explainSql: async (
+        taskId: string,
+        sql: string,
+        options?: { params?: DataRow; signal?: AbortSignal }
+    ): Promise<{
+        task_id: string;
+        sql: string;
+        plan: SqlExplainNodeDto[];
+        raw_plan: string;
+    }> => {
+        const payload = options?.params ? { sql, params: options.params } : { sql };
+        return fetchClient(`/jobs/${taskId}/sql-explain`, {
+            method: "POST",
+            body: JSON.stringify(payload),
+            signal: options?.signal,
+        });
+    },
+
+    /**
+     * Stream full DuckDB SQL query export (CSV or JSON) beyond preview limits.
+     */
+    downloadSqlExportBlob: async (
+        taskId: string,
+        sql: string,
+        format: "csv" | "json",
+        params?: DataRow
+    ): Promise<Blob> => {
+        const response = await fetch(`${API_BASE_URL}/jobs/${taskId}/query-sql/export`, {
+            method: "POST",
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify(params ? { sql, format, params } : { sql, format }),
+        });
+        if (!response.ok) {
+            let errMsg = `Export failed (${response.status})`;
+            try {
+                const body = await response.json();
+                errMsg = body.detail || errMsg;
+            } catch {
+                // fallback to status
+            }
+            throw new Error(errMsg);
+        }
+        return response.blob();
+    },
+
+    /**
+     * Compute on-demand DuckDB statistical profile for a single schema column.
+     */
+    getSqlColumnProfile: async (taskId: string, column: string): Promise<SqlColumnProfileDto> => {
+        const query = encodeURIComponent(column);
+        return fetchClient(`/jobs/${taskId}/sql-column-profile?column=${query}`);
     },
 
     /**
@@ -550,6 +631,20 @@ export const api = {
      */
     getGoldenQueries: async (taskId: string): Promise<GoldenQueryItem[]> => {
         return fetchClient(`/jobs/${taskId}/golden-queries`);
+    },
+
+    /**
+     * Update a verified Golden KPI query's title, SQL, or description.
+     */
+    updateGoldenQuery: async (
+        taskId: string,
+        queryId: string,
+        updates: { question?: string; sql_query?: string; description?: string }
+    ): Promise<GoldenQueryItem> => {
+        return fetchClient(`/jobs/${taskId}/golden-queries/${queryId}`, {
+            method: "PATCH",
+            body: JSON.stringify(updates),
+        });
     },
 
     /**

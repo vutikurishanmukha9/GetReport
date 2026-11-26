@@ -45,6 +45,88 @@ function saveAuditToHistory(entry: AuditHistoryEntry): void {
   }
 }
 
+function WorkspaceUploadSection({
+  onFileUploaded,
+  sampleParam,
+}: {
+  onFileUploaded: (data: ApiResponse, taskId: string) => void;
+  sampleParam?: string;
+}) {
+  return (
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 max-w-6xl space-y-8 animate-in fade-in duration-300">
+      <div className="text-center space-y-3">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-200/60 border border-stone-300 text-stone-700 dark:bg-white/[0.04] dark:border-white/10 dark:text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
+          <span>Ingestion & In-Memory Pipeline</span>
+        </div>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black text-stone-900 dark:text-white tracking-[-0.03em] leading-tight">
+          Data Ingestion Workspace
+        </h1>
+        <p className="text-sm sm:text-base text-stone-600 dark:text-muted-foreground max-w-md mx-auto leading-relaxed">
+          Ingest your CSV or Excel ledger to begin the automated schema inference, data hygiene audit, and AI synthesis.
+        </p>
+      </div>
+      <FileUpload onFileUploaded={onFileUploaded} initialSampleId={sampleParam} />
+    </div>
+  );
+}
+
+function WorkspaceReportSection({
+  step,
+  taskId,
+  apiData,
+  onComplete,
+  onReset,
+  requestedTab,
+  requestedSql,
+  onOpenInSqlStudio,
+}: {
+  step: AppStep;
+  taskId: string | null;
+  apiData: ApiResponse;
+  onComplete: () => void;
+  onReset: () => void;
+  requestedTab: { tab: string; nonce: number } | null;
+  requestedSql: { sql: string; nonce: number } | null;
+  onOpenInSqlStudio: (sql: string) => void;
+}) {
+  return (
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12 space-y-12">
+      <ErrorBoundary fallbackTitle="Data Report & Analytics Error">
+        <Suspense
+          fallback={
+            <div className="flex flex-col items-center justify-center p-12 space-y-4">
+              <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                Loading report module...
+              </span>
+            </div>
+          }
+        >
+          <ReportGeneration
+            step={step}
+            taskId={taskId}
+            filename={apiData.filename}
+            info={apiData.info}
+            analysis={apiData.analysis}
+            charts={apiData.charts}
+            insights={apiData.insights}
+            onComplete={onComplete}
+            onReset={onReset}
+            requestedTab={requestedTab}
+            requestedSql={requestedSql}
+          />
+        </Suspense>
+      </ErrorBoundary>
+
+      {step === "complete" && taskId && (
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+          <ChatInterface taskId={taskId} onOpenInSqlStudio={onOpenInSqlStudio} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const Workspace = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
@@ -165,20 +247,7 @@ export const Workspace = () => {
         )}
 
         {step === "upload" && !isHydratingTask && (
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 max-w-6xl space-y-8 animate-in fade-in duration-300">
-            <div className="text-center space-y-3">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-200/60 border border-stone-300 text-stone-700 dark:bg-white/[0.04] dark:border-white/10 dark:text-zinc-300 text-[11px] font-mono font-semibold tracking-wide">
-                <span>Ingestion & In-Memory Pipeline</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black text-stone-900 dark:text-white tracking-[-0.03em] leading-tight">
-                Data Ingestion Workspace
-              </h1>
-              <p className="text-sm sm:text-base text-stone-600 dark:text-muted-foreground max-w-md mx-auto leading-relaxed">
-                Ingest your CSV or Excel ledger to begin the automated schema inference, data hygiene audit, and AI synthesis.
-              </p>
-            </div>
-            <FileUpload onFileUploaded={handleFileUploaded} initialSampleId={sampleParam} />
-          </div>
+          <WorkspaceUploadSection onFileUploaded={handleFileUploaded} sampleParam={sampleParam} />
         )}
 
         {step === "preview" && apiData && (
@@ -194,45 +263,21 @@ export const Workspace = () => {
         )}
 
         {(step === "generating" || step === "complete") && apiData && (
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-12 space-y-12">
-            <ErrorBoundary fallbackTitle="Data Report & Analytics Error">
-              <Suspense fallback={
-                <div className="flex flex-col items-center justify-center p-12 space-y-4">
-                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                  <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Loading report module...</span>
-                </div>
-              }>
-                <ReportGeneration
-                  step={step}
-                  taskId={taskId}
-                  filename={apiData.filename}
-                  info={apiData.info}
-                  analysis={apiData.analysis}
-                  charts={apiData.charts}
-                  insights={apiData.insights}
-                  onComplete={handleReportComplete}
-                  onReset={handleReset}
-                  requestedTab={requestedTab}
-                  requestedSql={requestedSql}
-                />
-              </Suspense>
-            </ErrorBoundary>
-
-            {/* Show Chat Interface ONLY when analysis is complete */}
-            {step === "complete" && taskId && (
-              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-                <ChatInterface
-                  taskId={taskId}
-                  onOpenInSqlStudio={(sql) => {
-                    const nonce = Date.now();
-                    setRequestedTab({ tab: "sql", nonce });
-                    setRequestedSql({ sql, nonce });
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          <WorkspaceReportSection
+            step={step}
+            taskId={taskId}
+            apiData={apiData}
+            onComplete={handleReportComplete}
+            onReset={handleReset}
+            requestedTab={requestedTab}
+            requestedSql={requestedSql}
+            onOpenInSqlStudio={(sql) => {
+              const nonce = Date.now();
+              setRequestedTab({ tab: "sql", nonce });
+              setRequestedSql({ sql, nonce });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
         )}
       </main>
 

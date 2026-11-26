@@ -1,11 +1,14 @@
 """
 Report Routes — PDF generation, status, download, and DAG endpoints.
 """
-from fastapi import APIRouter, HTTPException, Request, Depends
-from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Depends
+from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse, Response, StreamingResponse
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional
+import csv
+import io
+import json
 import logging
 import os
 import re
@@ -27,11 +30,34 @@ class AnalysisRulesRequest(BaseModel):
 class SQLQueryRequest(BaseModel):
     sql: str
     limit: Optional[int] = Field(default=500, ge=1, le=1000)
+    params: Optional[Dict[str, Any]] = None
+
+
+class SQLExplainRequest(BaseModel):
+    sql: str
+    params: Optional[Dict[str, Any]] = None
+
+
+class SQLFormatRequest(BaseModel):
+    sql: str
+
+
+class SQLExportRequest(BaseModel):
+    sql: str
+    format: str = Field(default="csv")
+    params: Optional[Dict[str, Any]] = None
+
 
 class GoldenQueryCreateRequest(BaseModel):
     question: str
     sql_query: str
     description: Optional[str] = ""
+
+
+class GoldenQueryUpdateRequest(BaseModel):
+    question: Optional[str] = None
+    sql_query: Optional[str] = None
+    description: Optional[str] = None
 
 class SandboxExecRequest(BaseModel):
     code: str = Field(..., max_length=50000, description="Python/Polars code to execute in sandbox")
@@ -498,7 +524,93 @@ async def export_cleaned_data_or_report(
         raise HTTPException(400, "Invalid export format. Supported: 'csv', 'parquet', 'excel', 'html'")
 
 
-# ─── In-Process DuckDB Analytical Query Endpoint ────────────────────────────
+# ─── In-Process DuckDB Analytical Query Endpoints ───────────────────────────
+
+def _sanitize_sql_error(raw_err: str) -> str:
+    cleaned = raw_err.strip()
+    cleaned = re.sub(r"[A-Za-z]:\\[^ \n\r\t:]+", "<path>", cleaned)
+    cleaned = re.sub(r"/(?:Users|home|tmp|var|opt)/[^ \n\r\t:]+", "<path>", cleaned)
+    first_line = cleaned.split("\n")[0].strip()
+    return first_line or "Query execution failed. Please verify query syntax and column references."
+
+
+def _sanitize_csv_value(val: Any) -> str:
+    if val is None:
+        return ""
+    s = str(val)
+    if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
+
+
+def _resolve_job_dataset_path(job: Any) -> str:
+    from app.services.storage import get_storage_provider
+
+    storage = get_storage_provider()
+    cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
+    if not cleaned_file_ref:
+        raise HTTPException(404, "Dataset artifact not found for this job")
+
+    file_path = storage.get_absolute_path(cleaned_file_ref)
+    if not os.path.exists(file_path):
+        raise HTTPException(404, "Dataset file does not exist on storage")
+    return file_path
+
+
+def _run_sync_sql_query(file_path: str, sql: str, limit: int, params: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    from app.services.duckdb_engine import DuckDBAnalyticalSession
+
+    session = DuckDBAnalyticalSession()
+    try:
+        session.register_file("dataset", file_path)
+        return session.execute_studio_query(sql, params=params, max_rows=limit, max_cap=1000)
+    finally:
+        session.close()
+
+
+def _run_sync_sql_schema(file_path: str) -> Dict[str, Any]:
+    from app.services.duckdb_engine import DuckDBAnalyticalSession
+
+    session = DuckDBAnalyticalSession()
+    try:
+        session.register_file("dataset", file_path)
+        return session.get_schema_metadata()
+    finally:
+        session.close()
+
+
+def _run_sync_column_profile(file_path: str, column: str) -> Dict[str, Any]:
+    from app.services.duckdb_engine import DuckDBAnalyticalSession
+
+    session = DuckDBAnalyticalSession()
+    try:
+        session.register_file("dataset", file_path)
+        return session.get_column_profile("dataset", column)
+    finally:
+        session.close()
+
+
+def _run_sync_sql_explain(file_path: str, sql: str, params: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    from app.services.duckdb_engine import DuckDBAnalyticalSession
+
+    session = DuckDBAnalyticalSession()
+    try:
+        session.register_file("dataset", file_path)
+        return session.explain_studio_query(sql, params=params)
+    finally:
+        session.close()
+
+
+def _run_sync_sql_export(file_path: str, sql: str, params: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    from app.services.duckdb_engine import DuckDBAnalyticalSession
+
+    session = DuckDBAnalyticalSession()
+    try:
+        session.register_file("dataset", file_path)
+        return session.execute_studio_query(sql, params=params, max_rows=50000, max_cap=50000)
+    finally:
+        session.close()
+
 
 @router.post("/jobs/{task_id}/query-sql")
 @limiter.limit(REPORT_LIMIT)
@@ -508,62 +620,144 @@ async def query_dataset_sql(
     body: SQLQueryRequest,
     _auth: None = Depends(verify_api_key),
 ):
-    """
-    Executes an analytical read-only SQL query against the cleaned dataset
-    using in-process DuckDB.
-    """
+    """Execute read-only SQL against the cached Arrow dataset using in-process DuckDB."""
+    from app.services.duckdb_engine import DuckDBSecurityError
+
     job = await _get_authorized_job(request, task_id, require_result=True)
+    file_path = _resolve_job_dataset_path(job)
+    query_limit = min(body.limit or 500, 1000)
 
-    from app.services.storage import get_storage_provider
-    from app.services.duckdb_engine import DuckDBAnalyticalSession, DuckDBSecurityError
-    from app.services.data_processing import load_dataframe
-
-    storage = get_storage_provider()
-    cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
-    if not cleaned_file_ref:
-        raise HTTPException(404, "Dataset artifact not found for this job")
-
-    file_path = storage.get_absolute_path(cleaned_file_ref)
-    if not os.path.exists(file_path):
-        raise HTTPException(404, "Dataset file does not exist on storage")
-
-    session = DuckDBAnalyticalSession()
     try:
-        if file_path.endswith(".parquet"):
-            session.register_parquet("dataset", file_path)
-        else:
-            df = load_dataframe(file_path)
-            session.register_polars("dataset", df)
-
-        import time
-        t_start = time.perf_counter()
-        query_limit = min(body.limit or 500, 1000)
-        records = session.execute_read_query(body.sql, max_rows=query_limit)
-        duration_ms = round((time.perf_counter() - t_start) * 1000, 2)
-        columns = list(records[0].keys()) if records else []
-        capped_records = records[:query_limit]
-
+        result = await run_in_threadpool(_run_sync_sql_query, file_path, body.sql, query_limit, body.params)
         return {
             "task_id": task_id,
             "sql": body.sql,
-            "columns": columns,
-            "records": capped_records,
-            "total_returned": len(records),
-            "capped": len(records) > len(capped_records),
-            "execution_ms": duration_ms,
+            **result,
         }
     except DuckDBSecurityError as se:
         raise HTTPException(403, str(se))
     except Exception as e:
-        logger.error(f"SQL execution error for task {task_id}: {e}", exc_info=True)
-        raw_err = str(e).strip()
-        sanitized_err = re.sub(r"[A-Za-z]:\\[^ \n\r\t:]+", "<path>", raw_err)
-        sanitized_err = re.sub(r"/(?:Users|home|tmp|var|opt)/[^ \n\r\t:]+", "<path>", sanitized_err)
-        first_line = sanitized_err.split("\n")[0].strip()
-        detail_msg = first_line if first_line else "Query execution failed. Please verify query syntax and column references."
-        raise HTTPException(400, f"DuckDB Query Error: {detail_msg}")
-    finally:
-        session.close()
+        logger.error("SQL execution error for task %s: %s", task_id, e, exc_info=True)
+        raise HTTPException(400, f"DuckDB Query Error: {_sanitize_sql_error(str(e))}")
+
+
+@router.post("/jobs/{task_id}/query-sql/export")
+@limiter.limit(REPORT_LIMIT)
+async def export_dataset_sql(
+    request: Request,
+    task_id: str,
+    body: SQLExportRequest,
+    _auth: None = Depends(verify_api_key),
+):
+    """Stream full SQL query results (up to 50,000 rows) as CSV or JSON."""
+    from app.services.duckdb_engine import DuckDBSecurityError
+
+    fmt = (body.format or "csv").lower()
+    if fmt not in ("csv", "json"):
+        raise HTTPException(400, "Invalid export format. Supported: 'csv', 'json'.")
+
+    job = await _get_authorized_job(request, task_id, require_result=True)
+    file_path = _resolve_job_dataset_path(job)
+
+    try:
+        result = await run_in_threadpool(_run_sync_sql_export, file_path, body.sql, body.params)
+    except DuckDBSecurityError as se:
+        raise HTTPException(403, str(se))
+    except Exception as e:
+        logger.error("SQL export error for task %s: %s", task_id, e, exc_info=True)
+        raise HTTPException(400, f"DuckDB Query Error: {_sanitize_sql_error(str(e))}")
+
+    filename_base = _sanitize_download_filename(job.filename or "dataset")
+    columns = result["columns"]
+    records = result["records"]
+
+    if fmt == "json":
+        payload_bytes = json.dumps(records, indent=2)
+        return StreamingResponse(
+            iter([payload_bytes]),
+            media_type="application/json",
+            headers={"Content-Disposition": f"attachment; filename={filename_base}_sql_export.json"},
+        )
+
+    def _csv_rows():
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow([_sanitize_csv_value(col) for col in columns])
+        yield buf.getvalue()
+        buf.seek(0)
+        buf.truncate(0)
+        for row in records:
+            writer.writerow([_sanitize_csv_value(row.get(col)) for col in columns])
+            yield buf.getvalue()
+            buf.seek(0)
+            buf.truncate(0)
+
+    return StreamingResponse(
+        _csv_rows(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename_base}_sql_export.csv"},
+    )
+
+
+@router.post("/jobs/{task_id}/sql-explain")
+@limiter.limit(REPORT_LIMIT)
+async def explain_dataset_sql(
+    request: Request,
+    task_id: str,
+    body: SQLExplainRequest,
+    _auth: None = Depends(verify_api_key),
+):
+    """Return structured DuckDB physical execution plan for a read-only SQL query."""
+    from app.services.duckdb_engine import DuckDBSecurityError
+
+    job = await _get_authorized_job(request, task_id, require_result=True)
+    file_path = _resolve_job_dataset_path(job)
+
+    try:
+        explained = await run_in_threadpool(_run_sync_sql_explain, file_path, body.sql, body.params)
+        return {"task_id": task_id, **explained}
+    except DuckDBSecurityError as se:
+        raise HTTPException(403, str(se))
+    except Exception as e:
+        logger.error("SQL explain error for task %s: %s", task_id, e, exc_info=True)
+        raise HTTPException(400, f"DuckDB Explain Error: {_sanitize_sql_error(str(e))}")
+
+
+@router.post("/jobs/{task_id}/sql-format")
+@limiter.limit(REPORT_LIMIT)
+async def format_dataset_sql(
+    request: Request,
+    task_id: str,
+    body: SQLFormatRequest,
+    _auth: None = Depends(verify_api_key),
+):
+    """Pretty-print a DuckDB SQL statement via sqlglot AST formatting."""
+    await _get_authorized_job(request, task_id)
+    from app.services.duckdb_engine import format_sql_query
+
+    return {"task_id": task_id, "sql": format_sql_query(body.sql)}
+
+
+@router.get("/jobs/{task_id}/sql-column-profile")
+@limiter.limit(REPORT_LIMIT)
+async def get_job_sql_column_profile(
+    request: Request,
+    task_id: str,
+    column: str = Query(..., min_length=1),
+    _auth: None = Depends(verify_api_key),
+):
+    """Return instant DuckDB statistical profile (null count, distinct, min/mean/max) for one column."""
+    job = await _get_authorized_job(request, task_id, require_result=True)
+    file_path = _resolve_job_dataset_path(job)
+
+    try:
+        profile = await run_in_threadpool(_run_sync_column_profile, file_path, column)
+        return {"task_id": task_id, "success": True, **profile}
+    except ValueError as ve:
+        raise HTTPException(400, str(ve))
+    except Exception as e:
+        logger.error("Error profiling SQL column %s for task %s: %s", column, task_id, e, exc_info=True)
+        raise HTTPException(500, "Failed to compute column profile.")
 
 
 @router.get("/jobs/{task_id}/sql-schema")
@@ -573,44 +767,20 @@ async def get_job_sql_schema(
     task_id: str,
     _auth: None = Depends(verify_api_key),
 ):
-    """
-    Returns DuckDB schema introspection for the dataset registered in the job.
-    Includes tables, column names, column data types, nullability, and sample preview values.
-    """
+    """Return DuckDB schema introspection for the cached Arrow dataset."""
     job = await _get_authorized_job(request, task_id, require_result=True)
+    file_path = _resolve_job_dataset_path(job)
 
-    from app.services.storage import get_storage_provider
-    from app.services.duckdb_engine import DuckDBAnalyticalSession
-    from app.services.data_processing import load_dataframe
-
-    cleaned_file_ref = job.result.get("cleaned_file_ref") or job.result.get("_file_ref")
-    if not cleaned_file_ref:
-        raise HTTPException(404, "Dataset artifact not found for this job")
-
-    storage = get_storage_provider()
-    file_path = storage.get_absolute_path(cleaned_file_ref)
-    if not os.path.exists(file_path):
-        raise HTTPException(404, "Dataset file does not exist on storage")
-
-    session = DuckDBAnalyticalSession()
     try:
-        if file_path.endswith(".parquet"):
-            session.register_parquet("dataset", file_path)
-        else:
-            df = load_dataframe(file_path)
-            session.register_polars("dataset", df)
-
-        schema_meta = session.get_schema_metadata()
+        schema_meta = await run_in_threadpool(_run_sync_sql_schema, file_path)
         return {
             "task_id": task_id,
             "success": True,
             **schema_meta,
         }
     except Exception as e:
-        logger.error(f"Error fetching SQL schema for task {task_id}: {e}", exc_info=True)
+        logger.error("Error fetching SQL schema for task %s: %s", task_id, e, exc_info=True)
         raise HTTPException(500, "Failed to inspect SQL schema due to an internal server error.")
-    finally:
-        session.close()
 
 
 # ─── Great Expectations Suite Export Endpoint ──────────────────────────────
@@ -732,6 +902,39 @@ async def delete_golden_query(
     from app.services.golden_query_service import GoldenQueryService
     await GoldenQueryService.delete_golden_query_async(task_id=task_id, query_id=query_id)
     return {"status": "success", "deleted": True, "query_id": query_id}
+
+
+@router.patch("/jobs/{task_id}/golden-queries/{query_id}")
+@limiter.limit(REPORT_LIMIT)
+async def update_golden_query(
+    request: Request,
+    task_id: str,
+    query_id: str,
+    body: GoldenQueryUpdateRequest,
+    _auth: None = Depends(verify_api_key),
+):
+    """Update a saved Golden KPI's title, SQL, or description cleanly."""
+    await _get_authorized_job(request, task_id)
+
+    from app.services.golden_query_service import GoldenQueryService
+    from app.services.duckdb_engine import DuckDBSecurityError
+
+    try:
+        updated = await GoldenQueryService.update_golden_query_async(
+            task_id=task_id,
+            query_id=query_id,
+            question=body.question,
+            sql_query=body.sql_query,
+            description=body.description,
+        )
+    except ValueError as ve:
+        raise HTTPException(400, str(ve))
+    except DuckDBSecurityError as se:
+        raise HTTPException(403, str(se))
+
+    if not updated:
+        raise HTTPException(404, "Golden query not found")
+    return updated.to_dict()
 
 
 # ─── Conversational Sandboxing & Virtual Concepts Endpoints (Phase 3) ───────

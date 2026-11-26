@@ -1,5 +1,5 @@
 import * as React from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { m, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   CheckCheck,
   Check,
@@ -25,6 +25,38 @@ export interface SaveAllButtonProps extends React.ButtonHTMLAttributes<HTMLButto
   size?: "sm" | "default" | "lg";
 }
 
+const SAVE_ALL_SIZE_CLASSES = {
+  sm: "h-8 px-3 text-xs rounded-full gap-2",
+  default: "h-9 px-3.5 text-xs sm:text-[13px] rounded-full gap-2.5",
+  lg: "h-10.5 px-4.5 text-sm rounded-full gap-3 font-semibold",
+} as const;
+
+const SAVE_ALL_ICON_SIZES = {
+  sm: "w-3.5 h-3.5",
+  default: "w-4 h-4",
+  lg: "w-4.5 h-4.5",
+} as const;
+
+const SAVE_ALL_POD_SIZES = {
+  sm: "w-5 h-5 rounded-full",
+  default: "w-6 h-6 rounded-full",
+  lg: "w-7 h-7 rounded-full",
+} as const;
+
+function SaveAllStateIcon({
+  loading,
+  completed,
+  iconClass,
+}: {
+  loading: boolean;
+  completed: boolean;
+  iconClass: string;
+}) {
+  if (loading) return <Loader2 className={cn("animate-spin", iconClass)} />;
+  if (completed) return <Check className={cn("stroke-[2.5]", iconClass)} />;
+  return <CheckCheck className={cn("stroke-[2.4] transition-transform duration-200 group-hover:scale-110", iconClass)} />;
+}
+
 export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonProps>(
   (
     {
@@ -42,87 +74,60 @@ export const SaveAllButton = React.forwardRef<HTMLButtonElement, SaveAllButtonPr
   ) => {
     const reduceMotion = useReducedMotion();
     const isDisabled = disabled || loading;
-
-    const sizeClasses = {
-      sm: "h-8 px-3 text-xs rounded-full gap-2",
-      default: "h-9 px-3.5 text-xs sm:text-[13px] rounded-full gap-2.5",
-      lg: "h-10.5 px-4.5 text-sm rounded-full gap-3 font-semibold",
-    };
-
-    const iconSizes = {
-      sm: "w-3.5 h-3.5",
-      default: "w-4 h-4",
-      lg: "w-4.5 h-4.5",
-    };
-
-    const podSizes = {
-      sm: "w-5 h-5 rounded-full",
-      default: "w-6 h-6 rounded-full",
-      lg: "w-7 h-7 rounded-full",
-    };
+    const isInteractive = !isDisabled && !reduceMotion;
+    const displayLabel = loading ? "Processing..." : completed ? "All Approved" : label;
 
     return (
-      <motion.button
+      <m.button
         ref={ref}
         type="button"
         disabled={isDisabled}
         onClick={onClick}
-        whileHover={!isDisabled && !reduceMotion ? { scale: 1.02 } : undefined}
-        whileTap={!isDisabled && !reduceMotion ? { scale: 0.97 } : undefined}
+        whileHover={isInteractive ? { scale: 1.02 } : undefined}
+        whileTap={isInteractive ? { scale: 0.97 } : undefined}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
         className={cn(
           "save-all-btn group relative inline-flex items-center justify-center font-medium select-none cursor-pointer overflow-hidden isolate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#800000] dark:focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-all duration-200",
-          sizeClasses[size],
-          !isDisabled
-            ? "bg-[#800000] hover:bg-[#6b0000] text-white border border-[#800000] shadow-sm dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:text-white dark:border-emerald-500/80"
-            : "bg-stone-200 text-stone-400 border border-stone-300 dark:bg-white/[0.03] dark:text-zinc-500 dark:border-white/5 cursor-not-allowed opacity-50 shadow-none",
+          SAVE_ALL_SIZE_CLASSES[size],
+          isDisabled
+            ? "bg-stone-200 text-stone-400 border border-stone-300 dark:bg-white/[0.03] dark:text-zinc-500 dark:border-white/5 cursor-not-allowed opacity-50 shadow-none"
+            : "bg-[#800000] hover:bg-[#6b0000] text-white border border-[#800000] shadow-sm dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:text-white dark:border-emerald-500/80",
           className
         )}
         // SAFETY: motion.button props forwarding from HTMLButtonElement props
         {...(props as any)}
       >
-        {/* Magic UI Shimmer Sweep Ray */}
-        {!isDisabled && !reduceMotion && (
+        {isInteractive && (
           <span className="pointer-events-none absolute -inset-full w-[200%] h-[200%] -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.15] to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
         )}
 
-        {/* Ambient Subtle Highlight */}
         {!isDisabled && (
           <span className="pointer-events-none absolute inset-0 bg-white/[0.08] dark:bg-white/[0.12] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         )}
 
-        {/* Integrated Icon Pod */}
         <span
           className={cn(
             "save-all-icon-pod relative z-10 flex items-center justify-center shrink-0 transition-all duration-200",
-            podSizes[size],
-            !isDisabled
-              ? "bg-white/20 text-white group-hover:bg-white group-hover:text-[#800000] dark:bg-black/25 dark:text-white dark:group-hover:bg-white dark:group-hover:text-emerald-700"
-              : "bg-stone-300/60 text-stone-500 dark:bg-white/5 dark:text-zinc-600"
+            SAVE_ALL_POD_SIZES[size],
+            isDisabled
+              ? "bg-stone-300/60 text-stone-500 dark:bg-white/5 dark:text-zinc-600"
+              : "bg-white/20 text-white group-hover:bg-white group-hover:text-[#800000] dark:bg-black/25 dark:text-white dark:group-hover:bg-white dark:group-hover:text-emerald-700"
           )}
         >
-          {loading ? (
-            <Loader2 className={cn("animate-spin", iconSizes[size])} />
-          ) : completed ? (
-            <Check className={cn("stroke-[2.5]", iconSizes[size])} />
-          ) : (
-            <CheckCheck className={cn("stroke-[2.4] transition-transform duration-200 group-hover:scale-110", iconSizes[size])} />
-          )}
+          <SaveAllStateIcon loading={loading} completed={completed} iconClass={SAVE_ALL_ICON_SIZES[size]} />
         </span>
 
-        {/* Label */}
         <span className="save-all-label relative z-10 font-sans tracking-tight font-semibold text-white">
-          {loading ? "Processing..." : completed ? "All Approved" : label}
+          {displayLabel}
         </span>
 
-        {/* Segmented Pill Counter Badge with High-Contrast Number */}
-        {!isDisabled && count !== undefined && count > 0 && (
+        {!isDisabled && Boolean(count) && count! > 0 && (
           <span className="save-all-badge relative z-10 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-white text-[#800000] border border-white/80 dark:bg-black/40 dark:text-emerald-200 dark:border-emerald-400/40 shadow-xs">
             <span className="save-all-dot w-1.5 h-1.5 rounded-full bg-[#800000] dark:bg-emerald-400 shrink-0" />
             <span className="save-all-count tabular-nums font-bold">+{count}</span>
           </span>
         )}
-      </motion.button>
+      </m.button>
     );
   }
 );
@@ -143,6 +148,121 @@ export interface AnimatedDeleteButtonProps extends React.ButtonHTMLAttributes<HT
   variant?: "danger" | "ghost" | "outline" | "solid";
   count?: number;
   loading?: boolean;
+}
+
+const DELETE_SIZE_CLASSES = {
+  xs: "h-7 px-2.5 text-[11px] rounded-full gap-1.5",
+  sm: "h-8 px-3 text-xs rounded-full gap-2",
+  default: "h-9 px-3.5 text-xs sm:text-[13px] rounded-full gap-2",
+  lg: "h-10.5 px-4.5 text-sm rounded-full gap-2.5 font-semibold",
+  icon: "h-9 w-9 p-0 rounded-full justify-center",
+} as const;
+
+const DELETE_VARIANT_STYLES = {
+  danger: {
+    confirming:
+      "bg-rose-600 text-white border-rose-400 shadow-[0_0_25px_rgba(244,63,94,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]",
+    idle:
+      "bg-stone-200/80 hover:bg-stone-300 text-stone-700 hover:text-stone-900 border-stone-300 hover:border-stone-400 dark:bg-zinc-900/60 dark:hover:bg-zinc-800/80 dark:text-zinc-300 dark:hover:text-white dark:border-zinc-800 dark:hover:border-zinc-700 shadow-sm",
+  },
+  ghost: {
+    confirming: "bg-rose-600 text-white border border-rose-500",
+    idle:
+      "bg-transparent hover:bg-rose-500/10 text-stone-600 hover:text-rose-700 dark:text-muted-foreground dark:hover:text-rose-200 border-transparent",
+  },
+  outline: {
+    confirming: "bg-rose-600 text-white border-rose-500 shadow-sm",
+    idle:
+      "border border-stone-300 dark:border-white/12 bg-stone-100 hover:bg-rose-100 text-stone-700 hover:text-rose-700 dark:bg-zinc-900/60 dark:hover:bg-rose-500/10 dark:text-zinc-200 dark:hover:text-rose-200",
+  },
+  solid: {
+    confirming: "bg-rose-600 text-white border-rose-400",
+    idle:
+      "bg-rose-100 hover:bg-rose-600 text-rose-800 hover:text-white border border-rose-300 dark:bg-rose-500/15 dark:hover:bg-rose-500 dark:text-rose-300 dark:hover:text-white dark:border-rose-500/30",
+  },
+} as const;
+
+function DeleteButtonInner({
+  isConfirming,
+  confirmLabel,
+  loading,
+  size,
+  label,
+  count,
+}: {
+  isConfirming: boolean;
+  confirmLabel: string;
+  loading: boolean;
+  size: keyof typeof DELETE_SIZE_CLASSES;
+  label: string;
+  count?: number;
+}) {
+  if (isConfirming) {
+    return (
+      <m.span
+        key="confirm-state"
+        initial={{ opacity: 0, y: 3 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -3 }}
+        transition={{ duration: 0.15 }}
+        className="inline-flex items-center gap-1.5 font-semibold text-white tracking-tight"
+      >
+        <AlertTriangle className="w-3.5 h-3.5 text-white animate-bounce shrink-0" />
+        <span>{confirmLabel}</span>
+      </m.span>
+    );
+  }
+
+  return (
+    <m.span
+      key="normal-state"
+      initial={{ opacity: 0, y: -3 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 3 }}
+      transition={{ duration: 0.15 }}
+      className="inline-flex items-center gap-2"
+    >
+      <span
+        className={cn(
+          "relative flex items-center justify-center shrink-0 transition-colors",
+          size !== "icon" &&
+            "w-6 h-6 rounded-full bg-stone-300/80 border border-stone-400/50 text-stone-700 group-hover:text-stone-900 dark:bg-zinc-800/80 dark:border-zinc-700/60 dark:text-zinc-400 dark:group-hover:text-zinc-200"
+        )}
+      >
+        {loading ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+        ) : (
+          <div className="relative w-3.5 h-3.5 flex flex-col items-center justify-center">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-3.5 h-3.5 overflow-visible"
+            >
+              <path
+                d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                className="transition-transform duration-200 ease-out origin-bottom-left group-hover:-translate-y-0.5 group-hover:-rotate-[28deg]"
+              />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+            </svg>
+          </div>
+        )}
+      </span>
+
+      {size !== "icon" && <span className="font-sans tracking-tight font-semibold">{label}</span>}
+
+      {Boolean(count) && count! > 0 && (
+        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-stone-300/80 text-stone-700 group-hover:bg-rose-100 group-hover:text-rose-800 dark:bg-white/[0.08] dark:text-zinc-400 dark:group-hover:bg-rose-500/20 dark:group-hover:text-rose-200 transition-colors">
+          {count}
+        </span>
+      )}
+    </m.span>
+  );
 }
 
 export const AnimatedDeleteButton = React.forwardRef<HTMLButtonElement, AnimatedDeleteButtonProps>(
@@ -167,8 +287,8 @@ export const AnimatedDeleteButton = React.forwardRef<HTMLButtonElement, Animated
     const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
     const reduceMotion = useReducedMotion();
     const isDisabled = disabled || loading;
+    const isInteractive = !isDisabled && !reduceMotion;
 
-    // Auto-reset confirmation state after 3.5 seconds
     const startConfirmTimeout = React.useCallback(() => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
@@ -200,124 +320,42 @@ export const AnimatedDeleteButton = React.forwardRef<HTMLButtonElement, Animated
       }
     };
 
-    const sizeClasses = {
-      xs: "h-7 px-2.5 text-[11px] rounded-full gap-1.5",
-      sm: "h-8 px-3 text-xs rounded-full gap-2",
-      default: "h-9 px-3.5 text-xs sm:text-[13px] rounded-full gap-2",
-      lg: "h-10.5 px-4.5 text-sm rounded-full gap-2.5 font-semibold",
-      icon: "h-9 w-9 p-0 rounded-full justify-center",
-    };
-
-    const variantClasses = {
-      danger: isConfirming
-        ? "bg-rose-600 text-white border-rose-400 shadow-[0_0_25px_rgba(244,63,94,0.5),inset_0_1px_0_rgba(255,255,255,0.3)]"
-        : "bg-stone-200/80 hover:bg-stone-300 text-stone-700 hover:text-stone-900 border-stone-300 hover:border-stone-400 dark:bg-zinc-900/60 dark:hover:bg-zinc-800/80 dark:text-zinc-300 dark:hover:text-white dark:border-zinc-800 dark:hover:border-zinc-700 shadow-sm",
-      ghost: isConfirming
-        ? "bg-rose-600 text-white border border-rose-500"
-        : "bg-transparent hover:bg-rose-500/10 text-stone-600 hover:text-rose-700 dark:text-muted-foreground dark:hover:text-rose-200 border-transparent",
-      outline: isConfirming
-        ? "bg-rose-600 text-white border-rose-500 shadow-sm"
-        : "border border-stone-300 dark:border-white/12 bg-stone-100 hover:bg-rose-100 text-stone-700 hover:text-rose-700 dark:bg-zinc-900/60 dark:hover:bg-rose-500/10 dark:text-zinc-200 dark:hover:text-rose-200",
-      solid: isConfirming
-        ? "bg-rose-600 text-white border-rose-400"
-        : "bg-rose-100 hover:bg-rose-600 text-rose-800 hover:text-white border border-rose-300 dark:bg-rose-500/15 dark:hover:bg-rose-500 dark:text-rose-300 dark:hover:text-white dark:border-rose-500/30",
-    };
+    const variantClass = DELETE_VARIANT_STYLES[variant][isConfirming ? "confirming" : "idle"];
 
     return (
-      <motion.button
+      <m.button
         ref={ref}
         type="button"
         disabled={isDisabled}
         onClick={handleClick}
-        whileHover={!isDisabled && !reduceMotion ? { scale: 1.02 } : undefined}
-        whileTap={!isDisabled && !reduceMotion ? { scale: 0.97 } : undefined}
+        whileHover={isInteractive ? { scale: 1.02 } : undefined}
+        whileTap={isInteractive ? { scale: 0.97 } : undefined}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
         className={cn(
           "group relative inline-flex items-center justify-center font-medium select-none cursor-pointer overflow-hidden isolate border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          sizeClasses[size],
-          variantClasses[variant],
+          DELETE_SIZE_CLASSES[size],
+          variantClass,
           isDisabled && "opacity-50 cursor-not-allowed pointer-events-none",
           className
         )}
         // SAFETY: motion.button props forwarding from HTMLButtonElement props
         {...(props as any)}
       >
-        {/* Magic UI Shimmer Sweep Ray on Danger Hover */}
-        {!isDisabled && !reduceMotion && variant === "danger" && !isConfirming && (
+        {isInteractive && variant === "danger" && !isConfirming && (
           <span className="pointer-events-none absolute -inset-full w-[200%] h-[200%] -skew-x-12 bg-gradient-to-r from-transparent via-rose-500/[0.08] to-transparent group-hover:translate-x-full transition-transform duration-700 ease-out" />
         )}
 
         <AnimatePresence mode="wait">
-          {isConfirming ? (
-            <motion.span
-              key="confirm-state"
-              initial={{ opacity: 0, y: 3 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -3 }}
-              transition={{ duration: 0.15 }}
-              className="inline-flex items-center gap-1.5 font-semibold text-white tracking-tight"
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-white animate-bounce shrink-0" />
-              <span>{confirmLabel}</span>
-            </motion.span>
-          ) : (
-            <motion.span
-              key="normal-state"
-              initial={{ opacity: 0, y: -3 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 3 }}
-              transition={{ duration: 0.15 }}
-              className="inline-flex items-center gap-2"
-            >
-              {/* Uiverse Animated Trash Pod with Kinetic Lid */}
-              <span
-                className={cn(
-                  "relative flex items-center justify-center shrink-0 transition-colors",
-                  size !== "icon" && "w-6 h-6 rounded-full bg-stone-300/80 border border-stone-400/50 text-stone-700 group-hover:text-stone-900 dark:bg-zinc-800/80 dark:border-zinc-700/60 dark:text-zinc-400 dark:group-hover:text-zinc-200"
-                )}
-              >
-                {loading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
-                ) : (
-                  <div className="relative w-3.5 h-3.5 flex flex-col items-center justify-center">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-3.5 h-3.5 overflow-visible"
-                    >
-                      {/* Trash Lid: Rotates up and left on hover */}
-                      <path
-                        d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                        className="transition-transform duration-200 ease-out origin-bottom-left group-hover:-translate-y-0.5 group-hover:-rotate-[28deg]"
-                      />
-                      {/* Trash Body */}
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                      <line x1="10" y1="11" x2="10" y2="17" />
-                      <line x1="14" y1="11" x2="14" y2="17" />
-                    </svg>
-                  </div>
-                )}
-              </span>
-
-              {size !== "icon" && (
-                <span className="font-sans tracking-tight font-semibold">
-                  {label}
-                </span>
-              )}
-
-              {count !== undefined && count > 0 && (
-                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-stone-300/80 text-stone-700 group-hover:bg-rose-100 group-hover:text-rose-800 dark:bg-white/[0.08] dark:text-zinc-400 dark:group-hover:bg-rose-500/20 dark:group-hover:text-rose-200 transition-colors">
-                  {count}
-                </span>
-              )}
-            </motion.span>
-          )}
+          <DeleteButtonInner
+            isConfirming={isConfirming}
+            confirmLabel={confirmLabel}
+            loading={loading}
+            size={size}
+            label={label}
+            count={count}
+          />
         </AnimatePresence>
-      </motion.button>
+      </m.button>
     );
   }
 );
@@ -342,7 +380,7 @@ export const TactileRowAction = React.forwardRef<HTMLButtonElement, TactileRowAc
     const displayLabel = label || defaultLabel;
 
     return (
-      <motion.button
+      <m.button
         ref={ref}
         type="button"
         disabled={disabled || isBusy}
@@ -378,7 +416,7 @@ export const TactileRowAction = React.forwardRef<HTMLButtonElement, TactileRowAc
           )}
         </span>
         <span className="font-sans font-semibold">{displayLabel}</span>
-      </motion.button>
+      </m.button>
     );
   }
 );
@@ -415,7 +453,7 @@ export const ShimmerActionButton = React.forwardRef<HTMLButtonElement, ShimmerAc
     const isDisabled = disabled || loading;
 
     return (
-      <motion.button
+      <m.button
         ref={ref}
         type="button"
         disabled={isDisabled}
@@ -456,7 +494,7 @@ export const ShimmerActionButton = React.forwardRef<HTMLButtonElement, ShimmerAc
             <ChevronRight className="w-4 h-4 text-white dark:text-zinc-950 stroke-[2.5]" />
           </span>
         )}
-      </motion.button>
+      </m.button>
     );
   }
 );
@@ -489,7 +527,7 @@ export const SaveKpiButton = React.forwardRef<HTMLButtonElement, SaveKpiButtonPr
     ref
   ) => {
     return (
-      <motion.button
+      <m.button
         ref={ref}
         type="button"
         disabled={disabled}
@@ -519,7 +557,7 @@ export const SaveKpiButton = React.forwardRef<HTMLButtonElement, SaveKpiButtonPr
           {isSaved ? <BookmarkCheck className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5 stroke-[2.2]" />}
         </span>
         <span className="font-sans font-semibold">{isSaved ? savedLabel : defaultLabel}</span>
-      </motion.button>
+      </m.button>
     );
   }
 );

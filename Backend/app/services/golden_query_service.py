@@ -286,3 +286,55 @@ class GoldenQueryService:
             )
             await conn.commit()
             return True
+
+    @classmethod
+    async def update_golden_query_async(
+        cls,
+        task_id: str,
+        query_id: str,
+        question: Optional[str] = None,
+        sql_query: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Optional[GoldenQuery]:
+        clean_question = question.strip() if question is not None else None
+        if clean_question is not None and not clean_question:
+            raise ValueError("Question cannot be empty.")
+
+        clean_sql = sql_query.strip() if sql_query is not None else None
+        if clean_sql is not None:
+            if not clean_sql:
+                raise ValueError("SQL query cannot be empty.")
+            session = DuckDBAnalyticalSession()
+            try:
+                session.validate_sql_safety(clean_sql)
+            finally:
+                session.close()
+
+        async with get_async_db_connection() as conn:
+            cursor = await conn.execute(
+                "SELECT * FROM golden_queries WHERE id = ? AND task_id = ?",
+                (query_id, task_id),
+            )
+            existing = await cursor.fetchone()
+            if not existing:
+                return None
+
+            next_q = clean_question if clean_question is not None else existing["question"]
+            next_sql = clean_sql if clean_sql is not None else existing["sql_query"]
+            next_desc = description if description is not None else (existing["description"] or "")
+
+            await conn.execute(
+                "UPDATE golden_queries SET question = ?, sql_query = ?, description = ? WHERE id = ? AND task_id = ?",
+                (next_q, next_sql, next_desc, query_id, task_id),
+            )
+            await conn.commit()
+
+            return GoldenQuery(
+                id=existing["id"],
+                task_id=existing["task_id"],
+                question=next_q,
+                sql_query=next_sql,
+                description=next_desc,
+                result_summary=existing["result_summary"] or "",
+                created_at=str(existing["created_at"]),
+            )

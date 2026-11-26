@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button, AnimatedDeleteButton, ShimmerActionButton } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import type { ApiResponse, InspectionResult, CleaningRulesMap } from "@/types/api";
-import { api } from "@/services/api";
+import { api, type StatusResponse } from "@/services/api";
 import { buildSuggestedRules } from "@/lib/cleaning-rules";
 import { DataHealthCheck } from "./DataHealthCheck";
 import { IssueLedger } from "./IssueLedger";
@@ -158,19 +158,25 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
   const [isSnowflakeModalOpen, setIsSnowflakeModalOpen] = useState(false);
   const loadedSampleRef = useRef<string | null>(null);
 
-  // Track what we are waiting for
-  const [expectedPhase, setExpectedPhase] = useState<'INSPECTION' | 'ANALYSIS' | null>(null);
+  // Track active task & expected pipeline phase without effect-based parent callbacks
+  const taskIdRef = useRef<string | null>(null);
+  const expectedPhaseRef = useRef<'INSPECTION' | 'ANALYSIS' | null>(null);
 
-  // Real-Time Status Hook
-  const { status: taskStatus, progress: taskProgress, message: taskMessage, result: taskResult, error: taskError } = useTaskStatus(taskId || undefined);
+  const updateActiveTaskId = useCallback((nextId: string | null) => {
+    taskIdRef.current = nextId;
+    setTaskId(nextId);
+  }, []);
 
   const { toast } = useToast();
 
-  // React to WebSocket Status Updates
-  useEffect(() => {
-    if (!taskId || !expectedPhase || !taskStatus) return;
+  const handleTaskStatusUpdate = useCallback((data: StatusResponse) => {
+    const activeTaskId = taskIdRef.current ?? taskId;
+    const expectedPhase = expectedPhaseRef.current;
+    const rawStatus = data?.status;
+    if (!activeTaskId || !expectedPhase || !rawStatus) return;
 
-    const normalizedStatus = taskStatus.toUpperCase();
+    const normalizedStatus = rawStatus.toUpperCase();
+    const taskResult = data.result;
 
     // CASE 1: Inspection Ready (WAITING_FOR_USER or COMPLETED with quality_report)
     if (expectedPhase === 'INSPECTION') {
@@ -179,7 +185,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
         setHealthRules(buildSuggestedRules(taskResult.quality_report));
         setIsProcessing(false);
         setIsSnowflakeImport(false);
-        setExpectedPhase(null); // Stop waiting
+        expectedPhaseRef.current = null; // Stop waiting
         toast({ title: "Data Inspection Complete", description: "Please review the detected issues found." });
         return;
       }
@@ -189,8 +195,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
         setIsProcessing(false);
         setIsSnowflakeImport(false);
         setInspectionData(null);
-        setExpectedPhase(null);
-        onFileUploaded(taskResult, taskId);
+        expectedPhaseRef.current = null;
+        onFileUploaded(taskResult, activeTaskId);
         toast({ title: "Analysis Complete!", description: `Successfully analyzed ${taskResult.info?.rows || 0} rows.` });
         return;
       }
@@ -203,8 +209,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
           setIsProcessing(false);
           setIsSnowflakeImport(false);
           setInspectionData(null);
-          setExpectedPhase(null);
-          onFileUploaded(taskResult, taskId);
+          expectedPhaseRef.current = null;
+          onFileUploaded(taskResult, activeTaskId);
           toast({ title: "Analysis Complete!", description: `Successfully analyzed ${taskResult.info?.rows || 0} rows.` });
           return;
         }
@@ -215,11 +221,16 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     if (normalizedStatus === 'FAILED' || normalizedStatus === 'ERROR') {
       setIsProcessing(false);
       setIsSnowflakeImport(false);
-      setExpectedPhase(null);
-      toast({ title: "Processing Failed", description: taskError || "An error occurred.", variant: "destructive" });
+      expectedPhaseRef.current = null;
+      toast({ title: "Processing Failed", description: data.error || "An error occurred.", variant: "destructive" });
     }
+  }, [taskId, onFileUploaded, toast]);
 
-  }, [taskId, expectedPhase, taskStatus, taskResult, taskError, onFileUploaded, toast]);
+  // Real-Time Status Hook
+  const { status: taskStatus, progress: taskProgress, message: taskMessage } = useTaskStatus(
+    taskId || undefined,
+    { onStatusUpdate: handleTaskStatusUpdate }
+  );
 
   const validateFile = useCallback((file: File): boolean => {
     const hasValidExtension = VALID_EXTENSIONS.some(ext =>
@@ -451,8 +462,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
     setInspectionData(null);
     setHealthRules({});
     setIsSnowflakeImport(false);
-    setExpectedPhase(null);
-    setTaskId(null);
+    expectedPhaseRef.current = null;
+    updateActiveTaskId(null);
   };
 
   const startAnalysisPipeline = async () => {
@@ -467,7 +478,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
         const fileToProcess = stagedFiles[0];
         toast({ title: "Uploading...", description: `Sending '${fileToProcess.name}' to server...` });
         const { task_id } = await api.uploadFile(fileToProcess);
-        setTaskId(task_id);
+        updateActiveTaskId(task_id);
       } else {
         const sanitizedKeyMapping: Record<string, string> = {};
         for (const f of stagedFiles) {
@@ -497,7 +508,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             stagedFiles.length === 2 ? rightKey : undefined,
             Object.keys(sanitizedKeyMapping).length > 0 ? sanitizedKeyMapping : undefined
           );
-          setTaskId(task_id);
+          updateActiveTaskId(task_id);
         } else {
           toast({
             title: "Joining Datasets...",
@@ -511,11 +522,11 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             undefined,
             Object.keys(sanitizedKeyMapping).length > 0 ? sanitizedKeyMapping : undefined
           );
-          setTaskId(task_id);
+          updateActiveTaskId(task_id);
         }
       }
 
-      setExpectedPhase('INSPECTION');
+      expectedPhaseRef.current = 'INSPECTION';
     } catch (error: unknown) {
       setIsProcessing(false);
       console.error("Error initiating upload:", error);
@@ -557,7 +568,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
     try {
       await api.startAnalysis(taskId, rules);
-      setExpectedPhase('ANALYSIS'); // Start waiting for analysis
+      expectedPhaseRef.current = 'ANALYSIS'; // Start waiting for analysis
     } catch (error: unknown) {
       setIsProcessing(false);
       console.error("Failed to start analysis:", error);
@@ -631,7 +642,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
   // ─── RENDER: UPLOAD UI ────────────────────────────────────────────────────
   return (
-    <motion.div
+    <m.div
       className="max-w-3xl mx-auto space-y-6"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
@@ -660,8 +671,8 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                       await api.cancelSnowflakeQuery(taskId);
                       setIsProcessing(false);
                       setIsSnowflakeImport(false);
-                      setExpectedPhase(null);
-                      setTaskId(null);
+                      expectedPhaseRef.current = null;
+                      updateActiveTaskId(null);
                       toast({
                         title: "Snowflake Import Cancelled",
                         description: "Cancelled active warehouse query and reset workspace.",
@@ -701,7 +712,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             onDrop={handleDrop}
           >
             {/* Upload Icon */}
-            <motion.div
+            <m.div
               className={`
                 mx-auto mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center 
                 rounded-full transition-all duration-200 shadow-premium border
@@ -712,7 +723,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             >
               <AnimatePresence mode="wait">
                 {isProcessing ? (
-                  <motion.div
+                  <m.div
                     key="processing"
                     initial={{ opacity: 0, rotate: 0 }}
                     animate={{ opacity: 1, rotate: 360 }}
@@ -721,17 +732,17 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                     className="h-6 w-6 sm:h-7 sm:w-7 rounded-full border-2 border-primary border-t-transparent"
                   />
                 ) : (
-                  <motion.div
+                  <m.div
                     key="upload"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
                     <Upload className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
-            </motion.div>
+            </m.div>
 
             {/* Dropzone Text & File Selector */}
             <div className="space-y-2">
@@ -828,7 +839,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
 
           {/* Staged Files Queue Manager */}
           {stagedFiles.length > 0 && (
-            <motion.div
+            <m.div
               className="space-y-4 pt-2"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -861,7 +872,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                   const extIndex = file.name.lastIndexOf(".");
                   const ext = extIndex !== -1 ? file.name.slice(extIndex).toLowerCase() : "";
                   return (
-                    <motion.div
+                    <m.div
                       key={`${file.name}-${file.size}-${file.lastModified}`}
                       className="flex items-center justify-between p-3 rounded-xl bg-stone-100 dark:bg-[#121215] border border-stone-200 dark:border-white/10 shadow-2xs hover:border-stone-300 dark:hover:border-white/20 t-card-lift"
                       initial={{ opacity: 0, x: -10 }}
@@ -896,7 +907,7 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                           title="Delete this file from staging"
                         />
                       )}
-                    </motion.div>
+                    </m.div>
                   );
                 })}
               </div>
@@ -1227,13 +1238,13 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
                   </div>
                 );
               })()}
-            </motion.div>
+            </m.div>
           )}
         </CardContent>
       </Card>
 
       {/* Privacy & Data Handling Disclosure */}
-      <motion.div
+      <m.div
         className="p-6 rounded-3xl border border-stone-300 bg-[#FAF8F5] dark:border-white/10 dark:bg-[#0c0d12]/95 shadow-sm dark:shadow-tactile space-y-4 backdrop-blur-xl"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1280,23 +1291,23 @@ export const FileUpload = ({ onFileUploaded, initialSampleId }: FileUploadProps)
             Read Security Architecture &rarr;
           </Link>
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Snowflake Data Warehouse Integration Modal */}
       <SnowflakeConnectModal
         isOpen={isSnowflakeModalOpen}
         onClose={() => setIsSnowflakeModalOpen(false)}
         onImportStarted={(importedTaskId) => {
-          setTaskId(importedTaskId);
+          updateActiveTaskId(importedTaskId);
           setIsSnowflakeImport(true);
           setIsProcessing(true);
-          setExpectedPhase('INSPECTION');
+          expectedPhaseRef.current = 'INSPECTION';
           toast({
             title: "Snowflake Ingestion Active",
             description: "Streaming Snowflake records into the inspection audit engine...",
           });
         }}
       />
-    </motion.div>
+    </m.div>
   );
 };

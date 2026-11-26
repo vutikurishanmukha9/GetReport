@@ -91,7 +91,7 @@ export const ChatInterface = ({ taskId, onOpenInSqlStudio }: ChatInterfaceProps)
   const [activeSourceId, setActiveSourceId] = useState<string | null>(null);
   const [highlightedSourceIdx, setHighlightedSourceIdx] = useState<number | null>(null);
   const [savedGoldenIds, setSavedGoldenIds] = useState<Set<string>>(new Set());
-  const [goldenServerIdByMsgId, setGoldenServerIdByMsgId] = useState<Record<string, string>>({});
+  const goldenServerIdByMsgIdRef = useRef<Record<string, string>>({});
   const [savedGoldenQueries, setSavedGoldenQueries] = useState<GoldenQueryItem[]>([]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -267,7 +267,7 @@ export const ChatInterface = ({ taskId, onOpenInSqlStudio }: ChatInterfaceProps)
       const saved = await api.saveGoldenQuery(taskId, userQuestion, sqlQuery, "Saved via AI Chat Interface");
       setSavedGoldenIds((prev) => new Set(prev).add(msg.id));
       if (saved?.id) {
-        setGoldenServerIdByMsgId((prev) => ({ ...prev, [msg.id]: saved.id }));
+        goldenServerIdByMsgIdRef.current = { ...goldenServerIdByMsgIdRef.current, [msg.id]: saved.id };
         setSavedGoldenQueries((prev) => [saved, ...prev.filter((item) => item.id !== saved.id)]);
       }
       toast({
@@ -284,7 +284,7 @@ export const ChatInterface = ({ taskId, onOpenInSqlStudio }: ChatInterfaceProps)
   };
 
   const handleDeleteGoldenKPI = async (msgId: string) => {
-    const serverQueryId = goldenServerIdByMsgId[msgId];
+    const serverQueryId = goldenServerIdByMsgIdRef.current[msgId];
     if (serverQueryId) {
       try {
         await api.deleteGoldenQuery(taskId, serverQueryId);
@@ -302,11 +302,9 @@ export const ChatInterface = ({ taskId, onOpenInSqlStudio }: ChatInterfaceProps)
       next.delete(msgId);
       return next;
     });
-    setGoldenServerIdByMsgId((prev) => {
-      const next = { ...prev };
-      delete next[msgId];
-      return next;
-    });
+    const nextMap = { ...goldenServerIdByMsgIdRef.current };
+    delete nextMap[msgId];
+    goldenServerIdByMsgIdRef.current = nextMap;
     if (serverQueryId) {
       setSavedGoldenQueries((prev) => prev.filter((item) => item.id !== serverQueryId));
     }

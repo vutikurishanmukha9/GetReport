@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -94,8 +94,8 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
 
   // Lazy hierarchy cache & expansion state
-  const [schemasCache, setSchemasCache] = useState<Record<string, SnowflakeSchema[]>>({});
-  const [objectsCache, setObjectsCache] = useState<Record<string, SnowflakeObject[]>>({});
+  const schemasCacheRef = useRef<Record<string, SnowflakeSchema[]>>({});
+  const objectsCacheRef = useRef<Record<string, SnowflakeObject[]>>({});
   const [expandedDbs, setExpandedDbs] = useState<Set<string>>(new Set());
   const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(new Set());
   const [treeSearch, setTreeSearch] = useState("");
@@ -269,12 +269,12 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
 
   // Load schemas for a specific database
   const loadSchemas = async (sId: string, dbName: string) => {
-    if (schemasCache[dbName]) {
-      const cached = schemasCache[dbName];
-      setSchemas(cached);
-      if (cached.length > 0) {
-        setSelectedSchema(cached[0].name);
-        await loadObjects(sId, dbName, cached[0].name);
+    const cachedSchemas = schemasCacheRef.current[dbName];
+    if (cachedSchemas) {
+      setSchemas(cachedSchemas);
+      if (cachedSchemas.length > 0) {
+        setSelectedSchema(cachedSchemas[0].name);
+        await loadObjects(sId, dbName, cachedSchemas[0].name);
       }
       return;
     }
@@ -283,7 +283,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
     try {
       const res = await api.listSnowflakeSchemas(sId, dbName);
       setSchemas(res.schemas);
-      setSchemasCache(prev => ({ ...prev, [dbName]: res.schemas }));
+      schemasCacheRef.current = { ...schemasCacheRef.current, [dbName]: res.schemas };
 
       if (res.schemas.length > 0) {
         const firstSchema = res.schemas[0].name;
@@ -307,13 +307,13 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
   // Load objects (tables/views) for a specific schema
   const loadObjects = async (sId: string, dbName: string, scName: string) => {
     const cacheKey = `${dbName}.${scName}`;
-    if (objectsCache[cacheKey]) {
-      const cached = objectsCache[cacheKey];
-      setObjects(cached);
-      if (cached.length > 0) {
-        setSelectedTable(cached[0].name);
-        setSelectedObjectMeta(cached[0]);
-        setDatasetLabel(cached[0].name.toLowerCase());
+    const cachedObjects = objectsCacheRef.current[cacheKey];
+    if (cachedObjects) {
+      setObjects(cachedObjects);
+      if (cachedObjects.length > 0) {
+        setSelectedTable(cachedObjects[0].name);
+        setSelectedObjectMeta(cachedObjects[0]);
+        setDatasetLabel(cachedObjects[0].name.toLowerCase());
       }
       return;
     }
@@ -322,7 +322,7 @@ export const SnowflakeConnectModal: React.FC<SnowflakeConnectModalProps> = ({
     try {
       const res = await api.listSnowflakeObjects(sId, dbName, scName);
       setObjects(res.objects);
-      setObjectsCache(prev => ({ ...prev, [cacheKey]: res.objects }));
+      objectsCacheRef.current = { ...objectsCacheRef.current, [cacheKey]: res.objects };
 
       if (res.objects.length > 0) {
         setSelectedTable(res.objects[0].name);

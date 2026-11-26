@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 const SAAS_HIGHLIGHTS = [
   "boardroom decisions.",
@@ -69,7 +69,7 @@ export const HeroSection = () => {
       {/* 2. Tactile Film Grain Overlay */}
       <div className="hero-grain-overlay" />
 
-      <motion.div
+      <m.div
         className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl relative z-10 space-y-5 sm:space-y-7"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -81,7 +81,7 @@ export const HeroSection = () => {
           <span className="block">built for</span>
           <span className="inline-block relative overflow-hidden align-bottom min-h-[1.15em] min-w-[260px] xs:min-w-[300px] sm:min-w-[440px] px-1">
             <AnimatePresence mode="wait">
-              <motion.span
+              <m.span
                 key={SAAS_HIGHLIGHTS[index]}
                 initial={{ y: 36, opacity: 0, filter: "blur(6px)" }}
                 animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
@@ -90,7 +90,7 @@ export const HeroSection = () => {
                 className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-stone-900 via-stone-800 to-stone-600 dark:from-white dark:via-zinc-100 dark:to-zinc-400"
               >
                 {SAAS_HIGHLIGHTS[index]}
-              </motion.span>
+              </m.span>
             </AnimatePresence>
           </span>
         </h1>
@@ -140,7 +140,7 @@ export const HeroSection = () => {
             <span className="whitespace-nowrap">Works with Excel, CSV & Parquet</span>
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </section>
   );
 };

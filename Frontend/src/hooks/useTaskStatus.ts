@@ -18,13 +18,25 @@ interface UseTaskStatusResult {
   disconnect: () => void;
 }
 
-export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
+interface UseTaskStatusOptions {
+  onStatusUpdate?: (data: StatusResponse) => void;
+}
+
+export const useTaskStatus = (
+  activeTaskId?: string,
+  options?: UseTaskStatusOptions,
+): UseTaskStatusResult => {
   const [status, setStatus] = useState<UseTaskStatusResult['status']>('CONNECTING');
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('');
   const [result, setResult] = useState<JobTaskResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+
+  const onStatusUpdateRef = useRef(options?.onStatusUpdate);
+  useEffect(() => {
+    onStatusUpdateRef.current = options?.onStatusUpdate;
+  }, [options?.onStatusUpdate]);
 
   const eventSourceUnsubRef = useRef<(() => void) | null>(null);
   const wsUnsubRef = useRef<(() => void) | null>(null);
@@ -89,6 +101,8 @@ export const useTaskStatus = (activeTaskId?: string): UseTaskStatusResult => {
         wsUnsubRef.current = null;
       }
     }
+
+    onStatusUpdateRef.current?.(data);
   }, [setTaskStatus, stopPolling, clearWatchdog]);
 
   // HTTP Polling fallback function (runs as resilient backup with backoff)

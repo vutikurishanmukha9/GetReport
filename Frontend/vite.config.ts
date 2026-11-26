@@ -33,6 +33,9 @@ export default defineConfig(() => ({
             if (id.includes("echarts") || id.includes("zrender")) {
               return "vendor-echarts";
             }
+            if (id.includes("@codemirror") || id.includes("@lezer") || id.includes("@uiw")) {
+              return "vendor-codemirror";
+            }
             if (id.includes("@radix-ui")) {
               return "vendor-radix";
             }

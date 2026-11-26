@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
     Check,
     AlertTriangle,
@@ -239,25 +239,17 @@ export const DataHealthCheck = ({
     const [activePreset, setActivePreset] = useState<"all" | "high" | "conservative" | "raw" | "custom">("all");
 
     // Automatically pre-populate rules with dynamic suggestions when uncontrolled
-    const [localRules, setLocalRules] = useState<CleaningRulesMap>(() => buildSuggestedRules(report));
-    const rules = controlledRules ?? localRules;
+    const [userRules, setUserRules] = useState<CleaningRulesMap | null>(null);
+    const suggestedRules = useMemo(() => buildSuggestedRules(report), [report]);
+    const rules = controlledRules ?? (userRules && Object.keys(userRules).length > 0 ? userRules : suggestedRules);
 
     const updateRules = (updater: CleaningRulesMap | ((prev: CleaningRulesMap) => CleaningRulesMap)) => {
         const next = updater instanceof Function ? updater(rules) : updater;
         if (controlledRules === undefined) {
-            setLocalRules(next);
+            setUserRules(next);
         }
         onRulesChange?.(next);
     };
-
-    // Synchronize uncontrolled rules if report issues load asynchronously
-    useEffect(() => {
-        if (controlledRules !== undefined || !report?.issues || report.issues.length === 0) return;
-        setLocalRules(prev => {
-            if (Object.keys(prev).length > 0) return prev;
-            return buildSuggestedRules(report);
-        });
-    }, [controlledRules, report]);
 
     const activeRulesCount = useMemo(() => {
         return Object.values(rules).filter(r => r?.action && r.action !== "default").length;

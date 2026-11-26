@@ -17,7 +17,7 @@ import {
     ChevronLeft,
     ChevronRight
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
 import {
@@ -442,39 +442,53 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                 </div>
 
                 {/* ─── 2. TOOLBAR: TABS, SEARCH, AND PROGRESS ─────────────────────────── */}
-                <div className="bg-stone-50/60 dark:bg-white/[0.02] border-b border-stone-200 dark:border-white/[0.06] px-5 sm:px-7 py-3.5">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
-                        {/* Segmented Filter Tabs */}
-                        <div className="inline-flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-stone-200/70 dark:bg-zinc-900/80 border border-stone-300/80 dark:border-white/10 shadow-inner text-xs font-medium self-start">
+                <div className="bg-[#F5F1E9]/80 dark:bg-white/[0.02] border-b border-stone-200 dark:border-white/[0.06] px-5 sm:px-7 py-3.5">
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                        {/* Segmented Filter Tabs — single crisp non-wrapping rail matching ReportGeneration */}
+                        <div
+                            role="tablist"
+                            aria-label="Filter issues by triage status"
+                            className="inline-flex flex-nowrap items-center gap-1 p-1 rounded-xl bg-[#EDE8DE] border border-[#DCD6C9] dark:bg-[#0c0d12]/95 dark:border-white/10 shadow-2xs text-xs font-medium max-w-full overflow-x-auto scrollbar-none self-start shrink-0"
+                        >
                             {([
-                                { key: 'all', label: 'All Issues', count: summary.total },
-                                { key: 'pending', label: 'Pending', count: summary.pending, alert: summary.pending > 0 },
-                                { key: 'approved', label: 'Approved', count: summary.approved },
-                                { key: 'modified', label: 'Modified', count: summary.modified },
-                                { key: 'rejected', label: 'Rejected', count: summary.rejected },
+                                { key: 'all', label: 'All', ariaLabel: 'All issues', count: summary.total },
+                                { key: 'pending', label: 'Pending', ariaLabel: 'Pending issues', count: summary.pending, alert: summary.pending > 0 },
+                                { key: 'approved', label: 'Approved', ariaLabel: 'Approved issues', count: summary.approved },
+                                { key: 'modified', label: 'Modified', ariaLabel: 'Modified issues', count: summary.modified },
+                                { key: 'rejected', label: 'Rejected', ariaLabel: 'Rejected issues', count: summary.rejected },
                             ] as const).map(tab => {
                                 const isActive = filterStatus === tab.key;
                                 return (
                                     <button
                                         key={tab.key}
                                         type="button"
+                                        role="tab"
+                                        aria-selected={isActive}
+                                        aria-label={tab.ariaLabel}
                                         onClick={() => setFilterStatus(tab.key)}
                                         className={cn(
-                                            "relative px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all duration-150 cursor-pointer select-none border",
+                                            "relative h-8 px-3 rounded-lg inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 transition-all duration-150 cursor-pointer select-none border font-sans",
                                             isActive
-                                                ? "bg-white text-stone-900 font-semibold shadow-xs border-stone-200/90 dark:bg-zinc-800 dark:text-white dark:border-white/10"
-                                                : "bg-transparent text-stone-600 hover:text-stone-900 hover:bg-stone-200/60 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-800/60 border-transparent"
+                                                ? "bg-[#800000] text-white border-[#800000] font-semibold shadow-xs dark:bg-white dark:text-zinc-950 dark:border-white"
+                                                : "bg-transparent text-stone-800 hover:text-stone-950 hover:bg-stone-300/60 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] border-transparent font-medium"
                                         )}
                                     >
                                         {'alert' in tab && tab.alert && tab.key === 'pending' && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse shrink-0" />
+                                            <span
+                                                className={cn(
+                                                    "w-1.5 h-1.5 rounded-full shrink-0",
+                                                    isActive
+                                                        ? "bg-amber-300 dark:bg-amber-600"
+                                                        : "bg-amber-500 dark:bg-amber-400"
+                                                )}
+                                            />
                                         )}
-                                        <span className="font-sans">{tab.label}</span>
+                                        <span className="leading-none">{tab.label}</span>
                                         <span className={cn(
-                                            "px-1.5 py-0.5 rounded-md font-sans font-semibold tabular-nums text-[10px] leading-none shrink-0",
-                                            isActive 
-                                                ? "bg-stone-100 text-stone-900 dark:bg-white/15 dark:text-white border border-stone-200/60 dark:border-white/10" 
-                                                : "bg-stone-300/60 text-stone-600 dark:bg-zinc-800 dark:text-zinc-400"
+                                            "inline-flex items-center justify-center h-[18px] min-w-[18px] px-1.5 rounded-full text-[10px] leading-none font-sans font-bold tabular-nums shrink-0",
+                                            isActive
+                                                ? "bg-white text-[#800000] dark:bg-zinc-950 dark:text-white"
+                                                : "bg-stone-300/90 text-stone-800 dark:bg-white/10 dark:text-zinc-300"
                                         )}>
                                             {tab.count}
                                         </span>
@@ -484,9 +498,9 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                         </div>
 
                         {/* Search & Review Progress Bar */}
-                        <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between xl:justify-end gap-3 sm:gap-4 flex-1 xl:max-w-md">
                             {/* Quick Search */}
-                            <div className="relative min-w-[200px] sm:min-w-[240px]">
+                            <div className="relative flex-1 min-w-[190px] sm:min-w-[220px]">
                                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 dark:text-zinc-400 pointer-events-none" />
                                 <input
                                     type="text"
@@ -494,32 +508,32 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Filter by column or type..."
                                     aria-label="Filter issues by column or quality rule type"
-                                    className="w-full h-8 pl-8 pr-3 text-xs rounded-lg bg-white dark:bg-zinc-950/70 border border-stone-300 dark:border-white/[0.08] text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#800000]/60 focus:ring-1 focus:ring-[#800000]/30 dark:focus:border-white/40 dark:focus:ring-white/20 transition-all font-sans"
+                                    className="w-full h-9 pl-8 pr-8 text-xs rounded-xl bg-white dark:bg-zinc-950/70 border border-stone-300 dark:border-white/[0.08] text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#800000]/60 focus:ring-1 focus:ring-[#800000]/30 dark:focus:border-white/40 dark:focus:ring-white/20 transition-all font-sans"
                                 />
                                 {searchQuery && (
                                     <button
                                         type="button"
                                         onClick={() => setSearchQuery('')}
                                         aria-label="Clear filter search"
-                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:text-zinc-500 dark:hover:text-zinc-300 cursor-pointer"
                                     >
-                                        <X className="w-3 h-3" />
+                                        <X className="w-3.5 h-3.5" />
                                     </button>
                                 )}
                             </div>
 
                             {/* Progress Metric */}
-                            <div className="hidden sm:flex items-center gap-2.5 text-xs">
-                                <span className="text-stone-600 dark:text-zinc-400 font-sans font-medium text-xs">
+                            <div className="hidden sm:flex items-center gap-2.5 text-xs shrink-0">
+                                <span className="text-stone-600 dark:text-zinc-400 font-sans font-medium text-xs whitespace-nowrap">
                                     Reviewed <strong className="text-stone-900 dark:text-white font-semibold tabular-nums">{reviewedCount}</strong>/<span className="tabular-nums">{summary.total}</span>
                                 </span>
-                                <div className="w-24 h-1.5 rounded-full bg-stone-200 dark:bg-zinc-900 border border-stone-300 dark:border-white/5 overflow-hidden">
-                                    <motion.div
+                                <div className="w-24 h-1.5 rounded-full bg-stone-200 dark:bg-zinc-900 border border-stone-300/80 dark:border-white/10 overflow-hidden">
+                                    <m.div
                                         className={cn(
                                             "h-full rounded-full transition-all duration-300",
-                                            progressPct === 100 
-                                                ? "bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" 
-                                                : "bg-gradient-to-r from-amber-500 to-emerald-500"
+                                            progressPct === 100
+                                                ? "bg-emerald-600 dark:bg-emerald-400"
+                                                : "bg-[#800000] dark:bg-emerald-500"
                                         )}
                                         style={{ width: `${progressPct}%` }}
                                     />
@@ -736,7 +750,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                     {/* Expandable Polars Fix Code Drawer */}
                                     <AnimatePresence>
                                         {isExpanded && issue.fix_code && (
-                                            <motion.div
+                                            <m.div
                                                 initial={{ opacity: 0, scaleY: 0.95 }}
                                                 animate={{ opacity: 1, scaleY: 1 }}
                                                 exit={{ opacity: 0, scaleY: 0.95 }}
@@ -818,7 +832,7 @@ export const IssueLedger: React.FC<IssueLedgerProps> = ({
                                                         </div>
                                                     )}
                                                 </div>
-                                            </motion.div>
+                                            </m.div>
                                         )}
                                     </AnimatePresence>
                                 </div>

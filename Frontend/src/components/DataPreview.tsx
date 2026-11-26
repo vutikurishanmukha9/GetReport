@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   ArrowLeft, ArrowRight, FileSpreadsheet, Hash, Calendar, Type,
-  Search, CheckCircle2, Database, Layers, FileText
+  Search, CheckCircle2, Database, Layers, FileText, Table2, ShieldCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -218,22 +218,24 @@ export const DataPreview = ({ info, cleaningReport, analysis, onGenerateReport, 
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="h-auto min-h-12 bg-[#EDE8DE] dark:bg-white/[0.03] border border-[#DCD6C9] dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-xs flex flex-wrap items-center justify-start gap-1.5">
+        <TabsList className="h-auto w-full grid grid-cols-2 items-stretch gap-1.5 bg-[#EDE8DE] border border-[#DCD6C9] dark:bg-[#0c0d12]/95 dark:border-white/10 p-1.5 rounded-2xl mb-6 shadow-xs">
           <TabsTrigger
             value="preview"
-            className="group rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.06] dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white transition-all shrink-0 cursor-pointer"
+            className="group w-full min-h-[38px] rounded-xl text-xs sm:text-sm px-4 py-2 font-sans font-semibold text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-sm dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white transition-all inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer border border-transparent"
           >
-            Data Preview & Types
+            <Table2 className="h-3.5 w-3.5 shrink-0" />
+            <span>Data Preview &amp; Types</span>
           </TabsTrigger>
           <TabsTrigger
             value="quality"
-            className="group rounded-xl text-xs sm:text-sm px-5 py-2 font-semibold text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-md dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.06] dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+            className="group w-full min-h-[38px] rounded-xl text-xs sm:text-sm px-4 py-2 font-sans font-semibold text-stone-900 hover:text-stone-950 hover:bg-stone-300/70 data-[state=active]:bg-[#800000] data-[state=active]:text-white data-[state=active]:border-[#800000] data-[state=active]:shadow-sm dark:text-zinc-300 dark:hover:text-white dark:hover:bg-white/[0.08] dark:data-[state=active]:bg-white dark:data-[state=active]:text-zinc-950 dark:data-[state=active]:border-white transition-all inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer border border-transparent"
           >
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
             <span>Column Quality Audit</span>
             {totalIssuesCount > 0 && (
-              <Badge variant="secondary" className="tab-count-badge group-data-[state=active]:bg-white group-data-[state=active]:text-[#800000] bg-amber-500/15 text-amber-800 border border-amber-500/30 dark:text-amber-400 text-[10px] px-1.5 py-0 h-4 rounded-full font-mono">
+              <span className="tab-count-badge inline-flex items-center justify-center h-[18px] min-w-[18px] px-1.5 rounded-full text-[10px] leading-none font-sans font-bold tabular-nums bg-amber-500/15 text-amber-800 border border-amber-500/30 group-data-[state=active]:bg-white group-data-[state=active]:text-[#800000] group-data-[state=active]:border-transparent dark:bg-amber-500/20 dark:text-amber-300 dark:group-data-[state=active]:bg-zinc-950 dark:group-data-[state=active]:text-white shrink-0">
                 {totalIssuesCount}
-              </Badge>
+              </span>
             )}
           </TabsTrigger>
         </TabsList>

@@ -16,15 +16,26 @@ interface MLReadinessCardProps {
   mlReadiness?: MLReadiness;
 }
 
-export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness }) => {
-  if (!mlReadiness) return null;
+interface ReadinessTheme {
+  accentColor: string;
+  barColor: string;
+  pillClass: string;
+  dotClass: string;
+  statusLabel: string;
+  icon: React.ReactNode;
+  subtext: string;
+  treeStatus: string;
+  treeStatusClass: string;
+  linearStatus: string;
+  linearStatusClass: string;
+  nnStatus: string;
+  nnStatusClass: string;
+}
 
-  const { score, status, reasons, recommendation, column_context } = mlReadiness;
-  const roundedScore = Math.max(0, Math.min(100, Math.round(score)));
-
-  // Status-specific themes & telemetry
-  const statusTheme = {
-    Ready: {
+const READINESS_THEME_MAP = new Map<string, ReadinessTheme>([
+  [
+    "Ready",
+    {
       accentColor: "#10b981",
       barColor: "bg-emerald-500 dark:bg-emerald-400",
       pillClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
@@ -39,7 +50,10 @@ export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness })
       nnStatus: "Input Ready",
       nnStatusClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     },
-    "Needs Cleaning": {
+  ],
+  [
+    "Needs Cleaning",
+    {
       accentColor: "#f59e0b",
       barColor: "bg-amber-500 dark:bg-amber-400",
       pillClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
@@ -54,7 +68,10 @@ export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness })
       nnStatus: "Pre-processing Req.",
       nnStatusClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
     },
-    "Not Ready": {
+  ],
+  [
+    "Not Ready",
+    {
       accentColor: "#f43f5e",
       barColor: "bg-rose-500 dark:bg-rose-400",
       pillClass: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
@@ -69,21 +86,129 @@ export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness })
       nnStatus: "Pipeline Blocked",
       nnStatusClass: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
     },
-  }[status] || {
-    accentColor: "#64748b",
-    barColor: "bg-slate-500 dark:bg-slate-400",
-    pillClass: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
-    dotClass: "bg-slate-500 dark:bg-slate-400",
-    statusLabel: "AUDIT PENDING",
-    icon: <HelpCircle className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0" />,
-    subtext: "Upload a complete dataset to compute full machine learning suitability metrics.",
-    treeStatus: "Pending",
-    treeStatusClass: "bg-muted/40 text-muted-foreground border-border/40",
-    linearStatus: "Pending",
-    linearStatusClass: "bg-muted/40 text-muted-foreground border-border/40",
-    nnStatus: "Pending",
-    nnStatusClass: "bg-muted/40 text-muted-foreground border-border/40",
-  };
+  ],
+]);
+
+const DEFAULT_READINESS_THEME: ReadinessTheme = {
+  accentColor: "#64748b",
+  barColor: "bg-slate-500 dark:bg-slate-400",
+  pillClass: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
+  dotClass: "bg-slate-500 dark:bg-slate-400",
+  statusLabel: "AUDIT PENDING",
+  icon: <HelpCircle className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0" />,
+  subtext: "Upload a complete dataset to compute full machine learning suitability metrics.",
+  treeStatus: "Pending",
+  treeStatusClass: "bg-muted/40 text-muted-foreground border-border/40",
+  linearStatus: "Pending",
+  linearStatusClass: "bg-muted/40 text-muted-foreground border-border/40",
+  nnStatus: "Pending",
+  nnStatusClass: "bg-muted/40 text-muted-foreground border-border/40",
+};
+
+function MLCompatibilityGrid({ statusTheme }: { statusTheme: ReadinessTheme }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="p-3.5 rounded-xl bg-muted/20 dark:bg-white/[0.02] border border-border/70 dark:border-white/10 flex flex-col justify-between space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-display font-bold text-foreground">Tree Ensembles</span>
+          <span className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded border uppercase tracking-wider ${statusTheme.treeStatusClass}`}>
+            {statusTheme.treeStatus}
+          </span>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-snug">
+          XGBoost, LightGBM, CatBoost. Highly robust to non-linear splits.
+        </p>
+      </div>
+
+      <div className="p-3.5 rounded-xl bg-muted/20 dark:bg-white/[0.02] border border-border/70 dark:border-white/10 flex flex-col justify-between space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-display font-bold text-foreground">Linear Models</span>
+          <span className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded border uppercase tracking-wider ${statusTheme.linearStatusClass}`}>
+            {statusTheme.linearStatus}
+          </span>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-snug">
+          Ridge, Lasso, Logistic. Sensitive to multicollinearity &amp; feature scales.
+        </p>
+      </div>
+
+      <div className="p-3.5 rounded-xl bg-muted/20 dark:bg-white/[0.02] border border-border/70 dark:border-white/10 flex flex-col justify-between space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-display font-bold text-foreground">Deep Learning</span>
+          <span className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded border uppercase tracking-wider ${statusTheme.nnStatusClass}`}>
+            {statusTheme.nnStatus}
+          </span>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-snug">
+          MLP / PyTorch Tensors. Requires dense standard numeric normalization.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MLDiagnosticsSection({ reasons }: { reasons?: string[] }) {
+  if (reasons && reasons.length > 0) {
+    return (
+      <div className="pt-2">
+        <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold mb-3 flex items-center gap-1.5">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+          <span>Detected Pipeline Constraints &amp; Issues</span>
+        </h4>
+        <div className="grid gap-2">
+          {reasons.map((reason) => (
+            <div
+              key={`ml-reason-${reason.slice(0, 40)}`}
+              className="p-3 rounded-xl bg-amber-500/[0.05] border border-amber-500/25 flex items-start gap-3 text-xs font-sans text-amber-700 dark:text-amber-200/90"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+              <span className="leading-relaxed">{reason}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-2">
+      <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold mb-3 flex items-center gap-1.5">
+        <Check className="h-3.5 w-3.5 text-emerald-500" />
+        <span>Production Pipeline Verification Checklist</span>
+      </h4>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/25 flex items-start gap-2.5">
+          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+          <div>
+            <h5 className="text-xs font-semibold text-foreground">Completeness Guardrail</h5>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Zero high-null gates (&gt;70%) tripped</p>
+          </div>
+        </div>
+        <div className="p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/25 flex items-start gap-2.5">
+          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+          <div>
+            <h5 className="text-xs font-semibold text-foreground">Variance Integrity</h5>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Zero degenerate or constant features</p>
+          </div>
+        </div>
+        <div className="p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/25 flex items-start gap-2.5">
+          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+          <div>
+            <h5 className="text-xs font-semibold text-foreground">Label Balance</h5>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Distribution free of extreme class skews</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness }) => {
+  if (!mlReadiness) return null;
+
+  const { score, status, reasons, recommendation, column_context } = mlReadiness;
+  const roundedScore = Math.max(0, Math.min(100, Math.round(score)));
+  const statusTheme = READINESS_THEME_MAP.get(status) ?? DEFAULT_READINESS_THEME;
 
   return (
     <Card className="relative border border-border/80 dark:border-white/10 bg-card dark:bg-[#090a10] shadow-premium rounded-3xl overflow-hidden mt-6 text-foreground">
@@ -223,98 +348,10 @@ export const MLReadinessCard: React.FC<MLReadinessCardProps> = ({ mlReadiness })
             <span className="text-[10px] font-mono text-muted-foreground">Pre-training compatibility</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Tree Models */}
-            <div className="p-3.5 rounded-xl bg-muted/20 dark:bg-white/[0.02] border border-border/70 dark:border-white/10 flex flex-col justify-between space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-display font-bold text-foreground">Tree Ensembles</span>
-                <span className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded border uppercase tracking-wider ${statusTheme.treeStatusClass}`}>
-                  {statusTheme.treeStatus}
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-snug">
-                XGBoost, LightGBM, CatBoost. Highly robust to non-linear splits.
-              </p>
-            </div>
-
-            {/* Linear Models */}
-            <div className="p-3.5 rounded-xl bg-muted/20 dark:bg-white/[0.02] border border-border/70 dark:border-white/10 flex flex-col justify-between space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-display font-bold text-foreground">Linear Models</span>
-                <span className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded border uppercase tracking-wider ${statusTheme.linearStatusClass}`}>
-                  {statusTheme.linearStatus}
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-snug">
-                Ridge, Lasso, Logistic. Sensitive to multicollinearity & feature scales.
-              </p>
-            </div>
-
-            {/* Neural Networks */}
-            <div className="p-3.5 rounded-xl bg-muted/20 dark:bg-white/[0.02] border border-border/70 dark:border-white/10 flex flex-col justify-between space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-display font-bold text-foreground">Deep Learning</span>
-                <span className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded border uppercase tracking-wider ${statusTheme.nnStatusClass}`}>
-                  {statusTheme.nnStatus}
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-snug">
-                MLP / PyTorch Tensors. Requires dense standard numeric normalization.
-              </p>
-            </div>
-          </div>
+          <MLCompatibilityGrid statusTheme={statusTheme} />
         </div>
 
-        {/* Diagnostics & Guardrails Section */}
-        {reasons && reasons.length > 0 ? (
-          <div className="pt-2">
-            <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold mb-3 flex items-center gap-1.5">
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-              <span>Detected Pipeline Constraints & Issues</span>
-            </h4>
-            <div className="grid gap-2">
-              {reasons.map((reason) => (
-                <div
-                  key={`ml-reason-${reason.slice(0, 40)}`}
-                  className="p-3 rounded-xl bg-amber-500/[0.05] border border-amber-500/25 flex items-start gap-3 text-xs font-sans text-amber-700 dark:text-amber-200/90"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                  <span className="leading-relaxed">{reason}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="pt-2">
-            <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold mb-3 flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-500" />
-              <span>Production Pipeline Verification Checklist</span>
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/25 flex items-start gap-2.5">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                <div>
-                  <h5 className="text-xs font-semibold text-foreground">Completeness Guardrail</h5>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Zero high-null gates (&gt;70%) tripped</p>
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/25 flex items-start gap-2.5">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                <div>
-                  <h5 className="text-xs font-semibold text-foreground">Variance Integrity</h5>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Zero degenerate or constant features</p>
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/25 flex items-start gap-2.5">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                <div>
-                  <h5 className="text-xs font-semibold text-foreground">Label Balance</h5>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Distribution free of extreme class skews</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <MLDiagnosticsSection reasons={reasons} />
       </CardContent>
     </Card>
   );

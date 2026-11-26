@@ -43,8 +43,8 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
 
   // Dragging state for canvas brushing
   const [draggingDim, setDraggingDim] = useState<string | null>(null);
-  const [dragStartY, setDragStartY] = useState<number | null>(null);
-  const [dragCurrentY, setDragCurrentY] = useState<number | null>(null);
+  const dragStartYRef = useRef<number | null>(null);
+  const dragCurrentYRef = useRef<number | null>(null);
 
   // Available numeric columns for coloring
   const numericDims = useMemo(() => dimensions.filter(d => d.is_numeric), [dimensions]);
@@ -247,8 +247,8 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
 
     if (closestDim) {
       setDraggingDim(closestDim.name);
-      setDragStartY(y);
-      setDragCurrentY(y);
+      dragStartYRef.current = y;
+      dragCurrentYRef.current = y;
     }
   };
 
@@ -258,11 +258,13 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const y = e.clientY - rect.top;
-    setDragCurrentY(y);
+    dragCurrentYRef.current = y;
   };
 
   const handleMouseUp = () => {
-    if (!draggingDim || dragStartY === null || dragCurrentY === null) {
+    const startY = dragStartYRef.current;
+    const currentY = dragCurrentYRef.current;
+    if (!draggingDim || startY === null || currentY === null) {
       setDraggingDim(null);
       return;
     }
@@ -281,8 +283,8 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
       const max = dim.max ?? 1;
       const span = max - min || 1;
 
-      const y1 = Math.min(dragStartY, dragCurrentY);
-      const y2 = Math.max(dragStartY, dragCurrentY);
+      const y1 = Math.min(startY, currentY);
+      const y2 = Math.max(startY, currentY);
 
       if (Math.abs(y2 - y1) > 8) {
         const valMax = max - ((y1 - topMargin) / plotHeight) * span;
@@ -296,16 +298,16 @@ export const HiPlotParallelCoordinates: React.FC<Props> = ({ payload, onIsolateS
     }
 
     setDraggingDim(null);
-    setDragStartY(null);
-    setDragCurrentY(null);
+    dragStartYRef.current = null;
+    dragCurrentYRef.current = null;
   };
 
   useEffect(() => {
     if (!draggingDim) return;
     const onWindowMouseUp = () => {
       setDraggingDim(null);
-      setDragStartY(null);
-      setDragCurrentY(null);
+      dragStartYRef.current = null;
+      dragCurrentYRef.current = null;
     };
     window.addEventListener('mouseup', onWindowMouseUp);
     return () => window.removeEventListener('mouseup', onWindowMouseUp);

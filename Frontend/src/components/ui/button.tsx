@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import { motion, AnimatePresence, useReducedMotion, type HTMLMotionProps } from "framer-motion";
+import { m, AnimatePresence, useReducedMotion, type HTMLMotionProps } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -147,7 +147,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const motionProps = props as unknown as HTMLMotionProps<"button">;
 
     return (
-      <motion.button
+      <m.button
         ref={ref}
         whileTap={shouldTapAnimate ? { scale: pressScale } : undefined}
         whileHover={shouldHoverAnimate ? { scale: 1.01 } : undefined}
@@ -162,7 +162,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] z-0">
           <AnimatePresence>
             {ripple && !reduceMotion && ripples.map((r) => (
-              <motion.span
+              <m.span
                 key={r.id}
                 className="absolute rounded-full bg-current opacity-25"
                 style={{
@@ -190,7 +190,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           {isBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {children}
         </span>
-      </motion.button>
+      </m.button>
     );
   },
 );
