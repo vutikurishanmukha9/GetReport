@@ -182,15 +182,15 @@ class DuckDBAnalyticalSession:
         "CREATE", "TRUNCATE", "RENAME", "ATTACH", "DETACH",
         "PRAGMA", "COPY", "EXPORT", "INSTALL", "LOAD", "SET",
         "READ_CSV", "READ_CSV_AUTO", "READ_PARQUET", "READ_JSON",
-        "READ_JSON_AUTO", "READ_BLOB", "READ_TEXT", "SCAN_PARQUET",
-        "SCAN_CSV", "GLOB", "HTTPFS", "POSTGRES_SCAN", "SQLITE_SCAN",
+        "READ_JSON_AUTO", "READ_NDJSON", "READ_NDJSON_AUTO", "READ_BLOB", "READ_TEXT",
+        "SCAN_PARQUET", "SCAN_CSV", "GLOB", "HTTPFS", "POSTGRES_SCAN", "SQLITE_SCAN",
         "ICU_SORT_KEY", "PARQUET_SCAN", "EXPORT_DATABASE", "WRITE_PARQUET",
     }
 
     DISALLOWED_FUNCTIONS = {
         "READ_CSV", "READ_CSV_AUTO", "READ_PARQUET", "READ_JSON",
-        "READ_JSON_AUTO", "READ_BLOB", "READ_TEXT", "SCAN_PARQUET",
-        "SCAN_CSV", "PARQUET_SCAN", "GLOB", "HTTPFS", "POSTGRES_SCAN",
+        "READ_JSON_AUTO", "READ_NDJSON", "READ_NDJSON_AUTO", "READ_BLOB", "READ_TEXT",
+        "SCAN_PARQUET", "SCAN_CSV", "PARQUET_SCAN", "GLOB", "HTTPFS", "POSTGRES_SCAN",
         "SQLITE_SCAN", "ICU_SORT_KEY", "EXPORT_DATABASE", "WRITE_PARQUET",
     }
 
@@ -350,13 +350,16 @@ class DuckDBAnalyticalSession:
             if isinstance(node, exp.Command):
                 raise DuckDBSecurityError("Security Violation: Nested command syntax is forbidden.")
             if isinstance(node, (exp.Func, exp.Anonymous)):
-                fn_name = (
-                    node.sql_name() if hasattr(node, "sql_name") else getattr(node, "name", "")
-                ) or ""
-                if str(fn_name).upper() in self.DISALLOWED_FUNCTIONS:
-                    raise DuckDBSecurityError(
-                        f"Security Violation: Forbidden table/file function '{str(fn_name).upper()}'."
-                    )
+                candidates = (
+                    getattr(node, "name", None),
+                    node.sql_name() if hasattr(node, "sql_name") else None,
+                )
+                for cand in candidates:
+                    fn_name = str(cand or "").strip().upper()
+                    if fn_name and fn_name in self.DISALLOWED_FUNCTIONS:
+                        raise DuckDBSecurityError(
+                            f"Security Violation: Forbidden keyword or table/file function '{fn_name}'."
+                        )
             if isinstance(node, exp.Literal) and node.is_string:
                 lit_val = str(node.this or "")
                 if _FILE_PATH_PATTERN.search(lit_val):
@@ -599,6 +602,8 @@ class DuckDBAnalyticalSession:
                 "column_types": res["column_types"],
                 "data": res["records"],
             }
+        except DuckDBSecurityError:
+            raise
         except Exception as ex:
             logger.error("Parameterized SQL execution failed: %s", ex)
             return {

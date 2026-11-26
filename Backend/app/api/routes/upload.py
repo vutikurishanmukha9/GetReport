@@ -356,7 +356,7 @@ async def upload_and_join_files(
                         child_name,
                     )
                     fk_checks.append(fk_res)
-                    orphans = int(fk_res.get("orphan_fk_rows", 0) or 0)
+                    orphans = int(fk_res.get("orphan_count", fk_res.get("orphan_fk_rows", 0)) or 0)
                     if orphans > 0:
                         fk_note = f" Referential integrity notice: {orphans:,} unmatched foreign-key row(s)."
         except Exception as fk_err:
